@@ -216,3 +216,9 @@ All numbers below are starting values, tuned with the simulation before merging.
 5. **Tutorial:** one tip per quarter during 2027, then one at each new mechanic. No separate tutorial mode.
 6. **Safety estimate after the AI Office:** revisit after the onboarding playtest.
 7. **Political Capital:** comes automatically every quarter. Concern bubbles no longer give PC on click: they show where public concern comes from, and clicking one explains it.
+
+**Added after the teaching-assistant notes (25 Oct)**
+
+8. **The player decides when to decide.** After the situation report, the game stays paused on the main screen (map, news, notes, risks and indicators all explorable) with a "Make my decision" button always in view. The decision no longer opens automatically.
+9. **Absolute levels in previews.** Card previews show each visible change as before → after: "Verification 22 → 37", "Tension 48 → 42".
+10. **What each level means for winning.** Every headline line of the situation report says what the level means for the player's goal, from public rules only: "Verification 37: 13 more needed for a verified deal (50)", "Capability 72: at 80, AI starts improving itself".
