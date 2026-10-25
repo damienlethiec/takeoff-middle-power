@@ -1184,7 +1184,7 @@ export function situationReport(state: GameState): SituationReport {
     // v2 stubs
     headline: changes
       .slice(0, 3)
-      .map((c) => ({ key: c.key as DashboardKey, label: c.label, value: c.key === 'coalition' ? s.coalition : s.gauges[c.key], delta: c.delta, cause: c.cause, kind: 'background' as const })),
+      .map((c) => ({ key: c.key as DashboardKey, label: c.label, value: c.key === 'coalition' ? s.coalition : s.gauges[c.key], delta: c.delta, cause: c.cause, kind: 'background' as const, meaning: '' })),
     background: '',
     risksMoved: [],
     trajectoryChange: null,
