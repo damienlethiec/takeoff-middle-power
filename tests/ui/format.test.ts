@@ -4,7 +4,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   $,
-  $$,
   ACTOR,
   ACTOR_SHORT,
   ACTOR_TONE,
@@ -21,7 +20,7 @@ import {
   chip,
   chips,
   esc,
-  isGaugeKey,
+  isSafeUrl,
   pct,
   signed,
   srcLink,
@@ -147,6 +146,8 @@ describe('source links', () => {
     expect(a.getAttribute('rel')).toBe('noopener');
     expect(a.textContent).toBe('AI "2027"');
     expect(srcLink({ label: 'Book', url: '' })).toBe('<span class="src">Book</span>');
+    // a script URL in content is never turned into a link
+    expect(srcLink({ label: 'Bad', url: 'javascript:alert(1)' })).toBe('<span class="src">Bad</span>');
     expect(srcLink(undefined)).toBe('');
   });
 });
@@ -169,19 +170,18 @@ describe('lookup tables', () => {
     for (const svg of Object.values(ICON)) expect(svg).toMatch(/^<svg[^>]*aria-hidden="true"/);
   });
 
-  it('isGaugeKey accepts gauges only', () => {
-    expect(isGaugeKey('capability')).toBe(true);
-    expect(isGaugeKey('trueAlignment')).toBe(true);
-    for (const k of ['pc', 'budget', 'coalition', 'eu.economy', 'nope']) expect(isGaugeKey(k), k).toBe(false);
+  it('only http(s) URLs are safe to link', () => {
+    expect(isSafeUrl('https://ai-2027.com')).toBe(true);
+    expect(isSafeUrl('HTTP://example.org')).toBe(true);
+    for (const u of ['javascript:alert(1)', 'data:text/html,x', '//evil.example', 'ftp://x']) expect(isSafeUrl(u), u).toBe(false);
   });
 });
 
-describe('$ and $$', () => {
-  it('query the document or a root', () => {
+describe('$', () => {
+  it('queries the document or a root', () => {
     document.body.innerHTML = '<div id="a"><i class="x"></i><i class="x"></i></div>';
     expect($('#a').id).toBe('a');
-    expect($$('.x')).toHaveLength(2);
-    expect($$('.x', $('#a'))).toHaveLength(2);
+    expect($('.x', $('#a')).tagName).toBe('I');
     expect($('.missing')).toBeNull();
   });
 });

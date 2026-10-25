@@ -62,7 +62,7 @@ describe('WorldMap', () => {
     m.spawnBubble('b1', 'eu');
     m.spawnBubble('b2', 'us');
     m.spawnBubble('b3', 'cn');
-    expect(m.liveBubbles).toEqual(['b1', 'b2', 'b3']);
+    expect(m.svg.querySelectorAll('.bubble')).toHaveLength(3);
     const b1 = m.svg.querySelector<SVGGElement>('.bubble')!;
     expect(b1.textContent).toBe('+1');
     expect(b1.getAttribute('role')).toBe('button');
@@ -78,7 +78,7 @@ describe('WorldMap', () => {
     expect(m.svg.querySelector('.gain')!.textContent).toBe('+1 PC');
     m.popBubble('b1', true); // already gone: no-op
     m.clearBubbles();
-    expect(m.liveBubbles).toEqual([]);
+    expect(m.svg.querySelectorAll('.bubble:not(.popped):not(.faded)')).toHaveLength(0);
     expect(m.svg.querySelectorAll('.bubble.faded')).toHaveLength(2);
     await vi.advanceTimersByTimeAsync(500);
     expect(m.svg.querySelectorAll('.bubble')).toHaveLength(0);
@@ -96,6 +96,12 @@ describe('WorldMap', () => {
     // longitude ranges: the US west of Europe, China east of it
     expect(Math.max(...xs('us'))).toBeLessThan(Math.min(...xs('eu')));
     expect(Math.max(...xs('eu'))).toBeLessThan(Math.min(...xs('cn')));
+  });
+
+  it('event pin labels are plain text (no HTML escaping in attributes)', () => {
+    const m = new WorldMap(box);
+    m.addEventPin('eu', 'Europe’s grid & hospitals', "Q1 '28");
+    expect(m.svg.querySelector('.evpin')!.getAttribute('aria-label')).toBe("Europe’s grid & hospitals, Q1 '28");
   });
 
   it('pings, event pins and Léa’s pin', async () => {

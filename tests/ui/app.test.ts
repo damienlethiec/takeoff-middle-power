@@ -99,6 +99,14 @@ describe('the game controller', () => {
     expect($('#play').getAttribute('aria-label')).toBe('Pause the clock (Space)');
   });
 
+  it('Space is left to a focused button (house rule: shortcuts never fire while another button has focus)', () => {
+    const fast = $<HTMLButtonElement>('.speed button[data-speed="1"]');
+    fast.focus();
+    key(' ');
+    expect(text('#phase')).toBe('Clock running');
+    fast.blur();
+  });
+
   it('a gauge tile opens its popover with what moves it; Escape closes it', () => {
     $('.g-tile[data-key="tension"]').click();
     const pop = $('#gpop');

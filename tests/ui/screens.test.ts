@@ -264,7 +264,7 @@ describe('the tipping point screens', () => {
     it(`the draw lands on the chosen plan (${plan})`, async () => {
       vi.useFakeTimers(FAKE_CLOCK);
       const odds: Record<PlanId, number> = { verified_slowdown: 0.4, shut_down: 0.1, fight_china: 0.2, race: 0.3 };
-      const r = showSuperpowersChoose({ odds, plan, labRestraint: plan === 'race' ? true : null }, craft({}));
+      const r = showSuperpowersChoose({ odds, plan, labRestraint: plan === 'race' ? true : null });
       const m = openModalEl()!;
       expect(m.querySelector<HTMLButtonElement>('[data-primary]')!.disabled).toBe(true);
       for (let i = 0; i < 60 && m.querySelector<HTMLButtonElement>('[data-primary]')!.disabled; i++) await vi.advanceTimersByTimeAsync(50);
