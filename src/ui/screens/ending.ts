@@ -34,6 +34,7 @@ export function showEnding(root: HTMLElement, d: Debrief, dateLabel: string): Pr
       <span class="badge end-badge">${e.good ? `${ICON.check}A good ending` : `${ICON.cross}A bad ending`}</span>
       <p class="end-text">${esc(e.text)}</p>
       <p class="epilogue">${esc(e.epilogue)}</p>
+      <p class="end-why"><b>Why this ending</b> ${esc(e.why)}</p>
       <div class="end-lea"><p class="lea-kicker">Léa, one last time</p>${leaHtml(e.lea, dateLabel)}</div>
       <p class="end-src">Scenario: ${srcLink(e.source)}</p>
       <div class="row-btns">
@@ -79,7 +80,7 @@ export function showEnding(root: HTMLElement, d: Debrief, dateLabel: string): Pr
       <h2 id="d3"><span class="n">3</span>Your decisions, explained</h2>
       <p class="deb-lead">Everything each decision did, including the effects you could not see.</p>
       <ol class="deb-list">${d.decisions.length ? d.decisions
-        .map((x) => `<li><span class="q num">Q${x.quarter}</span><div><h4>${esc(x.title)}</h4>
+        .map((x) => `<li><span class="q num">${x.quarters.map((q) => `Q${q}`).join(', ')}</span><div><h4>${esc(x.title)}${x.quarters.length > 1 ? ` <span class="times">×${x.quarters.length}</span>` : ''}</h4>
           <div class="fx-line"><span class="fx-l">Visible</span><span class="fx">${chips(x.visibleDeltas)}</span></div>
           <div class="fx-line"><span class="fx-l">Hidden</span><span class="fx">${chips(x.hiddenDeltas.map((h) => ({ ...h, hidden: true })), '<span class="chip flat"><span>None</span></span>')}</span></div>
           <p>${esc(x.explanation)}</p></div></li>`)

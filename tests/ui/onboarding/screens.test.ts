@@ -126,13 +126,16 @@ describe('tips', () => {
 const report = (q: number): SituationReport => ({
   quarter: q,
   dateLabel: `Q${q} 2027`,
-  changes: [{ key: 'tension', label: 'Tension', delta: 3, cause: 'China accused OpenBrain' }],
+  changes: [
+    { key: 'tension', label: 'Tension', delta: 3, cause: 'China accused OpenBrain', value: 54, routine: false },
+    { key: 'capability', label: 'Capability', delta: 4, cause: 'AI keeps improving', value: 30, routine: true },
+  ],
   why: ['The race heats up.'],
   forecast: { mostLikely: 'race', probability: 0.5, sentence: '', whatWouldHelp: '' },
   newNews: 1,
   newNotes: { total: 0, readable: 0 },
   lea: null,
-  headline: q === 2 ? [{ key: 'tension', label: 'Tension', value: 58, delta: 4, cause: 'China accused OpenBrain of espionage', kind: 'actor' }] : [],
+  headline: q === 2 ? [{ key: 'tension', label: 'Tension', value: 58, delta: 4, cause: 'China accused OpenBrain of espionage', kind: 'actor', meaning: 'At 60 the race speeds up.' }] : [],
   background: q === 2 ? 'Background: capability +4.' : '',
   risksMoved: [],
   trajectoryChange: null,
@@ -165,14 +168,15 @@ describe('the journal', () => {
     const panel = m.querySelector<HTMLElement>('[role="tabpanel"]')!;
     expect(panel.getAttribute('aria-labelledby')).toBe(tabs[1].id);
     // the v2 report: absolute levels with their cause, background folded
-    expect(text(panel)).toContain('Tension 58 (+4): China accused OpenBrain of espionage');
+    expect(text(panel)).toContain('Tension 58 (+4): China accused OpenBrain of espionage At 60 the race speeds up.');
     expect(text(panel)).toContain('Background: capability +4.');
     expect(text(panel)).toContain('You passed');
     expect(text(panel)).toContain('Weight theft: you were not prepared');
     // arrows move between quarters, Home and End jump
     tabs[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
     expect(document.activeElement).toBe(tabs[0]);
-    expect(text(panel)).toContain('Tension +3: China accused OpenBrain');
+    expect(text(panel)).toContain('Tension 54 (+3): China accused OpenBrain');
+    expect(text(panel)).not.toContain('AI keeps improving'); // routine drift stays in the background line
     expect(text(panel)).toContain('AI Office capacity');
     expect(text(panel)).toContain('Hey you, congrats on the new job!');
     tabs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));

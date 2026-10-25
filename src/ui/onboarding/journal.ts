@@ -3,7 +3,7 @@
 
 import type { JournalEntry, Tip } from '../../engine/types';
 import { TIPS } from '../../data/copy';
-import { esc, signed } from '../format';
+import { esc } from '../format';
 import { openModal } from '../modal';
 import { tipFactHtml } from './tips';
 
@@ -11,13 +11,16 @@ const sign = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0'
 
 function reportHtml(e: JournalEntry) {
   const r = e.report;
+  const shown = r.changes.filter((c) => !c.routine);
   const lines = r.headline?.length
     ? `<ul class="ob-lines">${r.headline
-        .map((l) => `<li><b>${esc(l.label)} ${esc(l.value)}</b> <span class="num">(${esc(sign(l.delta))})</span>: ${esc(l.cause)}</li>`)
+        .map((l) => `<li><b>${esc(l.label)} ${esc(l.value)}</b> <span class="num">(${esc(sign(l.delta))})</span>: ${esc(l.cause)}${l.meaning ? ` <span class="ob-meaning">${esc(l.meaning)}</span>` : ''}</li>`)
         .join('')}</ul>`
-    : r.changes.length
-      ? `<ul class="ob-lines">${r.changes.map((c) => `<li><b>${esc(c.label)} <span class="num">${esc(signed(c.delta))}</span></b>: ${esc(c.cause)}</li>`).join('')}</ul>`
-      : '<p class="muted">A quiet quarter: nothing you could see moved.</p>';
+    : shown.length
+      ? `<ul class="ob-lines">${shown.map((c) => `<li><b>${esc(c.label)} ${esc(c.value)}</b> <span class="num">(${esc(sign(c.delta))})</span>: ${esc(c.cause)}</li>`).join('')}</ul>`
+      : r.background
+        ? ''
+        : '<p class="muted">A quiet quarter: nothing you could see moved.</p>';
   const background = r.background ? `<p class="muted">${esc(r.background)}</p>` : '';
   const why = r.why?.length ? `<ul class="ob-why">${r.why.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : '';
   return `${lines}${background}${why}`;

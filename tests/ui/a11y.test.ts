@@ -171,7 +171,8 @@ describe('words, not colour alone', () => {
   });
 
   it('cards: locked ones say so, costs name their currency, the odds chart reads as text, options move with the arrows', async () => {
-    const s = engine.startQuarter(craft({ quarter: 3, pc: 1, budget: 2 }));
+    // capability 30+ so ASML (and its options) is available; tension 75 locks the coalition
+    const s = engine.startQuarter(craft({ quarter: 3, pc: 1, budget: 2, gauges: { capability: 32, tension: 75 }, flags: { exportControls: true } }));
     void showDecision(engine, s);
     const m = openModalEl()!;
     const locked = m.querySelector<HTMLElement>('.pcard.locked')!;

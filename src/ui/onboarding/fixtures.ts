@@ -101,7 +101,7 @@ function report(e: EngineApi, s: GameState, q: number): SituationReport {
   const changes = entries.flatMap((l) =>
     l.visibleDeltas
       .filter((d) => d.key !== 'pc' && d.key !== 'budget' && !d.key.startsWith('eu.'))
-      .map((d) => ({ key: d.key as SituationReport['changes'][number]['key'], label: STAT_LABEL[d.key] ?? d.key, delta: d.amount, cause: l.title })),
+      .map((d) => ({ key: d.key as SituationReport['changes'][number]['key'], label: STAT_LABEL[d.key] ?? d.key, delta: d.amount, cause: l.title, value: d.key === 'coalition' ? s.coalition : s.gauges[d.key as keyof GameState['gauges']] ?? 0, routine: l.kind === 'drift' })),
   );
   return {
     quarter: q,

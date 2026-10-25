@@ -12,6 +12,7 @@
 //   'prepared.<eventId>'   1 if the event fired prepared, else 0
 //   'choice.<eventId>'     option id chosen for that event ('' if none)
 //   'alignmentGap'         apparentAlignment − trueAlignment
+//   'plan'                 the superpowers' plan once drawn ('' before)
 
 export type Op = '<' | '<=' | '>' | '>=' | '==' | '!=';
 

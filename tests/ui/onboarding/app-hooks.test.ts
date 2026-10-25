@@ -59,6 +59,7 @@ describe('onboarding in the game', () => {
     expect($('#ob-skip').getAttribute('aria-disabled')).toBe('false');
     expect(text('#ob-skip')).toBe('Skip to decision unclicked bubbles are skipped');
     expect($('#ob-journal').getAttribute('aria-label')).toBe('Journal');
+    expect($('.lea-pin').getAttribute('aria-label')).toBe('Léa, in Lyon: read her letters');
     // the coach mark: next to the clock, not modal, the clock keeps running
     expect($('.clockctl').nextElementSibling!.classList.contains('ob-coach')).toBe(true);
     expect(modal()).toBeNull();

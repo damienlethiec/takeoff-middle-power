@@ -114,3 +114,4 @@
   .ob-coach, .ob-toast, .modal.ob-act { animation: none !important; }
   .ob-toast { transition: none; }
 }
+.ob-meaning { display: block; color: var(--mute); }
