@@ -12,10 +12,12 @@ npm install
 npm run dev      # local server
 npm test         # engine tests
 npm run sim      # simulate thousands of games and print the ending distribution
-npm run build    # production build in dist/
+npm run build    # production build in dist/ (with a Content-Security-Policy meta tag)
+npm run typecheck
+npm run lint     # ESLint (typescript-eslint recommended rules)
 ```
 
-Pushing to `main` deploys to GitHub Pages (Settings → Pages → Source: GitHub Actions).
+Pushing to `main` deploys to GitHub Pages; every other branch gets a preview at `/takeoff-middle-power/preview/<branch>/` (Settings → Pages → Source: Deploy from a branch, `gh-pages`, `/`). See `.github/workflows/deploy.yml`.
 
 ## Screens
 
