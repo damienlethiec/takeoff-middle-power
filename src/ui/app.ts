@@ -465,7 +465,7 @@ export class App {
     const views = this.gaugeViews().filter((g) => g.visible);
     const tiles = views
       .map(
-        (g) => `<button class="g-tile${g.key === 'gdp' || g.key === 'approval' ? ' home' : ''}" data-key="${g.key}" style="--c:${GAUGE_COLOR[g.key] ?? 'var(--mute)'}" aria-expanded="false">
+        (g) => `<button class="g-tile${g.key === 'gdp' || g.key === 'approval' ? ' home' : ''}" data-key="${esc(g.key)}" style="--c:${GAUGE_COLOR[g.key] ?? 'var(--mute)'}" aria-expanded="false">
           <span class="g-name">${esc(g.label)}</span>
           <span class="g-delta"></span>
           <span class="g-val num"><b></b><small></small></span>
@@ -474,7 +474,7 @@ export class App {
       )
       .join('');
     const hidden = HIDDEN_GAUGES.map(
-      (h) => `<button class="g-tile hidden-slot" data-hidden="${h.key}" aria-expanded="false"><span class="g-name">${esc(h.label)}</span><span class="g-val q"><b>?</b></span><span class="g-tease">Revealed at the end</span></button>`,
+      (h) => `<button class="g-tile hidden-slot" data-hidden="${esc(h.key)}" aria-expanded="false"><span class="g-name">${esc(h.label)}</span><span class="g-val q"><b>?</b></span><span class="g-tease">Revealed at the end</span></button>`,
     ).join('');
     const grid = $('#gauges', this.root);
     grid.innerHTML = tiles + hidden;

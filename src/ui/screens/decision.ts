@@ -65,7 +65,7 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
     <div class="dec-body">
       <div class="hand" role="list">${cards
         .map(
-          (c, i) => `<button class="pcard ${famClass(c.family)}${playable(c) ? '' : c.available ? ' short' : ' locked'}" data-card="${c.id}" data-keep role="listitem" style="--i:${i}">
+          (c, i) => `<button class="pcard ${famClass(c.family)}${playable(c) ? '' : c.available ? ' short' : ' locked'}" data-card="${esc(c.id)}" data-keep role="listitem" style="--i:${i}">
             <span class="fam">${esc(c.family)}</span>
             <span class="pname">${esc(c.name)}</span>
             <span class="cost">${free ? 'Free' : costHtml(c.costLabel)}</span>

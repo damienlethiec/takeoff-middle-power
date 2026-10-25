@@ -1,6 +1,6 @@
 // Title screen, then four short screens that set the scene. Skippable at any point.
 
-import { ICON, esc } from '../format';
+import { ICON, esc, srcLink } from '../format';
 import { WorldMap } from '../map';
 
 interface Slide {
@@ -122,7 +122,7 @@ export function showOpening(): Promise<void> {
           <h2>${esc(s.title)}</h2>
           ${s.body.map((p) => `<p class="op-body">${esc(p)}</p>`).join('')}
           ${s.extra ?? ''}
-          ${s.fact ? `<aside class="box real"><h4>Already real</h4><p>${esc(s.fact.text)}</p><a class="src" href="${esc(s.fact.url)}" target="_blank" rel="noopener">${esc(s.fact.label)}</a></aside>` : ''}
+          ${s.fact ? `<aside class="box real"><h4>Already real</h4><p>${esc(s.fact.text)}</p>${srcLink({ label: s.fact.label, url: s.fact.url })}</aside>` : ''}
           <div class="row-btns">
             <button class="btn-primary" data-go="next">${i === SLIDES.length - 1 ? 'Start the first quarter' : 'Next'} <kbd>Enter</kbd></button>
             <button class="btn-quiet" data-go="back">Back</button>

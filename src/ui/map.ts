@@ -4,7 +4,6 @@
 
 import type { RegionId } from '../engine/types';
 import { MAPDATA } from './mapdata';
-import { esc } from './format';
 
 const NS = 'http://www.w3.org/2000/svg';
 const VB = { x: 14, y: 0, w: 210, h: 68 };
@@ -332,7 +331,8 @@ export class WorldMap {
     lbl.textContent = title;
     const q = el('text', { y: 2.6, class: 'evpin-q' }, g);
     q.textContent = quarterLabel;
-    g.setAttribute('aria-label', esc(`${title}, ${quarterLabel}`));
+    // setAttribute takes plain text: escaping here would make screen readers read "&#39;".
+    g.setAttribute('aria-label', `${title}, ${quarterLabel}`);
   }
 
   settlePins() {
