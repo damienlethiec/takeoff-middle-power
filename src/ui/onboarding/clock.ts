@@ -2,7 +2,7 @@
 // "Skip to decision" fast-forwards the current quarter through the same steps (events still stop it,
 // no extra rewards, uncollected concern bubbles are skipped).
 
-import { announce } from '../a11y';
+import { announce, flush } from '../a11y';
 
 /** Q1 lasts 5 seconds instead of 10, so the first decision comes within a minute of pressing Start. */
 export const FIRST_QUARTER_MS = 5_000;
@@ -44,12 +44,19 @@ export function updateClockCue(el: HTMLElement, st: ClockStatus) {
   const w = el.querySelector<HTMLElement>('#ob-next-when')!;
   if (w.textContent !== when) w.textContent = when;
   const btn = el.querySelector<HTMLButtonElement>('#ob-skip')!;
-  const off = !st.active || st.skipping || st.eventBusy;
-  if (btn.disabled !== off) btn.disabled = off;
+  // aria-disabled, not disabled: a focused button that becomes disabled drops keyboard focus to the page
+  const off = String(!st.active || st.skipping || st.eventBusy);
+  if (btn.getAttribute('aria-disabled') !== off) btn.setAttribute('aria-disabled', off);
   const title = st.skipping ? 'Skipping to the decision' : `Fast-forward to the end of this quarter. ${SKIP_NOTE}`;
   if (btn.title !== title) btn.title = title;
   el.classList.toggle('skipping', st.skipping);
 }
 
-/** Say what skipping does, once per press. */
-export const announceSkip = () => announce(`Skipping to the decision. ${SKIP_NOTE} Events still stop the clock.`);
+/**
+ * Say what skipping does, once per press, right away: the fast-forward then announces news in quick
+ * succession, and the live region waits for a pause in announcements before it speaks.
+ */
+export function announceSkip() {
+  announce(`Skipping to the decision. ${SKIP_NOTE} Events still stop the clock.`);
+  flush();
+}

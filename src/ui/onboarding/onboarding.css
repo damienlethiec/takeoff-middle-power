@@ -12,8 +12,8 @@
 .ob-skip { display: grid; justify-items: start; gap: 0; padding: 3px 10px; border-radius: 8px; line-height: 1.15; min-height: 30px; text-align: left; }
 .ob-skip-t { font-size: 13px; font-weight: 700; }
 .ob-skip-n { font-size: 10.5px; font-weight: 400; color: var(--mute); }
-.ob-skip:hover:not(:disabled) { border-color: var(--align); }
-.ob-skip:disabled { opacity: .55; }
+.ob-skip:hover:not([aria-disabled="true"]) { border-color: var(--align); }
+.ob-skip[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 .ob-journal-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--rule); background: var(--deck); font-size: 13px; font-weight: 600; }
 .ob-journal-btn .ico { width: 16px; height: 16px; color: var(--mute); }
 .ob-journal-btn:hover { border-color: var(--mute); }

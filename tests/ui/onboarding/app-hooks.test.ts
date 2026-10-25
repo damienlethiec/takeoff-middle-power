@@ -56,7 +56,7 @@ describe('onboarding in the game', () => {
   it('Q1: the cue, Skip and Journal in the header; the clock tip as a coach mark; act 1 as a toast', async () => {
     await advance(50);
     expect(text('#ob-next-l')).toBe('Next decision end of quarter');
-    expect($<HTMLButtonElement>('#ob-skip').disabled).toBe(false);
+    expect($('#ob-skip').getAttribute('aria-disabled')).toBe('false');
     expect(text('#ob-skip')).toBe('Skip to decision unclicked bubbles are skipped');
     expect($('#ob-journal').getAttribute('aria-label')).toBe('Journal');
     // the coach mark: next to the clock, not modal, the clock keeps running
@@ -74,7 +74,7 @@ describe('onboarding in the game', () => {
     expect(modal()).not.toBeNull(); // the report (or Léa's letter just before it)
     await until(() => /^Situation report/.test(modal()?.getAttribute('aria-label') ?? ''));
     expect(text('#ob-next-when')).toBe('now');
-    expect($<HTMLButtonElement>('#ob-skip').disabled).toBe(true);
+    expect($('#ob-skip').getAttribute('aria-disabled')).toBe('true');
     await until(() => !!modal()?.classList.contains('decision'));
     expect(document.querySelector('.ob-coach')).toBeNull();
   });
@@ -94,9 +94,11 @@ describe('onboarding in the game', () => {
 
   it('Skip to decision: fast-forwards this quarter once, ignores a second press, and announces the bubbles are skipped', async () => {
     const skip = $<HTMLButtonElement>('#ob-skip');
+    skip.focus();
     skip.click();
     await advance(200); // announcements are batched for 150 ms
-    expect(skip.disabled).toBe(true);
+    expect(skip.getAttribute('aria-disabled')).toBe('true');
+    expect(document.activeElement).toBe(skip); // keyboard focus stays on it
     expect(text('#ob-next-when')).toBe('skipping ahead…');
     expect(document.querySelector('.bubble:not(.popped):not(.faded)')).toBeNull();
     expect([...document.querySelectorAll('.sr-live')].map((r) => r.textContent).join(' ')).toContain('Concern bubbles you have not clicked are skipped.');
@@ -157,6 +159,6 @@ describe('onboarding in the game', () => {
     $<HTMLButtonElement>('#ob-skip').click();
     await until(() => !!modal());
     expect(modal()!.classList.contains('event')).toBe(true);
-    expect($<HTMLButtonElement>('#ob-skip').disabled).toBe(true);
+    expect($('#ob-skip').getAttribute('aria-disabled')).toBe('true');
   }, 20_000);
 });
