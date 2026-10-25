@@ -2,6 +2,7 @@
 
 import type { GaugeView, PlanId, TippingResult } from '../../engine/types';
 import { PLAN, PLAN_ORDER, PLAN_TONE, esc, pct } from '../format';
+import { announce, reducedMotion } from '../a11y';
 import { openModal, wait } from '../modal';
 
 export async function showTippingAlarm(dateLabel: string, gauges: GaugeView[], odds: Record<PlanId, number>): Promise<void> {
@@ -24,7 +25,7 @@ export async function showTippingAlarm(dateLabel: string, gauges: GaugeView[], o
      </div>
      <p class="tp-free">You have one last decision. It costs nothing.</p>
      <div class="row-btns"><button class="btn-primary alarm-btn" data-primary data-action="go">Take your last decision <kbd>Enter</kbd></button></div>`,
-    { cls: 'tipping-alarm intro', overlayCls: 'ov-alarm', label: 'The tipping point' },
+    { cls: 'tipping-alarm intro', overlayCls: 'ov-alarm', label: 'The tipping point', describedBy: '.tp-lead' },
   );
   await wait(2200);
   m.el.classList.remove('intro');
@@ -42,7 +43,7 @@ export async function showSuperpowersChoose(res: TippingResult): Promise<void> {
      <div class="draw">
        ${PLAN_ORDER.map((p) => `<div class="dr-row" data-plan="${p}"><span class="dr-name">${esc(PLAN[p].name)}<small>${esc(PLAN[p].blurb)}</small></span><span class="dr-track"><i class="s-${PLAN_TONE[p]}" style="--w:${(odds[p] * 100).toFixed(1)}%"></i></span><b class="num">${pct(odds[p])}</b></div>`).join('')}
      </div>
-     <div class="wheel">
+     <div class="wheel" aria-hidden="true">
        <div class="stack big">${PLAN_ORDER.map((p) => `<span class="seg s-${PLAN_TONE[p]}" data-plan="${p}" style="flex:${Math.max(0.0001, odds[p])}"></span>`).join('')}</div>
        <span class="marker" aria-hidden="true"></span>
      </div>
@@ -66,7 +67,7 @@ export async function showSuperpowersChoose(res: TippingResult): Promise<void> {
   const marker = el.querySelector<HTMLElement>('.marker')!;
   const laps = 2;
   const total = laps + target;
-  const dur = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 3200;
+  const dur = reducedMotion() ? 1 : 3200;
   const segs = Array.from(el.querySelectorAll<HTMLElement>('.wheel .seg'));
   const rows = Array.from(el.querySelectorAll<HTMLElement>('.dr-row'));
   await new Promise<void>((done) => {
@@ -95,7 +96,7 @@ export async function showSuperpowersChoose(res: TippingResult): Promise<void> {
   el.classList.add('landed');
   rows.forEach((r) => r.classList.toggle('chosen', r.dataset.plan === res.plan));
   const verdict = el.querySelector<HTMLElement>('.verdict')!;
-  verdict.innerHTML = `<span class="v-kicker">They chose</span><span class="v-plan t-${PLAN_TONE[res.plan]}">${esc(PLAN[res.plan].name)}</span>`;
+  verdict.innerHTML = `<span class="v-kicker">They chose</span> <span class="v-plan t-${PLAN_TONE[res.plan]}">${esc(PLAN[res.plan].name)}</span>`;
   await wait(900);
 
   if (res.plan === 'race') {
@@ -116,6 +117,7 @@ export async function showSuperpowersChoose(res: TippingResult): Promise<void> {
     await wait(1100);
     r.classList.add(res.labRestraint ? 'held' : 'pressed');
     face.textContent = res.labRestraint ? 'The leading lab held back, a little.' : 'The leading lab pressed on.';
+    announce(face.textContent);
     await wait(500);
   }
   const btn = el.querySelector<HTMLButtonElement>('[data-primary]')!;

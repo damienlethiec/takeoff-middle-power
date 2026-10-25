@@ -1,5 +1,6 @@
 // Title screen, then four short screens that set the scene. Skippable at any point.
 
+import { focusOwnsKey, tabbables } from '../a11y';
 import { ICON, esc, srcLink } from '../format';
 import { WorldMap } from '../map';
 
@@ -66,7 +67,7 @@ const SLIDES: Slide[] = [
       <li><b>Your decision</b><span>One card, or pass. You see its effects before confirming.</span></li>
       <li><b>Briefing</b><span>What moved, and a hint about what didn't show.</span></li>
     </ol>
-    <p class="hidden-note"><span class="redact-demo">██████ ███</span> Some information is hidden from you, as it would be from a real politician. Everything is revealed at the end.</p>`,
+    <p class="hidden-note"><span class="redact-demo" aria-hidden="true">██████ ███</span> Some information is hidden from you, as it would be from a real politician. Everything is revealed at the end.</p>`,
   },
 ];
 
@@ -92,8 +93,20 @@ export function showOpening(): Promise<void> {
       render();
     };
     const onKey = (ev: KeyboardEvent) => {
-      const tag = (document.activeElement as HTMLElement | null)?.tagName;
-      if (ev.key === 'Enter' && tag !== 'BUTTON' && tag !== 'A') {
+      if (ev.key === 'Tab') {
+        // the introduction is a modal dialog: keep Tab inside it
+        const list = tabbables(stage);
+        if (!list.length) return;
+        const a = document.activeElement as HTMLElement | null;
+        const first = list[0];
+        const last = list[list.length - 1];
+        if (!a || !stage.contains(a) || (ev.shiftKey ? a === first || !list.includes(a) : a === last)) {
+          ev.preventDefault();
+          (ev.shiftKey ? last : first).focus();
+        }
+        return;
+      }
+      if (ev.key === 'Enter' && !focusOwnsKey('Enter')) {
         ev.preventDefault();
         go(i + 1);
       } else if (ev.key === 'ArrowRight') go(i + 1);
@@ -118,8 +131,8 @@ export function showOpening(): Promise<void> {
         const s = SLIDES[i];
         stage.className = `op-stage slide s${i}`;
         stage.innerHTML = `
-          <ol class="op-steps" aria-label="Step ${i + 1} of ${SLIDES.length}">${SLIDES.map((x, k) => `<li class="${k === i ? 'on' : k < i ? 'done' : ''}">${esc(x.kicker)}</li>`).join('')}</ol>
-          <h2>${esc(s.title)}</h2>
+          <ol class="op-steps" aria-label="Step ${i + 1} of ${SLIDES.length}">${SLIDES.map((x, k) => `<li class="${k === i ? 'on' : k < i ? 'done' : ''}"${k === i ? ' aria-current="step"' : ''}>${esc(x.kicker)}</li>`).join('')}</ol>
+          <h2 tabindex="-1">${esc(s.title)}</h2>
           ${s.body.map((p) => `<p class="op-body">${esc(p)}</p>`).join('')}
           ${s.extra ?? ''}
           ${s.fact ? `<aside class="box real"><h4>Already real</h4><p>${esc(s.fact.text)}</p>${srcLink({ label: s.fact.label, url: s.fact.url })}</aside>` : ''}
@@ -137,7 +150,9 @@ export function showOpening(): Promise<void> {
           else finish();
         }),
       );
-      stage.querySelector<HTMLButtonElement>('[data-go="next"]')?.focus({ preventScroll: true });
+      // the title screen starts on Begin; each slide starts on its heading, so a screen reader reads it from the top
+      // (Enter still goes on to the next slide while the heading has focus)
+      (i < 0 ? stage.querySelector<HTMLElement>('[data-go="next"]') : stage.querySelector<HTMLElement>('h2'))?.focus({ preventScroll: true });
     };
     render();
   });

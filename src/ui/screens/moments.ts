@@ -32,10 +32,30 @@ export async function showEvent(pe: PendingEvent, dateLabel: string): Promise<st
       <div class="box real"><h4>Already real</h4><p>${esc(pe.alreadyReal.text)}</p>${srcLink(pe.alreadyReal.source)}</div>
     </div>
     ${opts}`,
-    { cls: `event ${pe.prepared ? 'is-prepared' : 'is-unprepared'}`, overlayCls: 'ov-event', label: pe.title },
+    { cls: `event ${pe.prepared ? 'is-prepared' : 'is-unprepared'}`, overlayCls: 'ov-event', label: pe.title, describedBy: '.scene, .fx-line' },
   );
   const r = await m.result;
   return r.startsWith('opt:') ? r.slice(4) : undefined;
+}
+
+/** An event again, from its pin on the map: what happened and what it did, nothing to choose. */
+export async function showEventRecap(pe: PendingEvent, dateLabel: string): Promise<void> {
+  const m = openModal(
+    `<div class="ev-head">
+      <div class="dateline alarm-text">${esc(dateLabel)} · Breaking · ${esc(REGION[pe.region])}</div>
+      <h2>${esc(pe.title)}</h2>
+      <div class="ev-meta">${actorTag(pe.actor)}${pe.prepared ? `<span class="badge prep yes">${ICON.check}You were prepared</span>` : `<span class="badge prep no">${ICON.cross}You were not prepared</span>`}</div>
+    </div>
+    <p class="scene">${esc(pe.scene)}</p>
+    <div class="fx-line"><span class="fx-l">What it did</span><span class="fx">${chips(pe.appliedDeltas)}</span></div>
+    <div class="boxes">
+      <div class="box why"><h4>Why it matters</h4><p>${esc(pe.whyItMatters)}</p></div>
+      <div class="box real"><h4>Already real</h4><p>${esc(pe.alreadyReal.text)}</p>${srcLink(pe.alreadyReal.source)}</div>
+    </div>
+    <div class="row-btns"><button class="btn-primary" data-primary data-escape data-action="ok">Back to the map <kbd>Enter</kbd></button></div>`,
+    { cls: `event event-recap ${pe.prepared ? 'is-prepared' : 'is-unprepared'}`, overlayCls: 'ov-event', label: pe.title, describedBy: '.scene, .fx-line' },
+  );
+  await m.result;
 }
 
 export function leaHtml(lea: LeaScene, dateLabel: string) {
@@ -51,7 +71,7 @@ export async function showLea(lea: LeaScene, dateLabel: string, cta = 'Back to w
      ${leaHtml(lea, dateLabel)}
      <p class="lea-note">Léa is a translator in Lyon. What happens to her is what the numbers mean.</p>
      <div class="row-btns center"><button class="btn-quiet light" data-primary data-escape data-action="ok">${esc(cta)} <kbd>Enter</kbd></button></div>`,
-    { cls: 'lea', overlayCls: 'ov-lea', label: 'Message from Léa' },
+    { cls: 'lea', overlayCls: 'ov-lea', label: 'Message from Léa', describedBy: '.letter p' },
   );
   await m.result;
 }
@@ -90,7 +110,7 @@ export async function showReport(r: SituationReport, odds: Record<PlanId, number
       <button class="btn-primary" data-primary data-action="decide">${opts.tipping ? 'Take your last decision' : 'Choose your decision'} <kbd>Enter</kbd></button>
       <button class="btn-quiet" data-escape data-action="map">Look at the map first</button>
     </div>`,
-    { cls: 'report', label: `Situation report ${r.dateLabel}` },
+    { cls: 'report', label: `Situation report ${r.dateLabel}`, describedBy: '.changes, h2 + p.muted, .forecast-box p' },
   );
   return (await m.result) as 'decide' | 'map' | 'lea';
 }
@@ -108,6 +128,7 @@ export async function showBriefing(b: Briefing | null, dateLabel: string, nextLa
   const m = openModal(`${body}<div class="row-btns"><button class="btn-primary" data-primary data-action="ok">${esc(nextLabel)} <kbd>Enter</kbd></button></div>`, {
     cls: 'briefing',
     label: 'Briefing',
+    describedBy: '.fx-line, h2 + p, .advisor p',
   });
   await m.result;
 }

@@ -2,6 +2,7 @@
 
 import type { Debrief, WorldKind } from '../../engine/types';
 import { ACTOR, ACTOR_TONE, ICON, PLAN, PLAN_ORDER, PLAN_TONE, SPEED, chips, esc, pct, srcLink } from '../format';
+import { reducedMotion, tryFocus } from '../a11y';
 import { leaHtml } from './moments';
 
 const WORLD: Record<WorldKind, string> = { plateau: 'Plateau', big_ai: 'Big AI', diplomacy: 'Diplomacy', arms_race: 'Arms race', take_off: 'Take-off' };
@@ -26,10 +27,10 @@ export function showEnding(root: HTMLElement, d: Debrief, dateLabel: string): Pr
     : `<div class="rv-block"><h3>The superpowers' choice</h3><p class="muted">AI never learned to improve itself before the end of 2030. The superpowers never had to choose.</p></div>`;
 
   root.innerHTML = `
-  <div class="ending-page ${e.good ? 'good' : 'bad'}">
+  <div class="ending-page ${e.good ? 'good' : 'bad'}" role="main">
     <section class="end-hero">
       <div class="dateline">${esc(dateLabel)} · ${esc(WORLD[e.world])} world</div>
-      <h1>${esc(e.title)}</h1>
+      <h1 tabindex="-1">${esc(e.title)}</h1>
       <span class="badge end-badge">${e.good ? `${ICON.check}A good ending` : `${ICON.cross}A bad ending`}</span>
       <p class="end-text">${esc(e.text)}</p>
       <p class="epilogue">${esc(e.epilogue)}</p>
@@ -97,10 +98,21 @@ export function showEnding(root: HTMLElement, d: Debrief, dateLabel: string): Pr
   </div>`;
   root.scrollTop = 0;
   window.scrollTo(0, 0);
+  document.title = `${e.title} · Takeoff: Middle Power`;
+  // the ending replaces the game: start keyboard and screen-reader users at its title
+  tryFocus(root.querySelector('.end-hero h1'));
   root.querySelectorAll<HTMLAnchorElement>('.deb-nav a, a[href="#debrief"]').forEach((a) =>
     a.addEventListener('click', (ev) => {
       ev.preventDefault();
-      root.querySelector(a.getAttribute('href')!)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const target = root.querySelector<HTMLElement>(a.getAttribute('href')!);
+      if (!target) return;
+      target.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
+      // move focus too, so Tab and the screen reader carry on from the section
+      const h = target.matches('h2') ? target : target.querySelector<HTMLElement>('h2');
+      if (h) {
+        h.tabIndex = -1;
+        h.focus({ preventScroll: true });
+      }
     }),
   );
   return new Promise((resolve) => {
