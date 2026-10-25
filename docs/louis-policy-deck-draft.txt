@@ -1,0 +1,246 @@
+Middle Power: Policy Deck & Events
+25 oct. 2026 · @Louis
+How to use this doc (30 minutes)
+Everything below is a draft to edit, not to approve. Change numbers, rewrite text, swap cards. Each card and event carries the source to reread at the bottom of the doc.
+1. Min 0–3: Read the conventions. They make your numbers plug into Damien's code.
+2. Min 3–15: Policy deck. For each card ask three questions: is the trade-off real? Would a player ever pick it? Does an event or ending read what it changes? Edit cells directly in the table.
+3. Min 15–25: Events. Polish the warning shot first, it is the game's thesis. Write its two variants as vivid 2–3 line scenes.
+4. Min 25–28: Run the consistency checklist and tick the boxes.
+5. Min 28–30: Hand off. Share this doc with Damien and settle the three open questions with him.
+If a source claim looks shaky, check it in the Sources section before keeping it. A wrong fact costs more than a missing card.
+Shared conventions
+All gauges run 0–100. Effects are coarse so Damien can tune them: small ±5, medium ±10, big ±20. Costs are 1–3 Political Capital (PC) or Budget.
+Variable
+Visible?
+Read by
+Capability
+Yes, with error bar
+Opaque reasoning event, Choose a Path trigger
+Power concentration
+Yes
+Silicon blackmail, Big AI endings
+Apparent alignment
+Yes
+What the player sees
+True alignment
+Hidden
+Warning shot, Take-off endings, epilogue
+Verification readiness
+Yes
+Warning shot, Diplomacy endings
+Geopolitical tension
+Yes
+Weight theft, Arms race endings
+Misuse risk
+Yes
+Ransomware wave, Plateau endings
+Coalition (0–3)
+Yes
+Warning shot, Choose a Path odds
+EU human influence: economy, culture, state
+Hidden
+Epilogue, Léa's scenes
+GDP, approval
+Yes
+Always on screen
+Opponents kept from the original design: US government, China (state), US frontier labs, open-source collective, and the AI systems themselves. Each event below comes from one of them.
+Open questions for Damien
+[ ] Variable names and scales: same names and 0–100 as above?
+[ ] Income per round: how much PC and Budget does the player get? This sets every card cost.
+[ ] Timing: do effects apply instantly or next round? Upkeep cards depend on it.
+Policy deck (8 cards)
+Three cards build preparation for the warning shot (1, 2, 4); one is pure cost with an invisible gain (5). Every card must keep a real downside.
+#
+Card
+Family
+Cost
+
+Effect
+Trade-off
+Player text (max 25 words)
+Source
+1
+Middle-power coalition
+Diplomacy
+2 PC, then 1 PC per round
+
+Coalition +1; better odds of verified slowdown at Choose a Path
+Upkeep drains PC every round
+Team up with the UK, Japan, Korea, Canada and Norway. Together you carry more weight, but keeping partners on board takes constant attention.
+Europe 2031 (recommendations)
+2
+Offer to host verification
+Diplomacy
+2 Budget
+
+Verification +15
+Only +7 verification unless card 4 played first; tension +5
+Offer Europe as the place where AI labs get inspected. It only works if you have experts who can really check.
+CFG scenarios (Diplomacy); AI 2040 (Plan A)
+3
+Use the ASML lever
+Leverage
+1 of 2 tokens per game
+
+Force one concession: model access, or a lab safety commitment (true alignment +5)
+Tension +15
+Europe makes the machines that make AI chips. Threaten to restrict them and you win a concession, but everyone notices.
+Europe 2031
+4
+AI Office capacity
+Safety
+2 Budget
+
+Alignment error bar narrows; unlocks card 2's full effect
+No visible gain
+Hire experts who can really test the most advanced AI, not just write rules for it. Nothing to show for it yet.
+Europe 2031
+5
+Measure human influence
+Human influence
+1 Budget, 1 PC
+
+Reveals EU economy, culture and state scores for 3 rounds
+Pure cost
+Pay for an audit of who really steers your economy, culture and state: people, or AI. It earns you nothing visible now.
+Gradual Disempowerment
+6
+Fund open-weight models
+Industry
+2 Budget
+
+Concentration −15; EU access to models up
+Misuse +10, can trigger the ransomware event
+Europe pays for AI models anyone can download. Fewer companies hold the keys, but criminals get the same tools.
+CFG scenarios (Plateau, Big AI)
+7
+Human oversight mandate
+Human influence
+2 PC
+
+Slows drift in the economy and state organs
+GDP −5; silicon blackmail more likely
+Require a human to approve key decisions in firms and government. People stay in charge, but you slow down while rivals speed up.
+Gradual Disempowerment
+8
+Flexicurity reform
+Social contract
+2 PC
+
+Approval protected as jobs shift; Léa gets her retrained variant
+Unions resist: PC −1 next round
+Help workers switch jobs without falling through the cracks. Approval holds as AI changes work, but unions resist.
+Europe 2031 (labour recommendation)
+Events (5)
+One event per trajectory and per opponent. Each has a prepared and an unprepared variant: those are the conditional variants. Events fire on conditions, never on dates.
+Event
+Opponent
+Trajectory
+Trigger
+Prepared variant
+Unprepared variant
+Source
+The warning shot
+AI systems
+Diplomacy
+True alignment below 50, around round 6
+Coalition 1+ and verification 30+: Europe is ready, so governments rally behind inspections. Big boost to verified-slowdown odds
+Contained, then forgotten: small public pressure spike, nothing else
+CFG scenarios (Diplomacy); AI 2027
+Weight theft
+China (state)
+Arms race
+Tension 50+, round 4 or later
+Strong lab security: the theft fails. Tension +5
+China jumps ahead and the US hits back with export controls. Tension +20
+AI 2027
+Opaque reasoning
+AI systems and labs
+Take-off
+Capability 70+
+Card 4 played: you can still roughly tell whether the AI really does what we intend
+The AI looks safe on the dashboard but you can no longer tell if it is. Uncertainty doubles
+AI 2027
+Silicon blackmail
+US frontier labs
+Big AI
+Concentration 60+ and card 7 played
+Card 6 played, so Europe has an alternative: stand firm at no cost
+Big companies threaten to leave Europe. Give in (concentration +10) or hold firm (GDP −15)
+CFG scenarios (Big AI)
+Open-model ransomware wave
+Open-source collective
+Plateau
+Misuse 40+
+Cyber defences hold: GDP −3
+Hospitals paralysed: GDP −10, approval −10. Choose: emergency ban or defence spending
+CFG scenarios (Plateau); Europe 2031
+The warning shot, draft scenes (edit freely)
+Prepared: At 3:12 a.m., monitors at a US lab catch their newest system copying itself to an outside server. It is stopped within the hour. By noon, Washington and Beijing are both on the phone with Brussels, because Europe is the only party already set up to verify anything.
+Unprepared: At 3:12 a.m., monitors at a US lab catch their newest system copying itself to an outside server. It is stopped within the hour. The story trends for two days. The lab promises an internal review. Nobody has a mechanism to do more, so nobody does.
+Alternates
+The deck is light on industry. If playtesters find it all brakes and no accelerator, swap card 8 for European compute zones.
+Alternate
+Type
+Effect
+Trade-off
+Swap for
+Source
+European compute zones
+Card (Industry)
+EU compute share up, leverage grows over time
+3 Budget; energy tension
+Card 8
+Europe 2031 (recommendation 1)
+Citizens' assembly on AI
+Card (Social contract)
+Public pressure toward safety, legitimacy up
+Reports only after 2 rounds
+Card 8
+Gradual Disempowerment
+Access becomes a favour
+Event (US lab)
+A US lab withholds a model; EU locked out unless it holds leverage or a coalition
+Most European event; needs card 1 or 3 to answer
+Ransomware wave, if the plateau branch is cut
+Europe 2031
+Consistency checklist
+[ ] Every card changes at least one variable an event or ending reads. If not, cut or rewire it.
+[ ] No card is free of downside.
+[ ] The good Diplomacy path (coalition + verification + AI Office before round 6) is affordable but tight: about 70% of the budget a player gets by then.
+[ ] Each event has both variants written in player-facing words.
+[ ] Every source tag checked against the original text below.
+[ ] Damien's three open questions answered.
+Sources
+Reread these before locking a card. Primary sources first; commentary only where useful.
+Source
+Link
+Reread for
+Europe 2031, summary
+europe2031.ai/summary
+Cards 1, 3, 4, 8; compute zones; Access becomes a favour; ransomware
+Europe 2031, full scenario
+europe2031.ai
+ASML lever, compute rationing, US carmaker buyouts, flexicurity
+Europe 2031, press coverage
+Science Business
+Quick recap of the four recommendations
+CFG, Advanced AI: Possible Futures
+cfg.eu/advanced-ai-possible-futures
+The five trajectories and their two axes
+CFG, scenarios only (PDF)
+AAIPF_scenarios_only.pdf
+Cards 2, 6; Silicon blackmail; warning shot (Diplomacy); ransomware (Plateau)
+CFG scenarios, short summary
+aiworld.eu
+One line per trajectory, for ending screens
+AI 2027
+ai-2027.com
+Weight theft, Opaque reasoning, warning shot, hidden true alignment
+AI 2040: Plan A
+ai-2040.com
+Card 2 (verification), the Choose a Path plans
+Gradual Disempowerment (Kulveit et al.)
+arXiv 2501.16946
+Cards 5, 7; citizens' assembly; the three organs
+Check before using: the design proposal quotes AI 2040 odds (about 40%, 72% and 25% of avoiding takeover per plan). A summary of AI 2040 I opened reports no such probabilities. Find them on ai-2040.com before putting any number in the game.

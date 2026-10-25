@@ -1,0 +1,73 @@
+// The engine's public API. Pure functions: no DOM, no Math.random (use the seeded RNG in state).
+// Every function returns a NEW state (never mutates its input).
+//
+// Flow of one quarter, as the UI drives it:
+//   s = startQuarter(s)            income, pending effects, actors, drift, news & notes, maybe an event
+//   UI runs the clock ~10 s, revealing s.news / s.notes by their `at`, letting the player click bubbles:
+//   s = collectBubble(s, region)   (max 2 per quarter)
+//   if s.pendingEvent: the clock stops at pendingEvent.at → UI shows it →
+//   s = resolveEvent(s, optionId?) (optionId required when options is non-empty)
+//   report = situationReport(s)    the pause to assess
+//   cards = cardViews(s); preview = previewCard(s, id, option)
+//   { state, briefing } = playCard(s, id, option)  or  s = pass(s)
+//   { state, outcome } = endQuarter(s)
+//     'next_quarter'  → startQuarter again
+//     'tipping_point' → s.phase === 'tipping': one free decision (playCard ignores costs), then
+//                        s = runTippingPoint(s) → s.tipping set, s.phase 'ended'
+//     'game_over'     → s.phase 'ended' (no tipping point: slow world)
+//   debrief(s) once s.phase === 'ended'
+
+export type {
+  GameState,
+  CardId,
+  PlanId,
+  RegionId,
+  Briefing,
+  CardPreview,
+  CardView,
+  Debrief,
+  GaugeView,
+  SituationReport,
+  QuarterOutcome,
+  EndingView,
+  LeaScene,
+} from './types';
+
+import type {
+  GameState,
+  CardId,
+  PlanId,
+  RegionId,
+  Briefing,
+  CardPreview,
+  CardView,
+  Debrief,
+  GaugeView,
+  SituationReport,
+  QuarterOutcome,
+  LeaScene,
+} from './types';
+
+export interface EngineApi {
+  createInitialState(seed: number): GameState;
+  startQuarter(state: GameState): GameState;
+  collectBubble(state: GameState, region: RegionId): GameState;
+  resolveEvent(state: GameState, optionId?: string): GameState;
+  situationReport(state: GameState): SituationReport;
+  gaugeViews(state: GameState): GaugeView[];
+  cardViews(state: GameState): CardView[];
+  previewCard(state: GameState, id: CardId, option?: string): CardPreview;
+  playCard(state: GameState, id: CardId, option?: string): { state: GameState; briefing: Briefing };
+  pass(state: GameState): GameState;
+  endQuarter(state: GameState): { state: GameState; outcome: QuarterOutcome };
+  planOdds(state: GameState): Record<PlanId, number>;
+  runTippingPoint(state: GameState): GameState;
+  debrief(state: GameState): Debrief;
+  /** Léa's scene for a slot, picked from the hidden state ('end' needs phase 'ended'). */
+  leaScene(state: GameState, slot: LeaScene['slot']): LeaScene;
+  /** "Q3 2027" */
+  dateLabel(quarter: number): string;
+  /** One-line goal and forecast shown at all times. */
+  goalLine(): string;
+  forecastLine(state: GameState): string;
+}
