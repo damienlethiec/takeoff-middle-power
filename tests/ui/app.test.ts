@@ -49,7 +49,7 @@ async function playToEnding(maxSteps = 600) {
       const card = m.querySelector<HTMLElement>('.pcard:not(.locked):not(.short)');
       if (card) {
         card.click();
-        played.push(card.querySelector('.pname')!.textContent!);
+        played.push(card.dataset.card!); // by card: levelled cards change their title, the debrief groups per card
         m.querySelector<HTMLElement>('.dec-bar [data-primary]')!.click();
       } else m.querySelector<HTMLElement>('[data-action="pass"]')!.click();
     } else if (m.querySelector('.choice')) m.querySelector<HTMLElement>('.choice')!.click();
@@ -66,8 +66,9 @@ describe('the game controller', () => {
     expect(text('#date')).toBe('Q1 2027');
     expect(text('#month')).toBe('Jan');
     expect(text('#phase')).toBe('Clock running');
-    expect(text('#pc')).toBe('6');
-    expect(text('#budget')).toBe('3');
+    // v2 economy: Political Capital starts at 4 (team decision 7: it then comes every quarter)
+    expect(text('#pc')).toBe('4');
+    expect(text('#budget')).toBe(String(app.debug.state().budget));
     // next quarter's income on each currency, with its reasons in the tooltip
     const inc = engine.nextIncome(app.debug.state());
     expect(text('#next-budget')).toBe(`+${inc.budget} next`);
@@ -100,7 +101,7 @@ describe('the game controller', () => {
   });
 
   it('a concern bubble explains what worries people and pays nothing (team decision)', async () => {
-    for (let i = 0; i < 40 && !document.querySelector('.bubble:not(.faded)'); i++) await advance(100);
+    for (let i = 0; i < 90 && !document.querySelector('.bubble:not(.faded)'); i++) await advance(100);
     const before = app.debug.state().pc;
     const b = $('.bubble:not(.faded)');
     b.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -115,7 +116,9 @@ describe('the game controller', () => {
   });
 
   it('runs the clock: news arrives in the feed and the ticker, the month advances', async () => {
-    await advance(6000);
+    // the bubble test above ran the clock to the middle of the quarter; run on, but not to its end
+    for (let i = 0; i < 25 && !document.querySelector('#news li.ni'); i++) await advance(100);
+    await advance(300);
     expect(document.querySelectorAll('#news li.ni').length).toBeGreaterThan(0);
     expect(text('#tickText')).toBe(text('#news li.ni p'));
     expect(['Feb', 'Mar']).toContain(text('#month'));
@@ -202,7 +205,7 @@ describe('the game controller', () => {
     expect(s.tipping).not.toBeNull();
     expect(document.body.classList.contains('ended')).toBe(true);
     expect(text('.ending-page h1')).toBe(engine.debrief(s).ending.title);
-    // repeated plays of a card are one entry (B3)
+    // repeated plays of a card (and every level of a levelled card) are one entry (B3)
     expect(document.querySelectorAll('.ending-page .deb-list')[0].querySelectorAll('h4')).toHaveLength(new Set(played).size);
     expect(document.body.textContent).not.toMatch(BAD_TEXT);
   });

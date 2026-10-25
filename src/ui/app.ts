@@ -907,7 +907,8 @@ export class App {
         box.classList.add('bump');
         const f = document.createElement('span');
         f.className = `res-float ${v > prev ? 'up' : 'down'}`;
-        f.textContent = signed(v - prev);
+        // drawn by CSS (::after): a decoration that fades, never text measured mid-fade
+        f.dataset.v = signed(v - prev);
         f.setAttribute('aria-hidden', 'true');
         box.appendChild(f);
         setTimeout(() => f.remove(), 1300);
@@ -1121,7 +1122,7 @@ export class App {
     const parts: string[] = [];
     if (a.recommend) parts.push(`<span class="adv-k">Recommended</span><b>${esc(this.namesOf([a.recommend])[0])}</b>${a.reason ? ` · ${esc(a.reason)}` : ''}`);
     else if (a.reason) parts.push(esc(a.reason));
-    if (a.alternative) parts.push(`<span class="adv-k">Alternative</span>${esc(a.alternative.text)}`);
+    if (a.alternative) parts.push(`<span class="adv-k">Alternative</span>${esc(a.alternative.text.replace(/^Alternative:\s*/i, ''))}`);
     $('#adv-more', this.root).innerHTML = parts.join('<br>');
   }
 
@@ -1300,6 +1301,8 @@ export class App {
     const t = document.createElement('div');
     t.className = `toast ${kind}`;
     t.textContent = text;
+    // screen readers hear it through the live region (here, or in the quarter's opening announcement)
+    t.setAttribute('aria-hidden', 'true');
     if (say) announce(text);
     document.body.appendChild(t);
     const life = kind === 'alert' ? 5200 : 2600;

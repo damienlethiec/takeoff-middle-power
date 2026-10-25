@@ -9,7 +9,6 @@ import { showEnding } from '../../src/ui/screens/ending';
 import { showSuperpowersChoose, showTippingAlarm } from '../../src/ui/screens/tipping';
 import { showOpening } from '../../src/ui/screens/opening';
 import { modalOpen } from '../../src/ui/modal';
-import { CARDS } from '../../src/data/cards';
 import { craft, playGame, prepared, randomStrategy, passive, started } from '../helpers';
 import { installV2Fixtures } from './fixtures';
 import { PLAN } from '../../src/ui/format';
@@ -39,8 +38,10 @@ describe('the decision screen', () => {
     void showDecision(engine, s);
     const m = openModalEl()!;
     const cards = [...m.querySelectorAll<HTMLElement>('.pcard')];
-    expect(cards.map((c) => c.dataset.card)).toEqual(CARDS.map((c) => c.id));
+    // the hand is what the engine deals (unlocked cards and offers on the table), in its order
     const views = engine.cardViews(s);
+    expect(cards.map((c) => c.dataset.card)).toEqual(views.map((c) => c.id));
+    expect(views.length).toBeLessThanOrEqual(12);
     for (const v of views) {
       const el = m.querySelector(`.pcard[data-card="${v.id}"]`)!;
       expect(text(el.querySelector('.pname'))).toBe(v.name);
@@ -59,7 +60,9 @@ describe('the decision screen', () => {
     expect(m.querySelector('.pcard[data-card="host_verification"] .cost .cost-b svg')).not.toBeNull();
     expect(m.querySelector('.pcard[data-card="host_verification"] .cost .cost-p svg')).not.toBeNull();
     expect(text(m.querySelector('.pcard[data-card="host_verification"] .st'))).toBe('Full effect needs AI Office capacity');
-    expect(text(m.querySelector('.pcard[data-card="coalition"] .st'))).toBe('Needs 2 more PC');
+    // coalition costs 3 PC and you hold 1: next quarter's income says whether it is a wait or a gap
+    const inc = engine.nextIncome(s);
+    expect(text(m.querySelector('.pcard[data-card="coalition"] .st'))).toBe(1 + inc.pc >= 3 ? 'Affordable next quarter' : `Needs 2 more PC`);
     // with no card picked, Confirm waits in the action bar
     const confirm = m.querySelector<HTMLButtonElement>('.dec-bar [data-primary]')!;
     expect(confirm.disabled).toBe(true);
@@ -192,14 +195,15 @@ describe('the decision screen', () => {
       void showDecision(engine, st, { tipping: st.phase === 'tipping' });
       const m = openModalEl()!;
       const out: string[] = [];
-      for (const id of ['coalition', 'flexicurity']) {
+      for (const id of ['coalition', 'flexicurity', 'measure']) {
         m.querySelector<HTMLElement>(`.pcard[data-card="${id}"]`)!.click();
         out.push(text(m.querySelector('.pv-notes')));
       }
       m.querySelector<HTMLElement>('[data-action="pass"]')!.click();
       return out.join(' ');
     };
-    expect(notes(rich())).toMatch(/upkeep every quarter, from next quarter on.*Next quarter: PC −1/);
+    // v2: no coalition upkeep any more; flexicurity's cost next quarter and the audit's window are the future notes
+    expect(notes(rich())).toMatch(/every quarter.*Next quarter: PC −1.*for 3 quarters/);
     for (const last of [{ ...rich(), phase: 'tipping' as const }, { ...rich(), quarter: 16 }, { ...rich(), gauges: { ...rich().gauges, capability: 80 } }]) {
       const said = notes(last);
       expect(said).not.toMatch(/next quarter|every quarter|Next quarter/i);

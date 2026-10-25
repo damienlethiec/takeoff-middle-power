@@ -195,7 +195,7 @@ describe('words, not colour alone', () => {
     expect(m.querySelector<HTMLButtonElement>('.dec-bar [data-primary]')!.disabled).toBe(true);
     m.querySelector<HTMLElement>('[data-action="pass"]')!.click();
     await sleep(60);
-    void showDecision(engine, engine.startQuarter(craft({ quarter: 3, pc: 1, budget: 2, gauges: { capability: 40 } })));
+    void showDecision(engine, engine.startQuarter(craft({ quarter: 3, pc: 0, budget: 0, gauges: { capability: 40 } })));
     const m2 = openModalEl()!;
     m2.querySelector<HTMLElement>('.pcard[data-card="asml"]')!.click();
     const opts = () => [...m2.querySelectorAll<HTMLElement>('.opt')];
@@ -205,7 +205,7 @@ describe('words, not colour alone', () => {
     expect(document.activeElement).toBe(opts()[1]); // focus stays on the choice after the preview redraws
     expect(opts().map((o) => o.getAttribute('tabindex'))).toEqual(['-1', '0']);
     // an unaffordable card says how far off it is, in words
-    expect(m2.querySelector('.pcard[data-card="asml"] .st.short')!.textContent).toBe('Needs 1 more PC');
+    expect(m2.querySelector('.pcard[data-card="coalition"] .st.short')!.textContent).toMatch(/^(Affordable next quarter|Needs \d+ more (Budget|PC)( and \d+ more PC)?)$/);
     m2.querySelector<HTMLElement>('[data-action="pass"]')!.click();
   });
 

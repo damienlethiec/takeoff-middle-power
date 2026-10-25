@@ -48,7 +48,7 @@ describe('the controller from the keyboard', () => {
   });
 
   it('C reads the latest public concern aloud; it pays nothing', async () => {
-    for (let i = 0; i < 40 && !document.querySelector('.bubble:not(.faded)'); i++) await advance(100);
+    for (let i = 0; i < 90 && !document.querySelector('.bubble:not(.faded)'); i++) await advance(100);
     await advance(160); // announcements said together are batched for 150 ms
     expect(said()).toMatch(/Public concern in (Europe|United States|China): press C to read it\./);
     const before = Number(text('#pc'));

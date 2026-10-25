@@ -116,7 +116,7 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
   const meta = (c: CardView) => {
     const m: string[] = [];
     if (c.context) m.push(`<span class="pm ctx">Offer ends ${esc(e.dateLabel(c.context.until))}</span>`);
-    if (c.usesLeft !== null && c.usesLeft !== undefined && !c.level) m.push(`<span class="pm">${c.usesLeft} use${c.usesLeft === 1 ? '' : 's'} left</span>`);
+    if (c.usesLeft !== null && c.usesLeft !== undefined && !c.level && (c.usesLeft > 0 || c.available)) m.push(`<span class="pm">${c.usesLeft} use${c.usesLeft === 1 ? '' : 's'} left</span>`);
     return m.length ? `<span class="pmeta">${m.join('')}</span>` : '';
   };
 
@@ -130,7 +130,7 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
     return `<button class="pcard ${famClass(c.family)}${playable(c) ? '' : c.available ? ' short' : ' locked'}${advice.recommend === c.id ? ' recommended' : ''}${c.context ? ' context' : ''}" data-card="${esc(c.id)}" data-keep aria-pressed="false" style="--i:${i}">
         <span class="fam">${esc(c.family)}</span>
         <span class="pname">${esc(c.name)}</span>
-        ${c.level ? `<span class="plevel">${esc(c.level.name)} · ${c.level.next} of ${c.level.max}</span>` : ''}
+        ${c.level ? `<span class="plevel">${c.level.name === c.name ? 'Level' : esc(c.level.name) + ' ·'} ${c.level.next} of ${c.level.max}</span>` : ''}
         ${c.isNew && c.unlockReason ? `<span class="pwhy">${esc(c.unlockReason)}</span>` : ''}
         ${c.face.length ? `<span class="pchips">${c.face.slice(0, 3).map(effectChip).join('')}</span>` : ''}
         ${prep}
@@ -152,7 +152,7 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
   const recName = advice.recommend ? cards.find((c) => c.id === advice.recommend)?.name : null;
   const adviceHtml = `<div class="dec-advice"><span class="ava adv" aria-hidden="true">CS</span><p><span class="sr-only">Your chief of staff: </span>${esc(advice.text)}${
     recName ? ` <span class="adv-k">Recommended</span><b>${esc(recName)}</b>` : ''
-  }${advice.alternative ? ` <span class="adv-k">Alternative</span>${esc(advice.alternative.text)}` : ''}</p></div>`;
+  }${advice.alternative ? ` <span class="adv-k">Alternative</span>${esc(advice.alternative.text.replace(/^Alternative:\s*/i, ''))}` : ''}</p></div>`;
 
   const m = openModal(
     `<div class="dec-head">
@@ -227,7 +227,7 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
       <div class="pv-card ${famClass(c.family)}">
         <span class="fam">${esc(c.family)}</span>
         <h3>${esc(c.name)}</h3>
-        ${c.level ? `<p class="plevel">Next level: <b>${esc(c.level.name)}</b>, ${c.level.next} of ${c.level.max}</p>` : ''}
+        ${c.level ? `<p class="plevel">${c.level.name === c.name ? `Level ${c.level.next} of ${c.level.max}` : `Next level: <b>${esc(c.level.name)}</b>, ${c.level.next} of ${c.level.max}`}</p>` : ''}
         <p class="pv-text">${esc(c.playerText)}</p>
         ${c.isNew && c.unlockReason ? `<p class="pv-why"><span class="pbadge new">New</span> ${esc(c.unlockReason)}</p>` : ''}
         ${c.context ? `<p class="pv-why"><span class="pbadge ctx">Limited time</span> ${esc(c.context.reason)} Offer ends ${esc(e.dateLabel(c.context.until))}.</p>` : ''}
