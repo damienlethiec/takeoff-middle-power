@@ -67,7 +67,7 @@ const SLIDES: Slide[] = [
       <li><b>Your decision</b><span>One card, or pass. You see its effects before confirming.</span></li>
       <li><b>Briefing</b><span>What moved, and a hint about what didn't show.</span></li>
     </ol>
-    <p class="hidden-note"><span class="redact-demo" aria-hidden="true">██████ ███</span> Some information is hidden from you, as it would be from a real politician. Everything is revealed at the end.</p>`,
+    <p class="hidden-note"><span class="redact-demo bars" aria-hidden="true"><i></i><i></i></span> Some information is hidden from you, as it would be from a real politician. Everything is revealed at the end.</p>`,
   },
 ];
 
