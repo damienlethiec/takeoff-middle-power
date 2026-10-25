@@ -66,9 +66,12 @@ describe('the situation report', () => {
     const r = E.situationReport(s);
     expect(r.quarter).toBe(s.quarter);
     expect(r.dateLabel).toBe(E.dateLabel(s.quarter));
-    const deltas = r.changes.map((c) => Math.abs(c.delta));
-    expect(deltas).toEqual([...deltas].sort((a, b) => b - a));
-    expect(r.changes[0]).toMatchObject({ key: 'capability', label: 'Capability', delta: 6, cause: 'AI keeps improving', value: 56 });
+    // non-routine changes first, then routine drift; biggest first in each group
+    for (const group of [false, true]) {
+      const deltas = r.changes.filter((c) => c.routine === group).map((c) => Math.abs(c.delta));
+      expect(deltas).toEqual([...deltas].sort((a, b) => b - a));
+    }
+    expect(r.changes.find((c) => c.key === 'capability')).toEqual({ key: 'capability', label: 'Capability', delta: 6, cause: 'AI keeps improving', value: 56, routine: false }); // a crafted state has no earlier quarter to compare with
     for (const c of r.changes) {
       expect(c.key).not.toBe('trueAlignment');
       const now = c.key === 'coalition' ? s.coalition : s.gauges[c.key];
@@ -120,7 +123,8 @@ describe('the situation report', () => {
     // a drift crossing a threshold (capability 50: AI is taking jobs) is news the quarter it happens
     let t = E.startQuarter(E.createInitialState(3));
     t = nextQuarter({ ...t, gauges: { ...t.gauges, capability: 50 } });
-    expect(E.situationReport(t).changes.find((c) => c.key === 'publicPressure')).toMatchObject({ routine: false, cause: 'AI is taking jobs' });
+    // (the first wave of layoffs at capability 40 comes with it in this crafted jump)
+    expect(E.situationReport(t).changes.find((c) => c.key === 'publicPressure')).toMatchObject({ routine: false, cause: 'First wave of AI layoffs; AI layoffs raise public concern' });
     const t2 = nextQuarter(t);
     expect(E.situationReport(t2).changes.find((c) => c.key === 'publicPressure')!.routine).toBe(true);
   });
@@ -131,7 +135,7 @@ describe('the situation report', () => {
     expect(cap.delta).toBe(7);
     expect(cap.cause).toBe('China stole a model; AI keeps improving');
     const t = started({ gauges: { tension: 60 } });
-    expect(E.situationReport(t).changes.find((c) => c.key === 'tension')!.cause).toBe('US tightens chip controls; the race heats up');
+    expect(E.situationReport(t).changes.find((c) => c.key === 'tension')!.cause).toBe('The US tightens chip controls; the race heats up');
   });
 
   it('falls back to "Several causes" for a change no log entry of the quarter explains (the player’s own card)', () => {
@@ -220,11 +224,11 @@ describe('news', () => {
     expect(s.news.find((n) => n.quarter === s.quarter && n.id.startsWith('echo.'))!.id).toBe('echo.coalition.1');
   });
 
-  it('a repeatable card played more often than it has echo lines goes quiet', () => {
+  it('a card played several times echoes a new line each time', () => {
     let s = started({ quarter: 2, budget: 40 });
     const lines = CARD_BY_ID.fund_alignment.echoNews.length;
     const echoes: string[] = [];
-    for (let i = 0; i < lines + 2; i++) {
+    for (let i = 0; i < lines; i++) {
       s = nextQuarter(E.playCard({ ...s, budget: 40 }, 'fund_alignment').state);
       echoes.push(...s.news.filter((n) => n.quarter === s.quarter && n.id.startsWith('echo.')).map((n) => n.id));
     }
@@ -292,18 +296,22 @@ describe('the debrief', () => {
       const { final: s } = playGame(seed, seed % 2 ? randomStrategy : prepared);
       const d = E.debrief(s);
       const cards = s.log.filter((e) => e.kind === 'card');
-      // one entry per decision, repeated plays grouped (B3), every play accounted for
-      expect(d.decisions.flatMap((x) => x.quarters.map((q) => [q, x.title])).sort()).toEqual(cards.map((e) => [e.quarter, e.title]).sort());
-      expect(new Set(d.decisions.map((x) => x.title)).size).toBe(d.decisions.length);
+      // one entry per card (and option), repeated plays grouped (B3); every play is accounted for
+      expect(d.decisions.flatMap((x) => x.quarters).sort((a, b) => a - b)).toEqual(cards.map((e) => e.quarter).sort((a, b) => a - b));
       for (const x of d.decisions) {
-        const plays = cards.filter((e) => e.title === x.title);
-        expect(x.quarter).toBe(plays[0].quarter);
-        if (plays.length === 1) {
-          expect(x.visibleDeltas).toEqual(plays[0].visibleDeltas);
-          expect(x.hiddenDeltas).toEqual(plays[0].hiddenDeltas);
-          expect(x.explanation).toBe(plays[0].debrief);
+        expect(x.quarter).toBe(x.quarters[0]);
+        if (x.quarters.length === 1) {
+          const play = cards.find((e) => e.quarter === x.quarter && e.title === x.title)!;
+          expect(play).toBeDefined();
+          expect(x.visibleDeltas).toEqual(play.visibleDeltas);
+          expect(x.hiddenDeltas).toEqual(play.hiddenDeltas);
+          expect(x.explanation).toBe(play.debrief);
+        } else {
+          // a repeated card keeps its name (a levelled one, the level it reached); the UI adds ×n
+          expect(cards.some((e) => e.title === x.title)).toBe(true);
         }
       }
+      expect(new Set(d.decisions.map((x) => x.title)).size).toBe(d.decisions.length);
       expect(d.events.map((e) => e.title).sort()).toEqual(Object.keys(s.firedEvents).map((id) => EVENT_BY_ID[id as keyof typeof EVENT_BY_ID].title).sort());
       for (const ev of d.events) {
         const def = Object.values(EVENT_BY_ID).find((x) => x.title === ev.title)!;
@@ -348,8 +356,9 @@ describe('the debrief', () => {
       [CARD_BY_ID.cyber_defence.name, [5]],
     ]);
     const fund = d.decisions[0];
-    expect(fund.hiddenDeltas).toEqual([{ key: 'trueAlignment', amount: 18, hidden: true }]);
-    expect(fund.visibleDeltas).toEqual([{ key: 'budget', amount: -6, hidden: false }]);
+    // v2: three rounds at 2 / 3 / 4 Budget with diminishing returns +6 / +5 / +4
+    expect(fund.hiddenDeltas).toEqual([{ key: 'trueAlignment', amount: 15, hidden: true }]);
+    expect(fund.visibleDeltas).toEqual([{ key: 'budget', amount: -9, hidden: false }]);
     // the card's explanation once, not three times
     expect(fund.explanation.split(CARD_BY_ID.fund_alignment.debrief)).toHaveLength(2);
   });

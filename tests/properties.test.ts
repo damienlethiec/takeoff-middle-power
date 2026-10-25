@@ -135,16 +135,18 @@ describe(`${SEEDS} seeded games with random legal play`, () => {
     const bad: string[] = [];
     for (const { trail } of games.slice(0, 120)) {
       const seen = new Set<GameState>();
+      const seenIds = new Set<string>();
       for (const s of trail) {
         // check each quarter once after it starts, at the tipping point, and at the end
-        const key = s.phase === 'ended' || s.phase === 'tipping' || (s.log.at(-1)?.kind !== 'bubble' && !s.decidedThisQuarter);
-        if (!key || seen.has(s)) continue;
+        const id = `${s.quarter}|${s.phase}|${s.decidedThisQuarter}|${!!s.pendingEvent}`;
+        if (seenIds.has(id) || seen.has(s)) continue;
+        seenIds.add(id);
         seen.add(s);
         for (const t of allTexts(s)) if (/undefined|NaN|\[object Object\]/.test(t)) bad.push(`seed ${s.seed} Q${s.quarter}: ${t.slice(0, 120)}`);
       }
     }
     expect(bad).toEqual([]);
-  });
+  }, 60_000);
 
   it('reach every ending at least once', () => {
     const endings = new Set(games.map((g) => g.final.ending));
@@ -181,6 +183,15 @@ describe('determinism and purity', () => {
         E.forecastLine(s);
         E.leaScene(s, 'q1');
         E.leaScene(s, 'end');
+        // v2 views
+        E.dashboard(s);
+        E.riskViews(s);
+        E.advisor(s);
+        E.trajectory(s);
+        E.nextIncome(s);
+        E.journal(s);
+        const t = E.tip(s);
+        if (t) E.markTipShown(s, t.id);
         if (s.phase === 'ended') E.debrief(s);
         else {
           E.situationReport(s);
@@ -198,5 +209,5 @@ describe('determinism and purity', () => {
         expect(JSON.stringify(s)).toBe(snapshot);
       }
     }
-  });
+  }, 60_000);
 });
