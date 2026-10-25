@@ -12,7 +12,7 @@ const view = (s: GameState, id: CardId) => E.cardViews(s).find((c) => c.id === i
 const optionsOf = (id: CardId) => CARD_BY_ID[id].options?.map((o) => o.id) ?? [undefined];
 
 describe('costs', () => {
-  const expected: Record<CardId, { pc: number; budget: number; label: string }> = {
+  const expected: Record<string, { pc: number; budget: number; label: string }> = {
     coalition: { pc: 3, budget: 0, label: '3 PC, then 1 PC per quarter' },
     host_verification: { pc: 1, budget: 2, label: '2 Budget, 1 PC' },
     asml: { pc: 2, budget: 0, label: '2 PC (1 of 2 tokens)' },

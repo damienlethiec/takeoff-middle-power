@@ -6,6 +6,14 @@
 
 import type { EngineApi } from './api';
 import type {
+  AdvisorView,
+  DashboardKey,
+  DashboardView,
+  IncomeView,
+  JournalEntry,
+  RiskView,
+  Tip,
+  TrajectoryView,
   ActorId,
   Briefing,
   CardId,
@@ -286,6 +294,18 @@ export function createInitialState(seed: number): GameState {
     quarterStart: { gauges: { ...gauges }, coalition: 0, pc: TUNING.start.pc, budget: TUNING.start.budget },
     tipping: null,
     ending: null,
+    // v2 (stub values: the engine agent implements acts, unlocks and the rest)
+    act: 1,
+    unlockedCards: CARDS.map((c) => c.id),
+    contextCards: [],
+    cardLastPlayed: {},
+    dashboard: { cap: 4, slots: ['capability', 'apparentAlignment', 'verification', 'tension'], milestones: [] },
+    notices: [],
+    tipsShown: [],
+    concerns: [],
+    leaLetters: [],
+    history: [],
+    oddsHistory: [],
   };
 }
 
@@ -753,6 +773,19 @@ export function cardViews(state: GameState): CardView[] {
       options: (card.options ?? []).map((o) => ({ id: o.id, label: o.label })),
       source: { ...card.source },
       isLouis: card.isLouis,
+      // v2 stubs
+      isNew: false,
+      unlockReason: null,
+      level: null,
+      usesLeft: card.limit === null ? null : Math.max(0, card.limit - (s.cardsPlayed[card.id] ?? 0)),
+      cooldownUntil: null,
+      face: card.effects
+        .filter((e) => !e.when)
+        .slice(0, 2)
+        .map((e) => ({ key: e.key, text: fmtDelta({ key: e.key, amount: e.amount, hidden: false }), tone: 'neutral' as const })),
+      prepares: [],
+      context: null,
+      realCost: null,
     };
   });
 }
@@ -828,6 +861,8 @@ export function previewCard(state: GameState, id: CardId, option?: string): Card
     notes,
     oddsBefore: planOdds(state),
     oddsAfter: planOdds(maskHidden(draft, state)),
+    infoGains: [], // v2 stub
+    realCost: null, // v2 stub
   };
 }
 
@@ -863,7 +898,7 @@ export function playCard(state: GameState, id: CardId, option?: string): { state
     briefing: advisorNote,
     debrief: debriefText,
   });
-  return { state: s, briefing: { title, visibleDeltas: [...costs, ...visible], advisorNote } };
+  return { state: s, briefing: { title, visibleDeltas: [...costs, ...visible], advisorNote, infoGains: [], consequence: null } };
 }
 
 export function pass(state: GameState): GameState {
@@ -1146,6 +1181,13 @@ export function situationReport(state: GameState): SituationReport {
     newNews: s.news.filter((n) => n.quarter === q).length,
     newNotes: { total: notesQ.length, readable: notesQ.filter((n) => n.readable).length },
     lea: slot && s.phase === 'quarter' ? leaScene(s, slot) : null,
+    // v2 stubs
+    headline: changes
+      .slice(0, 3)
+      .map((c) => ({ key: c.key as DashboardKey, label: c.label, value: c.key === 'coalition' ? s.coalition : s.gauges[c.key], delta: c.delta, cause: c.cause, kind: 'background' as const })),
+    background: '',
+    risksMoved: [],
+    trajectoryChange: null,
   };
 }
 
@@ -1245,6 +1287,66 @@ export function endingWhy(id: EndingId): string {
 
 export { PLANS, EU_KEYS };
 
+// ---------------------------------------------------------------------------
+// v2 views. STUBS so the UI can be built in parallel: the engine agent replaces them.
+// ---------------------------------------------------------------------------
+
+export function dashboard(state: GameState): DashboardView {
+  const views = gaugeViews(state).filter((g) => g.visible);
+  const slots = state.dashboard.slots;
+  const primary = slots.map((k) => views.find((g) => g.key === k)).filter((g): g is GaugeView => !!g).slice(0, state.dashboard.cap);
+  const secondary = views.filter((g) => !slots.includes(g.key as DashboardKey));
+  return { cap: state.dashboard.cap, primary, secondary, introduced: null };
+}
+
+export function riskViews(_state: GameState): RiskView[] {
+  return [];
+}
+
+export function advisor(state: GameState): AdvisorView {
+  const f = forecast(state);
+  return { text: f.whatWouldHelp, recommend: null, reason: f.sentence, alternative: null };
+}
+
+export function trajectory(state: GameState): TrajectoryView {
+  const odds = planOdds(state);
+  const mostLikely = (Object.keys(odds) as PlanId[]).reduce((a, b) => (odds[b] > odds[a] ? b : a));
+  return { odds, mostLikely, change: null };
+}
+
+export function nextIncome(state: GameState): IncomeView {
+  const inc = TUNING.income;
+  const high = state.gauges.publicPressure >= inc.highPressureAt;
+  const pc = inc.pc + (high ? inc.pcHighPressureBonus : 0) - state.coalition * inc.coalitionUpkeep;
+  const reasons = [`+${inc.budget} Budget per quarter`];
+  if (inc.pc) reasons.push(`+${inc.pc} PC per quarter`);
+  if (high) reasons.push(`+${inc.pcHighPressureBonus} PC: public pressure is high`);
+  if (state.coalition) reasons.push(`−${state.coalition * inc.coalitionUpkeep} PC: coalition upkeep`);
+  return { pc, budget: inc.budget, reasons, nextQuarterExists: state.phase === 'quarter' && state.quarter < TUNING.lastQuarter };
+}
+
+export function tip(_state: GameState): Tip | null {
+  return null;
+}
+
+export function markTipShown(state: GameState, tipId: string): GameState {
+  const s = cloneState(state);
+  if (!s.tipsShown.includes(tipId)) s.tipsShown.push(tipId);
+  return s;
+}
+
+export function journal(state: GameState): JournalEntry[] {
+  return state.history.map((h) => ({
+    quarter: h.quarter,
+    dateLabel: dateLabel(h.quarter),
+    report: h.report,
+    decision: h.decision,
+    events: [],
+    lea: state.leaLetters.find((l) => l.quarter === h.quarter) ?? null,
+    tips: [],
+  }));
+}
+
 export const engine: EngineApi = {
   createInitialState,
   startQuarter,
@@ -1264,6 +1366,14 @@ export const engine: EngineApi = {
   dateLabel,
   goalLine,
   forecastLine,
+  dashboard,
+  riskViews,
+  advisor,
+  trajectory,
+  nextIncome,
+  tip,
+  markTipShown,
+  journal,
 };
 
 export default engine;

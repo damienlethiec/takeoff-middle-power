@@ -16,6 +16,12 @@
 //                        s = runTippingPoint(s) → s.tipping set, s.phase 'ended'
 //     'game_over'     → s.phase 'ended' (no tipping point: slow world)
 //   debrief(s) once s.phase === 'ended'
+//
+// v2 additions (all pure, read-only views):
+//   s.notices after startQuarter: act changes, unlocks, context cards, indicator introduced, tips, thresholds
+//   s.concerns: the quarter's public concerns (map bubbles); PC now arrives automatically in startQuarter,
+//              collectBubble is kept for compatibility but pays nothing (it only marks the concern as read)
+//   dashboard(s), riskViews(s), advisor(s), trajectory(s), nextIncome(s), tip(s), journal(s), leaLetters(s)
 
 export type {
   GameState,
@@ -31,9 +37,23 @@ export type {
   QuarterOutcome,
   EndingView,
   LeaScene,
+  AdvisorView,
+  DashboardView,
+  IncomeView,
+  JournalEntry,
+  RiskView,
+  Tip,
+  TrajectoryView,
 } from './types';
 
 import type {
+  AdvisorView,
+  DashboardView,
+  IncomeView,
+  JournalEntry,
+  RiskView,
+  Tip,
+  TrajectoryView,
   GameState,
   CardId,
   PlanId,
@@ -70,4 +90,21 @@ export interface EngineApi {
   /** One-line goal and forecast shown at all times. */
   goalLine(): string;
   forecastLine(state: GameState): string;
+
+  // ---------- v2 ----------
+  /** Primary indicators (4 → 5 → 6) and the rest for "More indicators". */
+  dashboard(state: GameState): DashboardView;
+  /** Telegraphed crises, public values only. */
+  riskViews(state: GameState): RiskView[];
+  /** One recommendation with its reason; never uses hidden values. */
+  advisor(state: GameState): AdvisorView;
+  /** Where the superpowers are heading, and the last movement with its cause. */
+  trajectory(state: GameState): TrajectoryView;
+  /** Next quarter's income and why. */
+  nextIncome(state: GameState): IncomeView;
+  /** The tip to show now (at most one per quarter), or null. Showing it is recorded by markTipShown. */
+  tip(state: GameState): Tip | null;
+  markTipShown(state: GameState, tipId: string): GameState;
+  /** Past quarters, oldest first: reports, decisions, events, Léa, tips. */
+  journal(state: GameState): JournalEntry[];
 }
