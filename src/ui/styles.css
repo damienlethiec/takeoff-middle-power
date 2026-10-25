@@ -165,17 +165,23 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .lab:nth-child(3n) .lab-ring { animation-delay: -1.5s; }
 @keyframes pulse { from { transform: scale(.3); opacity: .95; } to { transform: scale(1.4); opacity: 0; } }
 .lea-pin { cursor: pointer; }
-.lea-dot { fill: var(--paper); stroke: var(--night); stroke-width: .3; }
-.lea-ring { fill: none; stroke: var(--paper); stroke-width: .25; opacity: 0; }
+/* Léa's marker is drawn in pixels (map.ts scales it), hence the px sizes */
+.lea-tag { fill: var(--night); stroke: var(--paper); stroke-width: 1.5px; }
+.lea-name { font-family: var(--f-display); font-weight: 700; font-size: 14px; fill: var(--paper); pointer-events: none; }
+.lea-city { fill: var(--paper); stroke: var(--night); stroke-width: 1px; }
+.lea-stem { stroke: var(--paper); stroke-width: 1.5px; }
+.lea-dot { fill: var(--paper); stroke: var(--night); stroke-width: 1.5px; }
+.lea-ring { fill: none; stroke: var(--paper); stroke-width: 2px; opacity: 0; }
 .lea-pin.unread .lea-ring { opacity: 1; transform-box: fill-box; transform-origin: center; animation: pulse 1.4s ease-out infinite; }
-.lea-l { font-family: var(--f-diary); font-style: italic; font-size: 1.7px; text-anchor: middle; fill: var(--paper-ink); pointer-events: none; }
+.lea-env { fill: none; stroke: var(--paper-ink); stroke-width: 1.4px; stroke-linejoin: round; pointer-events: none; }
+.lea-pin .focus-ring { stroke-width: 2px; }
 .lea-pin:focus-visible, .bubble:focus-visible, .evpin:focus-visible { outline: none; }
 .worldmap:focus-visible { outline-offset: -3px; }
 .pin-hit { fill: transparent; }
 .focus-ring { fill: none; stroke: var(--ink); stroke-width: .45; opacity: 0; pointer-events: none; }
 .lea-pin:focus-visible .focus-ring, .bubble:focus-visible .focus-ring, .evpin:focus-visible .focus-ring { opacity: 1; }
 .evpin[role="button"] { cursor: pointer; }
-.lea-pin:focus-visible .lea-dot, .lea-pin:hover .lea-dot { stroke: var(--align); stroke-width: .4; }
+.lea-pin:focus-visible .lea-tag, .lea-pin:hover .lea-tag { stroke: var(--align); }
 
 .ping circle:first-child { fill: none; stroke-width: .3; transform-box: fill-box; transform-origin: center; animation: ping 1.8s ease-out forwards; }
 .ping-news circle:first-child { stroke: var(--ink); }
@@ -345,6 +351,8 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .changes li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .changes .chip { font-size: 13.5px; }
 .cause { color: var(--mute); font-size: 13.5px; }
+.changes .lvl { font-weight: 600; font-size: 14px; min-width: 11ch; }
+.background { margin: 10px 0 0; color: var(--mute); font-size: 13.5px; }
 .why-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
 .forecast-box { margin-top: 16px; background: var(--night); border: 1px solid var(--rule); border-left: 3px solid var(--warn); border-radius: 10px; padding: 4px 14px 12px; }
 .forecast-box .label { margin-top: 10px; color: var(--warn); }
@@ -420,6 +428,11 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .opt { background: transparent; border: 1px solid var(--rule); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--mute); }
 .opt.on { border-color: var(--cap); color: var(--ink); background: color-mix(in srgb, var(--cap) 15%, transparent); }
 .pv-notes { margin: 0; padding-left: 18px; font-size: 13px; display: grid; gap: 3px; color: var(--ink); }
+.pv-gains { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13.5px; color: var(--ink); }
+.pv-gains li { display: flex; gap: 6px; align-items: flex-start; }
+.pv-gains .ico { color: var(--good); flex: none; margin-top: 2px; }
+.pv-locked { margin: 0; display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--ink); background: var(--deck); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; }
+.pv-locked .ico { flex: none; color: var(--mute); margin-top: 2px; }
 .pv-down { margin: 0; font-size: 13px; color: var(--crit); }
 .pv-down b { font-family: var(--f-data); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; margin-right: 6px; }
 .pv-deps { list-style: none; margin: 0; padding: 0; font-size: 12.5px; display: grid; gap: 3px; }
@@ -438,7 +451,9 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .oc-val .arrow { color: var(--mute); }
 .oc-val em { font-style: normal; min-width: 2.4em; text-align: right; }
 .oc-val em.good { color: var(--good); } .oc-val em.bad { color: var(--crit); } .oc-val em.flat { color: var(--mute); }
-.pv-foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: auto; padding-top: 6px; }
+/* the action bar stays in view at the bottom of the preview, however long the preview (B9);
+   the negative offset and margin cover the preview's bottom padding so nothing shows below it */
+.pv-foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: auto; position: sticky; bottom: -14px; z-index: 1; margin-bottom: -14px; padding: 10px 0 14px; background: var(--night); border-top: 1px solid var(--rule); }
 .pv-foot .btn-primary { flex: 1; justify-content: center; }
 .decision.free .dec-head h2 { color: var(--rival); }
 
@@ -478,7 +493,9 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .loop b { font-size: 14px; line-height: 1.2; }
 .loop span { font-size: 12.5px; color: var(--mute); }
 .hidden-note { font-size: 14px; color: var(--mute); }
-.redact-demo { font-family: var(--f-data); color: #33456a; letter-spacing: -1px; margin-right: 6px; }
+.redact-demo { display: inline-flex; gap: 4px; padding: 0; margin-right: 6px; vertical-align: -1px; }
+/* drawn like a redacted note in the feed (block characters rendered unevenly across fonts) */
+.redact-demo i:first-child { width: 3.6em; } .redact-demo i:last-child { width: 1.8em; }
 
 /* =================================================================== TIPPING */
 body.alarm .game { animation: alarmglow 1.6s ease-in-out infinite alternate; }
@@ -557,6 +574,8 @@ body.ended { overflow: auto; }
 .ending-page.good .end-badge { color: var(--good); } .ending-page.bad .end-badge { color: var(--crit); }
 .end-text { font-size: 19px; line-height: 1.55; max-width: 60ch; margin: 18px 0 6px; }
 .epilogue { color: var(--mute); font-size: 15.5px; max-width: 60ch; margin: 0; }
+.end-why { max-width: 62ch; font-size: 15px; color: var(--ink); margin: 16px 0 0; }
+.end-why b { display: block; font-family: var(--f-data); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); margin-bottom: 2px; }
 .end-lea { margin-top: 26px; max-width: 520px; }
 .end-lea .lea-kicker { text-align: left; }
 .end-src { font-size: 12.5px; color: var(--mute); }
@@ -591,6 +610,7 @@ body.ended { overflow: auto; }
 .deb-list li { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; background: var(--deck); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
 .deb-list li.muted { display: block; }
 .deb-list h4 { margin: 0 0 4px; font-size: 16px; }
+.deb-list h4 .times { font-family: var(--f-data); font-size: 13px; font-weight: 600; color: var(--mute); }
 .deb-list p { margin: 6px 0 4px; font-size: 14px; }
 .deb-list .fx-line { margin: 4px 0; grid-template-columns: 70px minmax(0, 1fr); }
 .end-again { margin-top: 40px; }
@@ -625,6 +645,9 @@ body.ended { overflow: auto; }
   .modal.decision { max-height: none; }
   .ov-sheet { align-items: flex-start; padding: 10px; }
   .hand { overflow: visible; }
+  /* the page scrolls instead of the preview: its action bar sticks to the bottom of the screen */
+  .preview { overflow: visible; }
+  .pv-foot { bottom: 0; margin-bottom: 0; }
   .boxes, .reveal, .tp-grid, .currencies { grid-template-columns: minmax(0, 1fr); }
   .loop { grid-template-columns: minmax(0, 1fr); }
   .loop li:not(:last-child)::after { display: none; }

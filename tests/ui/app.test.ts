@@ -99,6 +99,25 @@ describe('the game controller', () => {
     expect($('#play').getAttribute('aria-label')).toBe('Pause the clock (Space)');
   });
 
+  // B8: paused mid-quarter, capability showed 23 on its tile and 24 in its popover
+  it('while the clock is paused, a tile and its popover show the same value', async () => {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    key(' ');
+    expect(text('#phase')).toBe('Paused');
+    for (const k of ['capability', 'concentration', 'tension', 'publicPressure', 'coalition']) {
+      $(`.g-tile[data-key="${k}"]`).click();
+      const tile = text(`.g-tile[data-key="${k}"] .g-val b`);
+      const err = text(`.g-tile[data-key="${k}"] .g-val small`);
+      expect(text('#gpop [data-pop-val]'), k).toBe(`${tile}${err ? ` ${err}` : ''}`);
+      await advance(500);
+      expect(text('#gpop [data-pop-val]'), k).toBe(`${tile}${err ? ` ${err}` : ''}`);
+    }
+    key('Escape');
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    key(' ');
+    expect(text('#phase')).toBe('Clock running');
+  });
+
   it('Space is left to a focused button (house rule: shortcuts never fire while another button has focus)', () => {
     const fast = $<HTMLButtonElement>('.speed button[data-speed="1"]');
     fast.focus();
@@ -145,7 +164,8 @@ describe('the game controller', () => {
     expect(s.tipping).not.toBeNull();
     expect(document.body.classList.contains('ended')).toBe(true);
     expect(text('.ending-page h1')).toBe(engine.debrief(s).ending.title);
-    expect(document.querySelectorAll('.ending-page .deb-list')[0].querySelectorAll('h4')).toHaveLength(played.length);
+    // repeated plays of a card are one entry (B3)
+    expect(document.querySelectorAll('.ending-page .deb-list')[0].querySelectorAll('h4')).toHaveLength(new Set(played).size);
     expect(document.body.textContent).not.toMatch(BAD_TEXT);
   });
 

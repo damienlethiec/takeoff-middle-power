@@ -7,6 +7,7 @@
 import type { EngineApi } from './api';
 import type {
   AdvisorView,
+  InfoGain,
   DashboardKey,
   DashboardView,
   IncomeView,
@@ -188,6 +189,8 @@ function lookup(s: GameState, key: string): number | string | boolean {
       return s.takeoffSpeed;
     case 'alignmentGap':
       return s.gauges.apparentAlignment - s.gauges.trueAlignment;
+    case 'plan':
+      return s.tipping?.plan ?? '';
     case 'eu.average':
       return euAverage(s);
   }
@@ -489,17 +492,28 @@ function runDrift(s: GameState): void {
     [['misuse', misuse]],
     'Misuse risk grew every quarter: faster once AI was capable, and faster again once open models were everywhere.',
   );
+  // One entry per cause, so the situation report names the true cause of each change.
   const jobs = g.capability >= d.jobsAt;
   drift(
     'economy',
+    'eu',
+    'AI adoption lifts growth',
+    [['gdp', d.gdp + (jobs ? d.gdpHighCapability : 0)]],
+    'AI adoption lifted GDP every quarter, faster once capability passed 50.',
+  );
+  drift(
+    'layoffs',
+    'us_labs',
+    'Layoffs hurt approval',
+    [['approval', jobs && !s.flags.flexicurity ? d.approval : 0]],
+    'Once capability passed 50, layoffs cost approval every quarter (unless flexicurity was in place).',
+  );
+  drift(
+    'public_concern',
     jobs ? 'us_labs' : 'eu',
-    jobs ? 'AI adoption reshapes jobs' : 'AI adoption lifts GDP',
-    [
-      ['gdp', d.gdp + (jobs ? d.gdpHighCapability : 0)],
-      ['approval', jobs && !s.flags.flexicurity ? d.approval : 0],
-      ['publicPressure', jobs ? d.publicPressureJobs : d.publicPressure],
-    ],
-    'AI adoption lifted GDP and slowly raised public concern; once capability passed 50, layoffs cost approval and raised public pressure faster.',
+    jobs ? 'AI is taking jobs' : 'Growing public concern about AI',
+    [['publicPressure', jobs ? d.publicPressureJobs : d.publicPressure]],
+    'Public concern about AI grew every quarter, faster once AI started taking jobs.',
   );
 }
 
@@ -742,6 +756,8 @@ function cardLimitReached(s: GameState, card: CardDef): boolean {
 function lockedReason(s: GameState, card: CardDef): string | null {
   if (s.phase === 'ended') return 'The game is over';
   if (cardLimitReached(s, card)) return card.limit === 1 ? 'Already played' : 'No uses left';
+  // one audit at a time: buying another while one runs would reveal nothing new
+  if (card.special === 'measure' && s.quarter <= s.revealUntil) return `An audit is already running (until ${dateLabel(s.revealUntil)})`;
   for (const r of card.requirements) if (!evalCondition(s, r.when)) return r.reason;
   return null;
 }
@@ -831,6 +847,43 @@ function oddsShiftSentence(before: Record<PlanId, number>, after: Record<PlanId,
   return parts.length ? `Odds at the tipping point: ${parts.join(', ')}.` : 'It did not move the superpowers’ odds directly.';
 }
 
+/** True when another quarter follows the current decision (false at the tipping point, in Q16, or when capability is at 80). */
+function quarterFollows(s: GameState): boolean {
+  return s.phase === 'quarter' && s.quarter < TUNING.lastQuarter && s.gauges.capability < TUNING.tippingAt;
+}
+
+const ERROR_BAR_LABELS: [GaugeKey, string][] = [
+  ['capability', 'Capability'],
+  ['apparentAlignment', 'Apparent alignment'],
+];
+
+/**
+ * What a decision lets the player see, from the state before and after it: narrower error bars,
+ * notes that become readable, the audit window. Never a hidden value.
+ */
+function infoGainsOf(before: GameState, after: GameState): InfoGain[] {
+  return infoGainLines(before, after).map((text) => ({ label: text, text }));
+}
+
+function infoGainLines(before: GameState, after: GameState): string[] {
+  const out: string[] = [];
+  for (const [key, label] of ERROR_BAR_LABELS) {
+    const a = errorBar(before, key);
+    const b = errorBar(after, key);
+    if (a !== b) out.push(`${label} error bar ±${a} → ±${b}`);
+  }
+  const unlocked = after.notes.filter((n) => n.readable).length - before.notes.filter((n) => n.readable).length;
+  if (unlocked > 0) out.push(`${unlocked} internal note${unlocked === 1 ? '' : 's'} you already received ${unlocked === 1 ? 'becomes' : 'become'} readable now`);
+  const follows = quarterFollows(after);
+  if (after.flags.aiOffice && !before.flags.aiOffice && follows) out.push('Every internal note from now on is readable');
+  if (after.revealUntil > before.revealUntil && after.revealUntil >= after.quarter) {
+    const until = !follows || after.revealUntil >= TUNING.lastQuarter ? 'for the rest of the game' : `until ${dateLabel(after.revealUntil)}`;
+    out.push(`Europe’s three human-influence scores shown ${until}`);
+    if (!after.flags.aiOffice && follows) out.push(`Internal notes readable ${until}`);
+  }
+  return out;
+}
+
 export function previewCard(state: GameState, id: CardId, option?: string): CardPreview {
   const card = CARD_BY_ID[id];
   const draft = cloneState(state);
@@ -846,8 +899,12 @@ export function previewCard(state: GameState, id: CardId, option?: string): Card
     notes.push(`${dep.text}${evalCondition(state, dep.met) ? ' (met).' : ' (not yet).'}`);
   }
   notes.push(...card.previewNotes);
-  if (card.pending?.length) {
-    notes.push(`Next quarter: ${card.pending.map((p) => fmtDelta({ key: p.key, amount: p.amount, hidden: false })).join(', ')}.`);
+  // effects due in later quarters only matter if a quarter follows this decision
+  if (quarterFollows(state)) {
+    notes.push(...(card.futureNotes ?? []));
+    if (card.pending?.length) {
+      notes.push(`Next quarter: ${card.pending.map((p) => fmtDelta({ key: p.key, amount: p.amount, hidden: false })).join(', ')}.`);
+    }
   }
   if (card.hasHiddenEffects || (opt && opt.hiddenEffects.length > 0)) {
     notes.push('This decision has hidden effects. They will be revealed at the end.');
@@ -859,9 +916,9 @@ export function previewCard(state: GameState, id: CardId, option?: string): Card
     costs,
     visibleDeltas: deltas.filter((d) => !d.hidden),
     notes,
+    infoGains: infoGainsOf(state, draft),
     oddsBefore: planOdds(state),
     oddsAfter: planOdds(maskHidden(draft, state)),
-    infoGains: [], // v2 stub
     realCost: null, // v2 stub
   };
 }
@@ -898,7 +955,7 @@ export function playCard(state: GameState, id: CardId, option?: string): { state
     briefing: advisorNote,
     debrief: debriefText,
   });
-  return { state: s, briefing: { title, visibleDeltas: [...costs, ...visible], advisorNote, infoGains: [], consequence: null } };
+  return { state: s, briefing: { title, visibleDeltas: [...costs, ...visible], infoGains: infoGainsOf(state, s), advisorNote, consequence: null } };
 }
 
 export function pass(state: GameState): GameState {
@@ -1129,6 +1186,22 @@ export function forecastLine(state: GameState): string {
   return `On current course: ${PLAN_LIKELY[f.mostLikely]} (${pct(f.probability)}). What would help: ${f.whatWouldHelp}.`;
 }
 
+/** Actor moves that happen every quarter, like drift. */
+const ROUTINE_ACTOR_RULES = new Set(['labs_report', 'labs_consolidate']);
+/** Lead-ins for the background line, varied by quarter so the report does not read the same every time. */
+const BACKGROUND_LEADS = ['Background drift', 'Meanwhile, as every quarter', 'The usual drift', 'Underneath, as usual'];
+
+/**
+ * Routine = the same background move as last quarter: a drift or a regular actor move.
+ * A drift whose wording changed since last quarter marks a threshold crossed, so it is news.
+ */
+function isRoutine(s: GameState, e: LogEntry): boolean {
+  if (e.kind === 'actor') return ROUTINE_ACTOR_RULES.has(e.id);
+  if (e.kind !== 'drift') return false;
+  if (e.quarter <= 1) return true;
+  return s.log.some((x) => x.kind === 'drift' && x.id === e.id && x.quarter === e.quarter - 1 && x.title === e.title);
+}
+
 export function situationReport(state: GameState): SituationReport {
   const s = state;
   const q = s.quarter;
@@ -1146,9 +1219,16 @@ export function situationReport(state: GameState): SituationReport {
       .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
     const titles = contributors.slice(0, 2).map((x, i) => (i === 0 ? x.e.title : lowerFirst(x.e.title)));
     const cause = titles.length ? titles.join('; ') : 'Several causes';
-    changes.push({ key, label: GAUGE_INFO[key].label, delta, cause });
+    const routine = contributors.length > 0 && contributors.every((x) => isRoutine(s, x.e));
+    changes.push({ key, label: GAUGE_INFO[key].label, delta, cause, value: now, routine });
   }
-  changes.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  changes.sort((a, b) => Number(a.routine) - Number(b.routine) || Math.abs(b.delta) - Math.abs(a.delta));
+  const routine = changes.filter((c) => c.routine);
+  const background = routine.length
+    ? `${BACKGROUND_LEADS[(q - 1) % BACKGROUND_LEADS.length]}: ${routine
+        .map((c) => `${STAT_LABELS[c.key]} ${c.value} (${c.delta > 0 ? '+' : '−'}${Math.abs(c.delta)})`)
+        .join(', ')}.`
+    : '';
 
   const why: string[] = [];
   for (const e of entries) {
@@ -1176,6 +1256,7 @@ export function situationReport(state: GameState): SituationReport {
     quarter: q,
     dateLabel: dateLabel(q),
     changes,
+    background,
     why,
     forecast: forecast(s),
     newNews: s.news.filter((n) => n.quarter === q).length,
@@ -1184,8 +1265,7 @@ export function situationReport(state: GameState): SituationReport {
     // v2 stubs
     headline: changes
       .slice(0, 3)
-      .map((c) => ({ key: c.key as DashboardKey, label: c.label, value: c.key === 'coalition' ? s.coalition : s.gauges[c.key], delta: c.delta, cause: c.cause, kind: 'background' as const, meaning: '' })),
-    background: '',
+      .map((c) => ({ key: c.key as DashboardKey, label: c.label, value: c.value, delta: c.delta, cause: c.cause, kind: c.routine ? ('background' as const) : ('event' as const), meaning: '' })),
     risksMoved: [],
     trajectoryChange: null,
   };
@@ -1224,27 +1304,102 @@ export function leaScene(state: GameState, slot: LeaScene['slot']): LeaScene {
   }
 }
 
+/** "a", "a and b", "a, b and c" */
+function joinClauses(xs: string[], word = 'and'): string {
+  return xs.length > 1 ? `${xs.slice(0, -1).join(', ')} ${word} ${xs[xs.length - 1]}` : (xs[0] ?? '');
+}
+
+/**
+ * The ending's text and "why" line for this game: the `{causes}` slot holds what actually happened,
+ * and the why line names the conditions that held or failed, with their values.
+ */
+function endingStory(s: GameState, id: EndingId): { text: string; why: string } {
+  const def = ENDING_BY_ID[id];
+  const held = def.reasons.filter((r) => !r.when || evalCondition(s, r.when));
+  let clauses = held.flatMap((r) => (r.clause ? [r.clause] : []));
+  // a state that does not match its ending (only in crafted states): name every possibility
+  const or = !clauses.length;
+  if (or) clauses = def.reasons.flatMap((r) => (r.clause ? [r.clause] : []));
+  let text = def.text;
+  const at = text.indexOf('{causes}');
+  if (at >= 0) {
+    const joined = joinClauses(clauses, or ? 'or' : 'and');
+    const startsSentence = at === 0 || /[.!?]\s+$|\n$/.test(text.slice(0, at));
+    text = text.replace('{causes}', startsSentence ? capitalise(joined) : joined);
+  }
+  const fill = (x: string) =>
+    x.replace(/\{([\w.]+)\}/g, (_, key: string) => {
+      const v = lookup(s, key);
+      return typeof v === 'number' ? String(Math.round(v)) : String(v);
+    });
+  return { text, why: held.map((r) => fill(r.why)).join(' ') };
+}
+
 function endingView(s: GameState): EndingView {
   const id = s.ending ?? resolveEnding(s);
   const def = ENDING_BY_ID[id];
+  const story = endingStory(s, id);
   return {
     id,
     world: def.world,
     good: def.good,
     title: def.title,
-    text: def.text,
+    text: story.text,
+    why: story.why,
     epilogue: EPILOGUES[influenceBand(s)],
     lea: leaScene({ ...s, ending: id }, 'end'),
     source: { ...def.source },
   };
 }
 
+function sumDeltas(lists: Delta[][]): Delta[] {
+  const out: Delta[] = [];
+  for (const d of lists.flat()) {
+    const x = out.find((y) => y.key === d.key);
+    if (x) x.amount += d.amount;
+    else out.push({ ...d });
+  }
+  return out.filter((d) => d.amount !== 0);
+}
+
+/**
+ * One debrief entry per decision (same card, same option), however often it was played: the deltas are
+ * summed and the card's explanation is given once. What differs between plays (the odds shift) is kept,
+ * dated when it differs.
+ */
+function groupDecisions(entries: LogEntry[]): Debrief['decisions'] {
+  const groups = new Map<string, LogEntry[]>();
+  for (const e of entries) {
+    const k = `${e.id}|${e.title}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(e);
+  }
+  return [...groups.values()].map((list) => {
+    const first = list[0];
+    let explanation = first.debrief;
+    if (list.length > 1) {
+      const card = CARD_BY_ID[first.id as CardId];
+      const opt = card?.options?.find((o) => first.title === `${card.name}: ${o.label.toLowerCase()}`);
+      const base = [card?.debrief, opt?.debrief].filter(Boolean).join(' ');
+      const rests = list.map((e) => (base && e.debrief.startsWith(base) ? e.debrief.slice(base.length).trim() : e.debrief));
+      const same = rests.every((r) => r === rests[0]);
+      explanation = [base, same ? rests[0] : list.map((e, i) => `${dateLabel(e.quarter)}: ${rests[i]}`).join(' ')].filter(Boolean).join(' ');
+    }
+    return {
+      quarter: first.quarter,
+      quarters: list.map((e) => e.quarter),
+      title: first.title,
+      visibleDeltas: list.length > 1 ? sumDeltas(list.map((e) => e.visibleDeltas)) : first.visibleDeltas,
+      hiddenDeltas: list.length > 1 ? sumDeltas(list.map((e) => e.hiddenDeltas)) : first.hiddenDeltas,
+      explanation,
+    };
+  });
+}
+
 export function debrief(state: GameState): Debrief {
   const s = state;
   if (s.phase !== 'ended') throw new Error('The debrief is only available once the game has ended');
-  const decisions = s.log
-    .filter((e) => e.kind === 'card')
-    .map((e) => ({ quarter: e.quarter, title: e.title, visibleDeltas: e.visibleDeltas, hiddenDeltas: e.hiddenDeltas, explanation: e.debrief }));
+  const decisions = groupDecisions(s.log.filter((e) => e.kind === 'card'));
   const events = s.log
     .filter((e) => e.kind === 'event' && !e.id.includes(':'))
     .map((e) => {

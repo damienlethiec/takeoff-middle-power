@@ -128,4 +128,23 @@ describe('WorldMap', () => {
     expect(onLea).toHaveBeenCalledTimes(2);
     expect(m.screenPos(lea)).toEqual({ x: expect.any(Number), y: expect.any(Number) });
   });
+
+  // B11: Léa's pin was a tiny "L" dot
+  it('Léa’s marker is a labelled button with a 44 px target, drawn at a constant pixel size', () => {
+    const box = document.createElement('div');
+    Object.defineProperty(box, 'clientWidth', { value: 1000 });
+    Object.defineProperty(box, 'clientHeight', { value: 400 });
+    const m = new WorldMap(box);
+    const lea = m.svg.querySelector('.lea-pin')!;
+    expect(lea.getAttribute('role')).toBe('button');
+    expect(lea.getAttribute('aria-label')).toBe('Léa, in Lyon: reread her last message');
+    expect(lea.querySelector('.lea-name')!.textContent).toBe('Léa');
+    const hit = lea.querySelector('.pin-hit')!;
+    expect(Number(hit.getAttribute('height'))).toBeGreaterThanOrEqual(44);
+    expect(Number(hit.getAttribute('width'))).toBeGreaterThanOrEqual(44);
+    // scaled by map units per pixel (viewBox width / box width), so 1 unit of the marker is 1 px on screen
+    const vw = Number(m.svg.getAttribute('viewBox')!.split(' ')[2]);
+    const scale = Number(/scale\(([\d.]+)\)/.exec(lea.getAttribute('transform')!)![1]);
+    expect(scale).toBeCloseTo(vw / 1000, 3);
+  });
 });
