@@ -146,6 +146,8 @@ async function checkEnding(page: Page, s: Session, played: string[]) {
 }
 
 test.describe('a full game', () => {
+  // a whole game, with one more step per quarter since v2 (the player asks for each decision)
+  test.describe.configure({ timeout: 240_000 });
   test('fast takeoff (seed 9): tipping point, superpowers choose, ending, debrief, play again', async ({ page }) => {
     const s = await boot(page, '?skipintro&seed=9');
     const { played, seen } = await playToEnd(page, s);
