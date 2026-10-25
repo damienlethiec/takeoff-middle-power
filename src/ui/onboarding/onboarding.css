@@ -1,0 +1,114 @@
+/* v2 onboarding (src/ui/onboarding): next-decision cue, Skip to decision, Journal button, coach marks,
+   notice toasts, act transitions, tips, journal and Léa's letters. Uses the tokens of src/ui/styles.css. */
+
+/* ---------- header: next decision, skip, journal ---------- */
+/* a second line under the date and quarter strip (a grid, so the header does not count it as extra width) */
+.when:has(> .ob-next) { display: grid; grid-template-columns: auto auto; align-items: center; column-gap: 14px; row-gap: 3px; }
+.ob-next { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
+.ob-next-l { margin: 0; display: grid; line-height: 1.15; font-size: 12.5px; white-space: nowrap; }
+.ob-next-k { font-family: var(--f-data); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.ob-next-l b { color: var(--ink); font-weight: 600; }
+.ob-next.skipping .ob-next-l b { color: var(--warn); }
+.ob-skip { display: grid; justify-items: start; gap: 0; padding: 3px 10px; border-radius: 8px; line-height: 1.15; min-height: 30px; text-align: left; }
+.ob-skip-t { font-size: 13px; font-weight: 700; }
+.ob-skip-n { font-size: 10.5px; font-weight: 400; color: var(--mute); }
+.ob-skip:hover:not(:disabled) { border-color: var(--align); }
+.ob-skip:disabled { opacity: .55; }
+.ob-journal-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--rule); background: var(--deck); font-size: 13px; font-weight: 600; }
+.ob-journal-btn .ico { width: 16px; height: 16px; color: var(--mute); }
+.ob-journal-btn:hover { border-color: var(--mute); }
+@media (max-width: 1500px) {
+  .ob-journal-t { display: none; }
+  .ob-journal-btn { width: 38px; padding: 0; justify-content: center; }
+  .ob-journal-btn .ico { width: 18px; height: 18px; color: var(--ink); }
+}
+
+/* ---------- coach mark (a tip pointing at something on screen) ---------- */
+.ob-coach { position: fixed; z-index: 15; background: var(--paper); color: var(--paper-ink); border-radius: 10px; padding: 12px 14px 12px; box-shadow: 0 14px 34px rgba(0, 0, 0, .5); animation: obdrop .25s ease-out; }
+.ob-coach::before { content: ''; position: absolute; top: -7px; left: calc(var(--arrow, 50%) - 7px); width: 14px; height: 14px; background: var(--paper); transform: rotate(45deg); border-radius: 2px; }
+.ob-coach-h { margin: 0 0 4px; font-family: var(--f-display); font-weight: 800; font-size: 19px; line-height: 1.1; letter-spacing: .02em; }
+.ob-coach-k { display: inline-block; margin-right: 4px; padding: 1px 6px; border-radius: 4px; background: var(--paper-ink); color: var(--paper); font-family: var(--f-data); font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; vertical-align: 3px; }
+.ob-coach .ob-tip-text { margin: 0 0 8px; font-size: 13.5px; line-height: 1.45; }
+.ob-coach-ok { color: var(--paper-ink); border-color: var(--paper-ink); padding: 5px 12px; font-size: 13px; }
+.ob-coach-ok:focus-visible { outline-color: var(--paper-ink); }
+@keyframes obdrop { from { transform: translateY(-6px); opacity: 0; } }
+
+/* ---------- toasts: new cards, new indicators, alerts ---------- */
+.ob-toasts { position: fixed; z-index: 18; right: 16px; bottom: 70px; display: grid; gap: 8px; width: min(380px, calc(100vw - 32px)); pointer-events: none; }
+.ob-toast { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: start; background: var(--deck-2); border: 1px solid var(--rule); border-left: 4px solid var(--align); border-radius: 10px; padding: 9px 12px; font-size: 13.5px; line-height: 1.4; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); animation: obslide .3s ease-out; transition: opacity .4s; }
+.ob-toast b { color: var(--ink); }
+.ob-toast.out { opacity: 0; }
+.ob-toast.alert { border-left-color: var(--rival); }
+.ob-toast.k-indicator { border-left-color: var(--concern); }
+.ob-toast.k-context_card { border-left-color: var(--cap); }
+@keyframes obslide { from { transform: translateX(16px); opacity: 0; } }
+.ob-kind { font-family: var(--f-data); font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--night); background: var(--align); border-radius: 4px; padding: 2px 6px; white-space: nowrap; margin-top: 1px; }
+.ob-kind.k-indicator { background: var(--concern); }
+.ob-kind.k-context_card, .ob-kind.k-act { background: var(--cap); }
+.ob-kind.k-threshold, .ob-kind.k-employment_shock { background: var(--alarm-bg); color: #fff; }
+
+/* ---------- act transition: a short full-screen story beat ---------- */
+.ov-act { align-items: center; background: radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--deck-2) 92%, transparent), color-mix(in srgb, var(--night) 97%, transparent) 70%); backdrop-filter: blur(6px); }
+.modal.ob-act { max-width: 640px; background: transparent; border: 0; box-shadow: none; padding: 24px 8px; text-align: left; animation: obact .6s cubic-bezier(.2, .9, .3, 1); }
+@keyframes obact { from { transform: translateY(18px); opacity: 0; letter-spacing: .02em; } }
+.ob-act .dateline { color: var(--cap); font-size: 13px; }
+.modal.ob-act h2 { font-size: clamp(44px, 8vw, 76px); line-height: .95; margin: 10px 0 18px; padding-bottom: 16px; border-bottom: 3px solid var(--cap); text-transform: uppercase; letter-spacing: .02em; }
+.ob-beat { font-family: var(--f-diary); font-size: 21px; line-height: 1.5; margin: 0 0 8px; }
+.ob-news { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ob-news li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; font-size: 14.5px; }
+.ob-news b { margin-right: 4px; }
+.modal.ob-notice { max-width: 560px; border-color: color-mix(in srgb, var(--rival) 55%, var(--rule)); }
+.modal.ob-notice .dateline { color: var(--crit-text); }
+.ob-notice .ob-beat { font-family: var(--f-body); font-size: 17px; }
+
+/* ---------- tip dialog ---------- */
+.modal.ob-tip { max-width: 520px; border-color: color-mix(in srgb, var(--align) 50%, var(--rule)); border-top: 4px solid var(--align); }
+.ob-tip .dateline { color: var(--align); }
+.modal.ob-tip h2 { font-size: 32px; }
+.ob-tip-text { font-size: 16px; line-height: 1.55; margin: 0 0 10px; }
+.ob-tip .row-btns { margin-top: 14px; }
+.ob-tutorial { color: var(--mute); }
+
+/* ---------- journal ---------- */
+.modal.ob-journal { max-width: 720px; }
+.ob-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+.ob-tabs [role="tab"] { background: var(--night); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 10px; min-height: 34px; font-family: var(--f-data); font-size: 12.5px; color: var(--mute); }
+.ob-tabs [role="tab"]:hover { border-color: var(--mute); color: var(--ink); }
+.ob-tabs [role="tab"][aria-selected="true"] { background: var(--deck-2); border-color: var(--align); color: var(--ink); box-shadow: inset 0 -3px 0 var(--align); }
+.ob-panel { background: var(--night); border: 1px solid var(--rule); border-radius: 12px; padding: 4px 16px 14px; }
+.ob-panel .label:first-child { margin-top: 12px; }
+.ob-lines, .ob-why { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.ob-why { margin-top: 6px; color: var(--mute); }
+.ob-panel p { margin: 4px 0; font-size: 14px; }
+.ob-letter { padding: 12px 16px 14px 48px; transform: none; margin: 4px 0; }
+.ob-letter p { font-size: 16px; line-height: 30px; margin: 0; }
+.ob-tip-item { border-left: 3px solid var(--align); padding: 2px 0 2px 12px; margin: 8px 0; }
+.ob-tip-item h4 { margin: 0 0 2px; font-size: 14.5px; }
+.ob-tip-item p { margin: 0; color: var(--mute); }
+.ob-empty { color: var(--mute); }
+
+/* ---------- Léa's letters ---------- */
+.modal.ob-lea-history { max-width: 560px; }
+.modal.ob-lea-history .ob-lea-h { font-family: var(--f-diary); font-style: italic; font-size: 19px; font-weight: 400; margin: 0 0 14px; }
+.ob-letters { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+.ob-letters li:nth-child(even) .letter { transform: rotate(.5deg); }
+.ob-lea-empty p { font-size: 18px; }
+
+/* ---------- opening ---------- */
+.op-welcome { margin: 14px 0 0; color: var(--align); font-weight: 600; }
+.op-settings { display: flex; justify-content: center; margin-top: 14px; }
+.op-settings .toggle { margin-top: 0; }
+.box h3.op-real { margin: 0 0 4px; font-family: var(--f-data); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--warn); }
+
+/* ---------- small screens ---------- */
+@media (max-width: 640px) {
+  .ob-skip { padding: 3px 8px; }
+  .ob-next { gap: 8px; }
+  .ob-toasts { right: 12px; left: 12px; width: auto; bottom: 64px; }
+  .ob-beat { font-size: 18px; }
+  .modal.ob-act h2 { font-size: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ob-coach, .ob-toast, .modal.ob-act { animation: none !important; }
+  .ob-toast { transition: none; }
+}

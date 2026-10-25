@@ -12,6 +12,7 @@ import { showEnding } from './screens/ending';
 import { showHelp } from './screens/help';
 import { showBriefing, showEvent, showEventRecap, showLea, showReport } from './screens/moments';
 import { showOpening } from './screens/opening';
+import { Onboarding, clockMs } from './onboarding'; // v2-onboarding
 import { showSuperpowersChoose, showTippingAlarm } from './screens/tipping';
 
 const QUARTER_MS = 10_000;
@@ -150,6 +151,7 @@ export class App {
     const incomeText = !lost.length && income.length ? ` ${income.map((l) => l.briefing).join(' ')}` : '';
     const hint = this.s.quarter === 1 ? ' Press question mark for the keyboard shortcuts.' : '';
     announce(`${date} begins. The clock is running.${lostText}${incomeText} You have ${this.s.budget} Budget and ${this.s.pc} Political Capital.${hint}`);
+    this.obQuarterStart(); // v2-onboarding
     await new Promise<void>((r) => (this.clockDone = r));
     this.clockActive = false;
     this.coachQueue = [];
@@ -182,6 +184,7 @@ export class App {
         continue;
       }
       this.setPhase('Your decision');
+      await this.ob.beforeDecision(); // v2-onboarding
       const d = await showDecision(this.e, this.s);
       if (d.kind === 'map') {
         await this.dock('The clock is stopped. Your cards are waiting.', 'Back to your cards');
@@ -277,7 +280,7 @@ export class App {
     const dt = this.lastTs ? Math.min(100, ts - this.lastTs) : 0;
     this.lastTs = ts;
     if (!this.clockActive || !this.running || this.eventBusy) return;
-    this.t = Math.min(1, this.t + (dt * this.speed) / QUARTER_MS);
+    this.t = Math.min(1, this.t + (dt * this.speed) / this.obClockMs()); // v2-onboarding
     this.onTime();
   };
 
@@ -519,6 +522,7 @@ export class App {
     $('#help', this.root).addEventListener('click', () => this.openHelp());
     this.root.querySelectorAll<HTMLButtonElement>('.speed button').forEach((b) => b.addEventListener('click', () => this.setSpeed(Number(b.dataset.speed) as 1 | 2)));
     this.buildGauges();
+    this.obMount(); // v2-onboarding
   }
 
   private buildGauges() {
@@ -830,6 +834,52 @@ export class App {
     }
     this.coachBusy = false;
   }
+
+  // ------------------------------------------------------------------ v2-onboarding hooks
+  // Owned by the onboarding workstream (src/ui/onboarding/ does the work). Call sites are marked "v2-onboarding".
+  private obSkipping = false;
+  private obInstance: Onboarding | null = null;
+  private get ob(): Onboarding {
+    return (this.obInstance ??= new Onboarding({
+      root: () => this.root,
+      engine: this.e,
+      state: () => this.s,
+      setState: (s) => {
+        this.s = s;
+      },
+      hold: () => {
+        const was = this.clockActive && this.running;
+        if (was) this.setRunning(false, false);
+        return () => {
+          if (was && this.clockActive && !this.running && !modalOpen()) this.setRunning(true, false);
+        };
+      },
+      clock: () => ({ active: this.clockActive, running: this.running, eventBusy: this.eventBusy, skipping: this.obSkipping }),
+      skip: () => {
+        if (!this.clockActive || this.obSkipping || this.eventBusy || modalOpen()) return false;
+        this.obSkipping = true; // same steps, faster; no bubbles to collect (no extra rewards)
+        for (const b of this.bubblePlan) {
+          if (b.state === 'live') this.map.popBubble(b.id, false);
+          b.state = 'gone';
+        }
+        if (!this.running) this.setRunning(true, false);
+        return true;
+      },
+      leaShownThisQuarter: () => this.lastLea?.date === this.e.dateLabel(this.s.quarter),
+      openFromMap: (show) => this.openFromMap(show),
+    }));
+  }
+  /** Q1 runs 5 s instead of 10; a skipped quarter runs fast. */
+  private obClockMs = () => clockMs(this.s.quarter, this.obSkipping, QUARTER_MS);
+  private obMount() {
+    this.ob.mount();
+    this.map.onLea = () => this.ob.openLeaHistory();
+  }
+  private obQuarterStart() {
+    this.obSkipping = false;
+    void this.ob.quarterStart();
+  }
+  // ------------------------------------------------------------------ end v2-onboarding hooks
 
   /** A short message at the bottom of the screen, also announced to screen readers unless `say` is false. */
   private toast(text: string, kind: 'info' | 'alert' = 'info', say = true) {

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The screens (src/ui/screens): decision, event, Léa, situation report, briefing, tipping point, ending, opening.
+// The screens (src/ui/screens): decision, event, Léa, situation report, briefing, tipping point, ending (the opening: tests/ui/onboarding/opening.test.ts).
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { engine } from '../../src/engine/index';
@@ -7,7 +7,6 @@ import { showDecision, oddsChart } from '../../src/ui/screens/decision';
 import { leaHtml, oddsStack, showBriefing, showEvent, showLea, showReport } from '../../src/ui/screens/moments';
 import { showEnding } from '../../src/ui/screens/ending';
 import { showSuperpowersChoose, showTippingAlarm } from '../../src/ui/screens/tipping';
-import { showOpening } from '../../src/ui/screens/opening';
 import { modalOpen } from '../../src/ui/modal';
 import { CARDS } from '../../src/data/cards';
 import { craft, playGame, prepared, randomStrategy, passive, started } from '../helpers';
@@ -331,37 +330,3 @@ describe('the ending and debrief', () => {
   });
 });
 
-describe('the opening', () => {
-  it('walks through the title and four slides with the keyboard, and Escape skips', async () => {
-    vi.useFakeTimers(FAKE_CLOCK);
-    const done = showOpening();
-    const stage = () => document.querySelector('.opening .op-stage')!;
-    expect(text(stage().querySelector('.title-sub'))).toBe('Middle Power');
-    (document.activeElement as HTMLElement | null)?.blur();
-    key('Enter');
-    expect(text(stage().querySelector('h2'))).toBe('AI already writes code and works on its own');
-    key('ArrowRight');
-    key('ArrowRight');
-    key('ArrowRight');
-    expect(text(stage().querySelector('h2'))).toBe('The clock runs, then stops for you');
-    expect(text(stage().querySelector('[data-go="next"]'))).toBe('Start the first quarter Enter');
-    key('ArrowLeft');
-    expect(text(stage().querySelector('h2'))).toBe("You are the EU's AI Envoy");
-    expect(stage().querySelector('.currencies')).not.toBeNull();
-    stage().querySelector<HTMLElement>('[data-go="back"]')!.click();
-    stage().querySelector<HTMLElement>('[data-go="next"]')!.click();
-    expect(text(stage().querySelector('h2'))).toBe("You are the EU's AI Envoy");
-    key('Escape');
-    await done;
-    expect(document.querySelector('.opening')!.classList.contains('leaving')).toBe(true);
-    await vi.advanceTimersByTimeAsync(450);
-    expect(document.querySelector('.opening')).toBeNull();
-  });
-
-  it('the last slide starts the game', async () => {
-    const done = showOpening();
-    for (let i = 0; i < 4; i++) key('ArrowRight');
-    document.querySelector<HTMLElement>('.opening [data-go="next"]')!.click();
-    await done;
-  });
-});

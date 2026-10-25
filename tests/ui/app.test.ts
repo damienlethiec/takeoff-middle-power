@@ -79,7 +79,7 @@ describe('the game controller', () => {
   });
 
   it('runs the clock: news arrives in the feed and the ticker, the month advances', async () => {
-    await advance(6000);
+    await advance(3500); // Q1's clock lasts 5 s (v2 onboarding: first decision fast)
     expect(document.querySelectorAll('#news li.ni').length).toBeGreaterThan(0);
     expect(text('#tickText')).toBe(text('#news li.ni p'));
     expect(['Feb', 'Mar']).toContain(text('#month'));
