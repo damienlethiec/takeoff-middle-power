@@ -23,6 +23,7 @@ npm run dev       # local server at /takeoff-middle-power/
 npm test          # unit tests
 npm run sim       # balance check: ending distribution per strategy
 npm run build     # typecheck + production build
+npm run a11y      # axe on every screen + whole games played with the keyboard alone (needs Playwright's Chromium)
 ```
 
 ## Rules of the house
