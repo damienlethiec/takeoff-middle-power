@@ -10,7 +10,9 @@ A Plague Inc.-style browser game about AI governance. You are the EU's AI Envoy:
 ```sh
 npm install
 npm run dev      # local server
-npm test         # engine tests
+npm test         # unit tests: engine, content, properties, balance guardrails, UI (happy-dom)
+npm run test:coverage   # the same, with a coverage report of src/
+npm run test:e2e        # plays whole games in Chromium (npx playwright install chromium once)
 npm run sim      # simulate thousands of games and print the ending distribution
 npm run build    # production build in dist/ (with a Content-Security-Policy meta tag)
 npm run typecheck

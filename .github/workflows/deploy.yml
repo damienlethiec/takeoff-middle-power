@@ -68,6 +68,28 @@ jobs:
           URL: ${{ steps.target.outputs.url }}
         run: echo "### Play this version → $URL" >> "$GITHUB_STEP_SUMMARY"
 
+  # End-to-end test: plays whole games in Chromium (see e2e/ and playwright.config.ts).
+  # Runs next to the deploy job, so a failure flags the run without holding back the preview.
+  e2e:
+    if: github.event_name != 'delete'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
   remove-preview:
     if: github.event_name == 'delete' && github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
