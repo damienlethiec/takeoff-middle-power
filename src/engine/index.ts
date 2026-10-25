@@ -637,7 +637,7 @@ function fireEvent(s: GameState, def: EventDef): void {
     debrief: `${v.debrief} You were ${prepared ? 'prepared' : 'not prepared'}: ${v.cause}.`,
   });
   s.news.push({ id: `event.${def.id}`, quarter: s.quarter, actor: def.actor, region: def.region, text: v.news, at: def.at });
-  recordOdds(s, lowerFirst(v.short));
+  recordOdds(s, v.short);
   offerContextCards(s, def.id, prepared);
 }
 
