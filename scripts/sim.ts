@@ -1,212 +1,125 @@
-// Simulate thousands of seeded games per strategy and print the ending distribution.
+// Simulate thousands of seeded games per strategy and print the ending distribution and the v2 metrics,
+// checked against the targets of docs/V2_SPEC.md ("Balance targets").
 // Run with: npm run sim   (optional: npm run sim -- 5000 to change the number of games)
 
-import {
-  createInitialState,
-  startQuarter,
-  collectBubble,
-  resolveEvent,
-  cardViews,
-  playCard,
-  pass,
-  endQuarter,
-  runTippingPoint,
-  leaScene,
-} from '../src/engine/index';
-import { randomInt, pick, seedToRng, type RngHolder } from '../src/engine/rng';
-import type { CardId, EndingId, EventId, GameState, PlanId, RegionId, Speed } from '../src/engine/types';
 import { ENDINGS } from '../src/data/endings';
-
-type Strategy = {
-  name: string;
-  bubbles: (s: GameState, r: RngHolder) => number;
-  decide: (s: GameState, r: RngHolder) => { id: CardId; option?: string } | null;
-  choose: (s: GameState, r: RngHolder) => string | undefined;
-};
-
-const REGIONS: RegionId[] = ['eu', 'us', 'cn'];
-
-function playable(s: GameState): Set<CardId> {
-  return new Set(cardViews(s).filter((c) => c.available && c.affordable).map((c) => c.id));
-}
-
-const passive: Strategy = {
-  name: 'passive',
-  bubbles: () => 0,
-  decide: () => null,
-  choose: (s) => s.pendingEvent?.options[0]?.id,
-};
-
-const randomStrategy: Strategy = {
-  name: 'random',
-  bubbles: (_s, r) => randomInt(r, 0, 2),
-  decide: (s, r) => {
-    const ok = [...playable(s)];
-    if (!ok.length) return null;
-    const id = pick(r, ok);
-    const option = id === 'asml' ? pick(r, ['model_access', 'safety_commitment']) : undefined;
-    return { id, option };
-  },
-  choose: (s, r) => (s.pendingEvent?.options.length ? pick(r, s.pendingEvent.options).id : undefined),
-};
-
-/** A sensible player: oversight first, then coalition, inspections, security, alignment, social measures. */
-const prepared: Strategy = {
-  name: 'prepared',
-  // Concern bubbles spawn 1–3 per quarter; an attentive player clicks the ones that appear (max 2 count).
-  bubbles: (_s, r) => Math.min(2, randomInt(r, 1, 3)),
-  decide: (s) => {
-    const ok = playable(s);
-    const g = s.gauges;
-    const played = (id: CardId) => (s.cardsPlayed[id] ?? 0) > 0;
-    const want = (id: CardId, cond = true) => cond && ok.has(id);
-    if (s.phase === 'tipping') {
-      if (want('host_verification', g.verification < 60)) return { id: 'host_verification' };
-      if (want('coalition')) return { id: 'coalition' };
-      return want('fund_alignment') ? { id: 'fund_alignment' } : null;
-    }
-    // A slow world shows on the capability gauge: then the economy, not the tipping point, matters.
-    const slowWorld = s.quarter >= 6 && g.capability <= 20 + 2.5 * s.quarter;
-    if (want('ai_office')) return { id: 'ai_office' };
-    if (want('coalition', s.coalition === 0)) return { id: 'coalition' };
-    if (want('weight_security')) return { id: 'weight_security' };
-    if (want('cyber_defence', g.misuse >= 25)) return { id: 'cyber_defence' };
-    if (want('host_verification', g.verification < 30)) return { id: 'host_verification' };
-    if (slowWorld && want('open_models')) return { id: 'open_models' };
-    if (slowWorld && want('oversight_mandate', played('open_models'))) return { id: 'oversight_mandate' };
-    if (want('coalition', s.coalition < 2)) return { id: 'coalition' };
-    if (want('fund_alignment', (s.cardsPlayed.fund_alignment ?? 0) < 2)) return { id: 'fund_alignment' };
-    if (want('host_verification', g.verification < 50)) return { id: 'host_verification' };
-    if (want('flexicurity')) return { id: 'flexicurity' };
-    if (want('fund_alignment')) return { id: 'fund_alignment' };
-    return null;
-  },
-  choose: (s) => {
-    const pe = s.pendingEvent;
-    if (!pe || !pe.options.length) return undefined;
-    if (pe.id === 'silicon_blackmail') return 'hold_firm';
-    if (pe.id === 'ransomware') return s.budget >= 2 ? 'defence_spending' : 'emergency_ban';
-    return pe.options[0].id;
-  },
-};
-
-interface GameResult {
-  ending: EndingId;
-  good: boolean;
-  quarters: number;
-  tipping: boolean;
-  plan: PlanId | null;
-  speed: Speed;
-  events: Partial<Record<EventId, { prepared: boolean }>>;
-  slowdownOdds: number | null;
-  leaQ6: string;
-  leaQ11: string;
-  band: 'high' | 'mid' | 'low';
-  pcQ8: number;
-  pcEnd: number;
-  pressureEnd: number;
-  pressureMax: number;
-}
-
-function playGame(seed: number, strat: Strategy): GameResult {
-  let s = createInitialState(seed);
-  const r: RngHolder = { rng: seedToRng(seed * 7919 + 17) };
-  let leaQ6 = '-';
-  let leaQ11 = '-';
-  let pcQ8 = 0;
-  let pressureMax = 0;
-  for (let guard = 0; guard < 40; guard++) {
-    s = startQuarter(s);
-    if (s.quarter === 6) leaQ6 = leaScene(s, 'q6').variant;
-    if (s.quarter === 11) leaQ11 = leaScene(s, 'q11').variant;
-    if (s.quarter === 8) pcQ8 = s.pc;
-    pressureMax = Math.max(pressureMax, s.gauges.publicPressure);
-    const n = strat.bubbles(s, r);
-    for (let i = 0; i < n; i++) s = collectBubble(s, pick(r, REGIONS));
-    if (s.pendingEvent) s = resolveEvent(s, strat.choose(s, r));
-    const d = strat.decide(s, r);
-    s = d ? playCard(s, d.id, d.option).state : pass(s);
-    const out = endQuarter(s);
-    s = out.state;
-    if (out.outcome === 'tipping_point') {
-      const last = strat.decide(s, r);
-      if (last) s = playCard(s, last.id, last.option).state;
-      s = runTippingPoint(s);
-      break;
-    }
-    if (out.outcome === 'game_over') break;
-  }
-  const def = ENDINGS.find((e) => e.id === s.ending)!;
-  return {
-    ending: s.ending!,
-    good: def.good,
-    quarters: s.quarter,
-    tipping: !!s.tipping,
-    plan: s.tipping?.plan ?? null,
-    speed: s.takeoffSpeed,
-    events: Object.fromEntries(Object.entries(s.firedEvents).map(([k, v]) => [k, { prepared: v!.prepared }])),
-    slowdownOdds: s.tipping ? s.tipping.odds.verified_slowdown : null,
-    leaQ6,
-    leaQ11,
-    pcQ8,
-    pcEnd: s.pc,
-    pressureEnd: s.gauges.publicPressure,
-    pressureMax,
-    band: ((s.eu.economy + s.eu.culture + s.eu.state) / 3 >= 60 ? 'high' : (s.eu.economy + s.eu.culture + s.eu.state) / 3 >= 30 ? 'mid' : 'low'),
-  };
-}
+import type { CardId, EndingId, EventId, Speed } from '../src/engine/types';
+import { passive, playGame, prepared, preparedNoTalks, randomStrategy, type PlayedGame, type Strategy } from './strategies';
 
 const N = Number(process.argv[2]) || 2000;
-const strategies = [passive, randomStrategy, prepared];
-const pctf = (x: number, n: number) => `${((100 * x) / n).toFixed(1)}%`.padStart(6);
+const pctf = (x: number, n: number) => `${((100 * x) / Math.max(1, n)).toFixed(1)}%`.padStart(6);
 const reachable = new Map<EndingId, number>();
+const goodShare = new Map<string, number>();
+const all = new Map<string, PlayedGame[]>();
+const isGood = (g: PlayedGame) => ENDINGS.find((e) => e.id === g.final.ending)!.good;
 
-for (const strat of strategies) {
-  const results: GameResult[] = [];
-  for (let i = 0; i < N; i++) results.push(playGame(1000 + i, strat));
-  const goods = results.filter((x) => x.good).length;
+function report(strat: Strategy, results: PlayedGame[]): void {
+  const goods = results.filter(isGood).length;
+  goodShare.set(strat.name, goods / N);
   console.log(`\n=== ${strat.name} (${N} games) ===`);
   console.log(`good endings: ${pctf(goods, N)}`);
-  const avgQ = results.reduce((a, x) => a + x.quarters, 0) / N;
+  const avgQ = results.reduce((a, x) => a + x.final.quarter, 0) / N;
   console.log(`average quarters: ${avgQ.toFixed(1)}`);
   for (const sp of ['slow', 'steady', 'fast'] as Speed[]) {
-    const sub = results.filter((x) => x.speed === sp);
+    const sub = results.filter((x) => x.final.takeoffSpeed === sp);
     if (!sub.length) continue;
-    const tq = sub.filter((x) => x.tipping);
-    const avgTip = tq.length ? (tq.reduce((a, x) => a + x.quarters, 0) / tq.length).toFixed(1) : '-';
+    const tq = sub.filter((x) => x.final.tipping);
+    const avgTip = tq.length ? (tq.reduce((a, x) => a + x.final.quarter, 0) / tq.length).toFixed(1) : '-';
     console.log(
-      `  ${sp.padEnd(6)} ${String(sub.length).padStart(5)} games · tipping ${pctf(tq.length, sub.length)} (avg quarter ${avgTip}) · good ${pctf(sub.filter((x) => x.good).length, sub.length)}`,
+      `  ${sp.padEnd(6)} ${String(sub.length).padStart(5)} games · tipping ${pctf(tq.length, sub.length)} (avg quarter ${avgTip}) · good ${pctf(sub.filter(isGood).length, sub.length)}`,
     );
   }
-  console.log(`tipping point reached: ${pctf(results.filter((x) => x.tipping).length, N)}`);
+  console.log(`tipping point reached: ${pctf(results.filter((x) => x.final.tipping).length, N)}`);
   const plans = new Map<string, number>();
-  for (const x of results) if (x.plan) plans.set(x.plan, (plans.get(x.plan) ?? 0) + 1);
+  for (const x of results) if (x.final.tipping) plans.set(x.final.tipping.plan, (plans.get(x.final.tipping.plan) ?? 0) + 1);
   console.log(`plans chosen: ${[...plans].map(([k, v]) => `${k} ${pctf(v, N).trim()}`).join(', ')}`);
-  const so = results.filter((x) => x.slowdownOdds !== null);
-  if (so.length) console.log(`avg verified-slowdown odds at tipping: ${pctf(so.reduce((a, x) => a + x.slowdownOdds!, 0), so.length).trim()}`);
+  const so = results.filter((x) => x.final.tipping);
+  if (so.length) console.log(`avg verified-slowdown odds at tipping: ${pctf(so.reduce((a, x) => a + x.final.tipping!.odds.verified_slowdown, 0), so.length).trim()}`);
   console.log('endings:');
   for (const e of ENDINGS) {
-    const k = results.filter((x) => x.ending === e.id).length;
+    const k = results.filter((x) => x.final.ending === e.id).length;
     reachable.set(e.id, Math.max(reachable.get(e.id) ?? 0, k / N));
     console.log(`  ${(e.good ? '+ ' : '- ') + e.title.padEnd(26)} ${pctf(k, N)}`);
   }
-  const count = (f: (x: GameResult) => boolean) => results.filter(f).length;
+  const count = (f: (x: PlayedGame) => boolean) => results.filter(f).length;
+  const letter = (x: PlayedGame, slot: string) => x.final.leaLetters.find((l) => l.slot === slot)?.variant ?? '-';
+  const band = (x: PlayedGame) => {
+    const e = x.final.eu;
+    const avg = (e.economy + e.culture + e.state) / 3;
+    return avg >= 60 ? 'high' : avg >= 30 ? 'mid' : 'low';
+  };
   console.log(
-    `Léa: Q6 human touch ${pctf(count((x) => x.leaQ6 === 'human_touch'), count((x) => x.leaQ6 !== '-')).trim()}` +
-      ` · Q11 retrained ${pctf(count((x) => x.leaQ11 === 'retrained'), Math.max(1, count((x) => x.leaQ11 !== '-'))).trim()}` +
-      ` · epilogue high/mid/low ${pctf(count((x) => x.band === 'high'), N).trim()} / ${pctf(count((x) => x.band === 'mid'), N).trim()} / ${pctf(count((x) => x.band === 'low'), N).trim()}`,
+    `Léa: Q6 human touch ${pctf(count((x) => letter(x, 'q6') === 'human_touch'), count((x) => letter(x, 'q6') !== '-')).trim()}` +
+      ` · Q11 retrained ${pctf(count((x) => letter(x, 'q11') === 'retrained'), Math.max(1, count((x) => letter(x, 'q11') !== '-'))).trim()}` +
+      ` · epilogue high/mid/low ${pctf(count((x) => band(x) === 'high'), N).trim()} / ${pctf(count((x) => band(x) === 'mid'), N).trim()} / ${pctf(count((x) => band(x) === 'low'), N).trim()}`,
   );
-  const avg = (f: (x: GameResult) => number) => (results.reduce((a, x) => a + f(x), 0) / N).toFixed(1);
+  const avg = (f: (x: PlayedGame) => number) => (results.reduce((a, x) => a + f(x), 0) / N).toFixed(1);
   console.log(
-    `PC at Q8 ${avg((x) => x.pcQ8)} · PC left at end ${avg((x) => x.pcEnd)} · public pressure end ${avg((x) => x.pressureEnd)} (max ${avg((x) => x.pressureMax)}, ≥50 in ${pctf(count((x) => x.pressureMax >= 50), N).trim()}, ≥70 in ${pctf(count((x) => x.pressureMax >= 70), N).trim()})`,
+    `PC at Q8 ${avg((x) => x.pcQ8)} · PC left at end ${avg((x) => x.final.pc)} · Budget left at end ${avg((x) => x.final.budget)} · public pressure end ${avg((x) => x.final.gauges.publicPressure)} (max ${avg((x) => x.pressureMax)}, ≥50 in ${pctf(count((x) => x.pressureMax >= 50), N).trim()}, ≥70 in ${pctf(count((x) => x.pressureMax >= 70), N).trim()})`,
   );
+  console.log(`acts reached: act 2 ${pctf(count((x) => x.final.act >= 2), N).trim()}, act 3 ${pctf(count((x) => x.final.act >= 3), N).trim()}`);
   console.log('events fired (prepared share):');
   for (const ev of ['warning_shot', 'weight_theft', 'opaque_reasoning', 'silicon_blackmail', 'ransomware'] as EventId[]) {
-    const f = results.filter((x) => x.events[ev]);
-    const p = f.filter((x) => x.events[ev]!.prepared).length;
+    const f = results.filter((x) => x.final.firedEvents[ev]);
+    const p = f.filter((x) => x.final.firedEvents[ev]!.prepared).length;
     console.log(`  ${ev.padEnd(18)} ${pctf(f.length, N)}  (prepared ${f.length ? pctf(p, f.length).trim() : '-'})`);
   }
+  // Card variety: share of each card among the cards played (passes excluded).
+  const plays = new Map<CardId, number>();
+  let totalPlays = 0;
+  let passes = 0;
+  for (const x of results)
+    for (const d of x.decisions) {
+      if (d === null) passes++;
+      else {
+        totalPlays++;
+        plays.set(d, (plays.get(d) ?? 0) + 1);
+      }
+    }
+  const sorted = [...plays].sort((a, b) => b[1] - a[1]);
+  console.log(`cards played (share of ${totalPlays} plays; ${pctf(passes, passes + totalPlays).trim()} of decisions were passes):`);
+  console.log(`  ${sorted.map(([k, v]) => `${k} ${pctf(v, totalPlays).trim()}`).join(', ')}`);
+  console.log(`money: wanted card unaffordable ${avg((x) => x.shortages)} times per game (max ${Math.max(...results.map((x) => x.shortages))})`);
+  const tipped = results.filter((x) => x.tensionAtTipping !== null);
+  if (tipped.length) console.log(`avg tension at the tipping point: ${(tipped.reduce((a, x) => a + x.tensionAtTipping!, 0) / tipped.length).toFixed(1)}`);
+}
+
+for (const strat of [passive, randomStrategy, prepared, preparedNoTalks]) {
+  const results: PlayedGame[] = [];
+  for (let i = 0; i < N; i++) results.push(playGame(1000 + i, strat));
+  all.set(strat.name, results);
+  report(strat, results);
 }
 
 console.log('\n=== reachability (best share across strategies) ===');
 for (const e of ENDINGS) console.log(`  ${e.title.padEnd(26)} ${((reachable.get(e.id) ?? 0) * 100).toFixed(1)}%`);
+
+// ---- Targets (docs/V2_SPEC.md) ----
+const prep = all.get('prepared')!;
+const noTalks = all.get('prepared, no talks')!;
+const tensionAt = (xs: PlayedGame[]) => {
+  const t = xs.filter((x) => x.tensionAtTipping !== null);
+  return t.reduce((a, x) => a + x.tensionAtTipping!, 0) / Math.max(1, t.length);
+};
+const plays = new Map<string, number>();
+let total = 0;
+for (const x of prep) for (const d of x.decisions) if (d) (total++, plays.set(d, (plays.get(d) ?? 0) + 1));
+const [topCard, topCount] = [...plays].sort((a, b) => b[1] - a[1])[0];
+const fight = prep.filter((x) => x.final.tipping?.plan === 'fight_china').length;
+const shortages = prep.reduce((a, x) => a + x.shortages, 0) / N;
+const checks: [string, boolean, string][] = [
+  ['passive good endings < 20%', goodShare.get('passive')! < 0.2, pctf(goodShare.get('passive')! * N, N).trim()],
+  ['random good endings 15–35%', goodShare.get('random')! >= 0.15 && goodShare.get('random')! <= 0.35, pctf(goodShare.get('random')! * N, N).trim()],
+  ['prepared good endings 60–90%', goodShare.get('prepared')! > 0.6 && goodShare.get('prepared')! < 0.9, pctf(goodShare.get('prepared')! * N, N).trim()],
+  ['every ending ≥ 1% for some strategy', ENDINGS.every((e) => (reachable.get(e.id) ?? 0) >= 0.01), ENDINGS.filter((e) => (reachable.get(e.id) ?? 0) < 0.01).map((e) => e.id).join(', ') || 'all'],
+  ['prepared: no card above 25% of its plays', topCount / total <= 0.25, `${topCard} ${pctf(topCount, total).trim()}`],
+  [
+    'talks: tension at tipping ≥ 10 lower than without',
+    tensionAt(noTalks) - tensionAt(prep) >= 10,
+    `${tensionAt(prep).toFixed(1)} with talks vs ${tensionAt(noTalks).toFixed(1)} without`,
+  ],
+  ['talks: "fight China" still possible', fight > 0, `${pctf(fight, N).trim()} of prepared games`],
+  ['money: prepared short of its wanted card ≤ 2 per game', shortages <= 2, `${shortages.toFixed(2)} per game`],
+];
+console.log('\n=== targets ===');
+for (const [name, ok, value] of checks) console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${name.padEnd(55)} ${value}`);

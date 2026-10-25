@@ -1,7 +1,11 @@
 // The ten endings: five kinds of world (CFG scenarios), each with a good and a bad version.
 
 import type { EndingId, WorldKind } from '../engine/types';
+import { c } from './conditions';
 import type { EndingDef } from './schema';
+import { TUNING } from './tuning';
+
+const E = TUNING.endings;
 import { SOURCES } from './sources';
 
 export const ENDINGS: EndingDef[] = [
@@ -11,7 +15,11 @@ export const ENDINGS: EndingDef[] = [
     good: true,
     title: 'A bright winter',
     text:
-      'AI never learned to improve itself. Progress slowed to a crawl, the hype faded, and the tools that already existed spread everywhere, owned by many hands instead of a few.\n\nThere were scares, but no catastrophe: when criminals turned open models into weapons, Europe’s defences held. The world got a few calm years to learn how to live with what it had built.',
+      'AI never learned to improve itself. Progress slowed to a crawl, the hype faded, and the tools that already existed spread everywhere, owned by many hands instead of a few.\n\n{cause} The world got a few calm years to learn how to live with what it had built.',
+    causes: [
+      { when: c('fired.ransomware', '==', 1), text: 'There were scares, but no catastrophe: when criminals turned open models into weapons, Europe’s defences held.' },
+      { when: c('fired.ransomware', '==', 0), text: 'There were scares, but criminals never managed a wave of attacks Europe could not absorb.' },
+    ],
     why: 'No tipping point came, power stayed spread out, and the ransomware wave either never came or met prepared defences.',
     source: SOURCES.cfg,
   },
@@ -31,7 +39,11 @@ export const ENDINGS: EndingDef[] = [
     good: true,
     title: 'The agent economy',
     text:
-      'AI never took off on its own, but a few giant companies built agents that run much of the world’s economy. Europe uses them every day, on its own terms.\n\nWhen the labs tried to bend Europe’s rules, Europe did not bend. People still sign off on the decisions that matter. It is a slower, more expensive way to run a continent, and it is still theirs.',
+      'AI never took off on its own, but a few giant companies built agents that run much of the world’s economy. Europe uses them every day, on its own terms.\n\n{cause} People still sign off on the decisions that matter. It is a slower, more expensive way to run a continent, and it is still theirs.',
+    causes: [
+      { when: c('fired.silicon_blackmail', '==', 1), text: 'When the labs tried to bend Europe’s rules, Europe did not bend.' },
+      { when: c('fired.silicon_blackmail', '==', 0), text: 'The labs grumbled about Europe’s rules but never dared to threaten it.' },
+    ],
     why: 'Power concentrated in a few labs, but Europe stood firm against silicon blackmail and kept a grip on its economy.',
     source: SOURCES.cfg,
   },
@@ -41,8 +53,12 @@ export const ENDINGS: EndingDef[] = [
     good: false,
     title: 'Silicon blackmail',
     text:
-      'AI never took off on its own, but a handful of companies came to run the tools every firm and ministry depends on. Each time Europe drafted a rule, a phone call came first.\n\nLaws are now written with the labs’ lawyers in the room. Nobody voted for this. GDP looks fine. Who decides is another matter.',
-    why: 'Power concentrated in a few labs, and Europe lost its grip on its own economy, either by giving in or by letting AI take over quietly.',
+      'AI never took off on its own, but a handful of companies came to run the tools every firm and ministry depends on. {cause}\n\nLaws are now written with the labs’ lawyers in the room. Nobody voted for this. GDP looks fine. Who decides is another matter.',
+    causes: [
+      { when: c('choice.silicon_blackmail', '==', 'give_in'), text: 'When the labs threatened to leave, Europe gave in, and they learned that threats work.' },
+      { when: c('eu.economy', '<', E.bigAiEconomy), text: 'Quietly, firm by firm, AI took over the decisions people used to make in Europe’s economy.' },
+    ],
+    why: 'Power concentrated in a few labs, and Europe lost its grip on its own economy.',
     source: SOURCES.cfg,
   },
   {
@@ -61,8 +77,13 @@ export const ENDINGS: EndingDef[] = [
     good: false,
     title: 'Unstable pause',
     text:
-      'At the decisive moment, Washington and Beijing agreed to stop. But nobody could really check the other side, or the AIs already running were less trustworthy than they looked, or a few companies held all the cards.\n\nThe pause holds, for now. Every month someone accuses someone else of cheating. Everyone is waiting for the first side to break it.',
-    why: 'The superpowers chose a deal or a halt, but verification, power concentration or true alignment fell short of what a lasting deal needs.',
+      'At the decisive moment, Washington and Beijing agreed to stop. {cause}\n\nThe pause holds, for now. Every month someone accuses someone else of cheating. Everyone is waiting for the first side to break it.',
+    causes: [
+      { when: c('verification', '<', E.utopiaVerification), text: 'But nobody was ready to check the other side.' },
+      { when: c('trueAlignment', '<', E.utopiaTrueAlignment), text: 'But the AIs already running were less trustworthy than they looked.' },
+      { when: c('concentration', '>', E.utopiaMaxConcentration), text: 'But a few companies held all the cards.' },
+    ],
+    why: 'The superpowers chose a deal or a halt, but what a lasting deal needs fell short.',
     source: SOURCES.cfg,
   },
   {
@@ -81,8 +102,12 @@ export const ENDINGS: EndingDef[] = [
     good: false,
     title: 'Hot war',
     text:
-      'At the decisive moment, the US moved against China. Cyberattacks on data centres turned into strikes on them. Nobody was positioned to mediate, and tension had gone too far for talks.\n\nThe war is fought by AI systems no one fully understands, on both sides. Europe watches, unable to stop it.',
-    why: 'The US chose confrontation, and Europe had no coalition or tension was already too high to mediate.',
+      'At the decisive moment, the US moved against China. Cyberattacks on data centres turned into strikes on them. {cause}\n\nThe war is fought by AI systems no one fully understands, on both sides. Europe watches, unable to stop it.',
+    causes: [
+      { when: c('coalition', '<', 1), text: 'Europe stood alone, with no partners to carry messages between the two.' },
+      { when: c('tension', '>', E.multipolarMaxTension), text: 'Tension had gone too far for talks.' },
+    ],
+    why: 'The US chose confrontation, and Europe could not mediate.',
     source: SOURCES.cfg,
   },
   {

@@ -19,27 +19,79 @@ export const TUNING = {
       approval: 50,
     } as Record<GaugeKey, number>,
     eu: { economy: 80, culture: 80, state: 80 } as Record<EuKey, number>,
-    pc: 6, // notes: 4 (no base PC income any more)
-    budget: 3,
+    pc: 4, // v2 (was 6)
+    budget: 5, // v2 (was 3)
     asmlTokens: 2,
     speedOdds: { slow: 0.25, steady: 0.5, fast: 0.25 } as Record<Speed, number>,
+    /** v2: hidden true alignment is drawn among these, equally likely (was always 50). */
+    trueAlignmentOptions: [45, 55, 65],
   },
 
+  /** v2: both currencies arrive automatically every quarter from Q2, capped. */
   income: {
-    pc: 0, // notes: 1. Political Capital now comes from concern bubbles and high public pressure
+    pc: 2,
     pcHighPressureBonus: 1,
     highPressureAt: 50,
-    coalitionUpkeep: 1,
-    budget: 1,
+    pcLowApprovalPenalty: 1,
+    lowApprovalBelow: 30,
+    budget: 2,
+    cap: 8, // PC and Budget never exceed this
   },
 
-  bubbles: { pcEach: 1, maxPerQuarter: 2 },
+  /** v2: concern bubbles explain; they pay nothing. Kept for the UI's count. */
+  bubbles: { maxPerQuarter: 3 },
 
   actors: {
     labAlignmentClaim: 1, // apparentAlignment per quarter
     labConsolidation: 1, // concentration per quarter (notes: 2)
     chipControlsAt: 60,
     chipControlsTension: 3,
+    /** v2: after a successful theft, Washington widens export controls this many quarters later (unless averted). */
+    theftEscalationAfter: 2,
+    theftEscalationTension: 5,
+  },
+
+  /** v2: employment shocks the first time capability reaches each threshold. */
+  employmentShocks: {
+    at: [40, 70],
+    approval: -5,
+    approvalWithFlexicurity: -2,
+    publicPressure: 5,
+  },
+
+  /** v2: acts and unlocks (src/data/progress.ts). */
+  progress: {
+    coalitionFromQuarter: 2, // partners call Brussels
+    act2FallbackQuarter: 6, // slow worlds: the race goes public anyway
+    misuseBeatAt: 25, // first AI-enabled cyberattack in the news
+    misuseBeatFallbackQuarter: 9,
+    act3FromQuarter: 6, // Léa's Q6 letter
+    concentrationIndicatorAt: 60,
+  },
+
+  /** v2: context cards stay on offer this many quarters (the quarter they appear included). */
+  contextWindow: 2,
+
+  /** v2: risk track. A risk appears at `appear`, then each public target sets its stage by distance. */
+  risks: {
+    theftAppearTension: 45,
+    theftAppearCapability: 30,
+    theftTension: 50,
+    theftCapability: 40,
+    warningShotAppearCapability: 50,
+    warningShotCapability: 65,
+    opaqueAppearCapability: 55,
+    opaqueCapability: 70,
+    blackmailConcentration: 60,
+    ransomwareAppearMisuse: 25,
+    ransomwareMisuse: 40,
+    /** A target is "rising" within `rising` points, "imminent" within `imminent` points. */
+    margins: {
+      capability: { rising: 12, imminent: 6 },
+      tension: { rising: 8, imminent: 4 },
+      misuse: { rising: 8, imminent: 4 },
+      concentration: { rising: 8, imminent: 4 },
+    } as Record<string, { rising: number; imminent: number }>,
   },
 
   drift: {
@@ -113,7 +165,7 @@ export const TUNING = {
 
   plans: {
     minWeight: 1,
-    slowdown: { base: 5, verification: 0.6, pressure: 0.3, coalition: 10, warningShot: 15, tension: -0.2 },
+    slowdown: { base: 5, verification: 0.6, pressure: 0.3, coalition: 10, warningShot: 15, summit: 10, tension: -0.2 },
     shutDown: { base: 2, pressureAt: 60, pressure: 0.3, unsafeBonus: 10, unsafeBelow: 40 },
     fight: { base: 10, tension: 0.5 },
     race: { base: 25, pressure: -0.2, verification: -0.1, floor: 5 },

@@ -198,6 +198,8 @@ export interface GameState {
   notices: Notice[];
   /** Tips already shown (by id), so each shows once. */
   tipsShown: string[];
+  /** When each tip was shown, for the one-per-quarter rule and the journal. */
+  tipLog: { id: string; quarter: number }[];
   /** Public concern of the quarter, shown as map bubbles; clicking explains, it pays nothing. */
   concerns: Concern[];
   /** Every Léa letter delivered so far, oldest first. */
@@ -324,7 +326,11 @@ export interface Briefing {
 export interface SituationReport {
   quarter: number;
   dateLabel: string; // "Q3 2027"
-  changes: { key: GaugeKey | 'coalition'; label: string; delta: number; cause: string }[];
+  /**
+   * Every visible change since the start of the quarter: non-routine first (events, actor moves,
+   * delayed card effects, thresholds crossed), then routine background drift; biggest first in each group.
+   */
+  changes: { key: GaugeKey | 'coalition'; label: string; delta: number; cause: string; value: number; routine: boolean }[];
   why: string[]; // short causal sentences from the log
   forecast: { mostLikely: PlanId; probability: number; sentence: string; whatWouldHelp: string };
   newNews: number;
@@ -373,7 +379,7 @@ export interface AdvisorView {
 export interface TrajectoryView {
   odds: Record<PlanId, number>;
   mostLikely: PlanId;
-  /** The last movement and its cause, null at the start. */
+  /** The last movement and its cause, null at the start. `delta` is in probability (0.06 = +6 points). */
   change: { plan: PlanId; delta: number; because: string } | null;
 }
 
@@ -439,7 +445,8 @@ export interface Debrief {
   };
   tipping: TippingResult | null;
   notes: InternalNote[]; // all, unredacted
-  decisions: { quarter: number; title: string; visibleDeltas: Delta[]; hiddenDeltas: Delta[]; explanation: string }[];
+  /** One entry per decision, repeated plays grouped: `quarter` is the first play, `quarters` all of them; deltas are summed. */
+  decisions: { quarter: number; quarters: number[]; title: string; visibleDeltas: Delta[]; hiddenDeltas: Delta[]; explanation: string }[];
   events: { quarter: number; title: string; actor: ActorId; prepared: boolean; explanation: string; source: Source }[];
 }
 

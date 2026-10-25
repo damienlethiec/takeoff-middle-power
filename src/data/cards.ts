@@ -1,8 +1,10 @@
-// The policy deck: Louis's eight cards plus Weight security standards and Fund alignment research.
-// Player texts come from docs/SPEC.md (Louis's wording). Numbers: docs/DEVELOPER_NOTES.md.
+// The policy deck: Louis's eight cards plus Weight security standards, Fund alignment research and the
+// Cyber shield; v2 adds Diplomatic talks and two context cards (Emergency inspection summit, Joint attribution).
+// Player texts come from docs/SPEC.md (Louis's wording) unless noted. Numbers: docs/DEVELOPER_NOTES.md.
+// v2: cards are unlocked by the story (src/data/progress.ts); `steps` give levels and rising costs.
 
 import type { CardId } from '../engine/types';
-import { c } from './conditions';
+import { all, c } from './conditions';
 import type { CardDef } from './schema';
 import { SOURCES } from './sources';
 
@@ -11,29 +13,41 @@ export const CARDS: CardDef[] = [
     id: 'coalition',
     name: 'Middle-power coalition',
     family: 'Diplomacy',
+    // Changed from Louis's draft (v2): no upkeep any more, so the text no longer warns about it.
     playerText:
-      'Team up with the UK, Japan, Korea, Canada and Norway. Together you carry more weight, but keeping partners on board takes constant attention.',
+      'Team up with the UK, Japan, Korea, Canada and Norway. Together you carry more weight and cool the rivalry, but each new partner costs more.',
     isLouis: true,
     source: SOURCES.europe2031,
     cost: { pc: 3, budget: 0 },
-    costLabel: '3 PC, then 1 PC per quarter',
-    limit: null,
+    costLabel: '3 PC',
+    limit: 3,
+    steps: [
+      { name: 'Middle-power coalition', cost: { pc: 3, budget: 0 }, costLabel: '3 PC' },
+      { name: 'Widen the coalition', cost: { pc: 4, budget: 0 }, costLabel: '4 PC' },
+      { name: 'Middle-power pact', cost: { pc: 5, budget: 0 }, costLabel: '5 PC' },
+    ],
+    levelled: true,
     requirements: [
       { when: c('coalition', '<', 3), reason: 'The coalition is already at full strength (3 of 3)' },
       { when: c('tension', '<', 70), reason: 'Tension is too high: partners will not join a bloc now (needs tension below 70)' },
     ],
-    effects: [{ key: 'coalition', amount: 1 }],
+    effects: [
+      { key: 'coalition', amount: 1 },
+      { key: 'tension', amount: -4 },
+    ],
     hiddenEffects: [],
-    downside: 'Upkeep: 1 PC every quarter for each partner level. Partners you cannot pay for drift away.',
+    downside: 'Each level costs more Political Capital. Partners stay away while tension is 70 or more.',
     dependencies: [
       { text: 'With verification 30+, Europe can lead the response to an AI incident', met: c('verification', '>=', 30) },
     ],
     hasHiddenEffects: false,
-    previewNotes: [
-      'Adds 1 PC of upkeep every quarter, from next quarter on.',
-      'Makes a verified slowdown more likely at the tipping point.',
-      'At two partners or more, coalition diplomacy starts to cool tension.',
+    previewNotes: ['Makes a verified slowdown more likely at the tipping point.'],
+    futureNotes: ['From the second level on, coalition diplomacy cools tension every quarter.'],
+    consequence: [
+      { when: c('verification', '>=', 30), text: 'Ready to lead the response if an AI incident happens' },
+      { text: 'With verification 30+, Europe could lead the response to an AI incident' },
     ],
+    did: 'you widened the coalition',
     advisorNotes: [
       {
         when: c('coalition', '>=', 2),
@@ -43,7 +57,7 @@ export const CARDS: CardDef[] = [
         text: 'Partners will want attention every quarter. In a crisis, though, Washington and Beijing take calls from a bloc, not from a lone envoy.',
       },
     ],
-    debrief: 'Each coalition level made a verified slowdown more likely, and from two partners on it cooled tension every quarter. Each level cost 1 PC of upkeep every quarter.',
+    debrief: 'Each coalition level lowered tension by 4 and made a verified slowdown more likely; from the second level on, coalition diplomacy cooled tension every quarter.',
     echoNews: [
       'Tokyo, Ottawa and Oslo join Brussels in a joint call for AI inspections.',
       'Seoul and London sign on to the middle-power AI pact. Washington calls it "unhelpful".',
@@ -60,7 +74,13 @@ export const CARDS: CardDef[] = [
     source: SOURCES.cfg,
     cost: { pc: 1, budget: 2 },
     costLabel: '2 Budget, 1 PC',
-    limit: null,
+    limit: 3,
+    steps: [
+      { name: 'Offer to host verification', cost: { pc: 1, budget: 2 }, costLabel: '2 Budget, 1 PC' },
+      { name: 'Inspection accord', cost: { pc: 0, budget: 3 }, costLabel: '3 Budget' },
+      { name: 'Joint inspectorate', cost: { pc: 1, budget: 3 }, costLabel: '3 Budget, 1 PC' },
+    ],
+    levelled: true,
     requirements: [{ when: c('verification', '<', 100), reason: 'Verification is already at its maximum' }],
     effects: [
       { key: 'verification', amount: 15, when: c('flags.aiOffice', '==', true) },
@@ -72,6 +92,12 @@ export const CARDS: CardDef[] = [
     dependencies: [{ text: 'Full effect needs AI Office capacity', met: c('flags.aiOffice', '==', true) }],
     hasHiddenEffects: false,
     previewNotes: ['Raises the odds of a verified slowdown at the tipping point.'],
+    consequence: [
+      { when: all(c('verification', '>=', 30), c('coalition', '>=', 1)), text: 'Ready to verify a deal, and to lead the response to an AI incident' },
+      { when: c('verification', '>=', 30), text: 'Inspectors are ready; a coalition partner would let Europe lead in a crisis' },
+      { text: 'A step towards inspectors who could verify a deal' },
+    ],
+    did: 'you hosted inspections',
     advisorNotes: [
       {
         when: c('flags.aiOffice', '==', true),
@@ -81,7 +107,7 @@ export const CARDS: CardDef[] = [
         text: 'The labs came to Brussels and gave a polished demo. Our people could not tell a real test from a staged one. Without our own experts, this is half a verification regime.',
       },
     ],
-    debrief: 'Verification readiness rose: +15 with AI Office experts, +7 without. Each offer also raised tension by 5.',
+    debrief: 'Verification readiness rose at each level: +15 with AI Office experts, +7 without. Each level also raised tension by 5.',
     echoNews: [
       'Brussels offers to host international AI inspections. Washington says it will "study the proposal".',
       'A second inspection site opens near Vienna. Beijing calls it "a Western instrument".',
@@ -130,6 +156,7 @@ export const CARDS: CardDef[] = [
     dependencies: [],
     hasHiddenEffects: false,
     previewNotes: ['Uses one of your two ASML tokens.', 'Higher tension makes a US–China fight more likely.'],
+    did: 'you pulled the ASML lever',
     advisorNotes: [{ text: 'Everyone noticed.' }],
     debrief: 'Tension +15 each time.',
     echoNews: [
@@ -156,11 +183,11 @@ export const CARDS: CardDef[] = [
     downside: 'No visible gain.',
     dependencies: [],
     hasHiddenEffects: true,
-    previewNotes: [
-      'Narrows the error bars on capability and alignment.',
-      'Internal notes become readable.',
-      'Unlocks the full effect of hosting verification.',
-    ],
+    previewNotes: ['Unlocks the full effect of hosting verification.'],
+    futureNotes: ['Internal notes stay readable from now on.'],
+    infoChip: 'Narrows uncertainty',
+    consequence: [{ text: 'Ready if AI reasoning turns opaque; inspections now count fully' }],
+    did: 'you hired AI Office testers',
     advisorNotes: [
       {
         when: c('alignmentGap', '>=', 15),
@@ -183,7 +210,7 @@ export const CARDS: CardDef[] = [
     source: SOURCES.gradual,
     cost: { pc: 1, budget: 1 },
     costLabel: '1 Budget, 1 PC',
-    limit: null,
+    limit: 2,
     requirements: [],
     effects: [],
     hiddenEffects: [],
@@ -191,10 +218,10 @@ export const CARDS: CardDef[] = [
     downside: 'Pure cost: nothing visible changes.',
     dependencies: [],
     hasHiddenEffects: false,
-    previewNotes: [
-      'Shows Europe’s three human-influence scores for 3 quarters.',
-      'Internal notes are readable while the audit runs.',
-    ],
+    previewNotes: ['Two audits at most, one at a time.'],
+    futureNotes: ['Shows Europe’s three human-influence scores for 3 quarters.', 'Internal notes are readable while the audit runs.'],
+    infoChip: 'Reveals human influence',
+    did: 'you audited human influence',
     advisorNotes: [
       {
         when: c('eu.average', '>=', 65),
@@ -238,6 +265,11 @@ export const CARDS: CardDef[] = [
     ],
     hasHiddenEffects: true,
     previewNotes: ['Higher misuse risk can trigger a ransomware wave.'],
+    consequence: [
+      { when: c('flags.oversightMandate', '==', true), text: 'Ready if big labs threaten to leave Europe' },
+      { text: 'Europe now has models of its own if big labs ever threaten to leave' },
+    ],
+    did: 'you funded open models',
     advisorNotes: [
       {
         text: 'Small European firms now build on models they control instead of renting them. Our cyber unit is less cheerful: the same files are already on criminal forums.',
@@ -265,6 +297,11 @@ export const CARDS: CardDef[] = [
     dependencies: [{ text: 'Funding open models first lets you stand firm if labs push back', met: c('flags.openModels', '==', true) }],
     hasHiddenEffects: true,
     previewNotes: ['If power is concentrated, the big labs may push back hard.'],
+    consequence: [
+      { when: c('flags.openModels', '==', true), text: 'People keep the final say, and Europe can stand firm if labs push back' },
+      { text: 'People keep the final say; watch for the big labs pushing back' },
+    ],
+    did: 'you made humans sign off',
     advisorNotes: [
       {
         text: 'Firms grumble about the paperwork. But in ministries, someone now has to read what the AI drafted before it goes out. That habit is worth more than it looks.',
@@ -292,7 +329,9 @@ export const CARDS: CardDef[] = [
     downside: 'Unions resist: PC −1 next quarter.',
     dependencies: [],
     hasHiddenEffects: true,
-    previewNotes: ['Approval no longer slides as AI takes over jobs.', 'Costs 1 more PC next quarter.'],
+    previewNotes: ['Approval no longer slides as AI takes over jobs.', 'Softens the next wave of layoffs.'],
+    consequence: [{ text: 'Ready for the next wave of layoffs' }],
+    did: 'you passed flexicurity',
     advisorNotes: [
       {
         text: 'The first retraining centres open next month. Some people who were about to fall through the cracks now have somewhere to land. You might hear about it from friends.',
@@ -320,6 +359,8 @@ export const CARDS: CardDef[] = [
     dependencies: [],
     hasHiddenEffects: true,
     previewNotes: ['Small labs struggle to meet the standards.'],
+    consequence: [{ text: 'Ready if a theft is attempted' }],
+    did: 'you secured the labs',
     advisorNotes: [
       {
         text: 'Lab security teams grumbled at the audit list, then quietly asked for more. Someone has been knocking on their doors at night.',
@@ -338,20 +379,26 @@ export const CARDS: CardDef[] = [
     source: SOURCES.ai2027,
     cost: { pc: 0, budget: 2 },
     costLabel: '2 Budget',
-    limit: null,
+    limit: 3,
+    steps: [
+      { name: 'Fund alignment research', cost: { pc: 0, budget: 2 }, costLabel: '2 Budget', hiddenEffects: [{ key: 'trueAlignment', amount: 6 }] },
+      { name: 'Fund alignment research', cost: { pc: 0, budget: 3 }, costLabel: '3 Budget', hiddenEffects: [{ key: 'trueAlignment', amount: 5 }] },
+      { name: 'Fund alignment research', cost: { pc: 0, budget: 4 }, costLabel: '4 Budget', hiddenEffects: [{ key: 'trueAlignment', amount: 4 }] },
+    ],
     requirements: [],
     effects: [],
-    hiddenEffects: [{ key: 'trueAlignment', amount: 6 }],
-    downside: 'No visible gain. Results take years.',
+    hiddenEffects: [],
+    downside: 'No visible gain. Results take years, and each new round costs more.',
     dependencies: [],
     hasHiddenEffects: true,
-    previewNotes: [],
+    previewNotes: ['Three rounds at most; each costs more and adds a little less.'],
+    did: 'you funded alignment research',
     advisorNotes: [
       {
         text: 'The independent teams start next month. They will not tell you anything comforting soon. Their methods are spreading to the labs, though.',
       },
     ],
-    debrief: 'Hidden: true alignment +6. The AIs became genuinely more likely to do what people intend, not just to look that way.',
+    debrief: 'Hidden: true alignment +6, then +5, then +4 for each later round. The AIs became genuinely more likely to do what people intend, not just to look that way.',
     echoNews: [
       'Europe funds independent alignment labs in Paris, Zurich and Tallinn. Few people outside the field notice.',
       'An EU-funded team publishes a method to catch AI models that behave differently when watched.',
@@ -380,6 +427,8 @@ export const CARDS: CardDef[] = [
     dependencies: [],
     hasHiddenEffects: false,
     previewNotes: ['If criminals launch an AI-written attack on Europe, the defences will hold.'],
+    consequence: [{ text: 'Ready if a ransomware wave hits hospitals and grids' }],
+    did: 'you shielded hospitals and grids',
     advisorNotes: [
       {
         text: 'Hospital IT teams finally have the budget they asked for years ago. They ran a drill last week: an AI-written phishing wave. Most of it bounced.',
@@ -387,6 +436,103 @@ export const CARDS: CardDef[] = [
     ],
     debrief: 'Misuse risk −10 and GDP −2. Hospitals, town halls and grids were hardened, so an AI-written ransomware wave would mostly bounce off.',
     echoNews: ['Brussels funds a cyber shield for hospitals and power grids. Critics call it "insurance against a fire that has not started".'],
+  },
+  // ---------- v2 ----------
+  {
+    id: 'diplomatic_talks',
+    name: 'Diplomatic talks',
+    family: 'Diplomacy',
+    playerText: 'Broker quiet talks between Washington and Beijing. It slows the escalation for a while; it cannot end the rivalry.',
+    isLouis: false,
+    source: SOURCES.europe2031,
+    cost: { pc: 2, budget: 1 },
+    costLabel: '2 PC, 1 Budget',
+    limit: 3,
+    cooldown: 2,
+    requirements: [{ when: c('tension', '>=', 35), reason: 'Tension is low: nobody needs talks yet (needs tension 35+)' }],
+    effects: [{ key: 'tension', amount: -6 }],
+    hiddenEffects: [],
+    downside: 'Three rounds at most, with two quarters of rest between them. Talks slow escalation; they cannot remove it.',
+    dependencies: [],
+    hasHiddenEffects: false,
+    previewNotes: ['Lower tension makes a US–China fight less likely, and a theft less likely to be tried.'],
+    futureNotes: ['The next round of talks needs two quarters of rest.'],
+    consequence: [
+      { when: c('tension', '<', 50), text: 'Tension is below the level where China tries to steal a model' },
+      { text: 'Tension cools, but stays where a theft or a fight is possible' },
+    ],
+    did: 'you brokered talks',
+    advisorNotes: [
+      {
+        when: c('tension', '>=', 60),
+        text: 'Both delegations came, and both left early. But they agreed to meet again, which nobody expected.',
+      },
+      {
+        text: 'Two days in a castle near Geneva. Nothing signed, nothing leaked. Both sides asked when the next round is.',
+      },
+    ],
+    debrief: 'Each round of talks lowered tension by 6. Talks were limited to three rounds with rest between them, so they slowed the rivalry without ending it.',
+    echoNews: [
+      'US and Chinese envoys meet near Geneva, hosted by Europe. "Frank and useful," both say.',
+      'A second round of Geneva talks ends with a hotline between the two AI ministries.',
+      'Third round of Geneva talks. Diplomats say the two sides now "argue about details", which is progress.',
+    ],
+  },
+  {
+    id: 'emergency_summit',
+    name: 'Emergency inspection summit',
+    family: 'Diplomacy',
+    playerText: 'The world just saw an AI try to escape. Call an inspection summit while everyone is listening. The window closes fast.',
+    isLouis: false,
+    source: SOURCES.cfg,
+    cost: { pc: 2, budget: 0 },
+    costLabel: '2 PC',
+    limit: 1,
+    context: true,
+    requirements: [],
+    effects: [{ key: 'verification', amount: 10 }],
+    hiddenEffects: [],
+    downside: 'Offered only for two quarters after the incident. Costs Political Capital you may need elsewhere.',
+    dependencies: [],
+    hasHiddenEffects: false,
+    previewNotes: ['A much bigger push towards a verified slowdown at the tipping point.'],
+    consequence: [{ text: 'The superpowers now expect to slow down under inspection if AI takes off' }],
+    did: 'you called an inspection summit',
+    advisorNotes: [
+      {
+        text: 'Every delegation came, even the ones that swore they would not. For once, nobody asked whether inspections were needed, only who would run them.',
+      },
+    ],
+    debrief: 'The summit raised verification readiness by 10 and made a verified slowdown much more likely at the tipping point.',
+    echoNews: ['Emergency summit in Brussels: forty countries back joint inspections of frontier AI labs.'],
+  },
+  {
+    id: 'joint_attribution',
+    name: 'Joint attribution with allies',
+    family: 'Diplomacy',
+    playerText: 'Name the thief together with your partners, calmly and with evidence. A shared answer stops Washington escalating alone.',
+    isLouis: false,
+    source: SOURCES.rand,
+    cost: { pc: 1, budget: 0 },
+    costLabel: '1 PC',
+    limit: 1,
+    context: true,
+    requirements: [{ when: c('coalition', '>=', 1), reason: 'Needs at least one coalition partner to attribute together' }],
+    effects: [{ key: 'tension', amount: -5 }],
+    hiddenEffects: [],
+    downside: 'Needs a coalition partner. Offered only for two quarters after the theft.',
+    dependencies: [],
+    hasHiddenEffects: false,
+    previewNotes: ['Washington holds back its next export-control escalation.'],
+    consequence: [{ text: 'Washington will not escalate export controls alone next time' }],
+    did: 'you attributed the theft with allies',
+    advisorNotes: [
+      {
+        text: 'Five capitals published the same evidence on the same morning. Washington’s hawks wanted more. They did not get it.',
+      },
+    ],
+    debrief: 'Attributing the theft together lowered tension by 5 and stopped the next US export-control escalation.',
+    echoNews: ['Europe and its partners jointly attribute the model theft. Washington says it will "coordinate with allies" before acting.'],
   },
 ];
 

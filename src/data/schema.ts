@@ -32,6 +32,17 @@ export interface CardOptionDef {
   debrief: string;
 }
 
+/** v2: one use of a card with levels or rising costs. */
+export interface CardStepDef {
+  /** Shown as the card's name for this use ("Inspection accord"). */
+  name: string;
+  cost: { pc: number; budget: number; token?: boolean };
+  costLabel: string;
+  /** Added to the card's own effects for this use. */
+  effects?: EffectSpec[];
+  hiddenEffects?: EffectSpec[];
+}
+
 export interface CardDef {
   id: CardId;
   name: string;
@@ -64,6 +75,23 @@ export interface CardDef {
   debrief: string;
   /** The world's reaction, shown in next quarter's news. Several for repeatable cards. */
   echoNews: string[];
+  // ---------- v2 ----------
+  /** Per-use costs and effects (levels, diminishing returns). When set, the limit is steps.length. */
+  steps?: CardStepDef[];
+  /** The steps are named levels shown on the card ("Inspection accord", 2 of 3). */
+  levelled?: boolean;
+  /** After a play, the card rests this many quarters before it can be played again. */
+  cooldown?: number;
+  /** Offered only for a short window when the situation creates it (state.contextCards). */
+  context?: boolean;
+  /** Preview notes about later quarters: hidden on the last decision. */
+  futureNotes?: string[];
+  /** What this decision will matter for, said in the briefing ("Ready if a theft is attempted"). */
+  consequence?: ConditionalText[];
+  /** For the trajectory bar: "you hosted inspections". */
+  did: string;
+  /** Face chip for what you learn rather than a gauge change ("Narrows uncertainty"). */
+  infoChip?: string;
 }
 
 export interface EventOptionDef {
@@ -149,7 +177,10 @@ export interface EndingDef {
   world: WorldKind;
   good: boolean;
   title: string;
+  /** May contain {cause}: replaced by the causes that actually held in this run (no hedged alternatives). */
   text: string;
+  /** v2: every cause that holds is told, in order; the first one is used when none holds. */
+  causes?: { when: Condition; text: string }[];
   /** Why the player got this ending rather than its twin, for the debrief. */
   why: string;
   source: Source;
