@@ -24,7 +24,7 @@ afterEach(async () => {
   document.body.innerHTML = '';
 });
 
-const TIP: Tip = { id: 'tip_decision', title: 'One decision per quarter', text: 'Pick one card.' };
+const TIP: Tip = { id: 'tip_hidden', title: 'What the labs tell you', text: 'Reports may not be true.' };
 
 function setup(notices: Notice[] = [], tip: Tip | null = TIP) {
   let s: GameState = { ...engine.createInitialState(3), quarter: 2 };
@@ -52,7 +52,7 @@ describe('the onboarding controller', () => {
     await sleep(1);
     expect(t.host.hold).toHaveBeenCalledTimes(1);
     expect(openModalEl()!.classList.contains('ob-tip')).toBe(true);
-    expect(t.state().tipsShown).toEqual(['tip_decision']);
+    expect(t.state().tipsShown).toEqual(['tip_hidden']);
     expect(t.release).not.toHaveBeenCalled();
     openModalEl()!.querySelector<HTMLElement>('[data-primary]')!.click();
     await done;
@@ -90,6 +90,19 @@ describe('the onboarding controller', () => {
     const tip = t.ob.beforeDecision();
     await sleep(1);
     expect(openModalEl()!.classList.contains('ob-tip')).toBe(true);
+    openModalEl()!.querySelector<HTMLElement>('[data-primary]')!.click();
+    await tip;
+    expect(t.state().tipsShown).toEqual(['tip_hidden']);
+  });
+
+  it('a tip about choosing a card waits for the decision screen', async () => {
+    const t = setup([], { id: 'tip_decision', title: 'One decision per quarter', text: 'Pick one card.' });
+    await t.ob.quarterStart();
+    expect(t.host.hold).not.toHaveBeenCalled();
+    expect(modalOpen()).toBe(false);
+    const tip = t.ob.beforeDecision();
+    await sleep(1);
+    expect(openModalEl()!.textContent).toContain('One decision per quarter');
     openModalEl()!.querySelector<HTMLElement>('[data-primary]')!.click();
     await tip;
     expect(t.state().tipsShown).toEqual(['tip_decision']);

@@ -24,6 +24,9 @@ const paragraphs = (text: string) =>
     .map((p) => `<p class="ob-tip-text">${esc(p)}</p>`)
     .join('');
 
+/** Tips about choosing a card: shown just before the decision screen rather than as the quarter opens. */
+export const DECISION_TIPS = new Set(['tip_decision', 'tip_coalition', 'tip_context']);
+
 /** The anchor a tip should sit next to, if it is on screen. */
 export function coachAnchor(tip: Tip, root: ParentNode = document): HTMLElement | null {
   const sel = COACH_ANCHORS[tip.id];

@@ -107,6 +107,7 @@
   .ob-skip { padding: 3px 8px; }
   .ob-next { gap: 8px; }
   .ob-toasts { right: 12px; left: 12px; width: auto; bottom: 64px; }
+  .ob-toast > span:last-child { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .ob-beat { font-size: 18px; }
   .modal.ob-act h2 { font-size: 44px; }
 }

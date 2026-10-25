@@ -16,8 +16,8 @@ const PREF = ['ai_office', 'coalition', 'host_verification', 'weight_security', 
 const MODAL = '.overlay:not(.leaving) .modal';
 
 const RUNS = [
-  // obfixtures: the dev fixtures of src/ui/onboarding stand in for engine notices, tips and letters
-  { name: 'keyboard', seed: 9, viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference', intro: true, fixtures: true },
+  // (fixtures: true adds ?obfixtures, the dev stand-ins of src/ui/onboarding for engine notices, tips and letters)
+  { name: 'keyboard', seed: 9, viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference', intro: true },
   { name: 'reduced-motion-200%', seed: 3, viewport: { width: 640, height: 400 }, reducedMotion: 'reduce', intro: false },
 ];
 

@@ -84,11 +84,12 @@ describe('onboarding in the game', () => {
     await until(() => !!modal()?.classList.contains('ob-tip'));
     expect(text('#date')).toBe('Q2 2027');
     expect(phase()).toBe('Paused');
+    expect(modal()!.querySelector('.ob-tip-fact a.src')).not.toBeNull(); // tip_hidden carries a sourced fact
     modal()!.querySelector<HTMLElement>('[data-primary]')!.click();
     await advance(50);
     expect(modal()).toBeNull();
     expect(phase()).toBe('Clock running');
-    expect(app.debug.state().tipsShown).toContain('tip_decision');
+    expect(app.debug.state().tipsShown).toContain('tip_hidden');
     // the quarter's notices became toasts (no blocking screen)
     expect(text('.ob-toasts')).toContain('Middle-power coalition');
   });

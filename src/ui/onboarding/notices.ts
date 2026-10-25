@@ -41,8 +41,8 @@ const KIND_LABEL: Record<Notice['kind'], string> = {
 /** One plain sentence per notice, for toasts, lists and screen readers. */
 export function noticeLine(n: Notice): string {
   if (n.kind === 'act') {
-    const a = ACTS.find((x) => String(x.act) === n.id);
-    return `Act ${n.id}: ${a?.title ?? n.title}.`;
+    const { title, beat } = actCopy(n);
+    return `Act ${n.id}: ${title}. ${beat}`.trim();
   }
   const text = n.text.trim();
   return `${KIND_LABEL[n.kind]}: ${n.title}.${text ? ` ${text}` : ''}`;

@@ -43,7 +43,7 @@ const FALLBACK_TIPS: Record<string, Tip> = {
 };
 
 /** Which tip each quarter offers in the fixture script (at most one per quarter). */
-const TIP_BY_QUARTER: Record<number, string> = { 1: 'tip_clock', 2: 'tip_decision', 3: 'tip_pressure', 4: 'tip_trajectory', 5: 'tip_risks', 6: 'tip_human_influence' };
+const TIP_BY_QUARTER: Record<number, string> = { 1: 'tip_clock', 2: 'tip_hidden', 3: 'tip_pressure', 4: 'tip_decision', 5: 'tip_risks', 6: 'tip_human_influence' };
 
 const actNotice = (act: 1 | 2 | 3): Notice => {
   const a = ACTS.find((x) => x.act === act)!;

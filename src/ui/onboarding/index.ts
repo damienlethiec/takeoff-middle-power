@@ -12,7 +12,7 @@ import { deliveredLetters, showLeaHistory } from './lea-history';
 import { planNotices, showActTransition, showNoticeScreen, showToasts } from './notices';
 import { engineReads, type OnboardingReads } from './reads';
 import { tutorialOn } from './settings';
-import { coachAnchor, hideCoachMark, showCoachMark, showTipDialog } from './tips';
+import { DECISION_TIPS, coachAnchor, hideCoachMark, showCoachMark, showTipDialog } from './tips';
 
 export { clockMs } from './clock';
 export type { ClockStatus } from './clock';
@@ -116,14 +116,17 @@ export class Onboarding {
   /**
    * Right after startQuarter: one blocking screen at most (an act, else an employment shock), the
    * other notices as toasts, then the quarter's tip (a coach mark beside what it explains, or a dialog;
-   * a dialog tip waits for the decision when an act screen already stopped this quarter).
+   * a dialog tip waits for the decision when a screen already stopped this quarter, and so does a tip
+   * about choosing a card).
    */
   async quarterStart(): Promise<void> {
     hideCoachMark();
     const s = this.host.state();
     const date = this.host.engine.dateLabel(s.quarter);
     const plan = planNotices(this.reads.notices(s));
-    const tip = this.dueTip();
+    const due = this.dueTip();
+    // a tip about choosing a card waits for the decision
+    const tip = due && !DECISION_TIPS.has(due.id) ? due : null;
     const anchor = tip ? coachAnchor(tip, this.host.root()) : null;
     const dialogTip = tip && !anchor && !plan.blocking ? tip : null;
     if (plan.blocking || dialogTip) {
