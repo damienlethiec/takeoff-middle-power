@@ -179,7 +179,7 @@ export const TUNING = {
     bigAiEconomy: 40,
     utopiaVerification: 45,
     utopiaMaxConcentration: 70,
-    utopiaTrueAlignment: 45,
+    utopiaTrueAlignment: 47,
     multipolarMaxTension: 70,
     cognitiveTrueAlignment: 60,
     epilogueHigh: 60,

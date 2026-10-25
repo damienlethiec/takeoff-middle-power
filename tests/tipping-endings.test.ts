@@ -239,13 +239,13 @@ describe('endings, at every boundary', () => {
     expect(ending(b(40), null, rw(false))).toBe('agent_economy');
   });
 
-  it('diplomacy (both plans): verification 45+, concentration 70 or less, true alignment 45+ (v2 tuning)', () => {
+  it('diplomacy (both plans): verification 45+, concentration 70 or less, true alignment 47+ (v2 tuning)', () => {
     for (const plan of ['verified_slowdown', 'shut_down'] as PlanId[]) {
       const d = (verification: number, concentration: number, trueAlignment: number) => ending({ gauges: { verification, concentration, trueAlignment } }, plan);
-      expect(d(45, 70, 45)).toBe('licensed_utopia');
-      expect(d(44, 70, 45)).toBe('unstable_pause');
-      expect(d(45, 71, 45)).toBe('unstable_pause');
-      expect(d(45, 70, 44)).toBe('unstable_pause');
+      expect(d(45, 70, 47)).toBe('licensed_utopia');
+      expect(d(44, 70, 47)).toBe('unstable_pause');
+      expect(d(45, 71, 47)).toBe('unstable_pause');
+      expect(d(45, 70, 46)).toBe('unstable_pause');
     }
   });
 

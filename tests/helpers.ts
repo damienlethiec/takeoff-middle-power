@@ -75,7 +75,7 @@ export function nextQuarter(s: GameState): GameState {
 // Strategies: shared with scripts/sim.ts (scripts/strategies.ts), so tests and the simulation agree.
 // ---------------------------------------------------------------------------
 
-export { passive, randomStrategy, prepared, preparedNoTalks, playable, playGame, STRATEGIES } from '../scripts/strategies';
+export { passive, randomStrategy, prepared, preparedTalks, preparedNoTalks, playable, playGame, STRATEGIES } from '../scripts/strategies';
 export type { Strategy, PlayedGame } from '../scripts/strategies';
 
 /** Every text the engine produces for a state: views, report, previews, news, notes, log, debrief. */

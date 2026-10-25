@@ -4,7 +4,7 @@
 // thresholds and docs/DEVELOPER_NOTES.md together.
 
 import { beforeAll, describe, expect, it } from 'vitest';
-import { playGame, passive, prepared, preparedNoTalks, randomStrategy, type PlayedGame, type Strategy } from './helpers';
+import { playGame, passive, prepared, preparedNoTalks, preparedTalks, randomStrategy, type PlayedGame, type Strategy } from './helpers';
 import { ENDINGS } from '../src/data/endings';
 import type { EndingId } from '../src/engine/types';
 
@@ -14,7 +14,7 @@ const good = (g: PlayedGame) => ENDINGS.find((e) => e.id === g.final.ending)!.go
 const share = (xs: PlayedGame[], f: (g: PlayedGame) => boolean) => xs.filter(f).length / xs.length;
 
 beforeAll(() => {
-  for (const strat of [passive, randomStrategy, prepared, preparedNoTalks] as Strategy[]) {
+  for (const strat of [passive, randomStrategy, prepared, preparedTalks, preparedNoTalks] as Strategy[]) {
     results.set(
       strat.name,
       Array.from({ length: N }, (_, i) => playGame(1000 + i, strat)),
@@ -62,8 +62,8 @@ describe(`balance over ${N} games per strategy`, () => {
       const t = xs.filter((g) => g.tensionAtTipping !== null);
       return t.reduce((a, g) => a + g.tensionAtTipping!, 0) / t.length;
     };
-    expect(avg(results.get('prepared, no talks')!) - avg(results.get('prepared')!)).toBeGreaterThanOrEqual(10);
-    expect(results.get('prepared')!.some((g) => g.final.tipping?.plan === 'fight_china')).toBe(true);
+    expect(avg(results.get('prepared, no talks')!) - avg(results.get('prepared, eager talks')!)).toBeGreaterThanOrEqual(10);
+    expect(results.get('prepared, eager talks')!.some((g) => g.final.tipping?.plan === 'fight_china')).toBe(true);
   });
 
   it('money: the prepared player is short of the card it wants at most twice per game on average', () => {

@@ -4,7 +4,7 @@
 
 import { ENDINGS } from '../src/data/endings';
 import type { CardId, EndingId, EventId, Speed } from '../src/engine/types';
-import { passive, playGame, prepared, preparedNoTalks, randomStrategy, type PlayedGame, type Strategy } from './strategies';
+import { passive, playGame, prepared, preparedNoTalks, preparedTalks, randomStrategy, type PlayedGame, type Strategy } from './strategies';
 
 const N = Number(process.argv[2]) || 2000;
 const pctf = (x: number, n: number) => `${((100 * x) / Math.max(1, n)).toFixed(1)}%`.padStart(6);
@@ -84,7 +84,7 @@ function report(strat: Strategy, results: PlayedGame[]): void {
   if (tipped.length) console.log(`avg tension at the tipping point: ${(tipped.reduce((a, x) => a + x.tensionAtTipping!, 0) / tipped.length).toFixed(1)}`);
 }
 
-for (const strat of [passive, randomStrategy, prepared, preparedNoTalks]) {
+for (const strat of [passive, randomStrategy, prepared, preparedTalks, preparedNoTalks]) {
   const results: PlayedGame[] = [];
   for (let i = 0; i < N; i++) results.push(playGame(1000 + i, strat));
   all.set(strat.name, results);
@@ -96,6 +96,7 @@ for (const e of ENDINGS) console.log(`  ${e.title.padEnd(26)} ${((reachable.get(
 
 // ---- Targets (docs/V2_SPEC.md) ----
 const prep = all.get('prepared')!;
+const talks = all.get('prepared, eager talks')!;
 const noTalks = all.get('prepared, no talks')!;
 const tensionAt = (xs: PlayedGame[]) => {
   const t = xs.filter((x) => x.tensionAtTipping !== null);
@@ -110,7 +111,7 @@ for (const x of prep)
     plays.set(d, (plays.get(d) ?? 0) + 1);
   }
 const [topCard, topCount] = [...plays].sort((a, b) => b[1] - a[1])[0];
-const fight = prep.filter((x) => x.final.tipping?.plan === 'fight_china').length;
+const fight = talks.filter((x) => x.final.tipping?.plan === 'fight_china').length;
 const shortages = prep.reduce((a, x) => a + x.shortages, 0) / N;
 const checks: [string, boolean, string][] = [
   ['passive good endings < 20%', goodShare.get('passive')! < 0.2, pctf(goodShare.get('passive')! * N, N).trim()],
@@ -120,10 +121,10 @@ const checks: [string, boolean, string][] = [
   ['prepared: no card above 25% of its plays', topCount / total <= 0.25, `${topCard} ${pctf(topCount, total).trim()}`],
   [
     'talks: tension at tipping ≥ 10 lower than without',
-    tensionAt(noTalks) - tensionAt(prep) >= 10,
-    `${tensionAt(prep).toFixed(1)} with talks vs ${tensionAt(noTalks).toFixed(1)} without`,
+    tensionAt(noTalks) - tensionAt(talks) >= 10,
+    `${tensionAt(talks).toFixed(1)} with eager talks vs ${tensionAt(noTalks).toFixed(1)} without`,
   ],
-  ['talks: "fight China" still possible', fight > 0, `${pctf(fight, N).trim()} of prepared games`],
+  ['talks: "fight China" still possible', fight > 0, `${pctf(fight, N).trim()} of eager-talks games`],
   ['money: prepared short of its wanted card ≤ 2 per game', shortages <= 2, `${shortages.toFixed(2)} per game`],
 ];
 console.log('\n=== targets ===');

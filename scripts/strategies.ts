@@ -42,10 +42,13 @@ export const randomStrategy: Strategy = {
 
 /**
  * A sensible player who reads the risk track: answers the risk that is coming, takes context cards while
- * they last, builds testers, partners and inspections, cools tension with talks, and in a slow world
- * protects Europe's economy. `talks: false` gives the same player without Diplomatic talks.
+ * they last, builds testers, partners and inspections, cools tension with talks when it runs high, and in a
+ * slow world protects Europe's economy. `talks` sets how readily it holds Diplomatic talks: 'sensible'
+ * (tension 50+, then 45+ when nothing else is urgent), 'eager' (40+, then 35+: the talks strategy of the
+ * balance targets) or 'never'.
  */
-export function preparedStrategy(opts: { talks: boolean; name: string }): Strategy {
+export function preparedStrategy(opts: { talks: 'sensible' | 'eager' | 'never'; name: string }): Strategy {
+  const [talksHigh, talksLow] = opts.talks === 'eager' ? [40, 35] : opts.talks === 'sensible' ? [50, 45] : [Infinity, Infinity];
   const wants = (s: GameState): CardId[] => {
     const g = s.gauges;
     const n = (id: CardId) => s.cardsPlayed[id] ?? 0;
@@ -67,14 +70,14 @@ export function preparedStrategy(opts: { talks: boolean; name: string }): Strate
     add('coalition', s.coalition === 0);
     add('host_verification', g.verification < 30);
     add('cyber_defence', g.misuse >= 25);
-    add('diplomatic_talks', opts.talks && g.tension >= 40);
+    add('diplomatic_talks', g.tension >= talksHigh);
     add('open_models', slowWorld);
     add('oversight_mandate', slowWorld && n('open_models') > 0);
     add('coalition', s.coalition < 2);
     add('fund_alignment', n('fund_alignment') < 2);
     add('flexicurity');
     add('host_verification', g.verification < 50);
-    add('diplomatic_talks', opts.talks && g.tension >= 35);
+    add('diplomatic_talks', g.tension >= talksLow);
     add('coalition', s.coalition < 3);
     add('fund_alignment');
     add('measure', slowWorld);
@@ -99,8 +102,9 @@ export function preparedStrategy(opts: { talks: boolean; name: string }): Strate
   };
 }
 
-export const prepared = preparedStrategy({ talks: true, name: 'prepared' });
-export const preparedNoTalks = preparedStrategy({ talks: false, name: 'prepared, no talks' });
+export const prepared = preparedStrategy({ talks: 'sensible', name: 'prepared' });
+export const preparedTalks = preparedStrategy({ talks: 'eager', name: 'prepared, eager talks' });
+export const preparedNoTalks = preparedStrategy({ talks: 'never', name: 'prepared, no talks' });
 
 export const STRATEGIES = [passive, randomStrategy, prepared];
 
