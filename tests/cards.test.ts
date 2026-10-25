@@ -335,9 +335,9 @@ describe('effects', () => {
     }
     // a card that reveals nothing has no gains; the AI Office already bought has none either
     expect(E.previewCard(s, 'fund_alignment').infoGains).toEqual([]);
-    expect(E.previewCard(E.playCard(s, 'ai_office').state, 'measure').infoGains).toEqual([`Europe’s three human-influence scores shown until ${until}`]);
+    expect(E.previewCard(E.playCard(s, 'ai_office').state, 'measure').infoGains.map((g) => g.text)).toEqual([`Europe’s three human-influence scores shown until ${until}`]);
     // in the last quarter the audit lasts for the rest of the game
-    expect(E.previewCard({ ...s, quarter: 16 }, 'measure').infoGains).toContain('Europe’s three human-influence scores shown for the rest of the game');
+    expect(E.previewCard({ ...s, quarter: 16 }, 'measure').infoGains.map((g) => g.text)).toContain('Europe’s three human-influence scores shown for the rest of the game');
   });
 
   it('flexicurity queues PC −1 for next quarter', () => {
