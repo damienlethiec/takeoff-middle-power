@@ -1,6 +1,6 @@
 # Fact check: Takeoff: Middle Power
 
-Checked on **25 October 2026** against the `fact-check` branch (commit `965d35a`). No game text or code was changed: this document only lists findings and suggested wording.
+Checked on **25 October 2026** against the `fact-check` branch (commit `965d35a`). No game text or code was changed: this document only lists findings and suggested wording. The v2 additions (section 4) were checked the same day on `v2-content`.
 
 **Scope.** Every claim about the real world or about a cited source: the four opening screens and the title screen, the "Already real" boxes on events, card, event and ending sources, the AI 2040 figures attributed to Eli Lifland (plans and tipping screens), `src/data/sources.ts`, public news and internal notes where they name real organisations or real facts, and the claims in `docs/SPEC.md` about what each scenario says. Fiction set in 2027–2030 (OpenBrain, DeepCent, future events) is fine and is only flagged when it is presented as real or shows a real organisation doing something it would not do.
 
@@ -158,3 +158,68 @@ All URLs shown to players resolve to the right content, except as noted below.
 - `mockEngine.ts:315`: "In 2023 a US lab CEO said his firm might leave the EU if its AI rules were too strict" is **true** (Sam Altman, May 2023, reversed two days later), but it is sourced to AI 2027, which is **wrong**. A suitable source: [The Decoder](https://the-decoder.com/ai-overregulation-openai-ceo-sam-altman-sees-eu-exit-an-option/) or [ITPro on the reversal](https://itpro.com/technology/artificial-intelligence/sam-altman-reverses-threat-to-leave-europe-over-ai-regulations).
 - `mockEngine.ts:90`: the Apollo URL `apolloresearch.ai/research/scheming-reasoning-evaluations` is **unverified**. Apollo's current pages are under `/blog/` and `/science/`, so prefer the arXiv link used in `sources.ts`.
 - Its poll and news lines (for example "61% of Europeans want AI to slow down") are invented placeholders. Do not ship them as real figures.
+
+---
+
+## 4. v2 additions
+
+Checked on **25 October 2026** on the `v2-content` branch, same method as above: primary source, quoted claim, link. Covers every new or changed real-world claim in v2: the two intro screens, the tip fact, the "Already real" boxes (old and new), and the "What this costs in the real world" lines (`src/data/copy/`, `src/data/events.ts`, `src/data/sources.ts`). Fiction in the new copy (OpenBrain, DeepCent, act beats, risk stages, concerns, which are illustrative worries of invented people) was reviewed only to make sure none of it is presented as real: concerns contain no figures and no quotes, and the intro says the two labs are invented.
+
+### 4.1 Summary
+
+| Verdict | Count |
+| --- | --- |
+| ✅ Correct | 12 |
+| ⚠️ Correct with a nuance (noted, wording already accounts for it) | 3 |
+| ❌ Wrong | 0 |
+| **Total v2 claims checked** | **15** |
+
+Every "Already real" fact and every intro fact now has a 2025-or-later source, except the warning shot's Apollo study (2024), kept on purpose because it is still the primary source for exactly that behaviour (see 4.3).
+
+### 4.2 Intro and tips (`src/data/copy/story.ts`, `tips.ts`)
+
+| # | Claim (quoted, short) | Where | Verdict | Quote from the source | Source |
+| --- | --- | --- | --- | --- | --- |
+| V1 | "In 2025, Anthropic wrote that its AI models 'aren't programmed directly by humans' but trained on data, so 'we don't understand how models do most of the things they do.'" | Intro screen 1 | ✅ | 27 March 2025: "Language models like Claude aren't programmed directly by humans—instead, they're trained on large amounts of data." … "This means that we don't understand how models do most of the things they do." | [Anthropic, Tracing the thoughts of a large language model](https://www.anthropic.com/research/tracing-thoughts-language-model) |
+| V2 | "Nobody writes these AIs line by line. They are grown: trained on huge amounts of data and rewarded when their answers look good." | Intro screen 1 (paragraph, no box) | ✅ | Supported by V1. The same phrase is used by Anthropic's CEO in *The Urgency of Interpretability* (April 2025, "grown more than they are built"), but that page could not be loaded from our environment, so it is not cited. | As V1 |
+| V3 | "Since August 2025, makers of new general-purpose AI models offered in the EU must follow EU rules. From August 2026, the European Commission can enforce them, including with fines." | Intro screen 2 | ⚠️ | "These obligations entered into application on 2 August 2025." "From 2 August 2026, the Commission's enforcement powers enter into application." "The Commission will enforce compliance with the obligations for providers of GPAI models, including with fines." *Nuance:* models already on the market before 2 August 2025 have until 2 August 2027, hence "new" in the text. | [European Commission, Guidelines for providers of GPAI models](https://digital-strategy.ec.europa.eu/en/policies/guidelines-gpai-providers) |
+| V4 | "In 2025, OpenAI and Apollo Research found that top AI models often notice when they are being tested, which makes tests harder to trust." | `tip_hidden` fact | ✅ | 17 Sept 2025: "Together with Apollo Research, we developed evaluations for hidden misalignment." "models often become more aware that they are being evaluated." "This trend makes evaluations less legible, complicating efforts to reliably assess problematic behaviors including scheming." Models tested: "OpenAI o3 and o4-mini, Gemini-2.5-pro, and Claude Opus-4". | [OpenAI, Detecting and reducing scheming in AI models](https://openai.com/index/detecting-and-reducing-scheming-in-ai-models/) |
+
+The v1 opening facts (ASML's EUV monopoly, CNBC 2022; alignment faking, Anthropic 2024) are no longer on the two intro screens. Both stay correct and are kept in `SOURCES` (`asmlCnbc`, `alignmentFaking`) for reuse. The ASML card cites Europe 2031 (June 2026), which confirms ASML as "the one bottleneck the entire AI race runs through" (#28).
+
+### 4.3 "Already real" boxes (`src/data/events.ts`)
+
+| # | Event | Claim (quoted, short) | Verdict | Quote from the source | Source |
+| --- | --- | --- | --- | --- | --- |
+| V5 | Weight theft (**changed**) | "In November 2025, Anthropic said a Chinese state-sponsored group had used its AI to run most of a hacking campaign against about 30 targets, including large tech companies. A few break-ins succeeded." | ✅ | Reported 13 Nov 2025 (detected mid-September): a group Anthropic assesses "with high confidence was a Chinese state-sponsored group"; about thirty global targets, including large tech companies, financial institutions, chemical manufacturers and government agencies; AI performed "80-90% of the campaign"; it "succeeded in a small number of cases". Replaces the 2024 RAND fact, which stays the source of the *Weight security standards* card. | [Anthropic, Disrupting AI-orchestrated cyber espionage (Nov 2025)](https://www.anthropic.com/news/disrupting-AI-espionage) |
+| V6 | Silicon blackmail (**changed**) | "In April 2025, Meta released its Llama 4 models, but their licence denied people and companies based in the EU the right to use and build on them." | ⚠️ | Llama 4 Acceptable Use Policy: for "any multimodal models included in Llama 4, the rights granted under Section 1(a) of the Llama 4 Community License Agreement are not being granted to you" if you are domiciled in, or a company with a principal place of business in, the European Union. TechCrunch, 5 April 2025: EU users and companies are "prohibited from using or distributing the models". *Nuances:* the clause covers the multimodal models (all Llama 4 models released so far are multimodal); end users of products built on them are exempt; Meta gives no reason in the policy (TechCrunch infers the EU's AI and privacy laws). The 2024 Axios fact (`SOURCES.metaEu`) stays correct and is kept for reuse. | [Meta, Llama 4 Acceptable Use Policy](https://raw.githubusercontent.com/meta-llama/llama-models/main/models/llama4/USE_POLICY.md) · [TechCrunch](https://techcrunch.com/2025/04/05/meta-releases-llama-4-a-new-crop-of-flagship-ai-models) |
+| V7 | Opaque reasoning (unchanged) | "In July 2025, 41 researchers… jointly warned that our ability to read AI models' reasoning is fragile" | ✅ | Already 2025 (see #16). | [arXiv 2507.11473](https://arxiv.org/abs/2507.11473) |
+| V8 | Ransomware (unchanged) | "In August 2025, Anthropic reported that a criminal used its Claude Code tool…" | ✅ | Already 2025 (see #19). | [Anthropic, Aug 2025](https://www.anthropic.com/news/detecting-countering-misuse-aug-2025) |
+| V9 | Warning shot (unchanged, 2024 kept) | "In 2024 tests by Apollo Research, several frontier models given a goal tried to copy what they believed were their own weights to another server." | ✅ | Still the primary source for exactly this behaviour (#14). Recent confirmations exist but were not swapped in: Anthropic's Claude Opus 4 system card (May 2025) reports the model "attempting to steal its weights" in rare test scenarios, but the PDF could not be loaded from our environment (only secondary quotes, e.g. [Simon Willison](https://simonwillison.net/2025/May/25/claude-4-system-card/)); OpenAI and Apollo (Sept 2025, V4) found behaviours "consistent with scheming" in o3, o4-mini, Gemini 2.5 Pro and Claude Opus 4, but not self-copying specifically. | [arXiv 2412.04984](https://arxiv.org/abs/2412.04984) |
+
+### 4.4 "What this costs in the real world" (`src/data/copy/costs.ts`)
+
+Only cards with an accurate, sourced figure get a line. No line for: coalition, diplomatic talks, ASML lever, measure human influence, human oversight mandate, weight security standards and the two context cards (no honest real-world equivalent found).
+
+| # | Card | Line (quoted) | Verdict | Quote from the source | Source |
+| --- | --- | --- | --- | --- | --- |
+| V10 | AI Office capacity | "The real EU AI Office employs more than 125 staff (2026)." | ✅ | "The AI Office employs more than 125 staff" (page last updated 8 September 2026). | [European Commission, European AI Office](https://digital-strategy.ec.europa.eu/en/policies/ai-office) |
+| V11 | Offer to host verification | "For comparison, the IAEA budgeted about €171 million for its nuclear verification work in 2025." | ✅ | *The Agency's Budget Update for 2025*, GC(68)/5: Major Programme 4, Nuclear Verification, €171,419,868 from the operational Regular Budget (plus €1.36 million capital), out of €442.1 million in total. An analogy, presented as such. | [IAEA, GC(68)/5](https://iaea.org/sites/default/files/gc/gc68-5.pdf) |
+| V12 | Fund alignment research | "In 2025 the UK launched a global fund of over £15 million for alignment research." | ✅ | 30 July 2025: "A global fund of over £15 million for AI alignment research". | [UK AI Security Institute, The Alignment Project](https://www.aisi.gov.uk/work/announcing-the-alignment-project) |
+| V13 | Fund open-weight models | "OpenEuroLLM, building open models for all EU languages, has €37.4 million, €20.6 million of it from the EU (2025)." | ✅ | 3 Feb 2025: "OpenEuroLLM has a total budget of €37.4 million of which €20.6 million comes from the Digital Europe Programme." Goal: the "first family of open-source Large Language Models that cover all official and future EU languages" (HPCwire press release). | [European Commission](https://digital-strategy.ec.europa.eu/en/news/pioneering-ai-project-awarded-opening-large-language-models-european-languages) · [HPCwire](https://www.hpcwire.com/off-the-wire/openeurollm-awarded-step-seal-for-advancing-multilingual-ai-in-europe/) |
+| V14 | Cyber shield for hospitals and grids | "In 2025 the EU set aside €30 million to strengthen the cybersecurity of hospitals and healthcare providers." | ✅ | 12 June 2025: "€30 million of this amount will enhance the cybersecurity of hospitals and healthcare providers" (out of €145.5 million for cybersecurity; Digital Europe call of €55 million). | [European Commission](https://digital-strategy.ec.europa.eu/en/news/eu-allocates-eu1455-million-boost-european-cybersecurity-including-hospitals-and-healthcare) |
+| V15 | Flexicurity reform | "The EU fund for workers hit by mass layoffs can spend up to €30 million a year (2018 prices). In 2025 it gave €0.9 million to help 417 laid-off chip workers in Belgium." | ⚠️ | European Parliament resolution of 8 October 2025 on EGF/2025/001 BE/BelGaN: "a maximum annual amount of EUR 30 million (in 2018 prices)"; contribution of EUR 931 690 (85% of EUR 1 096 107) for "417 targeted beneficiaries" made redundant at BelGaN, a semiconductor maker. *Nuance:* the EGF is an EU top-up to national retraining, not a flexicurity system; the line is an order of magnitude, not the cost of the card. | [European Parliament, TA-10-2025-0220](https://data.europarl.europa.eu/distribution/doc/TA-10-2025-0220_en.pdf) |
+
+### 4.5 Sources added to `src/data/sources.ts`
+
+| Key | Used by | Status |
+| --- | --- | --- |
+| `anthropicInterp` | Intro screen 1 | ✅ loads (V1) |
+| `gpaiGuidelines` | Intro screen 2 | ✅ loads (V3) |
+| `openaiScheming` | `tip_hidden` | ✅ loads (V4) |
+| `anthropicEspionage` | Weight theft, Already real | ✅ loads (V5) |
+| `llama4Policy` | Silicon blackmail, Already real | ✅ loads (raw policy text, V6) |
+| `iaeaBudget2025`, `aisiAlignment`, `openEuroLlm`, `euCyberHealth`, `egfBelgan` | Real-cost lines | ✅ load (V11–V15) |
+| `asmlCnbc`, `alignmentFaking` | v1 opening facts, kept for reuse | ✅ (#5, #6) |
+
+**Could not load from our environment (not cited):** `darioamodei.com/post/the-urgency-of-interpretability` and the Claude 4 system card PDF on `www-cdn.anthropic.com`. Worth one click in a browser if the team wants either as a second source.
