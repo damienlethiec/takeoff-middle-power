@@ -331,7 +331,8 @@ export const CARDS: CardDef[] = [
     downside: 'Unions resist: PC −1 next quarter.',
     dependencies: [],
     hasHiddenEffects: true,
-    previewNotes: ['Approval no longer slides as AI takes over jobs.', 'Softens the next wave of layoffs.'],
+    previewNotes: ['Softens the next wave of layoffs.'],
+    futureNotes: ['Approval no longer slides as AI takes over jobs.'],
     consequence: [{ text: 'Ready for the next wave of layoffs' }],
     did: 'you passed flexicurity',
     advisorNotes: [

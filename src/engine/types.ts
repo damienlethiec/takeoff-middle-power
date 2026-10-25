@@ -309,6 +309,7 @@ export interface CardPreview {
   oddsBefore: Record<PlanId, number>;
   oddsAfter: Record<PlanId, number>;
   // v2
+  /** What the card lets the player see, computed from the state before and after: "Capability error bar ±10 → ±5". */
   infoGains: InfoGain[];
   realCost: { text: string; source: Source } | null;
 }
@@ -318,6 +319,7 @@ export interface Briefing {
   visibleDeltas: Delta[];
   advisorNote: string; // hints at hidden effects without giving numbers
   // v2
+  /** What the player can now see that they could not before (same lines as the preview's). */
   infoGains: InfoGain[];
   /** What this will matter for: "Ready if a theft is attempted". */
   consequence: string | null;
@@ -331,6 +333,8 @@ export interface SituationReport {
    * delayed card effects, thresholds crossed), then routine background drift; biggest first in each group.
    */
   changes: { key: GaugeKey | 'coalition'; label: string; delta: number; cause: string; value: number; routine: boolean }[];
+  /** The routine changes folded into one line ("Background drift: capability 36 (+4), …"); '' when none. */
+  background: string;
   why: string[]; // short causal sentences from the log
   forecast: { mostLikely: PlanId; probability: number; sentence: string; whatWouldHelp: string };
   newNews: number;
@@ -339,8 +343,6 @@ export interface SituationReport {
   // v2: a report that tells a story
   /** The 1–3 things that matter this quarter, with absolute levels and their real cause. */
   headline: ReportLine[];
-  /** Routine drift folded into one sentence: "Background: capability +4, concentration +1…". */
-  background: string;
   risksMoved: RiskView[];
   trajectoryChange: TrajectoryView['change'];
 }
@@ -432,7 +434,9 @@ export interface EndingView {
   world: WorldKind;
   good: boolean;
   title: string;
-  text: string; // 1–2 paragraphs
+  text: string; // 1–2 paragraphs, telling what happened in this game
+  /** What decided this ending in this game: the conditions that held or failed, with their values. */
+  why: string;
   epilogue: string; // human influence band
   lea: LeaScene;
   source: Source;

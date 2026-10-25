@@ -2,7 +2,7 @@
 // flags, hidden effects, card faces, previews and the free decision at the tipping point.
 
 import { describe, expect, it } from 'vitest';
-import { E, craft, deltaMap, nextQuarter, started } from './helpers';
+import { E, craft, deepFreeze, deltaMap, nextQuarter, started } from './helpers';
 import { CARDS as ALL_CARDS, CARD_BY_ID } from '../src/data/cards';
 import type { CardId, GameState } from '../src/engine/types';
 
@@ -306,6 +306,22 @@ describe('effects', () => {
     for (const n of measured.notes) expect(n.readable).toBe(n.quarter === s.quarter);
   });
 
+  // B3: the audit could be bought every quarter while it was already running
+  it('measure is locked while an audit runs, and can be bought again once it is over', () => {
+    const s = started({ quarter: 3 });
+    const measured = E.playCard(s, 'measure').state;
+    expect(measured.revealUntil).toBe(6);
+    const view = (t: GameState) => E.cardViews(t).find((c) => c.id === 'measure')!;
+    for (let q = 4; q <= 6; q++) {
+      const t = { ...measured, quarter: q, decidedThisQuarter: false };
+      expect(view(t)).toMatchObject({ available: false, lockedReason: 'An audit is already running (until Q2 2028)' });
+      expect(() => E.playCard(t, 'measure')).toThrow(/An audit is already running/);
+    }
+    const after = { ...measured, quarter: 7, decidedThisQuarter: false };
+    expect(view(after)).toMatchObject({ available: true, lockedReason: null });
+    expect(E.playCard(after, 'measure').state.revealUntil).toBe(10);
+  });
+
   it('the audit keeps notes readable until revealUntil, then they are redacted again', () => {
     let s = E.playCard(started({ quarter: 3, seed: 5, pc: 5, budget: 5 }), 'measure').state;
     expect(s.revealUntil).toBe(6);
@@ -318,6 +334,43 @@ describe('effects', () => {
     for (const q of [7, 8, 9]) expect(readable[q].every((r) => !r)).toBe(true);
     expect([4, 5, 6].flatMap((q) => readable[q]).length).toBeGreaterThan(0);
     expect([7, 8, 9].flatMap((q) => readable[q]).length).toBeGreaterThan(0);
+  });
+
+  // B7: the AI Office used to preview "No visible change", and its briefing showed only the cost
+  it('previews and briefings list information gains computed from the state, without mutating it or showing hidden values', () => {
+    let s = E.createInitialState(11);
+    for (let i = 0; i < 6; i++) s = nextQuarter(i === 0 ? E.startQuarter(s) : s);
+    const unread = s.notes.filter((n) => !n.readable).length;
+    expect(unread).toBeGreaterThan(1);
+    const frozen = deepFreeze(structuredClone(s));
+    const office = E.previewCard(frozen, 'ai_office');
+    expect(office.infoGains.map((g) => g.text)).toEqual([
+      'Capability error bar ±10 → ±5',
+      'Apparent alignment error bar ±15 → ±5',
+      `${unread} internal notes you already received become readable now`,
+      'Every internal note from now on is readable',
+    ]);
+    expect(E.playCard(s, 'ai_office').briefing.infoGains).toEqual(office.infoGains);
+    // with opaque reasoning the alignment bar is doubled before and after
+    expect(E.previewCard({ ...s, flags: { ...s.flags, alignmentErrorDoubled: true } }, 'ai_office').infoGains[1]?.text).toBe('Apparent alignment error bar ±30 → ±10');
+
+    const audit = E.previewCard(frozen, 'measure');
+    const until = E.dateLabel(s.quarter + 3);
+    const thisQuarter = s.notes.filter((n) => n.quarter === s.quarter).length;
+    expect(audit.infoGains.map((g) => g.text)).toEqual([
+      ...(thisQuarter ? [`${thisQuarter} internal note${thisQuarter === 1 ? '' : 's'} you already received ${thisQuarter === 1 ? 'becomes' : 'become'} readable now`] : []),
+      `Europe’s three human-influence scores shown until ${until}`,
+      `Internal notes readable until ${until}`,
+    ]);
+    // no hidden value in what the player is told
+    for (const line of [...office.infoGains, ...audit.infoGains].map((g) => g.text)) {
+      for (const v of [s.eu.economy, s.eu.culture, s.eu.state, s.gauges.trueAlignment]) expect(line).not.toMatch(new RegExp(`\\b${v}\\b`));
+    }
+    // a card that reveals nothing has no gains; the AI Office already bought has none either
+    expect(E.previewCard(s, 'fund_alignment').infoGains).toEqual([]);
+    expect(E.previewCard(E.playCard(s, 'ai_office').state, 'measure').infoGains.map((g) => g.text)).toEqual([`Europe’s three human-influence scores shown until ${until}`]);
+    // in the last quarter the audit lasts for the rest of the game
+    expect(E.previewCard({ ...s, quarter: 16 }, 'measure').infoGains.map((g) => g.text)).toContain('Europe’s three human-influence scores shown for the rest of the game');
   });
 
   it('flexicurity queues PC −1 for next quarter', () => {
@@ -436,12 +489,13 @@ describe('previews', () => {
     const withNotes = { ...s, notes: [{ id: 'n1', quarter: 4, actor: 'us_labs' as const, region: 'us' as const, text: 'x', readable: false, at: 0.5 }] };
     const office = E.previewCard(withNotes, 'ai_office').infoGains;
     expect(office).toEqual([
-      { label: 'Capability uncertainty', from: '±10', to: '±5', text: 'Capability uncertainty narrows from ±10 to ±5.' },
-      { label: 'Alignment uncertainty', from: '±15', to: '±5', text: 'Alignment uncertainty narrows from ±15 to ±5.' },
-      { label: 'Confidential reports', text: '1 confidential report becomes readable now, and every future one too.' },
+      { label: 'Capability uncertainty', from: '±10', to: '±5', text: 'Capability error bar ±10 → ±5' },
+      { label: 'Apparent alignment uncertainty', from: '±15', to: '±5', text: 'Apparent alignment error bar ±15 → ±5' },
+      { label: 'Internal notes', text: '1 internal note you already received becomes readable now' },
+      { label: 'Internal notes', text: 'Every internal note from now on is readable' },
     ]);
     const audit = E.previewCard(withNotes, 'measure').infoGains;
-    expect(audit.map((g) => g.label)).toEqual(['Confidential reports', 'Human influence in Europe']);
+    expect(audit.map((g) => g.label)).toEqual(['Internal notes', 'Human influence in Europe', 'Internal notes']);
     expect(audit[1].text).toContain(E.dateLabel(7));
     expect(E.previewCard(s, 'host_verification').infoGains).toEqual([]);
     // the briefing carries the same gains

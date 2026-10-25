@@ -695,7 +695,7 @@ describe('endings', () => {
     const funded = d.decisions.filter((x) => x.title.startsWith('Fund alignment research'));
     expect(funded).toHaveLength(1);
     const n = funded[0].quarters.length;
-    expect(funded[0].title).toBe(n > 1 ? `Fund alignment research ×${n}` : 'Fund alignment research');
+    expect(funded[0].title).toBe('Fund alignment research');
     expect(funded[0].hiddenDeltas).toEqual([{ key: 'trueAlignment', amount: [0, 6, 11, 15][n], hidden: true }]);
     for (const e of d.events) {
       expect(e.source.url).toMatch(/^https:\/\//);

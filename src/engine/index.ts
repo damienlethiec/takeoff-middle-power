@@ -265,6 +265,8 @@ function lookup(s: GameState, key: string): number | string | boolean {
       return s.takeoffSpeed;
     case 'alignmentGap':
       return s.gauges.apparentAlignment - s.gauges.trueAlignment;
+    case 'plan':
+      return s.tipping?.plan ?? '';
     case 'eu.average':
       return euAverage(s);
   }
@@ -1232,30 +1234,29 @@ function oddsShiftSentence(before: Record<PlanId, number>, after: Record<PlanId,
 
 const readableCount = (s: GameState) => s.notes.filter((n) => n.readable).length;
 
-/** What the player learns or sees better after a decision, from the real before/after (handoff 01). */
+/**
+ * What the player learns or sees better after a decision, from the real before/after (handoff 01, bug B7):
+ * narrower error bars, notes that become readable, the audit window. Never a hidden value.
+ */
 function infoGains(before: GameState, after: GameState): InfoGain[] {
   const gains: InfoGain[] = [];
   const bar = (key: 'capability' | 'apparentAlignment', label: string) => {
     const a = errorBar(before, key);
     const b = errorBar(after, key);
-    if (a !== b) gains.push({ label, from: `±${a}`, to: `±${b}`, text: `${label} narrows from ±${a} to ±${b}.` });
+    if (a !== b) gains.push({ label: `${label} uncertainty`, from: `±${a}`, to: `±${b}`, text: `${label} error bar ±${a} → ±${b}` });
   };
-  bar('capability', 'Capability uncertainty');
-  bar('apparentAlignment', 'Alignment uncertainty');
+  bar('capability', 'Capability');
+  bar('apparentAlignment', 'Apparent alignment');
   const newly = readableCount(after) - readableCount(before);
-  if (after.flags.aiOffice && !before.flags.aiOffice) {
-    gains.push({
-      label: 'Confidential reports',
-      text: newly > 0 ? `${newly} confidential report${newly > 1 ? 's' : ''} become${newly > 1 ? '' : 's'} readable now, and every future one too.` : 'Every future confidential report will be readable.',
-    });
-  } else if (newly > 0) {
-    gains.push({ label: 'Confidential reports', text: `${newly} confidential report${newly > 1 ? 's' : ''} become${newly > 1 ? '' : 's'} readable now.` });
+  if (newly > 0) {
+    gains.push({ label: 'Internal notes', text: `${newly} internal note${newly === 1 ? '' : 's'} you already received ${newly === 1 ? 'becomes' : 'become'} readable now` });
   }
+  const follows = nextQuarterExists(after);
+  if (after.flags.aiOffice && !before.flags.aiOffice && follows) gains.push({ label: 'Internal notes', text: 'Every internal note from now on is readable' });
   if (after.revealUntil > before.revealUntil && after.revealUntil >= after.quarter) {
-    gains.push({
-      label: 'Human influence in Europe',
-      text: `Europe’s three human-influence scores are shown until ${dateLabel(after.revealUntil)}, and confidential reports are readable meanwhile.`,
-    });
+    const until = !follows || after.revealUntil >= TUNING.lastQuarter ? 'for the rest of the game' : `until ${dateLabel(after.revealUntil)}`;
+    gains.push({ label: 'Human influence in Europe', text: `Europe’s three human-influence scores shown ${until}` });
+    if (!after.flags.aiOffice && follows) gains.push({ label: 'Internal notes', text: `Internal notes readable ${until}` });
   }
   return gains;
 }
@@ -1778,7 +1779,7 @@ export function situationReport(state: GameState): SituationReport {
       .sort((a, b) => Number(primary.includes(b.key)) - Number(primary.includes(a.key)) || Math.abs(b.amount) - Math.abs(a.amount))[0];
     if (bg) headline.push({ key: bg.key, label: GAUGE_INFO[bg.key].label, value: valueOf(bg.key), delta: deltaOf(bg.key), cause: causeText(bg.e, bg.key), kind: 'background', meaning: levelMeaning(s, bg.key) });
   }
-  const routine = changes.filter((c) => c.routine && !headline.some((h) => h.key === c.key));
+  const routine = changes.filter((c) => c.routine);
   const background = routine.length
     ? `${BACKGROUND_LEADS[(q - 1) % BACKGROUND_LEADS.length]}: ${routine.map((c) => `${STAT_LABELS[c.key]} ${c.value} (${signed(c.delta)})`).join(', ')}.`
     : '';
@@ -1817,13 +1818,13 @@ export function situationReport(state: GameState): SituationReport {
     quarter: q,
     dateLabel: dateLabel(q),
     changes,
+    background,
     why,
     forecast: forecast(s),
     newNews: s.news.filter((n) => n.quarter === q).length,
     newNotes: { total: notesQ.length, readable: notesQ.filter((n) => n.readable).length },
     lea: slot && s.phase === 'quarter' ? (letter ? { slot: letter.slot, variant: letter.variant, text: letter.text } : leaScene(s, slot)) : null,
     headline,
-    background,
     risksMoved,
     trajectoryChange: trajectory(s).change,
   };
@@ -1862,23 +1863,48 @@ export function leaScene(state: GameState, slot: LeaScene['slot']): LeaScene {
   }
 }
 
-/** The ending's text with the causes that actually held in this run (bug B4). */
-function endingText(s: GameState, id: EndingId): string {
+/** "a", "a and b", "a, b and c" */
+function joinClauses(xs: string[], word = 'and'): string {
+  return xs.length > 1 ? `${xs.slice(0, -1).join(', ')} ${word} ${xs[xs.length - 1]}` : (xs[0] ?? '');
+}
+
+/**
+ * The ending's text and "why" line for this game: the `{causes}` slot holds what actually happened,
+ * and the why line names the conditions that held or failed, with their values.
+ */
+function endingStory(s: GameState, id: EndingId): { text: string; why: string } {
   const def = ENDING_BY_ID[id];
-  if (!def.causes?.length) return def.text;
-  const held = def.causes.filter((c) => evalCondition(s, c.when)).map((c) => c.text);
-  return def.text.replace('{cause}', (held.length ? held : [def.causes[0].text]).join(' '));
+  const held = def.reasons.filter((r) => !r.when || evalCondition(s, r.when));
+  let clauses = held.flatMap((r) => (r.clause ? [r.clause] : []));
+  // a state that does not match its ending (only in crafted states): name every possibility
+  const or = !clauses.length;
+  if (or) clauses = def.reasons.flatMap((r) => (r.clause ? [r.clause] : []));
+  let text = def.text;
+  const at = text.indexOf('{causes}');
+  if (at >= 0) {
+    const joined = joinClauses(clauses, or ? 'or' : 'and');
+    const startsSentence = at === 0 || /[.!?]\s+$|\n$/.test(text.slice(0, at));
+    text = text.replace('{causes}', startsSentence ? capitalise(joined) : joined);
+  }
+  const fill = (x: string) =>
+    x.replace(/\{([\w.]+)\}/g, (_, key: string) => {
+      const v = lookup(s, key);
+      return typeof v === 'number' ? String(Math.round(v)) : String(v);
+    });
+  return { text, why: held.map((r) => fill(r.why)).join(' ') };
 }
 
 function endingView(s: GameState): EndingView {
   const id = s.ending ?? resolveEnding(s);
   const def = ENDING_BY_ID[id];
+  const story = endingStory(s, id);
   return {
     id,
     world: def.world,
     good: def.good,
     title: def.title,
-    text: endingText(s, id),
+    text: story.text,
+    why: story.why,
     epilogue: EPILOGUES[influenceBand(s)],
     lea: leaScene({ ...s, ending: id }, 'end'),
     source: { ...def.source },
@@ -1915,7 +1941,8 @@ function groupDecisions(entries: LogEntry[]): Debrief['decisions'] {
     let title = first.title;
     let explanation = first.debrief;
     if (list.length > 1) {
-      title = card?.levelled ? `${last.title} (${list.length} levels)` : `${first.title} ×${list.length}`;
+      // the UI adds ×n from `quarters`; a levelled card is named after the level it reached
+      if (card?.levelled) title = last.title;
       const opt = card?.options?.find((o) => first.title.endsWith(`: ${o.label.toLowerCase()}`));
       const base = [card?.debrief, opt?.debrief].filter(Boolean).join(' ');
       const rests = list.map((e) => (base && e.debrief.startsWith(base) ? e.debrief.slice(base.length).trim() : e.debrief));

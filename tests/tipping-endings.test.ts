@@ -1,7 +1,7 @@
 // The tipping point (plan odds formula, draw, lab restraint, aftermath) and every ending boundary.
 
 import { describe, expect, it } from 'vitest';
-import { E, craft, nextQuarter, started, type CraftOptions } from './helpers';
+import { E, craft, nextQuarter, passive, playGame, prepared, randomStrategy, started, type CraftOptions } from './helpers';
 import { nextRandom } from '../src/engine/rng';
 import { ENDINGS, EPILOGUES } from '../src/data/endings';
 import { LEA_END, LEA_ENDING_LINE } from '../src/data/lea';
@@ -292,53 +292,75 @@ describe('the ending view', () => {
     for (const e of ENDINGS) {
       const v = E.debrief(ended({ economy: 50, culture: 50, state: 50 }, e.id)).ending;
       expect(v).toMatchObject({ id: e.id, world: e.world, good: e.good, title: e.title, source: e.source });
-      // the text tells what happened in this run: no placeholder, no hedged alternatives (B4)
-      expect(v.text).not.toMatch(/\{cause\}|, or the| or a few companies/);
-      if (!e.causes) expect(v.text).toBe(e.text);
+      // the text is the ending's, with the {causes} slot filled
+      expect(v.text).not.toMatch(/[{}]/);
+      expect(v.text.split('\n\n')[0].slice(0, 30)).toBe(e.text.slice(0, 30));
       expect(v.lea).toEqual({ slot: 'end', variant: `high:${e.id}`, text: `${LEA_ENDING_LINE[e.id]} ${LEA_END.high}` });
     }
   });
 });
 
-describe('ending texts state what actually happened (B4)', () => {
-  const view = (over: CraftOptions, plan: PlanId, extra: Partial<GameState> = {}) => {
-    const s = { ...craft(over), ...extra };
-    const t = { ...s, tipping: { odds: E.planOdds(s), plan, labRestraint: null }, phase: 'ended' as const };
-    return E.debrief({ ...t, ending: null }).ending;
+// B4: ending texts used to hedge ("nobody could check, or the AIs…, or a few companies…")
+describe('the ending says what happened in this game', () => {
+  const finished = (over: Parameters<typeof craft>[0], plan: PlanId | null, extra: Partial<GameState> = {}) => {
+    const base = { ...craft(over), ...extra };
+    const s: GameState = { ...base, tipping: plan ? { odds: E.planOdds(base), plan, labRestraint: null } : null, phase: 'ended' };
+    return E.debrief({ ...s, ending: E.resolveEnding(s) }).ending;
   };
 
-  it('an unstable pause names only the conditions that failed', () => {
-    const noInspectors = view({ gauges: { verification: 20, concentration: 50, trueAlignment: 60 } }, 'verified_slowdown');
-    expect(noInspectors.id).toBe('unstable_pause');
-    expect(noInspectors.text).toContain('But nobody was ready to check the other side.');
-    expect(noInspectors.text).not.toMatch(/less trustworthy|held all the cards/);
-    const both = view({ gauges: { verification: 20, concentration: 80, trueAlignment: 60 } }, 'verified_slowdown');
-    expect(both.text).toContain('nobody was ready to check');
-    expect(both.text).toContain('a few companies held all the cards');
-    expect(both.text).not.toMatch(/less trustworthy/);
+  it('unstable pause: only the conditions that failed, with their values', () => {
+    const one = finished({ gauges: { verification: 40, trueAlignment: 55, concentration: 60 } }, 'verified_slowdown');
+    expect(one.id).toBe('unstable_pause');
+    expect(one.text).toContain('But nobody could really check the other side.');
+    expect(one.text).not.toMatch(/less trustworthy|all the cards|, or /);
+    expect(one.why).toBe('Washington and Beijing chose a verified slowdown. Verification readiness was 40, below the 45 a lasting deal needs.');
+
+    const two = finished({ gauges: { verification: 60, trueAlignment: 30, concentration: 75 } }, 'shut_down');
+    expect(two.id).toBe('unstable_pause');
+    expect(two.text).toContain('But the AIs already running were less trustworthy than they looked and a few companies held all the cards.');
+    expect(two.text).not.toMatch(/check the other side/);
+    expect(two.why).toMatch(/^Washington and Beijing chose to shut it all down\. True alignment was 30, below 47: .+ Power concentration was 75, above 70\.$/);
   });
 
-  it('a hot war says whether Europe stood alone or tension was too high', () => {
-    const alone = view({ coalition: 0, gauges: { tension: 50 } }, 'fight_china');
-    expect(alone.text).toContain('Europe stood alone');
-    expect(alone.text).not.toContain('too far for talks');
-    const tense = view({ coalition: 2, gauges: { tension: 90 } }, 'fight_china');
-    expect(tense.text).toContain('Tension had gone too far for talks.');
-    expect(tense.text).not.toContain('stood alone');
+  it('licensed utopia names what held', () => {
+    const v = finished({ gauges: { verification: 64, trueAlignment: 51, concentration: 58 } }, 'verified_slowdown');
+    expect(v.id).toBe('licensed_utopia');
+    expect(v.why).toContain('Verification was ready (64, at least 45), power was not too concentrated (58, at most 70) and the AIs were aligned enough (true alignment 51, at least 47).');
   });
 
-  it('silicon blackmail and the agent economy follow what the labs did', () => {
-    const big = (extra: Partial<GameState>, economy: number) => {
-      const s = { ...craft({ gauges: { concentration: 70 }, eu: { economy } }), ...extra, phase: 'ended' as const, ending: null };
-      return E.debrief(s).ending;
-    };
-    const gaveIn = big({ firedEvents: { silicon_blackmail: { quarter: 9, prepared: false, choice: 'give_in' } } }, 60);
+  it('hot war: no coalition, too much tension, or both', () => {
+    expect(finished({ coalition: 0, gauges: { tension: 50 } }, 'fight_china').text).toContain('Nobody was positioned to mediate.');
+    const t = finished({ coalition: 2, gauges: { tension: 80 } }, 'fight_china');
+    expect(t.text).toContain('Tension had gone too far for talks.');
+    expect(t.why).toBe('Washington chose to confront Beijing. Tension was 80, above 70: too high for talks.');
+    expect(finished({ coalition: 0, gauges: { tension: 80 } }, 'fight_china').text).toContain('Nobody was positioned to mediate and tension had gone too far for talks.');
+  });
+
+  it('a plateau or Big AI world says whether the ransomware wave or the labs’ blackmail came', () => {
+    const quiet = finished({ gauges: { concentration: 50 } }, null);
+    expect(quiet.id).toBe('bright_winter');
+    expect(quiet.text).toContain('the ransomware wave everyone feared never came');
+    expect(quiet.text).not.toMatch(/defences held/);
+    const held = finished({ gauges: { concentration: 50 } }, null, { firedEvents: { ransomware: { quarter: 9, prepared: true } } });
+    expect(held.text).toContain('Europe’s defences held');
+    const firm = finished({ gauges: { concentration: 65 }, eu: { economy: 50 } }, null, { firedEvents: { silicon_blackmail: { quarter: 9, prepared: false, choice: 'hold_firm' } } });
+    expect(firm.id).toBe('agent_economy');
+    expect(firm.text).toContain('Europe did not bend, and paid for it.');
+    expect(firm.why).toContain('you held firm');
+    const gaveIn = finished({ gauges: { concentration: 65 }, eu: { economy: 30 } }, null, { firedEvents: { silicon_blackmail: { quarter: 9, prepared: false, choice: 'give_in' } } });
     expect(gaveIn.id).toBe('silicon_blackmail');
-    expect(gaveIn.text).toContain('Europe gave in');
-    expect(gaveIn.text).not.toContain('Quietly, firm by firm');
-    const quiet = big({}, 20);
-    expect(quiet.text).toContain('Quietly, firm by firm');
-    expect(big({}, 60).text).toContain('never dared to threaten it');
+    expect(gaveIn.why).toContain('you gave in.');
+    expect(gaveIn.why).toContain('human influence over it fell to 30, below 40.');
+  });
+
+  it('in played games, no ending text hedges or leaves a slot, and every why line is filled', () => {
+    for (let seed = 0; seed < 120; seed++) {
+      const { final } = playGame(seed, [prepared, randomStrategy, passive][seed % 3]);
+      const v = E.debrief(final).ending;
+      expect(v.text).not.toMatch(/[{}]|, or /);
+      expect(v.why.length).toBeGreaterThan(20);
+      expect(v.why).not.toMatch(/[{}]|undefined|NaN/);
+    }
   });
 });
 

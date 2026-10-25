@@ -116,11 +116,13 @@ export function deltaWords(d: Pick<Delta, 'key' | 'amount'>): string {
  * A "+5 Tension" chip, coloured by whether it helps the player. The colour is never the only cue:
  * a mark is drawn after good and bad chips (styles.css), and the accessible name says it in words.
  */
-export function chip(d: Pick<Delta, 'key' | 'amount'> & { hidden?: boolean }, opts: { short?: boolean } = {}): string {
+export function chip(d: Pick<Delta, 'key' | 'amount'> & { hidden?: boolean }, opts: { short?: boolean; bare?: boolean } = {}): string {
   const t = tone(d.key, d.amount);
   const label = STAT_LABEL[d.key] ?? d.key;
   const icon = d.key === 'pc' ? ICON.pc : d.key === 'budget' ? ICON.budget : '';
-  return `<span class="chip ${t}${d.hidden ? ' hidden-fx' : ''}" role="img" aria-label="${esc(deltaWords(d))}"><b class="num">${signed(Math.round(d.amount))}</b>${icon}${opts.short && icon ? '' : `<span>${esc(label)}</span>`}</span>`;
+  // bare: the number only (the label is already written next to it); the accessible name still says it all
+  const shown = opts.bare || (opts.short && icon) ? '' : `<span>${esc(label)}</span>`;
+  return `<span class="chip ${t}${d.hidden ? ' hidden-fx' : ''}" role="img" aria-label="${esc(deltaWords(d))}"><b class="num">${signed(Math.round(d.amount))}</b>${icon}${shown}</span>`;
 }
 export const chips = (ds: (Pick<Delta, 'key' | 'amount'> & { hidden?: boolean })[], empty = '<span class="chip flat"><span>No visible change</span></span>') =>
   ds.length ? ds.map((d) => chip(d)).join('') : empty;

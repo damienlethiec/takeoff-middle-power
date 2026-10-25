@@ -84,11 +84,17 @@ export function oddsStack(odds: Record<PlanId, number>, highlight?: PlanId) {
 }
 
 export async function showReport(r: SituationReport, odds: Record<PlanId, number>, opts: { leaRead: boolean; tipping?: boolean }): Promise<'decide' | 'map' | 'lea'> {
-  const changes = r.changes.length
-    ? `<ul class="changes">${r.changes
-        .map((c) => `<li>${chip({ key: c.key, amount: c.delta })}<span class="cause">${esc(c.cause)}</span></li>`)
+  // what is new this quarter, with levels ("Tension 58 +4"); the routine drift is folded into one line
+  const news = r.changes.filter((c) => !c.routine);
+  const changes = news.length
+    ? `<ul class="changes">${news
+        .map(
+          (c) =>
+            `<li><span class="lvl">${esc(c.label)} <b class="num">${c.value}${c.key === 'coalition' ? '/3' : ''}</b></span>${chip({ key: c.key, amount: c.delta }, { bare: true })}<span class="cause">${esc(c.cause)}</span></li>`,
+        )
         .join('')}</ul>`
-    : '<p class="muted">A quiet quarter: nothing you can see moved.</p>';
+    : `<p class="muted">${r.background ? 'No surprises this quarter: only the usual drift.' : 'A quiet quarter: nothing you can see moved.'}</p>`;
+  const background = r.background ? `<p class="background">${esc(r.background)}</p>` : '';
   const why = r.why.length ? `<h4 class="label">Why</h4><ul class="why-list">${r.why.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : '';
   const notes = r.newNotes.total
     ? `<span class="foot-item"><b class="num">${r.newNotes.total}</b> internal note${r.newNotes.total > 1 ? 's' : ''} (${r.newNotes.readable} readable)</span>`
@@ -98,6 +104,7 @@ export async function showReport(r: SituationReport, odds: Record<PlanId, number
     `<div class="dateline">${esc(r.dateLabel)} · Situation report</div>
     <h2>What changed</h2>
     ${changes}
+    ${background}
     ${why}
     <div class="forecast-box">
       <h4 class="label">On current course</h4>
@@ -110,7 +117,7 @@ export async function showReport(r: SituationReport, odds: Record<PlanId, number
       <button class="btn-primary" data-primary data-action="decide">${opts.tipping ? 'Take your last decision' : 'Choose your decision'} <kbd>Enter</kbd></button>
       <button class="btn-quiet" data-escape data-action="map">Look at the map first</button>
     </div>`,
-    { cls: 'report', label: `Situation report ${r.dateLabel}`, describedBy: '.changes, h2 + p.muted, .forecast-box p' },
+    { cls: 'report', label: `Situation report ${r.dateLabel}`, describedBy: '.changes, h2 + p.muted, .background, .forecast-box p' },
   );
   return (await m.result) as 'decide' | 'map' | 'lea';
 }
@@ -120,6 +127,7 @@ export async function showBriefing(b: Briefing | null, dateLabel: string, nextLa
     ? `<div class="dateline">${esc(dateLabel)} · Briefing</div>
        <h2>${esc(b.title)}</h2>
        <div class="fx-line big"><span class="fx-l">What moved</span><span class="fx">${chips(b.visibleDeltas)}</span></div>
+       ${b.infoGains.length ? `<div class="fx-line big gains-line"><span class="fx-l">What you can now see</span><ul class="pv-gains">${b.infoGains.map((g) => `<li>${ICON.check}${esc(g.text)}</li>`).join('')}</ul></div>` : ''}
        <blockquote class="advisor"><span class="ava adv">CS</span><div><small>Your chief of staff</small><p>${esc(b.advisorNote)}</p></div></blockquote>`
     : `<div class="dateline">${esc(dateLabel)} · Briefing</div>
        <h2>You passed</h2>

@@ -67,6 +67,8 @@ export interface CardDef {
   dependencies: { text: string; met: Condition }[];
   /** Plain-language consequences shown in the preview (no hidden numbers). */
   previewNotes: string[];
+  /** Preview notes about later quarters, left out of the last decision (no quarter follows it). */
+  futureNotes?: string[];
   /** True when the card has consequences revealed only at the end (the preview says so, not what they are). */
   hasHiddenEffects: boolean;
   /** Hints at the hidden effect in words, never numbers. */
@@ -84,8 +86,6 @@ export interface CardDef {
   cooldown?: number;
   /** Offered only for a short window when the situation creates it (state.contextCards). */
   context?: boolean;
-  /** Preview notes about later quarters: hidden on the last decision. */
-  futureNotes?: string[];
   /** What this decision will matter for, said in the briefing ("Ready if a theft is attempted"). */
   consequence?: ConditionalText[];
   /** For the trajectory bar: "you hosted inspections". */
@@ -172,17 +172,25 @@ export interface PlanDef {
   source: Source;
 }
 
+/** One thing that decided an ending, used when `when` holds (always when absent). */
+export interface EndingReason {
+  when?: Condition;
+  /** Fills the ending text's `{causes}` slot (clauses of the matching reasons are joined with "and"). */
+  clause?: string;
+  /** One sentence for the ending's "why" line; `{key}` is replaced by that value (a condition key). */
+  why: string;
+}
+
 export interface EndingDef {
   id: EndingId;
   world: WorldKind;
   good: boolean;
   title: string;
-  /** May contain {cause}: replaced by the causes that actually held in this run (no hedged alternatives). */
+  /** May contain `{causes}`, filled from the reasons that hold in this game. */
   text: string;
-  /** v2: every cause that holds is told, in order; the first one is used when none holds. */
-  causes?: { when: Condition; text: string }[];
-  /** Why the player got this ending rather than its twin, for the debrief. */
+  /** Why the player got this ending rather than its twin, in general (the run-specific line comes from `reasons`). */
   why: string;
+  reasons: EndingReason[];
   source: Source;
 }
 
