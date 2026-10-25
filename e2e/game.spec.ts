@@ -1,11 +1,18 @@
-// End-to-end: boots the game in Chromium, plays whole games through the real UI, and checks key interactions.
+// End-to-end: plays whole games of the production build in Chromium through the real UI, and checks key interactions.
 // The page clock is faked, so the 10-second quarters run as fast as the test advances them.
+// Selectors use roles and accessible names wherever the markup offers them, so markup changes don't break the test.
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { CARD_BY_ID } from '../src/data/cards';
+import type { CardId } from '../src/engine/types';
 
 const BAD_TEXT = /undefined|NaN|\[object Object\]/;
 /** Card order a sensible player follows (the first available and affordable one is played). */
-const PREFERENCE = ['ai_office', 'coalition', 'host_verification', 'weight_security', 'cyber_defence', 'fund_alignment', 'measure', 'flexicurity'];
+const PREFERENCE: CardId[] = ['ai_office', 'coalition', 'host_verification', 'weight_security', 'cyber_defence', 'fund_alignment', 'measure', 'flexicurity'];
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** A card button: its accessible name starts with the family, then the card name. */
+const cardButton = (dialog: Locator, id: CardId) =>
+  dialog.getByRole('button', { name: new RegExp(`^${escapeRe(CARD_BY_ID[id].family)}\\s*${escapeRe(CARD_BY_ID[id].name)}`) });
 
 interface Session {
   errors: string[];
@@ -32,7 +39,8 @@ async function boot(page: Page, query: string): Promise<Session> {
 async function advance(page: Page, ms: number) {
   for (let t = 0; t < ms; t += 100) await page.clock.fastForward(100);
 }
-const openModal = (page: Page) => page.locator('.overlay:not(.leaving) .modal');
+/** The dialog on screen (a closing one leaves the DOM 180 ms later; the loop always waits longer). */
+const dialog = (page: Page) => page.getByRole('dialog').last();
 
 async function checkText(page: Page, s: Session) {
   const text = await page.evaluate(() => document.body.innerText);
@@ -41,62 +49,65 @@ async function checkText(page: Page, s: Session) {
 }
 
 const pcShown = async (page: Page) => Number(await page.locator('#pc').textContent());
+const liveBubble = (page: Page) => page.locator('[role="button"][aria-label^="Public concern"]:not(.popped):not(.faded)').first();
+const endingPage = (page: Page) => page.locator('.ending-page');
 
 /** Play until the ending page shows. Returns the names of the cards played. */
 async function playToEnd(page: Page, s: Session) {
   const played: string[] = [];
   const seen = { tipping: false, clockStops: false, events: 0 };
   // double speed, as an impatient player would
-  await page.locator('.speed button[data-speed="2"]').click();
+  await page.getByRole('button', { name: '×2' }).click();
   for (let step = 0; step < 800; step++) {
-    if (await page.locator('.ending-page').count()) return { played, seen };
-    const modal = openModal(page);
-    if (!(await modal.count())) {
+    if (await endingPage(page).count()) return { played, seen };
+    const d = dialog(page);
+    if (!(await d.count())) {
       // the clock is running: catch public concern, leave the map dock if it opened
       if (step % 4 === 0) await checkText(page, s);
-      const bubble = page.locator('.bubble:not(.popped):not(.faded)').first();
+      const bubble = liveBubble(page);
       if (await bubble.count()) await bubble.click({ force: true }).catch(() => {});
-      const dock = page.locator('.dock:not([hidden]) button');
+      const dock = page.locator('.dock:not([hidden])').getByRole('button');
       if (await dock.count()) await dock.click();
       await advance(page, 1000);
       continue;
     }
     await checkText(page, s);
-    const cls = (await modal.getAttribute('class')) ?? '';
-    if (cls.includes('event')) {
-      seen.events++;
-      const choice = modal.locator('.choice').first();
-      if (await choice.count()) await choice.click();
-      else await page.keyboard.press('Enter');
-    } else if (cls.includes('decision')) {
+    const name = (await d.getAttribute('aria-label')) ?? '';
+    if (name === 'Your decision') {
       let picked = false;
       for (const id of PREFERENCE) {
-        const card = modal.locator(`.pcard[data-card="${id}"]:not(.locked):not(.short)`);
+        const card = cardButton(d, id);
         if (!(await card.count())) continue;
-        const name = (await card.locator('.pname').textContent())!.trim();
         await card.click();
         // the preview shows before anything is committed
-        await expect(modal.locator('.preview .pv-card h3')).toHaveText(name);
-        const confirm = modal.locator('.preview [data-primary]');
-        if (await confirm.isDisabled()) continue;
+        await expect(d.getByRole('heading', { level: 3, name: CARD_BY_ID[id].name })).toBeVisible();
+        const confirm = d.getByRole('button', { name: /^Confirm/ });
+        if (!(await confirm.count()) || (await confirm.isDisabled())) continue;
         await page.keyboard.press('Enter');
-        played.push(name);
+        played.push(CARD_BY_ID[id].name);
         picked = true;
         break;
       }
-      if (!picked) await modal.locator('[data-action="pass"]').click();
-    } else if (cls.includes('tipping-alarm')) {
+      if (!picked) await d.getByRole('button', { name: /^(Pass this quarter|Make no decision)$/ }).click();
+    } else if (name === 'The tipping point') {
       seen.tipping = true;
       await advance(page, 2500);
+      await d.getByRole('button', { name: /^Take your last decision/ }).click();
+    } else if (name === 'The superpowers choose') {
+      const go = d.getByRole('button', { name: /^See how it ends/ });
+      for (let i = 0; i < 40 && (await go.isDisabled()); i++) await advance(page, 500);
+      await expect(d.getByText('They chose')).toBeVisible();
       await page.keyboard.press('Enter');
-    } else if (cls.includes('choose')) {
-      for (let i = 0; i < 40 && (await modal.locator('[data-primary]:disabled').count()); i++) await advance(page, 500);
-      await expect(modal.locator('.verdict')).not.toBeEmpty();
+    } else if (['Message from Léa', 'Briefing', 'The clock stops'].includes(name) || name.startsWith('Situation report')) {
+      if (name === 'The clock stops') seen.clockStops = true;
+      // Enter is the primary action of every pause
       await page.keyboard.press('Enter');
     } else {
-      if ((await modal.getAttribute('aria-label')) === 'The clock stops') seen.clockStops = true;
-      // situation report, Léa, briefing, the clock stops: Enter is the primary action
-      await page.keyboard.press('Enter');
+      // an event: answer with the first choice, or continue
+      seen.events++;
+      const cont = d.getByRole('button', { name: /^Continue/ });
+      if (await cont.count()) await page.keyboard.press('Enter');
+      else await d.getByRole('button').first().click();
     }
     await advance(page, 400);
   }
@@ -104,19 +115,19 @@ async function playToEnd(page: Page, s: Session) {
 }
 
 async function checkEnding(page: Page, s: Session, played: string[]) {
-  const ending = page.locator('.ending-page');
-  await expect(ending.locator('h1')).not.toBeEmpty();
-  await expect(ending.locator('.end-badge')).toHaveText(/A (good|bad) ending/);
-  await expect(ending.locator('.epilogue')).not.toBeEmpty();
-  await expect(ending.locator('.end-lea .letter p')).not.toBeEmpty();
-  for (const id of ['d1', 'd2', 'd3', 'd4']) await expect(page.locator(`#${id}`)).toBeVisible();
+  const ending = endingPage(page);
+  await expect(ending.getByRole('heading', { level: 1 })).not.toBeEmpty();
+  await expect(ending.getByText(/^A (good|bad) ending$/)).toBeVisible();
+  for (const h of ['The reveal', 'The internal notes', 'Your decisions, explained', 'Why it happened']) {
+    await expect(ending.getByRole('heading', { level: 2, name: h })).toBeVisible();
+  }
+  await expect(ending.getByText('Léa, one last time')).toBeVisible();
   // every played card appears in the debrief, in order
-  const decisions = ending.locator('.deb-list').first().locator('h4');
-  const titles = (await decisions.allTextContents()).map((t) => t.trim());
+  const titles = (await ending.locator('.deb-list').first().getByRole('heading', { level: 4 }).allTextContents()).map((t) => t.trim());
   expect(titles.length).toBe(played.length);
   titles.forEach((t, i) => expect(t.startsWith(played[i])).toBe(true));
   // no note is left redacted
-  await expect(ending.locator('.deb-notes .bars')).toHaveCount(0);
+  await expect(ending.getByLabel('Redacted note')).toHaveCount(0);
   await checkText(page, s);
 }
 
@@ -128,9 +139,10 @@ test.describe('a full game', () => {
     expect(seen.clockStops).toBe(false);
     expect(played.length).toBeGreaterThan(3);
     await checkEnding(page, s, played);
-    await expect(page.locator('.ending-page .rv-bar.odds.chosen')).toHaveCount(1);
+    await expect(endingPage(page).getByText("The superpowers' choice")).toBeVisible();
+    await expect(endingPage(page).getByText('chosen', { exact: true })).toHaveCount(1);
     // play again starts a fresh game
-    await page.locator('.ending-page [data-again]').first().click();
+    await page.getByRole('button', { name: 'Play again' }).first().click();
     await advance(page, 500);
     await expect(page.locator('#date')).toHaveText('Q1 2027');
     await expect(page.locator('#phase')).toHaveText('Clock running');
@@ -144,21 +156,23 @@ test.describe('a full game', () => {
     expect(seen.tipping).toBe(false);
     expect(seen.clockStops).toBe(true);
     await checkEnding(page, s, played);
-    await expect(page.locator('.ending-page .dateline').first()).toContainText('Q4 2030');
+    await expect(endingPage(page).getByText(/^Q4 2030 · (Plateau|Big AI) world$/)).toBeVisible();
     expect(s.badText).toEqual([]);
     expect(s.errors).toEqual([]);
   });
 });
 
 test.describe('key interactions', () => {
-  test('the introduction can be read and skipped', async ({ page }) => {
+  test('the build ships its Content-Security-Policy, and the introduction can be read and skipped', async ({ page }) => {
     const s = await boot(page, '?seed=4');
-    await expect(page.locator('.opening .title-logo')).toBeVisible();
+    await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveCount(1);
+    const intro = page.getByRole('dialog', { name: 'Introduction' });
+    await expect(intro.getByText('Middle Power')).toBeVisible();
     await page.keyboard.press('Enter');
-    await expect(page.locator('.opening h2')).toHaveText('AI already writes code and works on its own');
-    await page.locator('.opening [data-go="skip"]').click();
+    await expect(intro.getByRole('heading', { level: 2 })).toHaveText('AI already writes code and works on its own');
+    await intro.getByRole('button', { name: 'Skip' }).click();
     await advance(page, 600);
-    await expect(page.locator('.opening')).toHaveCount(0);
+    await expect(intro).toHaveCount(0);
     await expect(page.locator('#date')).toHaveText('Q1 2027');
     expect(s.errors).toEqual([]);
   });
@@ -167,13 +181,14 @@ test.describe('key interactions', () => {
     const s = await boot(page, '?skipintro&seed=4');
     await advance(page, 1500);
     await expect(page.locator('#phase')).toHaveText('Clock running');
-    const progress = page.locator('#quarters li.now i');
+    const progress = page.getByRole('list', { name: 'Progress through the 16 quarters' }).locator('li.now i');
     await page.keyboard.press(' ');
     await expect(page.locator('#phase')).toHaveText('Paused');
+    await expect(page.getByRole('button', { name: 'Resume the clock (Space)' })).toBeVisible();
     const paused = await progress.getAttribute('style');
     await advance(page, 3000);
     expect(await progress.getAttribute('style')).toBe(paused);
-    await expect(openModal(page)).toHaveCount(0);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.keyboard.press(' ');
     await expect(page.locator('#phase')).toHaveText('Clock running');
     await advance(page, 1000);
@@ -183,7 +198,7 @@ test.describe('key interactions', () => {
 
   test('clicking a concern bubble gives +1 Political Capital', async ({ page }) => {
     const s = await boot(page, '?skipintro&seed=4');
-    const bubble = page.locator('.bubble:not(.popped):not(.faded)').first();
+    const bubble = liveBubble(page);
     for (let i = 0; i < 40 && !(await bubble.count()); i++) await advance(page, 250);
     await expect(bubble).toHaveCount(1);
     const before = await pcShown(page);
@@ -195,30 +210,28 @@ test.describe('key interactions', () => {
 
   test('a card shows its preview before confirming, and Enter confirms it', async ({ page }) => {
     const s = await boot(page, '?skipintro&seed=4');
-    // run the first quarter to the situation report, then open the decision
-    for (let i = 0; i < 60 && !(await openModal(page).count()); i++) await advance(page, 500);
-    while (!((await openModal(page).getAttribute('class')) ?? '').includes('decision')) {
+    // run the first quarter to the situation report, then on to the decision
+    for (let i = 0; i < 60 && !(await page.getByRole('dialog').count()); i++) await advance(page, 500);
+    while ((await dialog(page).getAttribute('aria-label')) !== 'Your decision') {
       await page.keyboard.press('Enter');
       await advance(page, 400);
     }
-    const modal = openModal(page);
-    const budget = Number(await modal.locator('.res-mini.budget b').textContent());
-    const pc = Number(await modal.locator('.res-mini.pc b').textContent());
-    await expect(modal.locator('.preview .pv-empty')).toBeVisible();
-    await modal.locator('.pcard[data-card="host_verification"]').click();
-    const preview = modal.locator('.preview');
-    await expect(preview.locator('h3')).toHaveText('Offer to host verification');
-    await expect(preview.locator('.pv-sec').nth(1)).toContainText('Verification');
-    await expect(preview.locator('.pv-sec').nth(1)).toContainText('Tension');
-    await expect(preview.locator('.pv-odds .oc-row')).toHaveCount(4);
+    const d = dialog(page);
+    const budget = Number(await page.locator('#budget').textContent());
+    const pc = await pcShown(page);
+    await expect(d.getByText('Pick a card to see what it would change before you commit.')).toBeVisible();
+    await cardButton(d, 'host_verification').click();
+    await expect(d.getByRole('heading', { level: 3, name: 'Offer to host verification' })).toBeVisible();
+    await expect(d.getByText("If AI took off now, the superpowers' choice")).toBeVisible();
+    await expect(d.getByText('Downside')).toBeVisible();
+    await expect(d.getByRole('button', { name: /^Confirm/ })).toBeEnabled();
     // nothing is committed yet: the decision is still open and resources unchanged
-    await expect(modal).toHaveClass(/decision/);
+    await expect(d).toHaveAttribute('aria-label', 'Your decision');
     expect(await pcShown(page)).toBe(pc);
     await page.keyboard.press('Enter');
     await advance(page, 400);
-    const briefing = openModal(page);
-    await expect(briefing).toHaveClass(/briefing/);
-    await expect(briefing.locator('h2')).toHaveText('Offer to host verification');
+    const briefing = page.getByRole('dialog', { name: 'Briefing' });
+    await expect(briefing.getByRole('heading', { level: 2 })).toHaveText('Offer to host verification');
     expect(await pcShown(page)).toBe(pc - 1);
     expect(Number(await page.locator('#budget').textContent())).toBe(budget - 2);
     expect(s.errors).toEqual([]);
