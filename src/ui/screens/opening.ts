@@ -47,7 +47,7 @@ const SLIDES: Slide[] = [
     ],
     extra: `<div class="currencies">
       <div class="cur budget">${ICON.budget}<div><b>Budget</b><span>Pays for investments: inspectors, research, open models. +1 per quarter.</span></div></div>
-      <div class="cur pc">${ICON.pc}<div><b>Political Capital</b><span>Pays for regulation and diplomacy. +1 per quarter, more when the public demands safety.</span></div></div>
+      <div class="cur pc">${ICON.pc}<div><b>Political Capital</b><span>Pays for regulation and diplomacy. Earn it by catching public concern on the map, and more when the public demands safety.</span></div></div>
     </div>`,
     fact: {
       text: 'The EU created an AI Office in 2024 to enforce its AI Act rules on the most powerful general-purpose models.',
@@ -60,7 +60,7 @@ const SLIDES: Slide[] = [
     title: 'The clock runs, then stops for you',
     body: ['Each quarter takes a few seconds. Then the game pauses so you can read what happened and decide.'],
     extra: `<ol class="loop">
-      <li><b>The clock runs</b><span>News arrives, labs pulse. Click the purple bubbles for Political Capital.</span></li>
+      <li><b>The clock runs</b><span>News arrives, labs pulse. Click the purple bubbles: they are your main source of Political Capital.</span></li>
       <li><b>An event may interrupt</b><span>Prepared or not, you see the consequences.</span></li>
       <li><b>Situation report</b><span>What changed, why, and where things are heading.</span></li>
       <li><b>Your decision</b><span>One card, or pass. You see its effects before confirming.</span></li>

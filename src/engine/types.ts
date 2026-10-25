@@ -34,7 +34,8 @@ export type CardId =
   | 'oversight_mandate'
   | 'flexicurity'
   | 'weight_security'
-  | 'fund_alignment';
+  | 'fund_alignment'
+  | 'cyber_defence';
 
 export type EventId = 'warning_shot' | 'weight_theft' | 'opaque_reasoning' | 'silicon_blackmail' | 'ransomware';
 
@@ -127,6 +128,7 @@ export interface Flags {
   oversightMandate: boolean;
   flexicurity: boolean;
   weightSecurity: boolean;
+  cyberDefence: boolean;
   exportControls: boolean;
   warningShotPrepared: boolean;
   alignmentErrorDoubled: boolean;

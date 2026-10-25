@@ -212,6 +212,15 @@ const CARDS: Record<CardId, CardDef> = {
     notes: () => ['Results take years to show: nothing moves on your dashboard'],
     advisor: 'Grants went out to twelve teams. Ask again in two years.',
   },
+  cyber_defence: {
+    name: 'Cyber shield for hospitals and grids', family: 'Security', louis: false,
+    text: 'Fund cyber defences for hospitals, town halls and power grids before AI-written attacks arrive.',
+    cost: [['budget', -2]], costLabel: '2 Budget', downside: 'GDP −2',
+    available: (s) => (s.cardsPlayed.cyber_defence ? 'Already played' : null), deps: () => [],
+    effect: () => [['misuse', -10], ['gdp', -2]],
+    notes: () => ['A ransomware wave would mostly bounce off'],
+    advisor: 'Hospital IT teams finally have the budget they asked for.',
+  },
 };
 
 // ---------------- news & notes pool ----------------
@@ -419,7 +428,7 @@ export const engine: EngineApi = {
       seed, rng: seed, phase: 'quarter', quarter: 0,
       gauges: { capability: 20, concentration: 50, apparentAlignment: 60, trueAlignment: 50, verification: 0, tension: 40, misuse: 10, publicPressure: 20, gdp: 50, approval: 50 },
       coalition: 0, eu: { economy: 80, culture: 80, state: 80 }, takeoffSpeed: 'steady', pc: 4, budget: 3, asmlTokens: 2,
-      flags: { aiOffice: false, openModels: false, oversightMandate: false, flexicurity: false, weightSecurity: false, exportControls: false, warningShotPrepared: false, alignmentErrorDoubled: false },
+      flags: { aiOffice: false, openModels: false, oversightMandate: false, flexicurity: false, weightSecurity: false, cyberDefence: false, exportControls: false, warningShotPrepared: false, alignmentErrorDoubled: false },
       cardsPlayed: {}, firedEvents: {}, pendingEvent: null, pending: [], revealUntil: 0, bubblesThisQuarter: 0, decidedThisQuarter: false,
       news: [], notes: [], log: [],
       quarterStart: { gauges: {} as Record<GaugeKey, number>, coalition: 0, pc: 4, budget: 3 },

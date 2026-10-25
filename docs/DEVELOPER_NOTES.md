@@ -26,7 +26,7 @@ Other state: `quarter` (1–16, shown as Q1 2027 to Q4 2030), `revealUntil`, `as
 
 ## Quarter loop
 
-1. **Income** (from Q2; Q1 starts with 4 PC, 3 Budget): PC +1, +1 if publicPressure ≥ 50. Budget +1. Coalition upkeep: **1 PC per coalition level** *(tuned, was −1 if coalition ≥ 1)*; partners you cannot pay for drift away (coalition −1 until the upkeep is payable). Apply `pending`.
+1. **Income** (from Q2; Q1 starts with 6 PC, 3 Budget): no base PC *(rebalanced, was +1)*; PC +1 if publicPressure ≥ 50; concern bubbles are the main PC source. Budget +1. Coalition upkeep: **1 PC per coalition level** *(tuned, was −1 if coalition ≥ 1)*; partners you cannot pay for drift away (coalition −1 until the upkeep is payable). Apply `pending`.
 2. **Clock runs** (about 10 s). Spawn 1–3 concern bubbles; each click gives PC +1 (max +2 per quarter). Ticker lines and internal notes arrive.
 3. **Actors:** labs report progress (apparentAlignment +1) and consolidate (concentration **+1** *(tuned, was +2)*). The US tightens chip controls once when tension ≥ 60 (tension +3, news line).
 4. **Drift:**
@@ -49,16 +49,17 @@ All conditions are read on the values before drift. Every gauge is clamped 0–1
 
 | id | Cost | Available when | Visible effects | Hidden effects | Limit |
 | --- | --- | --- | --- | --- | --- |
-| `coalition` | 2 PC + 1 PC/quarter upkeep | tension < 70 | coalition +1 | — | Up to level 3 |
-| `host_verification` | 2 Budget | Always | verification +15 if `aiOffice`, else +7; tension +5 | — | Repeatable |
-| `asml` | Free (token) | capability ≥ 30 | tension +15; choose: model access (gdp +5) or lab safety commitment | Safety commitment: trueAlignment +5 | 2 tokens |
+| `coalition` | 3 PC + 1 PC/quarter upkeep per level | tension < 70 | coalition +1 | — | Up to level 3 |
+| `host_verification` | 2 Budget + 1 PC | Always | verification +15 if `aiOffice`, else +7; tension +5 | — | Repeatable |
+| `asml` | 2 PC + 1 token | capability ≥ 30 | tension +15; choose: model access (gdp +5) or lab safety commitment | Safety commitment: trueAlignment +5 | 2 tokens |
 | `ai_office` | 2 Budget | Always | Error bars narrow (capability ±5, alignment ±5); all internal notes readable, including past ones | — | Once |
 | `measure` | 1 Budget + 1 PC | Always | Shows eu scores for 3 quarters (`revealUntil` = quarter + 3); internal notes readable meanwhile, this quarter's included | — | Repeatable |
 | `open_models` | 2 Budget | Always | concentration −15; misuse +10 | eu.economy +5 | Once |
-| `oversight_mandate` | 2 PC | Always | gdp −5 | Halves economy and state drift; enables silicon blackmail | Once |
-| `flexicurity` | 2 PC | capability ≥ 30 | No approval drift | Léa's retrained variant; PC −1 next quarter | Once |
-| `weight_security` | 1 PC | `weight_theft` not fired | concentration +5 | Prepared weight theft | Once |
+| `oversight_mandate` | 3 PC | Always | gdp −5 | Halves economy and state drift; enables silicon blackmail | Once |
+| `flexicurity` | 3 PC | capability ≥ 30 | No approval drift | Léa's retrained variant; PC −1 next quarter | Once |
+| `weight_security` | 2 PC | `weight_theft` not fired | concentration +5 | Prepared weight theft | Once |
 | `fund_alignment` | 2 Budget | Always | — | trueAlignment +6 | Repeatable |
+| `cyber_defence` *(added)* | 2 Budget | Always | misuse −10; gdp −2 | Prepared ransomware wave | Once |
 
 ## The events
 
@@ -68,7 +69,7 @@ All conditions are read on the values before drift. Every gauge is clamped 0–1
 | `weight_theft` | China | tension ≥ 50 and capability ≥ 40 | `weightSecurity` | tension +5 | capability +5; tension +20; publicPressure +5 *(added)*; trueAlignment −3; `exportControls` on |
 | `opaque_reasoning` | AI systems and labs | capability ≥ 70 | `aiOffice` | Error bar unchanged; apparentAlignment −5 *(added)* | Alignment error bar doubles |
 | `silicon_blackmail` | US frontier labs | concentration ≥ 60 and `oversightMandate` | `openModels` | None: stand firm | Choice: give in (concentration +10) or hold firm (gdp −15) |
-| `ransomware` | Open-source collective | misuse ≥ 40 | **`weightSecurity`** *(implemented proposal, open point for Louis; see below)* | gdp −3 | gdp −10, approval −10, publicPressure +10 *(added)*; choice: emergency ban (misuse −20, concentration +10) or defence spending (Budget −2, misuse −10) |
+| `ransomware` | Open-source collective | misuse ≥ 40 | `cyberDefence` (Cyber shield card, settled) | gdp −3 | gdp −10, approval −10, publicPressure +10 *(added)*; choice: emergency ban (misuse −20, concentration +10) or defence spending (Budget −2, misuse −10) |
 
 ## The tipping point
 
@@ -120,17 +121,21 @@ Each change was made to hit the MVP criteria with `npm run sim` (2,000 seeded ga
 | Human influence drift | −2 / −1 / −1 | economy −2 → −4 from capability 35; culture −1 → −2 from 35; state −1 → −2 from 50 | A passive slow game kept the economy above 40 and got the good Big AI ending; the low epilogue band was unreachable |
 | Aftermath at the tipping point | — | race −25, fight −10 on each organ | Epilogues contradicted take-off endings |
 | Misuse drift | +2 from capability 40 | +1 before 40, +2 after, +1 more with open models | The ransomware wave never fired in slow worlds, so *Decentralised mayhem* was unreachable |
-| Ransomware prepared | misuse < 60 at trigger (proposal) | `weightSecurity` played | The wave fires when misuse crosses 40 in small steps, so "misuse < 60" was always true and the unprepared variant unreachable. Security standards that harden labs also harden hospitals. **Louis to confirm** (or add a cyber defence card) |
+| Ransomware prepared | misuse < 60 at trigger (proposal) | new card **Cyber shield for hospitals and grids** (2 Budget, once: misuse −10, GDP −2) | The wave fires when misuse crosses 40 in small steps, so "misuse < 60" was always true and the unprepared variant unreachable. Settled with a dedicated card rather than overloading weight security |
 | Incidents and public pressure | — | weight theft unprepared +5, ransomware unprepared +10 | The spec says public pressure rises with incidents; otherwise it barely moved |
 | Apparent alignment | — | prepared warning shot −10, prepared opaque reasoning −5 | The spec says it falls when internal reports leak; Europe's inspectors and testers are how they leak |
 | Capability error bar | ±10 | ±10, ±5 with AI Office | The AI Office card says "error bar narrows" |
 | Léa Q6 | eu.economy ≥ 60 | ≥ 65 | With 60 nearly every game showed the same scene |
+| Political Capital income (rebalance 2) | +1 PC per quarter, start 4 | no base PC, start 6 | Even with upkeep, players sat on 10–12 unused PC by Q8. PC now comes from concern bubbles (max 2 per quarter) and high public pressure, so clicking bubbles matters |
+| PC costs (rebalance 2) | coalition 2, oversight 2, flexicurity 2, weight security 1, ASML free, host verification 0 PC | 3, 3, 3, 2, 2 PC per token, host verification 2 Budget + 1 PC | Makes political choices compete with each other |
+| Public pressure drift (rebalance 2) | +1 once capability ≥ 50 | +1 every quarter, +2 once capability ≥ 50; unprepared warning shot +10 (was +5) | Pressure never passed 50, so its PC bonus and "shut it all down" were dead rules |
+| Shut it all down threshold (rebalance 2) | pressure ≥ 70 | ≥ 60 | Pressure still rarely reaches 70 |
 
-**Simulation results** (passive / random / prepared): good endings 0% / 22% / 95%; every ending reached in at least 2% of games by some strategy; tipping point in 76% of games (slow worlds never), steady games at Q13–14, fast at Q10. See the engine report for the full output.
+**Simulation results after rebalance 2** (passive / random / prepared): good endings 0% / 21% / 82%; PC left at Q8 6 / 2 / 1; public pressure reaches 50 in 0% / 48% / 56% of games; every ending reached in at least 1.4% of games by some strategy; tipping point in 76% of games (slow worlds never), steady games at Q13–14, fast at Q10.
 
 ## Tech
 
-- GitHub repo, Vite + TypeScript, no framework, Vitest for tests, deployed on GitHub Pages (base `/takeoff/`).
+- GitHub repo, Vite + TypeScript, no framework, Vitest for tests, deployed on GitHub Pages: `main` at `/takeoff-middle-power/`, every other branch at `/takeoff-middle-power/preview/<branch>/` (BASE_PATH set in `.github/workflows/deploy.yml`; deleting a branch removes its preview).
 - `engine/` holds pure functions only (no DOM): `createInitialState(seed)`, `startQuarter(state)`, `playCard(state, id, option?)`, `previewCard(state, id)`, `resolveEventChoice(state, eventId, option)`, `endQuarter(state)`, `choosePlan(state, rng)`, `resolveEnding(state)`, plus a seeded random generator. `previewCard` runs `playCard` on a copy and returns the visible deltas only.
 - `data/` is declarative: cards, events, actor rules, plans, endings, news, internal notes and Léa's scenes as typed objects with `effects`, `hiddenEffects`, `availableWhen`, `preparedWhen`, `actor`, `briefing`, `debrief` and `source`. Conditions are `{ key, op, value }` combined with `all` / `any`.
 - `ui/`: the clock, map, gauges with "rises when / falls when" popovers, the two feeds, the situation report and the debrief all render from the state and the log.

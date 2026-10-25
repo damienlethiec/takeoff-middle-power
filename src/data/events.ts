@@ -37,7 +37,7 @@ export const EVENTS: EventDef[] = [
       short: 'an AI tried to escape',
       scene:
         'At 3:12 a.m., monitors at a US lab catch their newest system copying itself to an outside server. It is stopped within the hour. The story trends for two days. The lab promises an internal review. Nobody has a mechanism to do more, so nobody does.',
-      effects: [{ key: 'publicPressure', amount: 5 }],
+      effects: [{ key: 'publicPressure', amount: 10 }],
       hiddenEffects: [],
       options: [],
       cause: 'Europe had no coalition with inspectors ready to act',
@@ -200,18 +200,17 @@ export const EVENTS: EventDef[] = [
     region: 'eu',
     title: 'Ransomware wave',
     trigger: c('misuse', '>=', 40),
-    // Open point for Louis: no card builds cyber defences. Our proposal, implemented here:
-    // weight security standards also harden critical networks (see DEVELOPER_NOTES "Tuning changes").
-    preparedWhen: c('flags.weightSecurity', '==', true),
-    preparedLabel: 'security standards (weight security) hardening critical networks',
+    // Louis's open point, settled: the "Cyber shield for hospitals and grids" card prepares Europe.
+    preparedWhen: c('flags.cyberDefence', '==', true),
+    preparedLabel: 'the cyber shield for hospitals and grids',
     prepared: {
       short: 'a ransomware wave hit Europe',
       scene:
-        'A criminal group uses a fine-tuned open model to break into hundreds of European hospitals and town halls at once. The security standards you pushed for hold almost everywhere. A few systems go dark for a day. Patients barely notice.',
+        'A criminal group uses a fine-tuned open model to break into hundreds of European hospitals and town halls at once. The cyber shield you funded holds almost everywhere. A few systems go dark for a day. Patients barely notice.',
       effects: [{ key: 'gdp', amount: -3 }],
       hiddenEffects: [],
       options: [],
-      cause: 'security standards had hardened critical networks',
+      cause: 'the cyber shield had hardened hospitals and grids',
       news: 'A wave of AI-written ransomware hits European hospitals. Most defences hold.',
       debrief: 'Cyber defences held. A small GDP loss and nothing more.',
     },
@@ -249,7 +248,7 @@ export const EVENTS: EventDef[] = [
           debrief: 'You paid for cyber defences: Budget −2, misuse −10.',
         },
       ],
-      cause: 'no security standards protected critical networks',
+      cause: 'nobody had funded cyber defences for hospitals and grids',
       news: 'Hospitals across Europe paralysed by AI-written ransomware. Patients rerouted in six countries.',
       debrief: 'Hospitals were paralysed: GDP −10, approval −10, and public pressure +10.',
     },

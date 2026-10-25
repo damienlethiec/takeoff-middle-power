@@ -70,6 +70,7 @@ const prepared: Strategy = {
     if (want('ai_office')) return { id: 'ai_office' };
     if (want('coalition', s.coalition === 0)) return { id: 'coalition' };
     if (want('weight_security')) return { id: 'weight_security' };
+    if (want('cyber_defence', g.misuse >= 25)) return { id: 'cyber_defence' };
     if (want('host_verification', g.verification < 30)) return { id: 'host_verification' };
     if (slowWorld && want('open_models')) return { id: 'open_models' };
     if (slowWorld && want('oversight_mandate', played('open_models'))) return { id: 'oversight_mandate' };
@@ -101,6 +102,10 @@ interface GameResult {
   leaQ6: string;
   leaQ11: string;
   band: 'high' | 'mid' | 'low';
+  pcQ8: number;
+  pcEnd: number;
+  pressureEnd: number;
+  pressureMax: number;
 }
 
 function playGame(seed: number, strat: Strategy): GameResult {
@@ -108,10 +113,14 @@ function playGame(seed: number, strat: Strategy): GameResult {
   const r: RngHolder = { rng: seedToRng(seed * 7919 + 17) };
   let leaQ6 = '-';
   let leaQ11 = '-';
+  let pcQ8 = 0;
+  let pressureMax = 0;
   for (let guard = 0; guard < 40; guard++) {
     s = startQuarter(s);
     if (s.quarter === 6) leaQ6 = leaScene(s, 'q6').variant;
     if (s.quarter === 11) leaQ11 = leaScene(s, 'q11').variant;
+    if (s.quarter === 8) pcQ8 = s.pc;
+    pressureMax = Math.max(pressureMax, s.gauges.publicPressure);
     const n = strat.bubbles(s, r);
     for (let i = 0; i < n; i++) s = collectBubble(s, pick(r, REGIONS));
     if (s.pendingEvent) s = resolveEvent(s, strat.choose(s, r));
@@ -139,6 +148,10 @@ function playGame(seed: number, strat: Strategy): GameResult {
     slowdownOdds: s.tipping ? s.tipping.odds.verified_slowdown : null,
     leaQ6,
     leaQ11,
+    pcQ8,
+    pcEnd: s.pc,
+    pressureEnd: s.gauges.publicPressure,
+    pressureMax,
     band: ((s.eu.economy + s.eu.culture + s.eu.state) / 3 >= 60 ? 'high' : (s.eu.economy + s.eu.culture + s.eu.state) / 3 >= 30 ? 'mid' : 'low'),
   };
 }
@@ -182,6 +195,10 @@ for (const strat of strategies) {
     `Léa: Q6 human touch ${pctf(count((x) => x.leaQ6 === 'human_touch'), count((x) => x.leaQ6 !== '-')).trim()}` +
       ` · Q11 retrained ${pctf(count((x) => x.leaQ11 === 'retrained'), Math.max(1, count((x) => x.leaQ11 !== '-'))).trim()}` +
       ` · epilogue high/mid/low ${pctf(count((x) => x.band === 'high'), N).trim()} / ${pctf(count((x) => x.band === 'mid'), N).trim()} / ${pctf(count((x) => x.band === 'low'), N).trim()}`,
+  );
+  const avg = (f: (x: GameResult) => number) => (results.reduce((a, x) => a + f(x), 0) / N).toFixed(1);
+  console.log(
+    `PC at Q8 ${avg((x) => x.pcQ8)} · PC left at end ${avg((x) => x.pcEnd)} · public pressure end ${avg((x) => x.pressureEnd)} (max ${avg((x) => x.pressureMax)}, ≥50 in ${pctf(count((x) => x.pressureMax >= 50), N).trim()}, ≥70 in ${pctf(count((x) => x.pressureMax >= 70), N).trim()})`,
   );
   console.log('events fired (prepared share):');
   for (const ev of ['warning_shot', 'weight_theft', 'opaque_reasoning', 'silicon_blackmail', 'ransomware'] as EventId[]) {

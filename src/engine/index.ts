@@ -268,6 +268,7 @@ export function createInitialState(seed: number): GameState {
       oversightMandate: false,
       flexicurity: false,
       weightSecurity: false,
+      cyberDefence: false,
       exportControls: false,
       warningShotPrepared: false,
       alignmentErrorDoubled: false,
@@ -476,9 +477,9 @@ function runDrift(s: GameState): void {
     [
       ['gdp', d.gdp + (jobs ? d.gdpHighCapability : 0)],
       ['approval', jobs && !s.flags.flexicurity ? d.approval : 0],
-      ['publicPressure', jobs ? d.publicPressure : 0],
+      ['publicPressure', jobs ? d.publicPressureJobs : d.publicPressure],
     ],
-    'AI adoption lifted GDP; once capability passed 50, layoffs cost approval and raised public pressure.',
+    'AI adoption lifted GDP and slowly raised public concern; once capability passed 50, layoffs cost approval and raised public pressure faster.',
   );
 }
 

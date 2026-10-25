@@ -135,11 +135,11 @@ describe('determinism and immutability', () => {
       E.planOdds(n2);
       E.forecastLine(n2);
       E.leaScene(n2, 'q6');
-      const choice = E.cardViews(n2).find((c) => c.available && c.affordable && c.options.length === 0)!;
-      const played = E.playCard(n2, choice.id);
+      const choice = E.cardViews(n2).find((c) => c.available && c.affordable);
+      const played = choice ? E.playCard(n2, choice.id, choice.options[0]?.id).state : E.pass(n2);
       E.pass(n2);
       expect(JSON.stringify(n2)).toBe(snap2);
-      const ended = E.endQuarter(deepFreeze(played.state));
+      const ended = E.endQuarter(deepFreeze(played));
       s = ended.state;
     }
   });
@@ -160,30 +160,30 @@ describe('determinism and immutability', () => {
 // ---------- quarter loop ----------
 
 describe('income, upkeep, pending effects', () => {
-  it('gives no income in Q1 and +1 PC +1 Budget afterwards', () => {
+  it('gives no income in Q1, then +1 Budget and no base PC (PC comes from bubbles and pressure)', () => {
     const s1 = E.startQuarter(E.createInitialState(1));
-    expect(s1.pc).toBe(4);
+    expect(s1.pc).toBe(6);
     expect(s1.budget).toBe(3);
     const s2 = E.startQuarter(E.endQuarter(E.pass(s1)).state);
-    expect(s2.pc).toBe(5);
+    expect(s2.pc).toBe(6);
     expect(s2.budget).toBe(4);
   });
 
   it('gives +1 PC more when public pressure is 50+', () => {
     const s = E.startQuarter(craft({ gauges: { publicPressure: 55 }, pc: 0, budget: 0 }));
-    expect(s.pc).toBe(2);
+    expect(s.pc).toBe(1);
     expect(s.budget).toBe(1);
   });
 
   it('charges 1 PC of upkeep per coalition level', () => {
     const s = E.startQuarter(craft({ coalition: 2, pc: 5 }));
-    expect(s.pc).toBe(5 + 1 - 2);
+    expect(s.pc).toBe(5 - 2);
     expect(s.coalition).toBe(2);
   });
 
   it('loses partners it cannot pay for', () => {
-    const s = E.startQuarter(craft({ coalition: 3, pc: 0 }));
-    // income 1 PC: can pay for one partner only
+    const s = E.startQuarter(craft({ coalition: 3, pc: 1 }));
+    // 1 PC in hand, no base income: can pay for one partner only
     expect(s.coalition).toBe(1);
     expect(s.pc).toBe(0);
     expect(s.log.some((e) => e.id === 'upkeep_unpaid')).toBe(true);
@@ -195,7 +195,7 @@ describe('income, upkeep, pending effects', () => {
     expect(played.pending).toEqual([{ key: 'pc', amount: -1, hidden: false }]);
     const pcBefore = played.pc;
     const next = E.startQuarter(E.endQuarter(played).state);
-    expect(next.pc).toBe(pcBefore + 1 - 1);
+    expect(next.pc).toBe(pcBefore - 1);
     expect(next.pending).toEqual([]);
   });
 
@@ -280,22 +280,22 @@ describe('income, upkeep, pending effects', () => {
 describe('cards', () => {
   const base = () => E.startQuarter(craft({ gauges: { capability: 35 } }));
 
-  it('has 10 cards with short player texts, a downside and a source', () => {
-    expect(CARDS).toHaveLength(10);
+  it('has 11 cards with short player texts, a downside and a source', () => {
+    expect(CARDS).toHaveLength(11);
     for (const c of CARDS) {
       expect(c.playerText.split(/\s+/).length).toBeLessThanOrEqual(25);
       expect(c.downside.length).toBeGreaterThan(0);
       expect(c.source.url).toMatch(/^https:\/\//);
     }
-    expect(CARDS.filter((c) => !c.isLouis).map((c) => c.id).sort()).toEqual(['fund_alignment', 'weight_security']);
+    expect(CARDS.filter((c) => !c.isLouis).map((c) => c.id).sort()).toEqual(['cyber_defence', 'fund_alignment', 'weight_security']);
   });
 
-  it('coalition: +1, costs 2 PC, locked at 3 or tension 70+', () => {
+  it('coalition: +1, costs 3 PC, locked at 3 or tension 70+', () => {
     const s = base();
     const { state, briefing } = E.playCard(s, 'coalition');
     expect(state.coalition).toBe(1);
-    expect(state.pc).toBe(s.pc - 2);
-    expect(visible(briefing.visibleDeltas)).toMatchObject({ coalition: 1, pc: -2 });
+    expect(state.pc).toBe(s.pc - 3);
+    expect(visible(briefing.visibleDeltas)).toMatchObject({ coalition: 1, pc: -3 });
     expect(E.cardViews({ ...s, coalition: 3 }).find((c) => c.id === 'coalition')!.available).toBe(false);
     const tense = E.cardViews({ ...s, gauges: { ...s.gauges, tension: 70 } }).find((c) => c.id === 'coalition')!;
     expect(tense.available).toBe(false);
@@ -308,6 +308,7 @@ describe('cards', () => {
     expect(without.gauges.verification - s.gauges.verification).toBe(7);
     expect(without.gauges.tension - s.gauges.tension).toBe(5);
     expect(without.budget).toBe(s.budget - 2);
+    expect(without.pc).toBe(s.pc - 1);
     const withOffice = E.playCard({ ...s, flags: { ...s.flags, aiOffice: true } }, 'host_verification').state;
     expect(withOffice.gauges.verification - s.gauges.verification).toBe(15);
   });
@@ -318,6 +319,7 @@ describe('cards', () => {
     expect(a.state.gauges.tension - s.gauges.tension).toBe(15);
     expect(a.state.gauges.gdp - s.gauges.gdp).toBe(5);
     expect(a.state.asmlTokens).toBe(1);
+    expect(a.state.pc).toBe(s.pc - 2);
     const b = E.playCard(s, 'asml', 'safety_commitment');
     expect(b.state.gauges.trueAlignment - s.gauges.trueAlignment).toBe(5);
     expect(b.briefing.visibleDeltas.some((d) => d.key === 'trueAlignment')).toBe(false);
@@ -381,7 +383,7 @@ describe('cards', () => {
     const t = E.playCard(s, 'weight_security').state;
     expect(t.gauges.concentration - s.gauges.concentration).toBe(5);
     expect(t.flags.weightSecurity).toBe(true);
-    expect(t.pc).toBe(s.pc - 1);
+    expect(t.pc).toBe(s.pc - 2);
     const stolen = { ...s, firedEvents: { weight_theft: { quarter: 3, prepared: false } } };
     expect(E.cardViews(stolen).find((c) => c.id === 'weight_security')!.available).toBe(false);
   });
@@ -391,6 +393,14 @@ describe('cards', () => {
     const { state, briefing } = E.playCard(s, 'fund_alignment');
     expect(state.gauges.trueAlignment - s.gauges.trueAlignment).toBe(6);
     expect(briefing.visibleDeltas).toEqual([{ key: 'budget', amount: -2, hidden: false }]);
+  });
+
+  it('cyber shield: misuse −10, gdp −2, prepares the ransomware wave, once', () => {
+    const s = base();
+    const { state, briefing } = E.playCard(s, 'cyber_defence');
+    expect(visible(briefing.visibleDeltas)).toMatchObject({ misuse: -10, gdp: -2, budget: -2 });
+    expect(state.flags.cyberDefence).toBe(true);
+    expect(E.cardViews(state).find((c) => c.id === 'cyber_defence')!.available).toBe(false);
   });
 
   it('refuses a second decision, unaffordable cards and decisions during an event', () => {
@@ -429,7 +439,7 @@ describe('cards', () => {
     expect(a.notes.some((n) => /hidden effects/i.test(n))).toBe(true);
     // preview works even when the card cannot be afforded, and reports full costs
     const poor = E.previewCard({ ...s, budget: 0 }, 'host_verification');
-    expect(poor.costs).toEqual([{ key: 'budget', amount: -2, hidden: false }]);
+    expect(visible(poor.costs)).toEqual({ budget: -2, pc: -1 });
   });
 });
 
@@ -459,11 +469,11 @@ describe('events', () => {
     expect(s.pendingEvent!.options).toEqual([]);
   });
 
-  it('warning shot, unprepared: pressure +5 only', () => {
+  it('warning shot, unprepared: pressure +10 only', () => {
     const s = fire({ gauges: { trueAlignment: 40, capability: 64 } });
     expect(s.pendingEvent?.id).toBe('warning_shot');
     expect(s.pendingEvent?.prepared).toBe(false);
-    expect(visible(s.pendingEvent!.appliedDeltas)).toEqual({ publicPressure: 5 });
+    expect(visible(s.pendingEvent!.appliedDeltas)).toEqual({ publicPressure: 10 });
     expect(s.pendingEvent!.scene).toMatch(/Nobody has a mechanism to do more, so nobody does\.$/);
   });
 
@@ -519,7 +529,7 @@ describe('events', () => {
   });
 
   it('ransomware, prepared: gdp −3', () => {
-    const s = fire({ gauges: { misuse: 45, trueAlignment: 60 }, flags: { weightSecurity: true } });
+    const s = fire({ gauges: { misuse: 45, trueAlignment: 60 }, flags: { cyberDefence: true } });
     expect(s.pendingEvent?.id).toBe('ransomware');
     expect(s.pendingEvent?.prepared).toBe(true);
     expect(visible(s.pendingEvent!.appliedDeltas)).toEqual({ gdp: -3 });

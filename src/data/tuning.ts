@@ -19,14 +19,14 @@ export const TUNING = {
       approval: 50,
     } as Record<GaugeKey, number>,
     eu: { economy: 80, culture: 80, state: 80 } as Record<EuKey, number>,
-    pc: 4,
+    pc: 6, // notes: 4 (no base PC income any more)
     budget: 3,
     asmlTokens: 2,
     speedOdds: { slow: 0.25, steady: 0.5, fast: 0.25 } as Record<Speed, number>,
   },
 
   income: {
-    pc: 1,
+    pc: 0, // notes: 1. Political Capital now comes from concern bubbles and high public pressure
     pcHighPressureBonus: 1,
     highPressureAt: 50,
     coalitionUpkeep: 1,
@@ -68,7 +68,8 @@ export const TUNING = {
     gdpHighCapability: 1,
     jobsAt: 50, // capability where jobs, approval and public pressure start to move
     approval: -1,
-    publicPressure: 1,
+    publicPressure: 1, // every quarter (notes: only once capability >= 50)
+    publicPressureJobs: 2, // once capability >= jobsAt
   },
 
   tippingAt: 80,
@@ -84,7 +85,7 @@ export const TUNING = {
   plans: {
     minWeight: 1,
     slowdown: { base: 5, verification: 0.6, pressure: 0.3, coalition: 10, warningShot: 15, tension: -0.2 },
-    shutDown: { base: 2, pressureAt: 70, pressure: 0.3, unsafeBonus: 10, unsafeBelow: 40 },
+    shutDown: { base: 2, pressureAt: 60, pressure: 0.3, unsafeBonus: 10, unsafeBelow: 40 },
     fight: { base: 10, tension: 0.5 },
     race: { base: 25, pressure: -0.2, verification: -0.1, floor: 5 },
     restraint: { base: 0.2, pressurePer: 1 / 400, trueAlignment: 8 },

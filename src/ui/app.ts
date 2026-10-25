@@ -418,7 +418,7 @@ export class App {
           <span class="phase" id="phase" aria-live="polite"></span>
         </div>
         <div class="res budget" title="Budget pays for investments. +1 every quarter.">${ICON.budget}<span class="res-v num" id="budget"></span><span class="res-l">Budget</span></div>
-        <div class="res pc" title="Political Capital pays for regulation and diplomacy. +1 every quarter, +1 if public pressure is high, minus coalition upkeep, plus concern bubbles.">${ICON.pc}<span class="res-v num" id="pc"></span><span class="res-l">Political<br>Capital</span></div>
+        <div class="res pc" title="Political Capital pays for regulation and diplomacy. Earn it by clicking concern bubbles (up to 2 per quarter), +1 per quarter when public pressure is high, minus coalition upkeep.">${ICON.pc}<span class="res-v num" id="pc"></span><span class="res-l">Political<br>Capital</span></div>
       </header>
       <section class="lines">
         <p class="goal"><span class="ln-k">Goal</span><span id="goal"></span></p>
