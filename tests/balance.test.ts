@@ -48,7 +48,12 @@ describe(`balance over ${N} games per strategy`, () => {
   it('card variety: no card above 25% of the prepared player’s plays', () => {
     const counts = new Map<string, number>();
     let total = 0;
-    for (const g of results.get('prepared')!) for (const d of g.decisions) if (d) (total++, counts.set(d, (counts.get(d) ?? 0) + 1));
+    for (const g of results.get('prepared')!)
+      for (const d of g.decisions) {
+        if (!d) continue;
+        total++;
+        counts.set(d, (counts.get(d) ?? 0) + 1);
+      }
     for (const [id, n] of counts) expect(n / total, id).toBeLessThanOrEqual(0.25);
   });
 

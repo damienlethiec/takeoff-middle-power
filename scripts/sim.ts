@@ -103,7 +103,12 @@ const tensionAt = (xs: PlayedGame[]) => {
 };
 const plays = new Map<string, number>();
 let total = 0;
-for (const x of prep) for (const d of x.decisions) if (d) (total++, plays.set(d, (plays.get(d) ?? 0) + 1));
+for (const x of prep)
+  for (const d of x.decisions) {
+    if (!d) continue;
+    total++;
+    plays.set(d, (plays.get(d) ?? 0) + 1);
+  }
 const [topCard, topCount] = [...plays].sort((a, b) => b[1] - a[1])[0];
 const fight = prep.filter((x) => x.final.tipping?.plan === 'fight_china').length;
 const shortages = prep.reduce((a, x) => a + x.shortages, 0) / N;
