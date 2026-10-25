@@ -173,7 +173,7 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .lea-dot { fill: var(--paper); stroke: var(--night); stroke-width: 1.5px; }
 .lea-ring { fill: none; stroke: var(--paper); stroke-width: 2px; opacity: 0; }
 .lea-pin.unread .lea-ring { opacity: 1; transform-box: fill-box; transform-origin: center; animation: pulse 1.4s ease-out infinite; }
-.lea-l { font-family: var(--f-diary); font-style: italic; font-size: 12px; text-anchor: middle; fill: var(--paper-ink); pointer-events: none; }
+.lea-env { fill: none; stroke: var(--paper-ink); stroke-width: 1.4px; stroke-linejoin: round; pointer-events: none; }
 .lea-pin .focus-ring { stroke-width: 2px; }
 .lea-pin:focus-visible, .bubble:focus-visible, .evpin:focus-visible { outline: none; }
 .worldmap:focus-visible { outline-offset: -3px; }

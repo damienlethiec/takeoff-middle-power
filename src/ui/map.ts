@@ -231,7 +231,8 @@ export class WorldMap {
       // readable label and a 44 px target whatever the size of the map.
       const ly = geo(LYON.lon, LYON.lat);
       const lea = el('g', { class: 'lea-pin', transform: `translate(${ly.x} ${ly.y}) scale(0.2)` }, this.layers.pins);
-      // a name tag west of Lyon, pointing at the city: [(L) Léa]•
+      // a name tag west of Lyon, pointing at the city: [(✉) Léa]•. Its only text is "Léa",
+      // which starts its accessible name (label in name, WCAG 2.5.3)
       el('rect', { x: -90, y: -22, width: 98, height: 44, rx: 10, class: 'pin-hit' }, lea);
       el('rect', { x: -88, y: -17, width: 84, height: 34, rx: 17, class: 'focus-ring' }, lea);
       el('path', { d: 'M-9 0H-2', class: 'lea-stem' }, lea);
@@ -239,9 +240,9 @@ export class WorldMap {
       el('rect', { x: -84, y: -13, width: 76, height: 26, rx: 13, class: 'lea-tag' }, lea);
       el('circle', { cx: -71, r: 13, class: 'lea-ring' }, lea);
       el('circle', { cx: -71, r: 9, class: 'lea-dot' }, lea);
-      const lt = el('text', { x: -71, y: 4, class: 'lea-l', 'aria-hidden': 'true' }, lea);
-      lt.textContent = 'L';
-      const name = el('text', { x: -57, y: 5, class: 'lea-name', 'aria-hidden': 'true' }, lea);
+      // a letter: she writes to you
+      el('path', { d: 'M-76 -3.5h10v7h-10zM-76 -3.5l5 4 5-4', class: 'lea-env' }, lea);
+      const name = el('text', { x: -57, y: 5, class: 'lea-name' }, lea);
       name.textContent = 'Léa';
       this.leaPin = lea;
       svgButton(lea, 'Léa, in Lyon: reread her last message', () => this.onLea?.());
