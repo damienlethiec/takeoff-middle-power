@@ -559,6 +559,8 @@ body.ended { overflow: auto; }
 .ending-page.good .end-badge { color: var(--good); } .ending-page.bad .end-badge { color: var(--crit); }
 .end-text { font-size: 19px; line-height: 1.55; max-width: 60ch; margin: 18px 0 6px; }
 .epilogue { color: var(--mute); font-size: 15.5px; max-width: 60ch; margin: 0; }
+.end-why { max-width: 62ch; font-size: 15px; color: var(--ink); margin: 16px 0 0; }
+.end-why b { display: block; font-family: var(--f-data); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); margin-bottom: 2px; }
 .end-lea { margin-top: 26px; max-width: 520px; }
 .end-lea .lea-kicker { text-align: left; }
 .end-src { font-size: 12.5px; color: var(--mute); }

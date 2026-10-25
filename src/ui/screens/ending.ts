@@ -34,6 +34,7 @@ export function showEnding(root: HTMLElement, d: Debrief, dateLabel: string): Pr
       <span class="badge end-badge">${e.good ? `${ICON.check}A good ending` : `${ICON.cross}A bad ending`}</span>
       <p class="end-text">${esc(e.text)}</p>
       <p class="epilogue">${esc(e.epilogue)}</p>
+      <p class="end-why"><b>Why this ending</b> ${esc(e.why)}</p>
       <div class="end-lea"><p class="lea-kicker">Léa, one last time</p>${leaHtml(e.lea, dateLabel)}</div>
       <p class="end-src">Scenario: ${srcLink(e.source)}</p>
       <div class="row-btns">

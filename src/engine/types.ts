@@ -258,7 +258,9 @@ export interface EndingView {
   world: WorldKind;
   good: boolean;
   title: string;
-  text: string; // 1–2 paragraphs
+  text: string; // 1–2 paragraphs, telling what happened in this game
+  /** What decided this ending in this game: the conditions that held or failed, with their values. */
+  why: string;
   epilogue: string; // human influence band
   lea: LeaScene;
   source: Source;

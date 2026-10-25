@@ -180,6 +180,8 @@ function lookup(s: GameState, key: string): number | string | boolean {
       return s.takeoffSpeed;
     case 'alignmentGap':
       return s.gauges.apparentAlignment - s.gauges.trueAlignment;
+    case 'plan':
+      return s.tipping?.plan ?? '';
     case 'eu.average':
       return euAverage(s);
   }
@@ -1219,15 +1221,48 @@ export function leaScene(state: GameState, slot: LeaScene['slot']): LeaScene {
   }
 }
 
+/** "a", "a and b", "a, b and c" */
+function joinClauses(xs: string[], word = 'and'): string {
+  return xs.length > 1 ? `${xs.slice(0, -1).join(', ')} ${word} ${xs[xs.length - 1]}` : (xs[0] ?? '');
+}
+
+/**
+ * The ending's text and "why" line for this game: the `{causes}` slot holds what actually happened,
+ * and the why line names the conditions that held or failed, with their values.
+ */
+function endingStory(s: GameState, id: EndingId): { text: string; why: string } {
+  const def = ENDING_BY_ID[id];
+  const held = def.reasons.filter((r) => !r.when || evalCondition(s, r.when));
+  let clauses = held.flatMap((r) => (r.clause ? [r.clause] : []));
+  // a state that does not match its ending (only in crafted states): name every possibility
+  const or = !clauses.length;
+  if (or) clauses = def.reasons.flatMap((r) => (r.clause ? [r.clause] : []));
+  let text = def.text;
+  const at = text.indexOf('{causes}');
+  if (at >= 0) {
+    const joined = joinClauses(clauses, or ? 'or' : 'and');
+    const startsSentence = at === 0 || /[.!?]\s+$|\n$/.test(text.slice(0, at));
+    text = text.replace('{causes}', startsSentence ? capitalise(joined) : joined);
+  }
+  const fill = (x: string) =>
+    x.replace(/\{([\w.]+)\}/g, (_, key: string) => {
+      const v = lookup(s, key);
+      return typeof v === 'number' ? String(Math.round(v)) : String(v);
+    });
+  return { text, why: held.map((r) => fill(r.why)).join(' ') };
+}
+
 function endingView(s: GameState): EndingView {
   const id = s.ending ?? resolveEnding(s);
   const def = ENDING_BY_ID[id];
+  const story = endingStory(s, id);
   return {
     id,
     world: def.world,
     good: def.good,
     title: def.title,
-    text: def.text,
+    text: story.text,
+    why: story.why,
     epilogue: EPILOGUES[influenceBand(s)],
     lea: leaScene({ ...s, ending: id }, 'end'),
     source: { ...def.source },
