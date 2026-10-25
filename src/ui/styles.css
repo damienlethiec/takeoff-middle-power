@@ -345,6 +345,8 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .changes li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .changes .chip { font-size: 13.5px; }
 .cause { color: var(--mute); font-size: 13.5px; }
+.changes .lvl { font-weight: 600; font-size: 14px; min-width: 11ch; }
+.background { margin: 10px 0 0; color: var(--mute); font-size: 13.5px; }
 .why-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
 .forecast-box { margin-top: 16px; background: var(--night); border: 1px solid var(--rule); border-left: 3px solid var(--warn); border-radius: 10px; padding: 4px 14px 12px; }
 .forecast-box .label { margin-top: 10px; color: var(--warn); }

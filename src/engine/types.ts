@@ -233,7 +233,13 @@ export interface Briefing {
 export interface SituationReport {
   quarter: number;
   dateLabel: string; // "Q3 2027"
-  changes: { key: GaugeKey | 'coalition'; label: string; delta: number; cause: string }[];
+  /**
+   * Every visible change since the start of the quarter: non-routine first (events, actor moves,
+   * delayed card effects, thresholds crossed), then routine background drift; biggest first in each group.
+   */
+  changes: { key: GaugeKey | 'coalition'; label: string; delta: number; cause: string; value: number; routine: boolean }[];
+  /** The routine changes folded into one line ("Background drift: capability 36 (+4), …"); '' when none. */
+  background: string;
   why: string[]; // short causal sentences from the log
   forecast: { mostLikely: PlanId; probability: number; sentence: string; whatWouldHelp: string };
   newNews: number;

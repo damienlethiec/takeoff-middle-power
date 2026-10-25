@@ -195,8 +195,11 @@ describe('moments', () => {
     const report = engine.situationReport(s);
     const r = showReport(report, engine.planOdds(s), { leaRead: true });
     const m = openModalEl()!;
-    expect(m.querySelectorAll('.changes li')).toHaveLength(report.changes.length);
-    expect(text(m.querySelector('.changes li .cause'))).toBe(report.changes[0].cause);
+    const news = report.changes.filter((c) => !c.routine);
+    expect(m.querySelectorAll('.changes li')).toHaveLength(news.length);
+    expect(text(m.querySelector('.changes li .cause'))).toBe(news[0].cause);
+    // the level next to the change: "Tension 64 +4"
+    expect(text(m.querySelector('.changes li .lvl'))).toBe(`${news[0].label} ${news[0].value}`);
     expect([...m.querySelectorAll('.why-list li')].map(text)).toEqual(report.why);
     expect(text(m.querySelector('.forecast-box p'))).toBe(report.forecast.sentence);
     expect(m.querySelectorAll('.stack .seg')).toHaveLength(4);
@@ -208,7 +211,13 @@ describe('moments', () => {
     expect(text(openModalEl()!.querySelector('[data-primary]'))).toBe('Take your last decision Enter');
     key('Escape');
     await expect(again).resolves.toBe('map');
-    const quiet = showReport({ ...report, changes: [], why: [], lea: null, newNotes: { total: 0, readable: 0 }, newNews: 1 }, engine.planOdds(s), { leaRead: false });
+    const routineOnly = showReport({ ...report, changes: report.changes.map((c) => ({ ...c, routine: true })), background: 'Background drift: capability 30 (+4).' }, engine.planOdds(s), { leaRead: false });
+    expect(openModalEl()!.querySelectorAll('.changes li')).toHaveLength(0);
+    expect(text(openModalEl()!.querySelector('.background'))).toBe('Background drift: capability 30 (+4).');
+    expect(text(openModalEl())).toContain('No surprises this quarter');
+    key('Enter');
+    await expect(routineOnly).resolves.toBe('decide');
+    const quiet = showReport({ ...report, changes: [], background: '', why: [], lea: null, newNotes: { total: 0, readable: 0 }, newNews: 1 }, engine.planOdds(s), { leaRead: false });
     expect(text(openModalEl())).toContain('A quiet quarter');
     expect(text(openModalEl()!.querySelector('.report-foot'))).toBe('1 news item');
     key('Enter');

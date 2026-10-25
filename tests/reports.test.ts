@@ -8,7 +8,7 @@ import { LEVERS, PLAN_BY_ID } from '../src/data/plans';
 import { PLAN_LIKELY } from '../src/data/text';
 import { EVENT_BY_ID } from '../src/data/events';
 import { CARD_BY_ID } from '../src/data/cards';
-import type { GameState } from '../src/engine/types';
+import type { GameState, SituationReport } from '../src/engine/types';
 
 describe('date labels', () => {
   it('map quarters 1–16 to Q1 2027 … Q4 2030', () => {
@@ -68,7 +68,7 @@ describe('the situation report', () => {
     expect(r.dateLabel).toBe(E.dateLabel(s.quarter));
     const deltas = r.changes.map((c) => Math.abs(c.delta));
     expect(deltas).toEqual([...deltas].sort((a, b) => b - a));
-    expect(r.changes[0]).toEqual({ key: 'capability', label: 'Capability', delta: 6, cause: 'AI keeps improving' });
+    expect(r.changes[0]).toMatchObject({ key: 'capability', label: 'Capability', delta: 6, cause: 'AI keeps improving', value: 56 });
     for (const c of r.changes) {
       expect(c.key).not.toBe('trueAlignment');
       const now = c.key === 'coalition' ? s.coalition : s.gauges[c.key];
@@ -77,6 +77,52 @@ describe('the situation report', () => {
     }
     // unchanged gauges are left out
     expect(r.changes.find((c) => c.key === 'verification')).toBeUndefined();
+  });
+
+  // B2: the report used to print the same lines every quarter
+  it('shows levels, lists what is new first and folds the routine drift into one background line', () => {
+    let s = E.startQuarter(E.createInitialState(3));
+    const reports: SituationReport[] = [];
+    for (let i = 0; i < 6; i++) {
+      reports.push(E.situationReport(s));
+      s = nextQuarter(s);
+    }
+    for (const r of reports) {
+      for (const c of r.changes) expect(Number.isFinite(c.value)).toBe(true);
+      // non-routine changes come first
+      const firstRoutine = r.changes.findIndex((c) => c.routine);
+      if (firstRoutine >= 0) expect(r.changes.slice(firstRoutine).every((c) => c.routine)).toBe(true);
+      // every routine change, with its level, is in the background line
+      for (const c of r.changes.filter((x) => x.routine)) expect(r.background).toContain(`${c.value} (${c.delta > 0 ? '+' : '−'}${Math.abs(c.delta)})`);
+      if (!r.changes.some((c) => c.routine)) expect(r.background).toBe('');
+    }
+    // no two quarters read the same
+    const texts = reports.map((r) => [r.background, ...r.changes.filter((c) => !c.routine).map((c) => `${c.label} ${c.value} ${c.delta} ${c.cause}`)].join('|'));
+    expect(new Set(texts).size).toBe(texts.length);
+    // the lead-in of the background line varies too
+    expect(new Set(reports.map((r) => r.background.split(':')[0])).size).toBeGreaterThan(1);
+  });
+
+  it('treats the same drift as last quarter as routine, and a new move (event, actor, threshold) as news', () => {
+    // a real quarter 2 after quarter 1: the usual drift is routine
+    const q2 = nextQuarter(E.startQuarter(E.createInitialState(3)));
+    const r2 = E.situationReport(q2);
+    expect(r2.changes.find((c) => c.key === 'capability')!.routine).toBe(true);
+    expect(r2.changes.find((c) => c.key === 'concentration')!.routine).toBe(true);
+    // the US chip controls (an actor move) push tension out of the background
+    let s = E.startQuarter(E.createInitialState(3));
+    s = nextQuarter({ ...s, gauges: { ...s.gauges, tension: 60 } });
+    const r = E.situationReport(s);
+    const tension = r.changes.find((c) => c.key === 'tension')!;
+    expect(tension).toMatchObject({ routine: false, value: s.gauges.tension });
+    expect(r.changes[0].routine).toBe(false);
+    expect(r.background).not.toMatch(/tension/);
+    // a drift crossing a threshold (capability 50: AI is taking jobs) is news the quarter it happens
+    let t = E.startQuarter(E.createInitialState(3));
+    t = nextQuarter({ ...t, gauges: { ...t.gauges, capability: 50 } });
+    expect(E.situationReport(t).changes.find((c) => c.key === 'publicPressure')).toMatchObject({ routine: false, cause: 'AI is taking jobs' });
+    const t2 = nextQuarter(t);
+    expect(E.situationReport(t2).changes.find((c) => c.key === 'publicPressure')!.routine).toBe(true);
   });
 
   it('names up to two causes, the biggest first; the second keeps acronyms (AI, US) capitalised', () => {
@@ -90,7 +136,14 @@ describe('the situation report', () => {
 
   it('falls back to "Several causes" for a change no log entry of the quarter explains (the player’s own card)', () => {
     const s = E.playCard(started({}), 'host_verification').state;
-    expect(E.situationReport(s).changes.find((c) => c.key === 'verification')).toEqual({ key: 'verification', label: 'Verification readiness', delta: 7, cause: 'Several causes' });
+    expect(E.situationReport(s).changes.find((c) => c.key === 'verification')).toEqual({
+      key: 'verification',
+      label: 'Verification readiness',
+      delta: 7,
+      cause: 'Several causes',
+      value: 7,
+      routine: false,
+    });
   });
 
   it('counts this quarter’s news and notes (readable or not)', () => {

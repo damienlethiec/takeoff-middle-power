@@ -1105,6 +1105,22 @@ export function forecastLine(state: GameState): string {
   return `On current course: ${PLAN_LIKELY[f.mostLikely]} (${pct(f.probability)}). What would help: ${f.whatWouldHelp}.`;
 }
 
+/** Actor moves that happen every quarter, like drift. */
+const ROUTINE_ACTOR_RULES = new Set(['labs_report', 'labs_consolidate']);
+/** Lead-ins for the background line, varied by quarter so the report does not read the same every time. */
+const BACKGROUND_LEADS = ['Background drift', 'Meanwhile, as every quarter', 'The usual drift', 'Underneath, as usual'];
+
+/**
+ * Routine = the same background move as last quarter: a drift or a regular actor move.
+ * A drift whose wording changed since last quarter marks a threshold crossed, so it is news.
+ */
+function isRoutine(s: GameState, e: LogEntry): boolean {
+  if (e.kind === 'actor') return ROUTINE_ACTOR_RULES.has(e.id);
+  if (e.kind !== 'drift') return false;
+  if (e.quarter <= 1) return true;
+  return s.log.some((x) => x.kind === 'drift' && x.id === e.id && x.quarter === e.quarter - 1 && x.title === e.title);
+}
+
 export function situationReport(state: GameState): SituationReport {
   const s = state;
   const q = s.quarter;
@@ -1122,9 +1138,16 @@ export function situationReport(state: GameState): SituationReport {
       .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
     const titles = contributors.slice(0, 2).map((x, i) => (i === 0 ? x.e.title : lowerFirst(x.e.title)));
     const cause = titles.length ? titles.join('; ') : 'Several causes';
-    changes.push({ key, label: GAUGE_INFO[key].label, delta, cause });
+    const routine = contributors.length > 0 && contributors.every((x) => isRoutine(s, x.e));
+    changes.push({ key, label: GAUGE_INFO[key].label, delta, cause, value: now, routine });
   }
-  changes.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  changes.sort((a, b) => Number(a.routine) - Number(b.routine) || Math.abs(b.delta) - Math.abs(a.delta));
+  const routine = changes.filter((c) => c.routine);
+  const background = routine.length
+    ? `${BACKGROUND_LEADS[(q - 1) % BACKGROUND_LEADS.length]}: ${routine
+        .map((c) => `${STAT_LABELS[c.key]} ${c.value} (${c.delta > 0 ? '+' : '−'}${Math.abs(c.delta)})`)
+        .join(', ')}.`
+    : '';
 
   const why: string[] = [];
   for (const e of entries) {
@@ -1152,6 +1175,7 @@ export function situationReport(state: GameState): SituationReport {
     quarter: q,
     dateLabel: dateLabel(q),
     changes,
+    background,
     why,
     forecast: forecast(s),
     newNews: s.news.filter((n) => n.quarter === q).length,
