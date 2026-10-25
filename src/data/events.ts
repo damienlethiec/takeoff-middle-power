@@ -93,8 +93,8 @@ export const EVENTS: EventDef[] = [
     whyItMatters:
       'A stolen model lets a rival skip years of work. It also makes both sides race harder and check less.',
     alreadyReal: {
-      text: 'A 2024 RAND study found that protecting frontier model weights from the most capable state hackers will need far more investment than labs were making.',
-      source: SOURCES.rand,
+      text: 'In November 2025, Anthropic said a Chinese state-sponsored group had used its AI to run most of a hacking campaign against about 30 targets, including large tech companies. A few break-ins succeeded.',
+      source: SOURCES.anthropicEspionage,
     },
     source: SOURCES.ai2027,
     at: 0.45,
@@ -188,8 +188,8 @@ export const EVENTS: EventDef[] = [
     },
     whyItMatters: 'When a few companies run the tools everyone depends on, they can veto laws.',
     alreadyReal: {
-      text: 'In July 2024, Meta said it would not release its upcoming multimodal AI models in the EU, citing an unpredictable regulatory environment.',
-      source: SOURCES.metaEu,
+      text: 'In April 2025, Meta released its Llama 4 models, but their licence denied people and companies based in the EU the right to use and build on them.',
+      source: SOURCES.llama4Policy,
     },
     source: SOURCES.cfg,
     at: 0.5,
