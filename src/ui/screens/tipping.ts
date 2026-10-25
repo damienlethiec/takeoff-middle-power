@@ -105,7 +105,7 @@ export async function showSuperpowersChoose(res: TippingResult): Promise<void> {
       <p class="muted">It helps, but far less than a deal. AI 2040 author Eli Lifland's median estimates of the chance of avoiding misaligned takeover:</p>
       <div class="lifland">
         <div><span>Verified slowdown</span><span class="lf-bar"><i style="width:72%"></i></span><b class="num">72%</b></div>
-        <div class="lf-lab"><span>A lab burns its lead</span><span class="lf-bar"><i style="width:40%"></i></span><b class="num">40%</b></div>
+        <div class="lf-lab"><span>A lab burns some of its lead</span><span class="lf-bar"><i style="width:40%"></i></span><b class="num">40%</b></div>
         <div class="lf-race"><span>Race</span><span class="lf-bar"><i style="width:25%"></i></span><b class="num">25%</b></div>
       </div>
       <p class="lf-src"><a class="src" href="https://ai-2040.com/supplements/comparing-possible-plans" target="_blank" rel="noopener">AI 2040, Comparing possible plans</a></p>

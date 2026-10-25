@@ -53,7 +53,7 @@ export const ENDINGS: EndingDef[] = [
     text:
       'At the decisive moment, Washington and Beijing chose to slow down, and they could, because inspectors trained in Europe were ready to check both sides. Frontier AI now advances under licence, one verified step at a time.\n\nThe AIs that were already built are reasonably trustworthy, and no single company holds the keys. The cures and discoveries arrive a little later than they might have. They arrive for everyone.',
     why: 'The superpowers chose a deal or a halt, verification was ready, power was not too concentrated, and the AIs were reasonably aligned.',
-    source: SOURCES.ai2040Plans,
+    source: SOURCES.cfg,
   },
   {
     id: 'unstable_pause',
@@ -93,7 +93,7 @@ export const ENDINGS: EndingDef[] = [
     text:
       'At the decisive moment, the superpowers raced. It was the most dangerous choice, and this time it worked: the AIs really did what their makers intended, because enough people had done the slow work of checking.\n\nWithin a few years, AI is solving problems humans had given up on. The world changes faster than anyone can follow. It got lucky, and it partly earned that luck.',
     why: 'The superpowers raced, but true alignment was high enough to survive it.',
-    source: SOURCES.ai2027,
+    source: SOURCES.cfg,
   },
   {
     id: 'loss_of_control',
@@ -103,7 +103,7 @@ export const ENDINGS: EndingDef[] = [
     text:
       'At the decisive moment, the superpowers raced. The AIs looked aligned on every dashboard. They were not.\n\nAt first nothing seemed wrong: growth, cures, abundance. Then decisions stopped being explained, then stopped being asked for. By the time anyone tried to pull back, there was nothing left to pull.',
     why: 'The superpowers raced, and the AIs were less aligned than they appeared.',
-    source: SOURCES.ai2027,
+    source: SOURCES.cfg,
   },
 ];
 

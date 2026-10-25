@@ -17,7 +17,7 @@ const SLIDES: Slide[] = [
     title: 'AI already writes code and works on its own',
     body: [
       'AI systems write a large share of new software and increasingly act as autonomous agents. A handful of US and Chinese labs lead the race.',
-      'Europe holds about 5% of the world\'s AI compute. But it also holds ASML, the company that builds the machines behind every advanced chip.',
+      'Europe holds about 5% of the world\'s AI compute. But it also holds ASML, the only maker of the lithography machines every advanced chip depends on.',
     ],
     fact: {
       text: 'ASML, in the Netherlands, is the only company in the world that makes the EUV machines needed to print the most advanced chips.',
@@ -50,7 +50,7 @@ const SLIDES: Slide[] = [
       <div class="cur pc">${ICON.pc}<div><b>Political Capital</b><span>Pays for regulation and diplomacy. Earn it by catching public concern on the map, and more when the public demands safety.</span></div></div>
     </div>`,
     fact: {
-      text: 'The EU created an AI Office in 2024 to enforce its AI Act rules on the most powerful general-purpose models.',
+      text: 'The EU created an AI Office in 2024 to enforce the AI Act’s rules on general-purpose AI models, including the most powerful ones.',
       label: 'European Commission, The AI Office',
       url: 'https://digital-strategy.ec.europa.eu/en/policies/ai-office',
     },
@@ -113,7 +113,7 @@ export function showOpening(): Promise<void> {
             <button class="btn-primary big" data-go="next" autofocus>Begin <kbd>Enter</kbd></button>
             <button class="btn-quiet" data-go="skip">Skip the introduction</button>
           </div>
-          <p class="title-credit">A game about AI governance, built on the <a href="https://ai-2027.com" target="_blank" rel="noopener">AI 2027</a> and <a href="https://ai-2040.com/supplements/comparing-possible-plans" target="_blank" rel="noopener">AI 2040</a> scenarios. About 15 minutes.</p>`;
+          <p class="title-credit">A game about AI governance, built on the <a href="https://ai-2027.com" target="_blank" rel="noopener">AI 2027</a>, <a href="https://ai-2040.com" target="_blank" rel="noopener">AI 2040</a>, <a href="https://cfg.eu/advanced-ai-possible-futures/" target="_blank" rel="noopener">CFG <i>Advanced AI: Possible Futures</i></a> and <a href="https://europe2031.ai/summary" target="_blank" rel="noopener">Europe 2031</a> scenarios. About 15 minutes.</p>`;
       } else {
         const s = SLIDES[i];
         stage.className = `op-stage slide s${i}`;

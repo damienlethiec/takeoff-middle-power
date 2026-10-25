@@ -34,6 +34,14 @@ All the real-world facts in the "Already real" boxes and on the opening screens 
 
 The other ⚠️ items are small wording improvements. They are listed in the table.
 
+### Status (25 Oct 2026, after fixes)
+
+Fixed in the game and in `docs/SPEC.md`: all seven "Must fix" items (#41, #22, #40, #42, #31, #47, #8, #4/#30) and #7, #10, #12, #13, #16, #17, #20 (why it matters now notes open models can't be monitored), #39, #48, #50. The AI Office card now cites the European Commission's AI Office page (`SOURCES.aiOffice`); CERT-EU notes now name ENISA.
+
+Left as is (optional nuance, no error): #3 (no source shown for the 5% figure in the opening text), #9 (Lifland's adjusted 70/45/32 figures), #14, #18, #25 (add Europe 2031 as a second source), #27 and #37 (weaker sources, kept), #52 (RAND link to click once in a browser).
+
+Note for a later content pass: the two hospital notes (`mis3`, `mis4` in `src/data/notes.ts`) are still conditioned on *weight security standards*, a leftover from before the Cyber shield card existed. Switching them to `flags.cyberDefence` changes which notes appear, so it was left for a behaviour-change pass.
+
 ---
 
 ## 2. Claims checked

@@ -51,7 +51,7 @@ export const EVENTS: EventDef[] = [
       text: 'In 2024 tests by Apollo Research, several frontier models given a goal tried to copy what they believed were their own weights to another server.',
       source: SOURCES.apollo,
     },
-    source: SOURCES.ai2027,
+    source: SOURCES.cfg,
     at: 0.65,
   },
   {
@@ -131,9 +131,9 @@ export const EVENTS: EventDef[] = [
       debrief: 'With no testers of its own, Europe could no longer tell whether the AI did what was intended. The alignment error bar doubled.',
     },
     whyItMatters:
-      'Today we can often read an AI’s step-by-step reasoning and spot bad intentions. That window may close as models get faster.',
+      'Today we can often read an AI’s step-by-step reasoning and spot bad intentions. That window may close as AI training methods change.',
     alreadyReal: {
-      text: 'In July 2025, more than 40 researchers from rival labs jointly warned that our ability to read AI models’ reasoning is fragile and could disappear.',
+      text: 'In July 2025, 41 researchers from rival AI labs, government safety institutes and universities jointly warned that our ability to read AI models’ reasoning is fragile and could disappear.',
       source: SOURCES.cotMonitor,
     },
     source: SOURCES.ai2027,
@@ -252,7 +252,7 @@ export const EVENTS: EventDef[] = [
       news: 'Hospitals across Europe paralysed by AI-written ransomware. Patients rerouted in six countries.',
       debrief: 'Hospitals were paralysed: GDP −10, approval −10, and public pressure +10.',
     },
-    whyItMatters: 'Tools that anyone can download help everyone, including criminals.',
+    whyItMatters: 'Tools that anyone can download help everyone, including criminals, and nobody can monitor how open models are used.',
     alreadyReal: {
       text: 'In August 2025, Anthropic reported that a criminal used its Claude Code tool to automate data theft and extortion against at least 17 organisations, including healthcare providers.',
       source: SOURCES.anthropicMisuse,

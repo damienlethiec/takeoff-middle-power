@@ -55,13 +55,13 @@ Louis's draft is the base for the policy deck and the events. These are the poin
 | Income per quarter | Political Capital +1, +1 more if public pressure is high, minus coalition upkeep. Budget +1, fixed. Start: 4 Political Capital, 3 Budget |
 | Timing | Visible effects apply immediately. Upkeep and delayed effects (like flexicurity's "−1 Political Capital next round") apply at the start of the next quarter |
 
-**His check on the AI 2040 odds.** The figures are real: they come from the *Comparing Possible Plans* supplement on the AI 2040 site. They are Eli Lifland's median estimates (one of the six authors) of the chance of avoiding misaligned takeover: 72% for a verified slowdown, 40% for a lab burning its lead, 25% for a race. In the game, they must be attributed to him, not to AI 2040 as a whole ([source](https://ai-2040.com/supplements/comparing-possible-plans)).
+**His check on the AI 2040 odds.** The figures are real: they come from the *Comparing Possible Plans* supplement on the AI 2040 site. They are Eli Lifland's median estimates (one of the six authors) of the chance of avoiding misaligned takeover: 72% for a verified slowdown, 40% for a lab burning some of its lead, 25% for a race. In the game, they must be attributed to him, not to AI 2040 as a whole ([source](https://ai-2040.com/supplements/comparing-possible-plans)).
 
 ## The opening
 
 Before the first quarter, four short screens set the scene. Each fits on one screen, with a real fact and its source where relevant.
 
-1. **The world today.** AI systems already write a large share of new code and work as autonomous agents. A handful of US and Chinese labs lead; Europe holds about 5% of the world's AI compute, but also ASML, the company that makes the machines behind every advanced chip.
+1. **The world today.** AI systems already write a large share of new code and work as autonomous agents. A handful of US and Chinese labs lead; Europe holds about 5% of the world's AI compute, but also ASML, the only maker of the lithography machines every advanced chip depends on.
 2. **What is at stake.** Nobody programs these AIs: they are trained, rewarded when their answers look good. What they really learn is hard to check, and harder as they get smarter. That is the alignment problem. An AI that can improve itself could cure diseases, or pursue goals nobody intended, or hand unchecked power to whoever controls it.
 3. **Your role.** You are the EU's AI Envoy. You can't build AI or stop the race. You can shape rules, money and alliances: two currencies (Budget and Political Capital), one decision per quarter.
 4. **How to play.** Each quarter the clock runs, then stops for a situation report and your decision. Some information is hidden from you, as it would be from a real politician. Everything is revealed at the end.
@@ -138,7 +138,7 @@ Louis's eight cards, plus two cards we brought back. Before confirming, the play
 | --- | --- | --- | --- | --- | --- |
 | Middle-power coalition | 2 PC, then 1 PC per quarter | Team up with the UK, Japan, Korea, Canada and Norway. Together you carry more weight, but keeping partners on board takes constant attention. | Coalition +1 | Better odds of a verified slowdown at the tipping point | Upkeep every quarter |
 | Offer to host verification | 2 Budget | Offer Europe as the place where AI labs get inspected. It only works if you have experts who can really check. | Verification +15 (only +7 without AI Office capacity) | — | Tension +5 |
-| Use the ASML lever | Free, twice per game | Europe makes the machines that make AI chips. Threaten to restrict them and you win a concession, but everyone notices. | One concession: model access or a lab safety commitment | True alignment +5 | Tension +15 |
+| Use the ASML lever | Free, twice per game | Europe makes the lithography machines every AI chip depends on. Threaten to restrict them and you win a concession, but everyone notices. | One concession: model access or a lab safety commitment | True alignment +5 | Tension +15 |
 | AI Office capacity | 2 Budget | Hire experts who can really test the most advanced AI, not just write rules for it. Nothing to show for it yet. | Error bar narrows; internal notes become readable | Unlocks the full effect of hosting verification | No visible gain |
 | Measure human influence | 1 Budget, 1 PC | Pay for an audit of who really steers your economy, culture and state: people, or AI. It earns you nothing visible now. | Reveals Europe's three human-influence scores for 3 quarters | — | Pure cost |
 | Fund open-weight models | 2 Budget | Europe pays for AI models anyone can download. Fewer companies hold the keys, but criminals get the same tools. | Concentration −15 | Human influence over the economy +5 | Misuse +10; can trigger the ransomware wave |
@@ -180,7 +180,7 @@ Each event screen also carries two short boxes: **Why it matters** (one or two p
 If AI becomes able to automate its own research before the end of quarter 16, the clock stops for the decisive moment. In a slow game it never comes, and the game ends after quarter 16.
 
 1. **A pause to assess.** A full situation report, then one last decision, free.
-2. **The US and China choose a path.** Four paths from AI 2040. You don't choose, but your preparation shifts the odds:
+2. **The US and China choose a path.** Four of the plans compared in AI 2040. You don't choose, but your preparation shifts the odds:
 
 | Path | More likely when… |
 | --- | --- |

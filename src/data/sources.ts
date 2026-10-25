@@ -1,8 +1,9 @@
 import type { Source } from '../engine/types';
 
 export const SOURCES = {
-  europe2031: { label: 'Europe 2031 (recommendations)', url: 'https://europe2031.ai' },
-  europe2031Labour: { label: 'Europe 2031 (labour recommendation)', url: 'https://europe2031.ai' },
+  europe2031: { label: 'Europe 2031 (recommendations)', url: 'https://europe2031.ai/summary' },
+  europe2031Labour: { label: 'Europe 2031 (labour recommendation)', url: 'https://europe2031.ai/summary' },
+  aiOffice: { label: 'European Commission, European AI Office', url: 'https://digital-strategy.ec.europa.eu/en/policies/ai-office' },
   cfg: { label: 'CFG, Advanced AI: Possible Futures', url: 'https://cfg.eu/advanced-ai-possible-futures/' },
   ai2040: { label: 'AI 2040', url: 'https://ai-2040.com' },
   ai2040Plans: { label: 'AI 2040, Comparing possible plans (Eli Lifland’s estimates)', url: 'https://ai-2040.com/supplements/comparing-possible-plans' },

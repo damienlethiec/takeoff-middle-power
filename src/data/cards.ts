@@ -94,7 +94,7 @@ export const CARDS: CardDef[] = [
     name: 'Use the ASML lever',
     family: 'Leverage',
     playerText:
-      'Europe makes the machines that make AI chips. Threaten to restrict them and you win a concession, but everyone notices.',
+      'Europe makes the lithography machines every AI chip depends on. Threaten to restrict them and you win a concession, but everyone notices.',
     isLouis: true,
     source: SOURCES.europe2031,
     cost: { pc: 2, budget: 0, token: true },
@@ -144,7 +144,7 @@ export const CARDS: CardDef[] = [
     playerText:
       'Hire experts who can really test the most advanced AI, not just write rules for it. Nothing to show for it yet.',
     isLouis: true,
-    source: SOURCES.europe2031,
+    source: SOURCES.aiOffice,
     cost: { pc: 0, budget: 2 },
     costLabel: '2 Budget',
     limit: 1,
@@ -171,7 +171,7 @@ export const CARDS: CardDef[] = [
       },
     ],
     debrief: 'Error bars narrowed, internal notes became readable, hosting verification got its full effect, and Europe could still read the AIs if their reasoning turned opaque.',
-    echoNews: ['The EU AI Office hires its first team of model testers, poached from three US labs.'],
+    echoNews: ['The EU AI Office hires a new team of model testers, poached from three US labs.'],
   },
   {
     id: 'measure',

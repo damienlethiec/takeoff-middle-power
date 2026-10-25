@@ -19,7 +19,7 @@ export const PLANS: PlanDef[] = [
     plain: 'halt frontier AI altogether',
     description:
       'Under huge public pressure and clear signs the AIs are unsafe, both powers halt frontier training. A ban is only as good as the ability to check it.',
-    source: SOURCES.ai2040,
+    source: SOURCES.ai2040Plans,
   },
   {
     id: 'fight_china',
@@ -27,7 +27,7 @@ export const PLANS: PlanDef[] = [
     plain: 'fight',
     description:
       'The US tries to stop China by force: sabotage, cyberattacks, perhaps more. Tension decides whether it stays cold.',
-    source: SOURCES.ai2040,
+    source: SOURCES.ai2040Plans,
   },
   {
     id: 'race',

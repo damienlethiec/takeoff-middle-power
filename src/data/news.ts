@@ -80,7 +80,7 @@ export const NEWS: NewsTemplate[] = [
   t('cn5', 'china', 'china', 'cn', c('tension', '<', 50), 'Chinese diplomats signal openness to an "AI safety dialogue" in Geneva.'),
   t('cn6', 'china', 'china', 'cn', c('capability', '>=', 50), 'DeepCent’s newest model tops a major benchmark. US labs say they are still ahead, "for now".'),
   t('cn7', 'china', 'china', 'cn', c('flags.exportControls', '==', true), 'Chinese chip plants run around the clock on older machines to get around US export controls.'),
-  t('cn8', 'china', 'china', 'cn', yes, 'Beijing publishes rules requiring AI systems to "uphold core socialist values".'),
+  t('cn8', 'china', 'china', 'cn', yes, 'Beijing tightens its rules requiring AI systems to "uphold core socialist values".'),
   t('cn9', 'china', 'china', 'cn', all(c('capability', '>=', 40), c('tension', '>=', 55)), 'Chinese officials say AI is now "a matter of national survival". DeepCent’s budget doubles.'),
 
   // ---- US government ----
