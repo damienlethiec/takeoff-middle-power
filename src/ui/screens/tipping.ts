@@ -1,6 +1,6 @@
 // The decisive moment: AI starts improving itself, the superpowers choose a path.
 
-import type { GameState, GaugeView, PlanId, TippingResult } from '../../engine/types';
+import type { GaugeView, PlanId, TippingResult } from '../../engine/types';
 import { PLAN, PLAN_ORDER, PLAN_TONE, esc, pct } from '../format';
 import { openModal, wait } from '../modal';
 
@@ -33,7 +33,7 @@ export async function showTippingAlarm(dateLabel: string, gauges: GaugeView[], o
 }
 
 /** Animated draw: odds bars fill, then a marker runs along the stacked bar and lands on the drawn plan. */
-export async function showSuperpowersChoose(res: TippingResult, s: GameState): Promise<void> {
+export async function showSuperpowersChoose(res: TippingResult): Promise<void> {
   const odds = res.odds;
   const m = openModal(
     `<div class="dateline">Washington and Beijing</div>
@@ -118,7 +118,6 @@ export async function showSuperpowersChoose(res: TippingResult, s: GameState): P
     face.textContent = res.labRestraint ? 'The leading lab held back, a little.' : 'The leading lab pressed on.';
     await wait(500);
   }
-  void s;
   const btn = el.querySelector<HTMLButtonElement>('[data-primary]')!;
   btn.disabled = false;
   btn.focus();

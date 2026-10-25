@@ -587,7 +587,7 @@ function generateNews(s: GameState): void {
       if (!pools.has(t.pool)) pools.set(t.pool, []);
       pools.get(t.pool)!.push(t);
     }
-      // One line per pool first, for variety; then a second pass if the pools are running dry late in the game.
+    // One line per pool first, for variety; then a second pass if the pools are running dry late in the game.
     const poolNames = shuffle(holder, [...pools.keys()]);
     for (let pass = 0; pass < 2 && ambient.length < room; pass++) {
       for (const name of poolNames) {

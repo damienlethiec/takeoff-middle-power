@@ -213,7 +213,7 @@ export class App {
     await showBriefing(briefing, date, 'Washington and Beijing decide');
     this.s = this.e.runTippingPoint(this.s);
     this.renderAll();
-    await showSuperpowersChoose(this.s.tipping!, this.s);
+    await showSuperpowersChoose(this.s.tipping!);
   }
 
   private async clockStops() {
@@ -377,8 +377,6 @@ export class App {
     if (ev.key === ' ' && this.clockActive && tag !== 'BUTTON' && tag !== 'A') {
       ev.preventDefault();
       this.setRunning(!this.running);
-    } else if (ev.key === ' ' && this.clockActive && (document.activeElement as HTMLElement)?.id === 'play') {
-      // the play button handles itself
     } else if (ev.key === 'Enter' && this.dockResolve && tag !== 'BUTTON' && tag !== 'A') {
       ev.preventDefault();
       this.dockResolve();

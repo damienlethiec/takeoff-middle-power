@@ -1,10 +1,9 @@
-import type { ActorId, Delta, GaugeKey, PlanId, RegionId, Speed, StatKey, Source } from '../engine/types';
+import type { ActorId, Delta, PlanId, RegionId, Speed, StatKey, Source } from '../engine/types';
 
 export const esc = (s: unknown): string =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 export const $ = <T extends HTMLElement = HTMLElement>(sel: string, root: ParentNode = document): T => root.querySelector(sel) as T;
-export const $$ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document): T[] => Array.from(root.querySelectorAll(sel)) as T[];
 
 export const STAT_LABEL: Record<string, string> = {
   capability: 'Capability',
@@ -137,7 +136,3 @@ export const HIDDEN_GAUGES: { key: string; label: string; teaser: string }[] = [
   { key: 'trueAlignment', label: 'True alignment', teaser: 'Whether the AI really does what we intend, not what the labs report.' },
   { key: 'eu', label: 'Human influence in Europe', teaser: 'Who really steers the economy, culture and state. An audit can show it for a while.' },
 ];
-
-export function isGaugeKey(k: string): k is GaugeKey {
-  return k in POLARITY && k !== 'pc' && k !== 'budget' && k !== 'coalition' && !k.startsWith('eu.');
-}

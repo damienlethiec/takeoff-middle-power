@@ -303,9 +303,6 @@ export class WorldMap {
   clearBubbles() {
     for (const id of [...this.bubbles.keys()]) this.popBubble(id, false);
   }
-  get liveBubbles() {
-    return [...this.bubbles.keys()];
-  }
 
   ping(region: RegionId, kind: 'news' | 'note') {
     const c = kind === 'note' ? geo(ANCHOR[region].lon + 6, ANCHOR[region].lat - 4) : this.randomCell(region);
