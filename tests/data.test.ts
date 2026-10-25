@@ -308,11 +308,12 @@ describe('tuning', () => {
 
   it('the starting values are the documented ones', () => {
     const s = E.createInitialState(1);
+    expect([45, 55, 65]).toContain(s.gauges.trueAlignment);
     expect(s.gauges).toEqual({
       capability: 20,
       concentration: 50,
       apparentAlignment: 60,
-      trueAlignment: 50,
+      trueAlignment: s.gauges.trueAlignment,
       verification: 0,
       tension: 40,
       misuse: 10,
@@ -320,9 +321,21 @@ describe('tuning', () => {
       gdp: 50,
       approval: 50,
     });
-    expect([s.pc, s.budget, s.asmlTokens, s.coalition, s.quarter, s.phase]).toEqual([6, 3, 2, 0, 1, 'quarter']);
+    expect([s.pc, s.budget, s.asmlTokens, s.coalition, s.quarter, s.phase]).toEqual([4, 5, 2, 0, 1, 'quarter']);
     expect(s.eu).toEqual({ economy: 80, culture: 80, state: 80 });
     expect(Object.values(s.flags).every((f) => f === false)).toBe(true);
+  });
+
+  it('hidden true alignment starts at 45, 55 or 65, equally likely and seeded', () => {
+    const n = 3000;
+    const counts: Record<number, number> = {};
+    for (let seed = 0; seed < n; seed++) {
+      const t = E.createInitialState(seed).gauges.trueAlignment;
+      counts[t] = (counts[t] ?? 0) + 1;
+    }
+    expect(Object.keys(counts).map(Number).sort()).toEqual([45, 55, 65]);
+    for (const k of [45, 55, 65]) expect(counts[k] / n).toBeCloseTo(1 / 3, 1);
+    expect(E.createInitialState(7).gauges.trueAlignment).toBe(E.createInitialState(7).gauges.trueAlignment);
   });
 
   it('the takeoff speed is drawn 25% slow, 50% steady, 25% fast', () => {

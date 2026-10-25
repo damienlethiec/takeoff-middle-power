@@ -34,13 +34,15 @@ function craft(over: {
   return {
     ...s,
     quarter: over.quarter ?? 5,
-    gauges: { ...s.gauges, ...over.gauges },
+    gauges: { ...s.gauges, trueAlignment: 50, ...over.gauges },
     flags: { ...s.flags, ...over.flags },
     eu: { ...s.eu, ...over.eu },
     coalition: over.coalition ?? s.coalition,
     pc: over.pc ?? 20,
     budget: over.budget ?? 20,
     takeoffSpeed: over.speed ?? 'steady',
+    // a crafted mid-game state: the whole deck is unlocked
+    unlockedCards: CARDS.filter((c) => !c.context).map((c) => c.id),
   };
 }
 
@@ -160,33 +162,25 @@ describe('determinism and immutability', () => {
 // ---------- quarter loop ----------
 
 describe('income, upkeep, pending effects', () => {
-  it('gives no income in Q1, then +1 Budget and no base PC (PC comes from bubbles and pressure)', () => {
+  it('gives no income in Q1, then +2 Budget and +2 PC', () => {
     const s1 = E.startQuarter(E.createInitialState(1));
-    expect(s1.pc).toBe(6);
-    expect(s1.budget).toBe(3);
+    expect(s1.pc).toBe(4);
+    expect(s1.budget).toBe(5);
     const s2 = E.startQuarter(E.endQuarter(E.pass(s1)).state);
     expect(s2.pc).toBe(6);
-    expect(s2.budget).toBe(4);
+    expect(s2.budget).toBe(7);
   });
 
   it('gives +1 PC more when public pressure is 50+', () => {
     const s = E.startQuarter(craft({ gauges: { publicPressure: 55 }, pc: 0, budget: 0 }));
-    expect(s.pc).toBe(1);
-    expect(s.budget).toBe(1);
+    expect(s.pc).toBe(3);
+    expect(s.budget).toBe(2);
   });
 
-  it('charges 1 PC of upkeep per coalition level', () => {
-    const s = E.startQuarter(craft({ coalition: 2, pc: 5 }));
-    expect(s.pc).toBe(5 - 2);
-    expect(s.coalition).toBe(2);
-  });
-
-  it('loses partners it cannot pay for', () => {
+  it('charges no coalition upkeep', () => {
     const s = E.startQuarter(craft({ coalition: 3, pc: 1 }));
-    // 1 PC in hand, no base income: can pay for one partner only
-    expect(s.coalition).toBe(1);
-    expect(s.pc).toBe(0);
-    expect(s.log.some((e) => e.id === 'upkeep_unpaid')).toBe(true);
+    expect(s.coalition).toBe(3);
+    expect(s.pc).toBe(3);
   });
 
   it('applies pending effects at the start of next quarter', () => {
@@ -195,16 +189,16 @@ describe('income, upkeep, pending effects', () => {
     expect(played.pending).toEqual([{ key: 'pc', amount: -1, hidden: false }]);
     const pcBefore = played.pc;
     const next = E.startQuarter(E.endQuarter(played).state);
-    expect(next.pc).toBe(pcBefore - 1);
+    expect(next.pc).toBe(pcBefore + 2 - 1);
     expect(next.pending).toEqual([]);
   });
 
-  it('caps concern bubbles at 2 PC per quarter', () => {
+  it('concern bubbles pay nothing', () => {
     let s = E.startQuarter(E.createInitialState(3));
     const pc = s.pc;
     for (let i = 0; i < 4; i++) s = E.collectBubble(s, 'us');
-    expect(s.pc).toBe(pc + 2);
-    expect(s.bubblesThisQuarter).toBe(2);
+    expect(s.pc).toBe(pc);
+    expect(s.bubblesThisQuarter).toBe(3);
   });
 
   it('runs actors and drift every quarter', () => {
@@ -258,7 +252,7 @@ describe('income, upkeep, pending effects', () => {
     expect(s.notes.every((n) => n.readable)).toBe(true);
     const locked = E.startQuarter(craft({ seed: 11 }));
     expect(locked.notes.every((n) => !n.readable)).toBe(true);
-    const audited = E.playCard(locked, 'measure').state;
+    const audited = E.playCard({ ...locked, pc: 8, budget: 8 }, 'measure').state;
     expect(audited.revealUntil).toBe(locked.quarter + 3);
     expect(audited.notes.filter((n) => n.quarter === locked.quarter).every((n) => n.readable)).toBe(true);
     const later = E.startQuarter(E.endQuarter(audited).state);
@@ -280,22 +274,30 @@ describe('income, upkeep, pending effects', () => {
 describe('cards', () => {
   const base = () => E.startQuarter(craft({ gauges: { capability: 35 } }));
 
-  it('has 11 cards with short player texts, a downside and a source', () => {
-    expect(CARDS).toHaveLength(11);
+  it('has 14 cards (12 in the deck, 2 context cards) with short player texts, a downside and a source', () => {
+    expect(CARDS).toHaveLength(14);
+    expect(CARDS.filter((c) => c.context).map((c) => c.id)).toEqual(['emergency_summit', 'joint_attribution']);
     for (const c of CARDS) {
       expect(c.playerText.split(/\s+/).length).toBeLessThanOrEqual(25);
       expect(c.downside.length).toBeGreaterThan(0);
       expect(c.source.url).toMatch(/^https:\/\//);
     }
-    expect(CARDS.filter((c) => !c.isLouis).map((c) => c.id).sort()).toEqual(['cyber_defence', 'fund_alignment', 'weight_security']);
+    expect(CARDS.filter((c) => !c.isLouis).map((c) => c.id).sort()).toEqual([
+      'cyber_defence',
+      'diplomatic_talks',
+      'emergency_summit',
+      'fund_alignment',
+      'joint_attribution',
+      'weight_security',
+    ]);
   });
 
-  it('coalition: +1, costs 3 PC, locked at 3 or tension 70+', () => {
+  it('coalition: +1 and tension −4, costs 3 PC, locked at 3 or tension 70+', () => {
     const s = base();
     const { state, briefing } = E.playCard(s, 'coalition');
     expect(state.coalition).toBe(1);
     expect(state.pc).toBe(s.pc - 3);
-    expect(visible(briefing.visibleDeltas)).toMatchObject({ coalition: 1, pc: -3 });
+    expect(visible(briefing.visibleDeltas)).toMatchObject({ coalition: 1, pc: -3, tension: -4 });
     expect(E.cardViews({ ...s, coalition: 3 }).find((c) => c.id === 'coalition')!.available).toBe(false);
     const tense = E.cardViews({ ...s, gauges: { ...s.gauges, tension: 70 } }).find((c) => c.id === 'coalition')!;
     expect(tense.available).toBe(false);
@@ -412,7 +414,8 @@ describe('cards', () => {
   });
 
   it('every briefing has an advisor note in words, without numbers', () => {
-    const s = E.startQuarter(craft({ gauges: { capability: 40 } }));
+    const s0 = E.startQuarter(craft({ gauges: { capability: 40 } }));
+    const s = { ...s0, contextCards: [{ id: 'emergency_summit' as const, until: 9, reason: 'r' }, { id: 'joint_attribution' as const, until: 9, reason: 'r' }], coalition: 1 };
     for (const c of CARDS) {
       const opts = c.options?.map((o) => o.id) ?? [undefined];
       for (const o of opts) {
@@ -658,7 +661,7 @@ describe('endings', () => {
       ended({ gauges: { concentration: 70 }, eu: { economy: 50 } }, null, {
         firedEvents: { silicon_blackmail: { quarter: 9, prepared: false, choice: 'give_in' } },
       }),
-      ended({ gauges: { verification: 60, concentration: 65, trueAlignment: 40 } }, 'verified_slowdown'),
+      ended({ gauges: { verification: 60, concentration: 65, trueAlignment: 50 } }, 'verified_slowdown'),
       ended({ gauges: { verification: 20, concentration: 65, trueAlignment: 40 } }, 'shut_down'),
       ended({ gauges: { tension: 65 }, coalition: 1 }, 'fight_china'),
       ended({ gauges: { tension: 80 }, coalition: 1 }, 'fight_china'),
@@ -688,9 +691,12 @@ describe('endings', () => {
     expect(d.notes.every((n) => n.readable)).toBe(true);
     expect(d.decisions.length).toBeGreaterThan(0);
     expect(d.decisions.every((x) => x.explanation.length > 0)).toBe(true);
-    expect(d.decisions.find((x) => x.title === 'Fund alignment research')?.hiddenDeltas).toEqual([
-      { key: 'trueAlignment', amount: 6, hidden: true },
-    ]);
+    // repeated plays are grouped into one entry (B3), with the hidden returns summed: +6, +5, +4
+    const funded = d.decisions.filter((x) => x.title.startsWith('Fund alignment research'));
+    expect(funded).toHaveLength(1);
+    const n = funded[0].quarters.length;
+    expect(funded[0].title).toBe(n > 1 ? `Fund alignment research ×${n}` : 'Fund alignment research');
+    expect(funded[0].hiddenDeltas).toEqual([{ key: 'trueAlignment', amount: [0, 6, 11, 15][n], hidden: true }]);
     for (const e of d.events) {
       expect(e.source.url).toMatch(/^https:\/\//);
       expect(e.explanation).toMatch(/prepared/i);

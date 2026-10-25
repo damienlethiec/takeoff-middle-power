@@ -66,9 +66,12 @@ describe('the situation report', () => {
     const r = E.situationReport(s);
     expect(r.quarter).toBe(s.quarter);
     expect(r.dateLabel).toBe(E.dateLabel(s.quarter));
-    const deltas = r.changes.map((c) => Math.abs(c.delta));
-    expect(deltas).toEqual([...deltas].sort((a, b) => b - a));
-    expect(r.changes[0]).toEqual({ key: 'capability', label: 'Capability', delta: 6, cause: 'AI keeps improving' });
+    // non-routine changes first, then routine drift; biggest first in each group
+    for (const group of [false, true]) {
+      const deltas = r.changes.filter((c) => c.routine === group).map((c) => Math.abs(c.delta));
+      expect(deltas).toEqual([...deltas].sort((a, b) => b - a));
+    }
+    expect(r.changes.find((c) => c.key === 'capability')).toEqual({ key: 'capability', label: 'Capability', delta: 6, cause: 'AI keeps improving', value: 56, routine: false }); // a crafted state has no earlier quarter to compare with
     for (const c of r.changes) {
       expect(c.key).not.toBe('trueAlignment');
       const now = c.key === 'coalition' ? s.coalition : s.gauges[c.key];
@@ -85,12 +88,12 @@ describe('the situation report', () => {
     expect(cap.delta).toBe(7);
     expect(cap.cause).toBe('China stole a model; AI keeps improving');
     const t = started({ gauges: { tension: 60 } });
-    expect(E.situationReport(t).changes.find((c) => c.key === 'tension')!.cause).toBe('US tightens chip controls; the race heats up');
+    expect(E.situationReport(t).changes.find((c) => c.key === 'tension')!.cause).toBe('The US tightens chip controls; the race heats up');
   });
 
   it('falls back to "Several causes" for a change no log entry of the quarter explains (the player’s own card)', () => {
     const s = E.playCard(started({}), 'host_verification').state;
-    expect(E.situationReport(s).changes.find((c) => c.key === 'verification')).toEqual({ key: 'verification', label: 'Verification readiness', delta: 7, cause: 'Several causes' });
+    expect(E.situationReport(s).changes.find((c) => c.key === 'verification')).toMatchObject({ key: 'verification', label: 'Verification readiness', delta: 7, cause: 'Several causes' });
   });
 
   it('counts this quarter’s news and notes (readable or not)', () => {
@@ -167,11 +170,11 @@ describe('news', () => {
     expect(s.news.find((n) => n.quarter === s.quarter && n.id.startsWith('echo.'))!.id).toBe('echo.coalition.1');
   });
 
-  it('a repeatable card played more often than it has echo lines goes quiet', () => {
+  it('a card played several times echoes a new line each time', () => {
     let s = started({ quarter: 2, budget: 40 });
     const lines = CARD_BY_ID.fund_alignment.echoNews.length;
     const echoes: string[] = [];
-    for (let i = 0; i < lines + 2; i++) {
+    for (let i = 0; i < lines; i++) {
       s = nextQuarter(E.playCard({ ...s, budget: 40 }, 'fund_alignment').state);
       echoes.push(...s.news.filter((n) => n.quarter === s.quarter && n.id.startsWith('echo.')).map((n) => n.id));
     }
@@ -239,12 +242,21 @@ describe('the debrief', () => {
       const { final: s } = playGame(seed, seed % 2 ? randomStrategy : prepared);
       const d = E.debrief(s);
       const cards = s.log.filter((e) => e.kind === 'card');
-      expect(d.decisions.map((x) => [x.quarter, x.title])).toEqual(cards.map((e) => [e.quarter, e.title]));
-      for (const [i, x] of d.decisions.entries()) {
-        expect(x.visibleDeltas).toEqual(cards[i].visibleDeltas);
-        expect(x.hiddenDeltas).toEqual(cards[i].hiddenDeltas);
-        expect(x.explanation).toBe(cards[i].debrief);
+      // one entry per card (and option), repeated plays grouped (B3); every play is accounted for
+      expect(d.decisions.flatMap((x) => x.quarters).sort((a, b) => a - b)).toEqual(cards.map((e) => e.quarter).sort((a, b) => a - b));
+      for (const x of d.decisions) {
+        expect(x.quarter).toBe(x.quarters[0]);
+        if (x.quarters.length === 1) {
+          const play = cards.find((e) => e.quarter === x.quarter && e.title === x.title)!;
+          expect(play).toBeDefined();
+          expect(x.visibleDeltas).toEqual(play.visibleDeltas);
+          expect(x.hiddenDeltas).toEqual(play.hiddenDeltas);
+          expect(x.explanation).toBe(play.debrief);
+        } else {
+          expect(x.title).toMatch(/×\d$|\(\d levels\)$/);
+        }
       }
+      expect(new Set(d.decisions.map((x) => x.title)).size).toBe(d.decisions.length);
       expect(d.events.map((e) => e.title).sort()).toEqual(Object.keys(s.firedEvents).map((id) => EVENT_BY_ID[id as keyof typeof EVENT_BY_ID].title).sort());
       for (const ev of d.events) {
         const def = Object.values(EVENT_BY_ID).find((x) => x.title === ev.title)!;
