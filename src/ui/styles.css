@@ -165,17 +165,23 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .lab:nth-child(3n) .lab-ring { animation-delay: -1.5s; }
 @keyframes pulse { from { transform: scale(.3); opacity: .95; } to { transform: scale(1.4); opacity: 0; } }
 .lea-pin { cursor: pointer; }
-.lea-dot { fill: var(--paper); stroke: var(--night); stroke-width: .3; }
-.lea-ring { fill: none; stroke: var(--paper); stroke-width: .25; opacity: 0; }
+/* Léa's marker is drawn in pixels (map.ts scales it), hence the px sizes */
+.lea-tag { fill: var(--night); stroke: var(--paper); stroke-width: 1.5px; }
+.lea-name { font-family: var(--f-display); font-weight: 700; font-size: 14px; fill: var(--paper); pointer-events: none; }
+.lea-city { fill: var(--paper); stroke: var(--night); stroke-width: 1px; }
+.lea-stem { stroke: var(--paper); stroke-width: 1.5px; }
+.lea-dot { fill: var(--paper); stroke: var(--night); stroke-width: 1.5px; }
+.lea-ring { fill: none; stroke: var(--paper); stroke-width: 2px; opacity: 0; }
 .lea-pin.unread .lea-ring { opacity: 1; transform-box: fill-box; transform-origin: center; animation: pulse 1.4s ease-out infinite; }
-.lea-l { font-family: var(--f-diary); font-style: italic; font-size: 1.7px; text-anchor: middle; fill: var(--paper-ink); pointer-events: none; }
+.lea-l { font-family: var(--f-diary); font-style: italic; font-size: 12px; text-anchor: middle; fill: var(--paper-ink); pointer-events: none; }
+.lea-pin .focus-ring { stroke-width: 2px; }
 .lea-pin:focus-visible, .bubble:focus-visible, .evpin:focus-visible { outline: none; }
 .worldmap:focus-visible { outline-offset: -3px; }
 .pin-hit { fill: transparent; }
 .focus-ring { fill: none; stroke: var(--ink); stroke-width: .45; opacity: 0; pointer-events: none; }
 .lea-pin:focus-visible .focus-ring, .bubble:focus-visible .focus-ring, .evpin:focus-visible .focus-ring { opacity: 1; }
 .evpin[role="button"] { cursor: pointer; }
-.lea-pin:focus-visible .lea-dot, .lea-pin:hover .lea-dot { stroke: var(--align); stroke-width: .4; }
+.lea-pin:focus-visible .lea-tag, .lea-pin:hover .lea-tag { stroke: var(--align); }
 
 .ping circle:first-child { fill: none; stroke-width: .3; transform-box: fill-box; transform-origin: center; animation: ping 1.8s ease-out forwards; }
 .ping-news circle:first-child { stroke: var(--ink); }

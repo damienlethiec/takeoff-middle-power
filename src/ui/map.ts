@@ -153,6 +153,7 @@ export class WorldMap {
   private summary: HTMLElement | null = null;
   private summaryParts = { state: '', events: [] as string[] };
   onLea?: () => void;
+  private leaPin: SVGGElement | null = null;
 
   constructor(container: HTMLElement, opts: { decorative?: boolean; onBubble?: (id: string, region: RegionId, node: SVGGElement) => void } = {}) {
     this.onBubble = opts.onBubble;
@@ -222,19 +223,27 @@ export class WorldMap {
         t.textContent = text;
       };
       label('UNITED STATES', -100, 33, 'l-us');
-      label('EUROPE', 14, 44.5, 'l-eu');
+      label('EUROPE', 24, 45, 'l-eu'); // east of Lyon, clear of Léa's marker
       label('CHINA', 100, 28.5, 'l-cn');
       PARTNERS.forEach((p) => label(p.name, p.lon + (p.zone === 'kr' ? -3 : p.zone === 'jp' ? 4.5 : p.zone === 'no' ? -6 : p.zone === 'uk' ? -8.5 : 0), p.lat + (p.zone === 'no' ? -2.5 : p.zone === 'uk' ? 0.5 : p.zone === 'kr' ? 4.5 : 3.6), `l-partner l-${p.zone}`));
 
-      // Léa lives in Lyon
+      // Léa lives in Lyon. Her marker is drawn in screen pixels (fit() rescales it), so it keeps a
+      // readable label and a 44 px target whatever the size of the map.
       const ly = geo(LYON.lon, LYON.lat);
-      const lea = el('g', { class: 'lea-pin', transform: `translate(${ly.x} ${ly.y})` }, this.layers.pins);
-      el('circle', { r: 2.6, class: 'pin-hit' }, lea);
-      el('circle', { r: 2.5, class: 'focus-ring' }, lea);
-      el('circle', { r: 1.9, class: 'lea-ring' }, lea);
-      el('circle', { r: 1.35, class: 'lea-dot' }, lea);
-      const lt = el('text', { y: 0.55, class: 'lea-l', 'aria-hidden': 'true' }, lea);
+      const lea = el('g', { class: 'lea-pin', transform: `translate(${ly.x} ${ly.y}) scale(0.2)` }, this.layers.pins);
+      // a name tag west of Lyon, pointing at the city: [(L) Léa]•
+      el('rect', { x: -90, y: -22, width: 98, height: 44, rx: 10, class: 'pin-hit' }, lea);
+      el('rect', { x: -88, y: -17, width: 84, height: 34, rx: 17, class: 'focus-ring' }, lea);
+      el('path', { d: 'M-9 0H-2', class: 'lea-stem' }, lea);
+      el('circle', { r: 3, class: 'lea-city' }, lea);
+      el('rect', { x: -84, y: -13, width: 76, height: 26, rx: 13, class: 'lea-tag' }, lea);
+      el('circle', { cx: -71, r: 13, class: 'lea-ring' }, lea);
+      el('circle', { cx: -71, r: 9, class: 'lea-dot' }, lea);
+      const lt = el('text', { x: -71, y: 4, class: 'lea-l', 'aria-hidden': 'true' }, lea);
       lt.textContent = 'L';
+      const name = el('text', { x: -57, y: 5, class: 'lea-name', 'aria-hidden': 'true' }, lea);
+      name.textContent = 'Léa';
+      this.leaPin = lea;
       svgButton(lea, 'Léa, in Lyon: reread her last message', () => this.onLea?.());
     }
     container.appendChild(svg);
@@ -258,6 +267,9 @@ export class WorldMap {
       const coreMid = (CORE.y0 + CORE.y1) / 2;
       const y0 = Math.max(-3, Math.min(coreMid - vh * 0.4, Math.max(-3, 86 - vh)));
       svg.setAttribute('viewBox', `${(cx - vw / 2).toFixed(2)} ${y0.toFixed(2)} ${vw.toFixed(2)} ${vh.toFixed(2)}`);
+      // one map unit is w / vw pixels: draw Léa's marker at a constant pixel size
+      const ly = geo(LYON.lon, LYON.lat);
+      this.leaPin?.setAttribute('transform', `translate(${ly.x} ${ly.y}) scale(${(vw / w).toFixed(4)})`);
     };
     new ResizeObserver(fit).observe(container);
     fit();
