@@ -485,7 +485,7 @@ export class App {
     const pop = $('#gpop', this.root);
     if (!pop.hidden && pop.dataset.for === (tile.dataset.key ?? tile.dataset.hidden)) return this.closePopover();
     const key = tile.dataset.key;
-    let html = '';
+    let html: string;
     if (key) {
       const g = this.gaugeViews().find((x) => x.key === key)!;
       html = `<h3>${esc(g.label)} <b class="num">${g.value}${g.errorBar ? ` ±${g.errorBar}` : ''}</b></h3>

@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 
 // GitHub Pages serves main at https://damienlethiec.github.io/takeoff-middle-power/
@@ -5,4 +6,4 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/takeoff-middle-power/',
   test: { include: ['tests/**/*.test.ts'] },
-} as any);
+});
