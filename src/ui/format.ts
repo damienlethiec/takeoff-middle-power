@@ -1,10 +1,9 @@
-import type { ActorId, Delta, GaugeKey, PlanId, RegionId, Speed, StatKey, Source } from '../engine/types';
+import type { ActorId, Delta, PlanId, RegionId, Speed, StatKey, Source } from '../engine/types';
 
 export const esc = (s: unknown): string =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 export const $ = <T extends HTMLElement = HTMLElement>(sel: string, root: ParentNode = document): T => root.querySelector(sel) as T;
-export const $$ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document): T[] => Array.from(root.querySelectorAll(sel)) as T[];
 
 export const STAT_LABEL: Record<string, string> = {
   capability: 'Capability',
@@ -116,8 +115,11 @@ export function chip(d: Pick<Delta, 'key' | 'amount'> & { hidden?: boolean }, op
 export const chips = (ds: (Pick<Delta, 'key' | 'amount'> & { hidden?: boolean })[], empty = '<span class="chip flat"><span>No visible change</span></span>') =>
   ds.length ? ds.map((d) => chip(d)).join('') : empty;
 
+/** Only http(s) URLs become links: a `javascript:` or `data:` URL in content would run on click. */
+export const isSafeUrl = (url: string) => /^https?:\/\//i.test(url);
+
 export const srcLink = (s: Source | undefined) =>
-  s && s.url ? `<a class="src" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>` : s ? `<span class="src">${esc(s.label)}</span>` : '';
+  s && s.url && isSafeUrl(s.url) ? `<a class="src" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>` : s ? `<span class="src">${esc(s.label)}</span>` : '';
 
 export const ICON = {
   budget: `<svg class="ico ico-budget" viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="14.5" rx="7" ry="2.6" fill="currentColor" opacity=".55"/><ellipse cx="10" cy="11" rx="7" ry="2.6" fill="currentColor" opacity=".8"/><ellipse cx="10" cy="7.5" rx="7" ry="2.6" fill="currentColor"/><path d="M11.6 6.3a2.2 2.2 0 1 0 0 2.4M7.6 7.1h3M7.6 7.9h3" stroke="var(--night)" stroke-width="1" fill="none" stroke-linecap="round"/></svg>`,
@@ -134,7 +136,3 @@ export const HIDDEN_GAUGES: { key: string; label: string; teaser: string }[] = [
   { key: 'trueAlignment', label: 'True alignment', teaser: 'Whether the AI really does what we intend, not what the labs report.' },
   { key: 'eu', label: 'Human influence in Europe', teaser: 'Who really steers the economy, culture and state. An audit can show it for a while.' },
 ];
-
-export function isGaugeKey(k: string): k is GaugeKey {
-  return k in POLARITY && k !== 'pc' && k !== 'budget' && k !== 'coalition' && !k.startsWith('eu.');
-}

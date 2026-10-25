@@ -48,7 +48,7 @@ export function showEnding(root: HTMLElement, d: Debrief, dateLabel: string): Pr
       <p class="deb-lead">What you could not see while you played, next to what you watched.</p>
       <div class="reveal">
         <div class="rv-block">
-          <h3>Takeoff speed: <span class="speed-${r.takeoffSpeed}">${esc(SPEED[r.takeoffSpeed])}</span></h3>
+          <h3>Takeoff speed: <span class="speed-${esc(r.takeoffSpeed)}">${esc(SPEED[r.takeoffSpeed])}</span></h3>
           <p class="muted">Drawn at the start, hidden all game. Léa's first message hinted at it.</p>
         </div>
         <div class="rv-block">

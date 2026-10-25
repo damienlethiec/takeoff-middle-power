@@ -576,8 +576,9 @@ function generateNews(s: GameState): void {
     }
   }
 
+  const nw = TUNING.news;
   const eventNews = s.news.filter((n) => n.quarter === q).length; // an event line may already be there
-  const target = randomInt(holder, 2, 4);
+  const target = randomInt(holder, nw.minLines, nw.maxLines);
   const room = Math.max(0, target - eventNews - must.length);
   const ambient: Draft[] = [];
   if (room > 0) {
@@ -587,7 +588,7 @@ function generateNews(s: GameState): void {
       if (!pools.has(t.pool)) pools.set(t.pool, []);
       pools.get(t.pool)!.push(t);
     }
-      // One line per pool first, for variety; then a second pass if the pools are running dry late in the game.
+    // One line per pool first, for variety; then a second pass if the pools are running dry late in the game.
     const poolNames = shuffle(holder, [...pools.keys()]);
     for (let pass = 0; pass < 2 && ambient.length < room; pass++) {
       for (const name of poolNames) {
@@ -600,11 +601,11 @@ function generateNews(s: GameState): void {
     }
   }
 
-  const items = [...must, ...ambient].slice(0, Math.max(0, 4 - eventNews));
+  const items = [...must, ...ambient].slice(0, Math.max(0, nw.maxLines - eventNews));
   const n = items.length;
   items.forEach((it, i) => {
-    const base = 0.08 + (0.84 * (i + 0.5)) / Math.max(1, n);
-    const at = Math.min(0.95, Math.max(0.03, base + (random(holder) - 0.5) * (0.3 / Math.max(1, n))));
+    const base = nw.firstAt + (nw.spread * (i + 0.5)) / Math.max(1, n);
+    const at = Math.min(nw.latestAt, Math.max(nw.earliestAt, base + (random(holder) - 0.5) * (nw.jitter / Math.max(1, n))));
     s.news.push({ ...it, at: Math.round(at * 100) / 100 } as NewsItem);
   });
   s.news.sort((a, b) => a.quarter - b.quarter || a.at - b.at);
@@ -618,8 +619,9 @@ function notesReadable(s: GameState): boolean {
 function generateNotes(s: GameState): void {
   const holder = { rng: s.rng };
   const used = new Set(s.notes.map((n) => n.id));
+  const nt = TUNING.notes;
   const r = random(holder);
-  const count = r < 0.2 ? 0 : r < 0.7 ? 1 : 2;
+  const count = r < nt.noneBelow ? 0 : r < nt.oneBelow ? 1 : 2;
   const pools = new Map<string, typeof NOTES>();
   for (const t of NOTES) {
     if (used.has(`note.${t.id}`) || !evalCondition(s, t.when)) continue;
@@ -639,7 +641,7 @@ function generateNotes(s: GameState): void {
       region: t.region,
       text: t.text,
       readable,
-      at: Math.round((0.2 + random(holder) * 0.7) * 100) / 100,
+      at: Math.round((nt.firstAt + random(holder) * nt.spread) * 100) / 100,
     });
   }
   chosen.sort((a, b) => a.at - b.at);
@@ -1065,13 +1067,14 @@ function mostLikely(odds: Record<PlanId, number>): PlanId {
 
 function whatWouldHelp(s: GameState): string {
   const g = s.gauges;
-  if (g.verification < 30 && !s.flags.aiOffice) return LEVERS.aiOffice;
-  if (g.verification < 30) return LEVERS.verification;
-  if (s.coalition === 0 && g.tension < 70) return LEVERS.coalition;
-  if (g.tension >= 60) return LEVERS.tension;
-  if (g.verification < 50) return LEVERS.verification;
-  if (s.coalition < 2 && g.tension < 70) return LEVERS.coalition;
-  if (g.verification < 70) return LEVERS.moreVerification;
+  const f = TUNING.forecast;
+  if (g.verification < f.lowVerification && !s.flags.aiOffice) return LEVERS.aiOffice;
+  if (g.verification < f.lowVerification) return LEVERS.verification;
+  if (s.coalition === 0 && g.tension < f.coalitionMaxTension) return LEVERS.coalition;
+  if (g.tension >= f.highTension) return LEVERS.tension;
+  if (g.verification < f.midVerification) return LEVERS.verification;
+  if (s.coalition < f.coalitionTarget && g.tension < f.coalitionMaxTension) return LEVERS.coalition;
+  if (g.verification < f.highVerification) return LEVERS.moreVerification;
   return LEVERS.keep;
 }
 

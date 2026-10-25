@@ -2,7 +2,7 @@
 // It talks to the engine only through EngineApi.
 
 import type { EngineApi } from '../engine/api';
-import type { CardId, GameState, GaugeView, InternalNote, LeaScene, PendingEvent, QuarterOutcome, RegionId } from '../engine/types';
+import type { Briefing, GameState, GaugeView, InternalNote, LeaScene, PendingEvent, QuarterOutcome, RegionId } from '../engine/types';
 import { $, ACTOR, ACTOR_SHORT, ACTOR_TONE, GAUGE_COLOR, HIDDEN_GAUGES, ICON, esc, signed, tone } from './format';
 import { WorldMap } from './map';
 import { modalOpen, openModal, wait } from './modal';
@@ -109,14 +109,20 @@ export class App {
     await this.ending();
   }
 
-  private tryPlay(id: CardId, option?: string) {
-    try {
-      return this.e.playCard(this.s, id, option);
-    } catch (err) {
-      console.warn('playCard refused', err);
-      this.toast('That decision is not possible right now. You passed instead.');
-      return null;
+  /** Plays the chosen card (or passes) and returns its briefing; a refused card counts as a pass. */
+  private applyDecision(result: DecisionResult): Briefing | null {
+    if (result.kind === 'card') {
+      try {
+        const r = this.e.playCard(this.s, result.id, result.option);
+        this.s = r.state;
+        return r.briefing;
+      } catch (err) {
+        console.warn('playCard refused', err);
+        this.toast('That decision is not possible right now. You passed instead.');
+      }
     }
+    this.s = this.e.pass(this.s);
+    return null;
   }
 
   private async playQuarter(): Promise<QuarterOutcome> {
@@ -168,14 +174,7 @@ export class App {
       result = d;
     }
 
-    let briefing = null;
-    if (result.kind === 'card') {
-      const r = this.tryPlay(result.id, result.option);
-      if (r) {
-        this.s = r.state;
-        briefing = r.briefing;
-      } else this.s = this.e.pass(this.s);
-    } else this.s = this.e.pass(this.s);
+    const briefing = this.applyDecision(result);
     this.renderAll(true);
 
     const end = this.e.endQuarter(this.s);
@@ -201,19 +200,12 @@ export class App {
       }
       result = d;
     }
-    let briefing = null;
-    if (result.kind === 'card') {
-      const r = this.tryPlay(result.id, result.option);
-      if (r) {
-        this.s = r.state;
-        briefing = r.briefing;
-      } else this.s = this.e.pass(this.s);
-    } else this.s = this.e.pass(this.s);
+    const briefing = this.applyDecision(result);
     this.renderAll(true);
     await showBriefing(briefing, date, 'Washington and Beijing decide');
     this.s = this.e.runTippingPoint(this.s);
     this.renderAll();
-    await showSuperpowersChoose(this.s.tipping!, this.s);
+    await showSuperpowersChoose(this.s.tipping!);
   }
 
   private async clockStops() {
@@ -377,8 +369,6 @@ export class App {
     if (ev.key === ' ' && this.clockActive && tag !== 'BUTTON' && tag !== 'A') {
       ev.preventDefault();
       this.setRunning(!this.running);
-    } else if (ev.key === ' ' && this.clockActive && (document.activeElement as HTMLElement)?.id === 'play') {
-      // the play button handles itself
     } else if (ev.key === 'Enter' && this.dockResolve && tag !== 'BUTTON' && tag !== 'A') {
       ev.preventDefault();
       this.dockResolve();
@@ -465,7 +455,7 @@ export class App {
     const views = this.gaugeViews().filter((g) => g.visible);
     const tiles = views
       .map(
-        (g) => `<button class="g-tile${g.key === 'gdp' || g.key === 'approval' ? ' home' : ''}" data-key="${g.key}" style="--c:${GAUGE_COLOR[g.key] ?? 'var(--mute)'}" aria-expanded="false">
+        (g) => `<button class="g-tile${g.key === 'gdp' || g.key === 'approval' ? ' home' : ''}" data-key="${esc(g.key)}" style="--c:${GAUGE_COLOR[g.key] ?? 'var(--mute)'}" aria-expanded="false">
           <span class="g-name">${esc(g.label)}</span>
           <span class="g-delta"></span>
           <span class="g-val num"><b></b><small></small></span>
@@ -474,7 +464,7 @@ export class App {
       )
       .join('');
     const hidden = HIDDEN_GAUGES.map(
-      (h) => `<button class="g-tile hidden-slot" data-hidden="${h.key}" aria-expanded="false"><span class="g-name">${esc(h.label)}</span><span class="g-val q"><b>?</b></span><span class="g-tease">Revealed at the end</span></button>`,
+      (h) => `<button class="g-tile hidden-slot" data-hidden="${esc(h.key)}" aria-expanded="false"><span class="g-name">${esc(h.label)}</span><span class="g-val q"><b>?</b></span><span class="g-tease">Revealed at the end</span></button>`,
     ).join('');
     const grid = $('#gauges', this.root);
     grid.innerHTML = tiles + hidden;
@@ -485,7 +475,7 @@ export class App {
     const pop = $('#gpop', this.root);
     if (!pop.hidden && pop.dataset.for === (tile.dataset.key ?? tile.dataset.hidden)) return this.closePopover();
     const key = tile.dataset.key;
-    let html = '';
+    let html: string;
     if (key) {
       const g = this.gaugeViews().find((x) => x.key === key)!;
       html = `<h3>${esc(g.label)} <b class="num">${g.value}${g.errorBar ? ` ±${g.errorBar}` : ''}</b></h3>

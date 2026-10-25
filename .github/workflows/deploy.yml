@@ -11,8 +11,9 @@ on:
   delete:
   workflow_dispatch:
 
+# Least privilege by default; each job asks for what it needs.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: gh-pages
@@ -22,9 +23,15 @@ jobs:
   deploy:
     if: github.event_name != 'delete'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # push the build to gh-pages
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Third-party and official actions are pinned to full commit SHAs (tag in the comment).
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false # actions-gh-pages pushes with its own github_token
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -42,11 +49,13 @@ jobs:
             echo "url=https://damienlethiec.github.io/takeoff-middle-power/preview/$slug/" >> "$GITHUB_OUTPUT"
           fi
       - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
       - run: npm test
       - run: npm run build
         env:
           BASE_PATH: ${{ steps.target.outputs.base }}
-      - uses: peaceiris/actions-gh-pages@v4
+      - uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
@@ -55,13 +64,18 @@ jobs:
           keep_files: true
           commit_message: "Deploy ${{ github.ref_name }}"
       - name: Show the link
-        run: echo "### Play this version → ${{ steps.target.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          URL: ${{ steps.target.outputs.url }}
+        run: echo "### Play this version → $URL" >> "$GITHUB_STEP_SUMMARY"
 
   remove-preview:
     if: github.event_name == 'delete' && github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # remove the preview folder from gh-pages
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: gh-pages
       - name: Remove the deleted branch's preview

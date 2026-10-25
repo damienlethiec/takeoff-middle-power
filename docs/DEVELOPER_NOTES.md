@@ -18,7 +18,7 @@ The exact rules behind the main tab, for whoever codes the MVP. All numbers are 
 | `gdp`, `approval` | GDP, Approval | Yes, always on screen | 50 each |
 | `takeoffSpeed` | Takeoff speed | Hidden | Drawn: slow 25%, steady 50%, fast 25% |
 | `eu.economy`, `eu.culture`, `eu.state` | Human influence in Europe | Hidden | 80 each |
-| `pc`, `budget` | Political Capital, Budget | Yes | 4 PC, 3 Budget |
+| `pc`, `budget` | Political Capital, Budget | Yes | 6 PC *(rebalanced, was 4)*, 3 Budget |
 
 Other state: `quarter` (1–16, shown as Q1 2027 to Q4 2030), `revealUntil`, `asmlTokens` (2), `pending` (effects due next quarter), flags `aiOffice`, `openModels`, `oversightMandate`, `flexicurity`, `weightSecurity`, `firedEvents`, `warningShotPrepared`, `internalNotes`; after the end: `plan`, `planOdds`, `labRestraint`, `ending`.
 
@@ -35,7 +35,7 @@ Other state: `quarter` (1–16, shown as Q1 2027 to Q4 2030), `revealUntil`, `as
    - eu.economy −2, **−4 once capability ≥ 35**; eu.culture −1, **−2 once capability ≥ 35**; eu.state −1, **−2 once capability ≥ 50** *(tuned)*. Economy and state halved with `oversightMandate` (rounding alternates by quarter so the average is exactly half)
    - misuse **+1 while capability < 40** *(tuned)*, +2 once capability ≥ 40, **+1 more once open models are funded** *(tuned)*
    - gdp +1 (+1 more if capability ≥ 50); approval −1 once capability ≥ 50 unless `flexicurity`
-   - publicPressure +1 once capability ≥ 50
+   - publicPressure +1 every quarter, +2 once capability ≥ 50 *(rebalanced, was +1 once capability ≥ 50)*
 5. **Events:** check in list order; at most one per quarter, each once. The clock stops on the event screen.
 6. **Situation report:** deltas since last quarter with their causes (from the log), plan odds on current course, new notes.
 7. **Decision:** one card or pass. The preview shows visible deltas, costs and dependencies before confirming; the briefing after.
@@ -65,7 +65,7 @@ All conditions are read on the values before drift. Every gauge is clamped 0–1
 
 | id | Actor | Trigger | Prepared if | Prepared effects | Unprepared effects |
 | --- | --- | --- | --- | --- | --- |
-| `warning_shot` | The AI systems | trueAlignment < 50 and capability ≥ 65 | coalition ≥ 1 and verification ≥ 30 | publicPressure +15; tension −10; verification +10; apparentAlignment −10 *(added)*; `warningShotPrepared` on | publicPressure +5 |
+| `warning_shot` | The AI systems | trueAlignment < 50 and capability ≥ 65 | coalition ≥ 1 and verification ≥ 30 | publicPressure +15; tension −10; verification +10; apparentAlignment −10 *(added)*; `warningShotPrepared` on | publicPressure +10 *(rebalanced, was +5)* |
 | `weight_theft` | China | tension ≥ 50 and capability ≥ 40 | `weightSecurity` | tension +5 | capability +5; tension +20; publicPressure +5 *(added)*; trueAlignment −3; `exportControls` on |
 | `opaque_reasoning` | AI systems and labs | capability ≥ 70 | `aiOffice` | Error bar unchanged; apparentAlignment −5 *(added)* | Alignment error bar doubles |
 | `silicon_blackmail` | US frontier labs | concentration ≥ 60 and `oversightMandate` | `openModels` | None: stand firm | Choice: give in (concentration +10) or hold firm (gdp −15) |
@@ -76,7 +76,7 @@ All conditions are read on the values before drift. Every gauge is clamped 0–1
 1. One free last decision.
 2. Plan weights (minimum 1), then a seeded weighted draw; store the odds for the debrief.
    - `verified_slowdown`: 5 + 0.6 × verification + 0.3 × publicPressure + 10 × coalition + 15 if `warningShotPrepared` − 0.2 × tension
-   - `shut_down`: 2, + 0.3 × publicPressure if publicPressure ≥ 70, + 10 if the warning shot fired and trueAlignment < 40
+   - `shut_down`: 2, + 0.3 × publicPressure if publicPressure ≥ 60 *(rebalanced, was 70)*, + 10 if the warning shot fired and trueAlignment < 40
    - `fight_china`: 10 + 0.5 × tension
    - `race`: max(5, 25 − 0.2 × publicPressure − 0.1 × verification)
 3. If `race`: lab restraint with probability 20% + publicPressure ÷ 4 %; if yes, trueAlignment +8.
@@ -136,7 +136,7 @@ Each change was made to hit the MVP criteria with `npm run sim` (2,000 seeded ga
 ## Tech
 
 - GitHub repo, Vite + TypeScript, no framework, Vitest for tests, deployed on GitHub Pages: `main` at `/takeoff-middle-power/`, every other branch at `/takeoff-middle-power/preview/<branch>/` (BASE_PATH set in `.github/workflows/deploy.yml`; deleting a branch removes its preview).
-- `engine/` holds pure functions only (no DOM): `createInitialState(seed)`, `startQuarter(state)`, `playCard(state, id, option?)`, `previewCard(state, id)`, `resolveEventChoice(state, eventId, option)`, `endQuarter(state)`, `choosePlan(state, rng)`, `resolveEnding(state)`, plus a seeded random generator. `previewCard` runs `playCard` on a copy and returns the visible deltas only.
+- `engine/` holds pure functions only (no DOM): the `EngineApi` in `src/engine/api.ts` (`createInitialState(seed)`, `startQuarter`, `collectBubble`, `resolveEvent(state, option?)`, `playCard(state, id, option?)`, `previewCard(state, id, option?)`, `pass`, `endQuarter`, `runTippingPoint`, `debrief`, views and labels), plus `resolveEnding(state)` and a seeded random generator (`rng.ts`). `previewCard` applies the card to a copy and returns the visible deltas only; odds after the card are computed with the hidden effects masked.
 - `data/` is declarative: cards, events, actor rules, plans, endings, news, internal notes and Léa's scenes as typed objects with `effects`, `hiddenEffects`, `availableWhen`, `preparedWhen`, `actor`, `briefing`, `debrief` and `source`. Conditions are `{ key, op, value }` combined with `all` / `any`.
 - `ui/`: the clock, map, gauges with "rises when / falls when" popovers, the two feeds, the situation report and the debrief all render from the state and the log.
 - `sim.ts` runs 2,000 seeded games each for a passive, a random and a prepared player and prints the ending distribution, to check the success criteria.
