@@ -13,4 +13,13 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
+  {
+    // the accessibility check (scripts/a11y) is plain Node; its page.evaluate callbacks run in the browser
+    files: ['scripts/a11y/**/*.mjs'],
+    languageOptions: {
+      globals: Object.fromEntries(
+        ['process', 'console', 'setTimeout', 'fetch', 'URL', 'document', 'window', 'getComputedStyle'].map((g) => [g, 'readonly']),
+      ),
+    },
+  },
 );
