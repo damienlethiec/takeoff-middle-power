@@ -322,6 +322,13 @@ function addMilestone(s: GameState, m: string): void {
   if (!s.dashboard.milestones.includes(m)) s.dashboard.milestones.push(m);
 }
 
+/** A story line in this quarter's news (events, beats, layoffs), within the feed's maximum. */
+function pushStory(s: GameState, item: NewsItem): void {
+  if (s.news.some((n) => n.id === item.id)) return;
+  if (s.news.filter((n) => n.quarter === s.quarter).length >= TUNING.news.maxLines) return;
+  s.news.push(item);
+}
+
 function addNotice(s: GameState, n: Notice): void {
   if (!s.notices.some((x) => x.kind === n.kind && x.id === n.id)) s.notices.push(n);
 }
@@ -661,7 +668,7 @@ function employmentShocks(s: GameState): void {
       title: r.title,
       text: `${deltas.map((d) => capitalise(fmtDelta(d))).join(', ')}.${s.flags.flexicurity ? ' Flexicurity softened the blow.' : ''}`,
     });
-    if (r.news) s.news.push({ id: `actor.${id}`, quarter: s.quarter, actor: r.actor, region: r.region, text: r.news, at: 0.3 });
+    if (r.news) pushStory(s, { id: `actor.${id}`, quarter: s.quarter, actor: r.actor, region: r.region, text: r.news, at: 0.3 });
     recordOdds(s, lowerFirst(r.title));
   }
 }
@@ -725,7 +732,7 @@ function runBeats(s: GameState): void {
       addNotice(s, { kind: 'card_unlocked', id, title: CARD_BY_ID[id].name, text: `${unlockReasonText(id) ?? b.reason}.` });
     }
     const news = trig === 'fallback' && b.fallbackNews ? b.fallbackNews : b.news;
-    if (news) s.news.push({ id: `beat.${b.id}`, quarter: s.quarter, actor: news.actor, region: news.region, text: news.text, at: 0.2 });
+    if (news) pushStory(s, { id: `beat.${b.id}`, quarter: s.quarter, actor: news.actor, region: news.region, text: news.text, at: 0.2 });
   }
 }
 
@@ -1625,10 +1632,25 @@ function isRoutine(s: GameState, e: LogEntry): boolean {
   return s.log.some((x) => x.kind === 'drift' && x.id === e.id && x.quarter === e.quarter - 1 && x.title === e.title);
 }
 
+/** The id under which the copy's suggested causes file this entry (its drift branch included). */
+function causeId(e: LogEntry): string {
+  if (e.kind === 'drift') {
+    if (e.id === 'capability' && e.title.includes('high tension')) return 'capability_high_tension';
+    if (e.id === 'tension' && e.actor === 'eu') return 'tension_coalition';
+    if (e.id === 'misuse') return e.title.startsWith('Open models') ? 'misuse_open_models' : e.title.startsWith('Capable') ? 'misuse_capable' : 'misuse';
+    if (e.id === 'layoffs') return 'economy_jobs';
+    if (e.id === 'public_concern') return e.actor === 'us_labs' ? 'economy_jobs' : 'economy';
+  }
+  if (e.id.startsWith('employment_shock')) return 'employment_shock';
+  return e.id;
+}
+
 /** The real cause of one key's change in one log entry (never a neighbour's: bug B1). */
 function causeText(e: LogEntry, key: StatKey): string {
-  const fromCopy = copyText(CAUSES.find((c) => c.id === e.id && c.key === key)?.text);
-  return fromCopy ?? CAUSE_TEXT[e.id]?.[key] ?? e.title;
+  const own = CAUSE_TEXT[e.id]?.[key];
+  if (own) return own;
+  const fromCopy = copyText(CAUSES.find((c) => c.id === causeId(e) && c.key === key)?.text);
+  return fromCopy?.replace(/\.\s*$/, '') ?? e.title;
 }
 
 function lineKind(s: GameState, e: LogEntry): ReportLine['kind'] {
@@ -1960,8 +1982,25 @@ function riskStageText(id: EventId, stage: Stage): string {
   return copyText(RISKS.find((r) => r.id === id)?.stages[stage]) ?? def.fallback[stage];
 }
 
+/** Copy template ids (src/data/copy/engine-words.ts) for the engine's advisor templates. */
+const ADVISOR_COPY_ID: Partial<Record<keyof typeof ADVISOR_TEXT, string>> = {
+  prepareRisk: 'prepare_risk',
+  prepareRiskImminent: 'risk_imminent',
+  tension: 'cool_tension',
+  verification: 'build_verification',
+  aiOffice: 'see_clearly',
+  coalition: 'grow_coalition',
+  social: 'protect_people',
+  context: 'context_window',
+  saveFor: 'save_resources',
+  alternative: 'alternative',
+};
+
 function advisorText(id: keyof typeof ADVISOR_TEXT, vars: Record<string, string>): string {
-  return fill(copyText(ADVISOR.find((a) => a.id === id)?.text) ?? ADVISOR_TEXT[id], vars);
+  const copyId = ADVISOR_COPY_ID[id];
+  const fromCopy = copyId ? copyText(ADVISOR.find((a) => a.id === copyId)?.text) : null;
+  const out = fill(fromCopy ?? ADVISOR_TEXT[id], vars);
+  return /[.!?]$/.test(out) ? out : `${out}.`;
 }
 
 /** One recommendation with its reason and an alternative. Reads only what the player can know. */
@@ -1993,7 +2032,7 @@ export function advisor(state: GameState): AdvisorView {
   for (const r of open.filter((x) => x.stage !== 'watch')) {
     const reason = fill(ADVISOR_REASON.risk, { risk: r.title, stage: riskStageText(r.id, r.stage) });
     for (const card of r.preparingCards.filter((c) => stillHelps(r, c))) {
-      if (ok(card)) push(card, advisorText('prepareRisk', { risk: r.title, card: nameOf(card) }), reason);
+      if (ok(card)) push(card, advisorText(r.stage === 'imminent' ? 'prepareRiskImminent' : 'prepareRisk', { risk: r.title, card: nameOf(card) }), reason);
       else if (!blocked && views.get(card)?.available) blocked = { card, risk: r.title, reason };
     }
   }
@@ -2025,7 +2064,12 @@ export function advisor(state: GameState): AdvisorView {
     // The answer to an urgent risk is not affordable yet: say so rather than push something else first.
     return { text: advisorText('prepareRiskLater', { risk: blocked.risk, card: nameOf(blocked.card) }), recommend: null, reason: blocked.reason, alternative: altOf(options[0]) };
   }
-  if (!options.length) return { text: advisorText('save', {}), recommend: null, reason: ADVISOR_REASON.save, alternative: null };
+  if (!options.length) {
+    // Nothing affordable worth doing: name what saving is for, when there is something.
+    const later = [...views.values()].find((v) => v.available && !v.affordable);
+    const text = later ? advisorText('saveFor', { card: later.name }) : advisorText('save', {});
+    return { text, recommend: null, reason: ADVISOR_REASON.save, alternative: null };
+  }
   return { text: options[0].text, recommend: options[0].card, reason: options[0].reason, alternative: altOf(options[1]) };
 }
 
@@ -2090,7 +2134,9 @@ function tipDue(s: GameState, id: (typeof TIP_ORDER)[number]): boolean {
 function tipFor(id: string): Tip {
   const c = TIPS.find((t) => t.id === id);
   const f = TIP_FALLBACK[id as (typeof TIP_ORDER)[number]] ?? { title: 'Tip', text: '' };
-  return { id, title: copyText(c?.title) ?? f.title, text: copyText(c?.text) ?? f.text };
+  const t: Tip = { id, title: copyText(c?.title) ?? f.title, text: copyText(c?.text) ?? f.text };
+  if (c?.fact) t.fact = { text: c.fact.text, source: { ...c.fact.source } };
+  return t;
 }
 
 /**

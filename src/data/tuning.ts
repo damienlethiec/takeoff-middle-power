@@ -177,9 +177,9 @@ export const TUNING = {
   endings: {
     bigAiConcentration: 60,
     bigAiEconomy: 40,
-    utopiaVerification: 50,
+    utopiaVerification: 45,
     utopiaMaxConcentration: 70,
-    utopiaTrueAlignment: 35,
+    utopiaTrueAlignment: 45,
     multipolarMaxTension: 70,
     cognitiveTrueAlignment: 60,
     epilogueHigh: 60,

@@ -404,6 +404,8 @@ export interface Tip {
   id: string;
   title: string;
   text: string; // one screen, plain words
+  /** Optional "Already real" fact shown under the tip. */
+  fact?: { text: string; source: Source };
 }
 
 export interface JournalEntry {

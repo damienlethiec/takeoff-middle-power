@@ -305,6 +305,7 @@ export const CONCERN_THRESHOLDS = {
 
 export const ADVISOR_TEXT = {
   prepareRisk: '{risk} is getting close. {card} would prepare Europe for it.',
+  prepareRiskImminent: '{risk} could hit any time now. {card} would prepare Europe for it.',
   prepareRiskLater: '{risk} is getting close. You cannot afford {card} yet; save for next quarter.',
   context: 'A window is open: {card} is on offer only for a short time.',
   tension: 'Tension is pushing the superpowers towards a fight. {card} would cool it.',
@@ -314,7 +315,8 @@ export const ADVISOR_TEXT = {
   safety: 'The labs’ safety reports may not be the whole truth. {card} works on what is really there.',
   social: 'Layoffs are coming. {card} would keep people on board.',
   save: 'Nothing urgent this quarter. Saving lets you afford a bigger move next quarter.',
-  alternative: 'Alternative: {alt}.',
+  saveFor: 'Nothing urgent this quarter. Passing now leaves more for {card} later.',
+  alternative: 'Alternative: {alt}',
   noAlternative: 'Alternative: pass and save resources.',
 };
 

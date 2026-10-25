@@ -67,14 +67,14 @@ export function preparedStrategy(opts: { talks: boolean; name: string }): Strate
     add('coalition', s.coalition === 0);
     add('host_verification', g.verification < 30);
     add('cyber_defence', g.misuse >= 25);
-    add('diplomatic_talks', opts.talks && g.tension >= 50);
+    add('diplomatic_talks', opts.talks && g.tension >= 40);
     add('open_models', slowWorld);
     add('oversight_mandate', slowWorld && n('open_models') > 0);
     add('coalition', s.coalition < 2);
     add('fund_alignment', n('fund_alignment') < 2);
     add('flexicurity');
     add('host_verification', g.verification < 50);
-    add('diplomatic_talks', opts.talks && g.tension >= 42);
+    add('diplomatic_talks', opts.talks && g.tension >= 35);
     add('coalition', s.coalition < 3);
     add('fund_alignment');
     add('measure', slowWorld);
