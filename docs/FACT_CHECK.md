@@ -40,7 +40,7 @@ Fixed in the game and in `docs/SPEC.md`: all seven "Must fix" items (#41, #22, #
 
 Left as is (optional nuance, no error): #3 (no source shown for the 5% figure in the opening text), #9 (Lifland's adjusted 70/45/32 figures), #14, #18, #25 (add Europe 2031 as a second source), #27 and #37 (weaker sources, kept), #52 (RAND link to click once in a browser).
 
-Note for a later content pass: the two hospital notes (`mis3`, `mis4` in `src/data/notes.ts`) are still conditioned on *weight security standards*, a leftover from before the Cyber shield card existed. Switching them to `flags.cyberDefence` changes which notes appear, so it was left for a behaviour-change pass.
+Follow-up done: the two hospital notes (`mis3`, `mis4` in `src/data/notes.ts`) now depend on the *Cyber shield for hospitals and grids* card instead of weight security standards (a leftover from before that card existed).
 
 ---
 

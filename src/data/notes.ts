@@ -61,8 +61,8 @@ export const NOTES: NoteTemplate[] = [
   // ---- Misuse signals ----
   n('mis1', 'misuse', 'open_source', 'eu', c('misuse', '>=', 22), 'Europol note: criminal groups are testing open models on hospital networks. "Reconnaissance, not attack. Yet."'),
   n('mis2', 'misuse', 'open_source', 'eu', c('misuse', '>=', 28), 'ENISA: AI-assisted intrusion attempts doubled this quarter.'),
-  n('mis3', 'misuse', 'open_source', 'eu', all(c('misuse', '>=', 32), c('flags.weightSecurity', '==', false)), 'ENISA: most hospitals would not survive a coordinated attack. Few have met the new EU cyber rules yet.'),
-  n('mis4', 'misuse', 'open_source', 'eu', all(c('misuse', '>=', 32), c('flags.weightSecurity', '==', true)), 'ENISA: the new lab security standards are spreading to hospitals and utilities. Intrusions now mostly fail.'),
+  n('mis3', 'misuse', 'open_source', 'eu', all(c('misuse', '>=', 32), c('flags.cyberDefence', '==', false)), 'ENISA: most hospitals would not survive a coordinated attack. Few have met the new EU cyber rules yet.'),
+  n('mis4', 'misuse', 'open_source', 'eu', all(c('misuse', '>=', 32), c('flags.cyberDefence', '==', true)), 'ENISA: the cyber shield is holding. Intrusions at hospitals and utilities now mostly fail.'),
 
   // ---- Who really decides in Europe ----
   n('eu1', 'eu', 'eu', 'eu', c('eu.state', '<', 72), 'Internal audit, ministry of finance: officials approve AI-drafted decisions in seconds. Few can explain them.'),
