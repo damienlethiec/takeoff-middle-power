@@ -16,3 +16,10 @@ npm run build    # production build in dist/
 ```
 
 Pushing to `main` deploys to GitHub Pages (Settings → Pages → Source: GitHub Actions).
+
+## Screens
+
+| | |
+| --- | --- |
+| ![Main screen](docs/screenshots/05-main-running.png) | ![Decision with preview](docs/screenshots/09-decision-preview.png) |
+| ![Event](docs/screenshots/12-event.png) | ![The superpowers choose](docs/screenshots/20-choose-result.png) |
