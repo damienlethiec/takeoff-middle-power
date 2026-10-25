@@ -469,17 +469,28 @@ function runDrift(s: GameState): void {
     [['misuse', misuse]],
     'Misuse risk grew every quarter: faster once AI was capable, and faster again once open models were everywhere.',
   );
+  // One entry per cause, so the situation report names the true cause of each change.
   const jobs = g.capability >= d.jobsAt;
   drift(
     'economy',
+    'eu',
+    'AI adoption lifts growth',
+    [['gdp', d.gdp + (jobs ? d.gdpHighCapability : 0)]],
+    'AI adoption lifted GDP every quarter, faster once capability passed 50.',
+  );
+  drift(
+    'layoffs',
+    'us_labs',
+    'Layoffs hurt approval',
+    [['approval', jobs && !s.flags.flexicurity ? d.approval : 0]],
+    'Once capability passed 50, layoffs cost approval every quarter (unless flexicurity was in place).',
+  );
+  drift(
+    'public_concern',
     jobs ? 'us_labs' : 'eu',
-    jobs ? 'AI adoption reshapes jobs' : 'AI adoption lifts GDP',
-    [
-      ['gdp', d.gdp + (jobs ? d.gdpHighCapability : 0)],
-      ['approval', jobs && !s.flags.flexicurity ? d.approval : 0],
-      ['publicPressure', jobs ? d.publicPressureJobs : d.publicPressure],
-    ],
-    'AI adoption lifted GDP and slowly raised public concern; once capability passed 50, layoffs cost approval and raised public pressure faster.',
+    jobs ? 'AI is taking jobs' : 'Growing public concern about AI',
+    [['publicPressure', jobs ? d.publicPressureJobs : d.publicPressure]],
+    'Public concern about AI grew every quarter, faster once AI started taking jobs.',
   );
 }
 
