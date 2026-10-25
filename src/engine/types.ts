@@ -276,7 +276,8 @@ export interface Debrief {
   };
   tipping: TippingResult | null;
   notes: InternalNote[]; // all, unredacted
-  decisions: { quarter: number; title: string; visibleDeltas: Delta[]; hiddenDeltas: Delta[]; explanation: string }[];
+  /** One entry per decision, repeated plays grouped: `quarter` is the first play, `quarters` all of them; deltas are summed. */
+  decisions: { quarter: number; quarters: number[]; title: string; visibleDeltas: Delta[]; hiddenDeltas: Delta[]; explanation: string }[];
   events: { quarter: number; title: string; actor: ActorId; prepared: boolean; explanation: string; source: Source }[];
 }
 

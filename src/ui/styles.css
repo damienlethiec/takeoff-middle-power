@@ -593,6 +593,7 @@ body.ended { overflow: auto; }
 .deb-list li { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; background: var(--deck); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
 .deb-list li.muted { display: block; }
 .deb-list h4 { margin: 0 0 4px; font-size: 16px; }
+.deb-list h4 .times { font-family: var(--f-data); font-size: 13px; font-weight: 600; color: var(--mute); }
 .deb-list p { margin: 6px 0 4px; font-size: 14px; }
 .deb-list .fx-line { margin: 4px 0; grid-template-columns: 70px minmax(0, 1fr); }
 .end-again { margin-top: 40px; }

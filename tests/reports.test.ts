@@ -292,11 +292,17 @@ describe('the debrief', () => {
       const { final: s } = playGame(seed, seed % 2 ? randomStrategy : prepared);
       const d = E.debrief(s);
       const cards = s.log.filter((e) => e.kind === 'card');
-      expect(d.decisions.map((x) => [x.quarter, x.title])).toEqual(cards.map((e) => [e.quarter, e.title]));
-      for (const [i, x] of d.decisions.entries()) {
-        expect(x.visibleDeltas).toEqual(cards[i].visibleDeltas);
-        expect(x.hiddenDeltas).toEqual(cards[i].hiddenDeltas);
-        expect(x.explanation).toBe(cards[i].debrief);
+      // one entry per decision, repeated plays grouped (B3), every play accounted for
+      expect(d.decisions.flatMap((x) => x.quarters.map((q) => [q, x.title])).sort()).toEqual(cards.map((e) => [e.quarter, e.title]).sort());
+      expect(new Set(d.decisions.map((x) => x.title)).size).toBe(d.decisions.length);
+      for (const x of d.decisions) {
+        const plays = cards.filter((e) => e.title === x.title);
+        expect(x.quarter).toBe(plays[0].quarter);
+        if (plays.length === 1) {
+          expect(x.visibleDeltas).toEqual(plays[0].visibleDeltas);
+          expect(x.hiddenDeltas).toEqual(plays[0].hiddenDeltas);
+          expect(x.explanation).toBe(plays[0].debrief);
+        }
       }
       expect(d.events.map((e) => e.title).sort()).toEqual(Object.keys(s.firedEvents).map((id) => EVENT_BY_ID[id as keyof typeof EVENT_BY_ID].title).sort());
       for (const ev of d.events) {
@@ -329,6 +335,23 @@ describe('the debrief', () => {
       expect(d.ending.lea.slot).toBe('end');
     }
     expect([checkedChoice, checkedPrepared, checkedUnprepared]).toEqual([true, true, true]);
+  });
+
+  it('groups repeated plays of a card into one entry with its quarters, summed deltas and one explanation (B3)', () => {
+    let s = started({ quarter: 2, budget: 40 });
+    for (let i = 0; i < 3; i++) s = nextQuarter(E.playCard({ ...s, budget: 40 }, 'fund_alignment').state);
+    s = E.playCard({ ...s, budget: 40 }, 'cyber_defence').state;
+    const ended = { ...s, phase: 'ended' as const, ending: E.resolveEnding(s) };
+    const d = E.debrief(ended);
+    expect(d.decisions.map((x) => [x.title, x.quarters])).toEqual([
+      ['Fund alignment research', [2, 3, 4]],
+      [CARD_BY_ID.cyber_defence.name, [5]],
+    ]);
+    const fund = d.decisions[0];
+    expect(fund.hiddenDeltas).toEqual([{ key: 'trueAlignment', amount: 18, hidden: true }]);
+    expect(fund.visibleDeltas).toEqual([{ key: 'budget', amount: -6, hidden: false }]);
+    // the card's explanation once, not three times
+    expect(fund.explanation.split(CARD_BY_ID.fund_alignment.debrief)).toHaveLength(2);
   });
 
   it('names the plan that was drawn in the log', () => {

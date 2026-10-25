@@ -733,6 +733,8 @@ function cardLimitReached(s: GameState, card: CardDef): boolean {
 function lockedReason(s: GameState, card: CardDef): string | null {
   if (s.phase === 'ended') return 'The game is over';
   if (cardLimitReached(s, card)) return card.limit === 1 ? 'Already played' : 'No uses left';
+  // one audit at a time: buying another while one runs would reveal nothing new
+  if (card.special === 'measure' && s.quarter <= s.revealUntil) return `An audit is already running (until ${dateLabel(s.revealUntil)})`;
   for (const r of card.requirements) if (!evalCondition(s, r.when)) return r.reason;
   return null;
 }
@@ -1232,12 +1234,54 @@ function endingView(s: GameState): EndingView {
   };
 }
 
+function sumDeltas(lists: Delta[][]): Delta[] {
+  const out: Delta[] = [];
+  for (const d of lists.flat()) {
+    const x = out.find((y) => y.key === d.key);
+    if (x) x.amount += d.amount;
+    else out.push({ ...d });
+  }
+  return out.filter((d) => d.amount !== 0);
+}
+
+/**
+ * One debrief entry per decision (same card, same option), however often it was played: the deltas are
+ * summed and the card's explanation is given once. What differs between plays (the odds shift) is kept,
+ * dated when it differs.
+ */
+function groupDecisions(entries: LogEntry[]): Debrief['decisions'] {
+  const groups = new Map<string, LogEntry[]>();
+  for (const e of entries) {
+    const k = `${e.id}|${e.title}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(e);
+  }
+  return [...groups.values()].map((list) => {
+    const first = list[0];
+    let explanation = first.debrief;
+    if (list.length > 1) {
+      const card = CARD_BY_ID[first.id as CardId];
+      const opt = card?.options?.find((o) => first.title === `${card.name}: ${o.label.toLowerCase()}`);
+      const base = [card?.debrief, opt?.debrief].filter(Boolean).join(' ');
+      const rests = list.map((e) => (base && e.debrief.startsWith(base) ? e.debrief.slice(base.length).trim() : e.debrief));
+      const same = rests.every((r) => r === rests[0]);
+      explanation = [base, same ? rests[0] : list.map((e, i) => `${dateLabel(e.quarter)}: ${rests[i]}`).join(' ')].filter(Boolean).join(' ');
+    }
+    return {
+      quarter: first.quarter,
+      quarters: list.map((e) => e.quarter),
+      title: first.title,
+      visibleDeltas: list.length > 1 ? sumDeltas(list.map((e) => e.visibleDeltas)) : first.visibleDeltas,
+      hiddenDeltas: list.length > 1 ? sumDeltas(list.map((e) => e.hiddenDeltas)) : first.hiddenDeltas,
+      explanation,
+    };
+  });
+}
+
 export function debrief(state: GameState): Debrief {
   const s = state;
   if (s.phase !== 'ended') throw new Error('The debrief is only available once the game has ended');
-  const decisions = s.log
-    .filter((e) => e.kind === 'card')
-    .map((e) => ({ quarter: e.quarter, title: e.title, visibleDeltas: e.visibleDeltas, hiddenDeltas: e.hiddenDeltas, explanation: e.debrief }));
+  const decisions = groupDecisions(s.log.filter((e) => e.kind === 'card'));
   const events = s.log
     .filter((e) => e.kind === 'event' && !e.id.includes(':'))
     .map((e) => {

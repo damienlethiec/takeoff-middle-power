@@ -145,7 +145,8 @@ describe('the game controller', () => {
     expect(s.tipping).not.toBeNull();
     expect(document.body.classList.contains('ended')).toBe(true);
     expect(text('.ending-page h1')).toBe(engine.debrief(s).ending.title);
-    expect(document.querySelectorAll('.ending-page .deb-list')[0].querySelectorAll('h4')).toHaveLength(played.length);
+    // repeated plays of a card are one entry (B3)
+    expect(document.querySelectorAll('.ending-page .deb-list')[0].querySelectorAll('h4')).toHaveLength(new Set(played).size);
     expect(document.body.textContent).not.toMatch(BAD_TEXT);
   });
 

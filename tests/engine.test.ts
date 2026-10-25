@@ -688,9 +688,9 @@ describe('endings', () => {
     expect(d.notes.every((n) => n.readable)).toBe(true);
     expect(d.decisions.length).toBeGreaterThan(0);
     expect(d.decisions.every((x) => x.explanation.length > 0)).toBe(true);
-    expect(d.decisions.find((x) => x.title === 'Fund alignment research')?.hiddenDeltas).toEqual([
-      { key: 'trueAlignment', amount: 6, hidden: true },
-    ]);
+    // repeated plays are grouped, their deltas summed
+    const fund = d.decisions.find((x) => x.title === 'Fund alignment research')!;
+    expect(fund.hiddenDeltas).toEqual([{ key: 'trueAlignment', amount: 6 * fund.quarters.length, hidden: true }]);
     for (const e of d.events) {
       expect(e.source.url).toMatch(/^https:\/\//);
       expect(e.explanation).toMatch(/prepared/i);

@@ -271,9 +271,22 @@ describe('effects', () => {
     const measured = E.playCard(s, 'measure').state;
     expect(measured.revealUntil).toBe(s.quarter + 3);
     for (const n of measured.notes) expect(n.readable).toBe(n.quarter === s.quarter);
-    // measuring again never shortens the window
-    const again = E.playCard({ ...measured, decidedThisQuarter: false, revealUntil: 20 }, 'measure').state;
-    expect(again.revealUntil).toBe(20);
+  });
+
+  // B3: the audit could be bought every quarter while it was already running
+  it('measure is locked while an audit runs, and can be bought again once it is over', () => {
+    const s = started({ quarter: 3 });
+    const measured = E.playCard(s, 'measure').state;
+    expect(measured.revealUntil).toBe(6);
+    const view = (t: GameState) => E.cardViews(t).find((c) => c.id === 'measure')!;
+    for (let q = 4; q <= 6; q++) {
+      const t = { ...measured, quarter: q, decidedThisQuarter: false };
+      expect(view(t)).toMatchObject({ available: false, lockedReason: 'An audit is already running (until Q2 2028)' });
+      expect(() => E.playCard(t, 'measure')).toThrow(/An audit is already running/);
+    }
+    const after = { ...measured, quarter: 7, decidedThisQuarter: false };
+    expect(view(after)).toMatchObject({ available: true, lockedReason: null });
+    expect(E.playCard(after, 'measure').state.revealUntil).toBe(10);
   });
 
   it('the audit keeps notes readable until revealUntil, then they are redacted again', () => {
