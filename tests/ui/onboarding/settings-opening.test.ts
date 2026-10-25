@@ -65,9 +65,14 @@ describe('the introduction', () => {
     expect([...stage().querySelectorAll('.op-body')].map(text)).toEqual(INTRO[0].paragraphs);
     key('ArrowRight');
     expect(text(stage().querySelector('h2'))).toBe(INTRO[1].title);
-    // your role: the two currencies and the steps of a quarter
-    expect(stage().querySelectorAll('.cur')).toHaveLength(2);
-    expect(stage().querySelectorAll('.loop li')).toHaveLength(5);
+    // your role: the two currencies, with the header's icons
+    expect(stage().querySelectorAll('.cur svg')).toHaveLength(2);
+    // the screen's sourced fact, opening in a new tab safely
+    if (INTRO[1].fact) {
+      const a = stage().querySelector('.box.real a.src')!;
+      expect(a.getAttribute('href')).toBe(INTRO[1].fact.source.url);
+      expect(a.getAttribute('rel')).toBe('noopener');
+    }
     expect(text(stage().querySelector('[data-go="next"]'))).toBe('Start the first quarter Enter');
     key('ArrowLeft');
     expect(text(stage().querySelector('h2'))).toBe(INTRO[0].title);

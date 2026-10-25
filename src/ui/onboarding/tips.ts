@@ -2,9 +2,10 @@
 // A tip that explains something on screen is a non-blocking coach mark next to it; any other tip is a
 // single-screen dialog. Both are announced and can be dismissed from the keyboard.
 
-import type { Tip } from '../../engine/types';
+import { TIPS } from '../../data/copy';
+import type { Source, Tip } from '../../engine/types';
 import { announce, tryFocus } from '../a11y';
-import { esc } from '../format';
+import { esc, srcLink } from '../format';
 import { openModal } from '../modal';
 import { bindTutorialToggles, tutorialToggleHtml } from './settings';
 
@@ -31,14 +32,26 @@ export function coachAnchor(tip: Tip, root: ParentNode = document): HTMLElement 
   return el && el.isConnected && !el.closest('[hidden]') ? el : null;
 }
 
+/** A tip's "Already real" fact: from the tip itself when the engine passes one, else from the copy. */
+export function tipFact(tip: Tip): { text: string; source: Source } | null {
+  return (tip as Tip & { fact?: { text: string; source: Source } }).fact ?? TIPS.find((t) => t.id === tip.id)?.fact ?? null;
+}
+
+/** The fact box (source link: http(s) only, new tab with rel="noopener", via srcLink). */
+export function tipFactHtml(tip: Tip): string {
+  const f = tipFact(tip);
+  return f ? `<aside class="box real ob-tip-fact"><h3 class="op-real">Already real</h3><p>${esc(f.text)}</p>${srcLink(f.source)}</aside>` : '';
+}
+
 export async function showTipDialog(tip: Tip): Promise<void> {
   const m = openModal(
     `<div class="dateline">Tip</div>
      <h2>${esc(tip.title)}</h2>
      ${paragraphs(tip.text)}
+     ${tipFactHtml(tip)}
      <div class="row-btns"><button class="btn-primary" data-primary data-escape data-action="ok">Got it <kbd>Enter</kbd></button></div>
      ${tutorialToggleHtml('ob-tip-tutorial', 'Show tutorial tips')}`,
-    { cls: 'ob-tip', label: `Tip: ${tip.title}`, describedBy: '.ob-tip-text' },
+    { cls: 'ob-tip', label: `Tip: ${tip.title}`, describedBy: '.ob-tip-text, .ob-tip-fact p' },
   );
   bindTutorialToggles(m.el);
   await m.result;

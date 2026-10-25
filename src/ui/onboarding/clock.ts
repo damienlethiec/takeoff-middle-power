@@ -32,7 +32,7 @@ export function mountClockCue(host: HTMLElement, onSkip: () => void): HTMLElemen
   const el = document.createElement('div');
   el.className = 'ob-next';
   el.innerHTML = `<p class="ob-next-l" id="ob-next-l"><span class="ob-next-k">Next decision</span> <b id="ob-next-when">end of quarter</b></p>
-    <button type="button" class="btn-quiet ob-skip" id="ob-skip"><span class="ob-skip-t">Skip to decision</span><small class="ob-skip-n">unclicked bubbles are skipped</small></button>`;
+    <button type="button" class="btn-quiet ob-skip" id="ob-skip"><span class="ob-skip-t">Skip to decision</span> <small class="ob-skip-n">unclicked bubbles are skipped</small></button>`;
   host.appendChild(el);
   el.querySelector('button')!.addEventListener('click', onSkip);
   return el;

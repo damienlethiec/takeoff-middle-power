@@ -68,6 +68,8 @@
 .ob-tip-text { font-size: 16px; line-height: 1.55; margin: 0 0 10px; }
 .ob-tip .row-btns { margin-top: 14px; }
 .ob-tutorial { color: var(--mute); }
+.ob-tip-fact { margin-top: 12px; }
+.ob-tip-item .ob-tip-fact { margin-top: 8px; }
 
 /* ---------- journal ---------- */
 .modal.ob-journal { max-width: 720px; }

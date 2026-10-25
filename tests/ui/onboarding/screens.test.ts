@@ -4,7 +4,7 @@
 
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { JournalEntry, Notice, SituationReport } from '../../../src/engine/types';
-import { ACTS } from '../../../src/data/copy';
+import { ACTS, TIPS } from '../../../src/data/copy';
 import { flush } from '../../../src/ui/a11y';
 import { modalOpen } from '../../../src/ui/modal';
 import { openJournal } from '../../../src/ui/onboarding/journal';
@@ -88,6 +88,19 @@ describe('tips', () => {
     expect(m.querySelectorAll('.ob-tip-text')).toHaveLength(2);
     expect(m.querySelector('#ob-tip-tutorial')).not.toBeNull();
     key('Escape');
+    await done;
+  });
+
+  it("a tip's sourced fact (tip_hidden) shows under it, with a safe link", async () => {
+    const copy = TIPS.find((t) => t.id === 'tip_hidden')!;
+    const done = showTipDialog({ id: copy.id, title: copy.title, text: copy.text });
+    const m = openModalEl()!;
+    expect(text(m.querySelector('.ob-tip-fact p'))).toBe(copy.fact!.text);
+    const a = m.querySelector('.ob-tip-fact a.src')!;
+    expect(a.getAttribute('href')).toBe(copy.fact!.source.url);
+    expect(a.getAttribute('rel')).toBe('noopener');
+    expect(a.getAttribute('target')).toBe('_blank');
+    key('Enter');
     await done;
   });
 

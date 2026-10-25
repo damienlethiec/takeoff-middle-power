@@ -8,18 +8,11 @@ import { ICON, esc, srcLink } from '../format';
 import { WorldMap } from '../map';
 import { bindTutorialToggles, introSeen, markIntroSeen, tutorialToggleHtml } from '../onboarding/settings';
 
-/** Shown under the second screen's words: the two currencies and the steps of a quarter. */
+/** Shown under the second screen's words: the two currencies, with the icons the header uses. */
 const ROLE_EXTRA = `<div class="currencies">
-    <div class="cur budget">${ICON.budget}<div><b>Budget</b><span>Pays for investments: inspectors, research, open models. More arrives every quarter.</span></div></div>
-    <div class="cur pc">${ICON.pc}<div><b>Political Capital</b><span>Pays for rules and diplomacy. More arrives every quarter, and more again when the public demands safety.</span></div></div>
-  </div>
-  <ol class="loop" aria-label="How a quarter works">
-    <li><b>The clock runs</b><span>A few seconds of news. Pause whenever you like.</span></li>
-    <li><b>An event may strike</b><span>Prepared or not, you see what it does.</span></li>
-    <li><b>Situation report</b><span>What changed, and why.</span></li>
-    <li><b>Your decision</b><span>One card, or pass. See its effects before you confirm.</span></li>
-    <li><b>Briefing</b><span>What moved, and what it will matter for.</span></li>
-  </ol>`;
+    <div class="cur budget">${ICON.budget}<div><b>Budget</b><span>What Europe builds: experts, research, defences.</span></div></div>
+    <div class="cur pc">${ICON.pc}<div><b>Political Capital</b><span>Deals and rules.</span></div></div>
+  </div>`;
 
 export function showOpening(): Promise<void> {
   return new Promise((resolve) => {

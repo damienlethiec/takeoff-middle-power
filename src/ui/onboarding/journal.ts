@@ -5,6 +5,7 @@ import type { JournalEntry, Tip } from '../../engine/types';
 import { TIPS } from '../../data/copy';
 import { esc, signed } from '../format';
 import { openModal } from '../modal';
+import { tipFactHtml } from './tips';
 
 const sign = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
 
@@ -37,7 +38,7 @@ function entryHtml(e: JournalEntry) {
   return `<h3 class="label">Situation report</h3>${reportHtml(e)}<h3 class="label">Your decision</h3>${decision}${events}${lea}${tips}`;
 }
 
-const tipHtml = (t: Tip) => `<div class="ob-tip-item"><h4>${esc(t.title)}</h4><p>${esc(t.text)}</p></div>`;
+const tipHtml = (t: Tip) => `<div class="ob-tip-item"><h4>${esc(t.title)}</h4><p>${esc(t.text)}</p>${tipFactHtml(t)}</div>`;
 
 /** Every tip seen (by id, in the order shown), with its words from the entries or the copy. */
 export function tipsSeen(entries: JournalEntry[], shownIds: string[]): Tip[] {
