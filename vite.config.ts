@@ -29,5 +29,14 @@ const csp = (): Plugin => ({
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/takeoff-middle-power/',
   plugins: [csp()],
-  test: { include: ['tests/**/*.test.ts'] },
+  test: {
+    include: ['tests/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**'],
+      // type-only modules and the browser entry point (covered by the end-to-end test)
+      exclude: ['src/engine/types.ts', 'src/engine/api.ts', 'src/data/schema.ts', 'src/main.ts'],
+      reporter: ['text', 'json-summary'],
+    },
+  },
 });
