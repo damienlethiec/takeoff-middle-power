@@ -507,7 +507,7 @@ describe('levels, rising costs and cooldowns (v2)', () => {
     }
     expect(seen).toEqual([
       ['Middle-power coalition', '3 PC', 1],
-      ['Widen the coalition', '4 PC', 2],
+      ['Wider coalition', '4 PC', 2],
       ['Middle-power pact', '5 PC', 3],
     ]);
     expect(view(rich(), 'coalition').level).toEqual({ next: 1, max: 3, name: 'Middle-power coalition' });

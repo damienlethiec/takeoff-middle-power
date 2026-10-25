@@ -95,6 +95,17 @@ export function allTexts(s: GameState): string[] {
   add(E.cardViews(s));
   add(E.forecastLine(s));
   add(E.dateLabel(s.quarter));
+  // v2 views
+  add(s.notices);
+  add(s.concerns);
+  add(s.leaLetters);
+  add(E.dashboard(s));
+  add(E.riskViews(s));
+  add(E.advisor(s));
+  add(E.trajectory(s));
+  add(E.nextIncome(s));
+  add(E.tip(s));
+  add(E.journal(s));
   if (s.phase !== 'ended') {
     add(E.situationReport(s));
     for (const c of E.cardViews(s)) add(E.previewCard(s, c.id, c.options[0]?.id));

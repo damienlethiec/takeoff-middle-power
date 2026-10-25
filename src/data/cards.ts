@@ -7,6 +7,7 @@ import type { CardId } from '../engine/types';
 import { all, c } from './conditions';
 import type { CardDef } from './schema';
 import { SOURCES } from './sources';
+import { TUNING } from './tuning';
 
 export const CARDS: CardDef[] = [
   {
@@ -23,7 +24,7 @@ export const CARDS: CardDef[] = [
     limit: 3,
     steps: [
       { name: 'Middle-power coalition', cost: { pc: 3, budget: 0 }, costLabel: '3 PC' },
-      { name: 'Widen the coalition', cost: { pc: 4, budget: 0 }, costLabel: '4 PC' },
+      { name: 'Wider coalition', cost: { pc: 4, budget: 0 }, costLabel: '4 PC' },
       { name: 'Middle-power pact', cost: { pc: 5, budget: 0 }, costLabel: '5 PC' },
     ],
     levelled: true,
@@ -93,8 +94,9 @@ export const CARDS: CardDef[] = [
     hasHiddenEffects: false,
     previewNotes: ['Raises the odds of a verified slowdown at the tipping point.'],
     consequence: [
-      { when: all(c('verification', '>=', 30), c('coalition', '>=', 1)), text: 'Ready to verify a deal, and to lead the response to an AI incident' },
-      { when: c('verification', '>=', 30), text: 'Inspectors are ready; a coalition partner would let Europe lead in a crisis' },
+      { when: c('verification', '>=', TUNING.endings.utopiaVerification), text: 'Ready to verify a deal if AI starts improving itself' },
+      { when: all(c('verification', '>=', 30), c('coalition', '>=', 1)), text: 'Ready to lead the response to an AI incident; a verified deal needs more inspectors' },
+      { when: c('verification', '>=', 30), text: 'Inspectors could handle an AI incident if a coalition partner joined; a deal needs more' },
       { text: 'A step towards inspectors who could verify a deal' },
     ],
     did: 'you hosted inspections',

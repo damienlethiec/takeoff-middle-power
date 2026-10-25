@@ -1629,7 +1629,20 @@ function isRoutine(s: GameState, e: LogEntry): boolean {
   if (e.kind === 'actor') return ROUTINE_ACTOR_RULES.has(e.id);
   if (e.kind !== 'drift') return false;
   if (e.quarter <= 1) return true;
-  return s.log.some((x) => x.kind === 'drift' && x.id === e.id && x.quarter === e.quarter - 1 && x.title === e.title);
+  return previousDrifts(s, e.quarter).has(`${e.id}|${e.title}`);
+}
+
+/** Drift entries (id|title) of the quarter before `quarter`, memoised per log array. */
+const driftMemo = new WeakMap<LogEntry[], Map<number, Set<string>>>();
+function previousDrifts(s: GameState, quarter: number): Set<string> {
+  let byQ = driftMemo.get(s.log);
+  if (!byQ) driftMemo.set(s.log, (byQ = new Map()));
+  let set = byQ.get(quarter);
+  if (!set) {
+    set = new Set(s.log.filter((x) => x.kind === 'drift' && x.quarter === quarter - 1).map((x) => `${x.id}|${x.title}`));
+    byQ.set(quarter, set);
+  }
+  return set;
 }
 
 /** The id under which the copy's suggested causes file this entry (its drift branch included). */
@@ -1656,7 +1669,7 @@ function causeText(e: LogEntry, key: StatKey): string {
 function lineKind(s: GameState, e: LogEntry): ReportLine['kind'] {
   if (e.kind === 'event') return 'event';
   if (e.kind === 'income') return 'card';
-  if (e.kind === 'actor') return e.id.startsWith('employment_shock') ? 'threshold' : 'actor';
+  if (e.kind === 'actor') return e.id.startsWith('employment_shock') ? 'threshold' : isRoutine(s, e) ? 'background' : 'actor';
   if (e.kind === 'drift') return isRoutine(s, e) ? 'background' : 'threshold';
   return 'actor';
 }
@@ -2100,7 +2113,7 @@ export function advisor(state: GameState): AdvisorView {
     for (const card of r.preparingCards.filter((c) => stillHelps(r, c))) push(card, advisorText('prepareRisk', { risk: r.title, card: nameOf(card) }), reason);
   }
   // 4. The trajectory and the basics of a verifiable deal.
-  if (g.tension >= 55 || mostLikely(planOdds(s)) === 'fight_china') {
+  if (g.tension >= 50) {
     push('diplomatic_talks', advisorText('tension', { card: nameOf('diplomatic_talks') }), ADVISOR_REASON.tension);
     push('coalition', advisorText('tension', { card: nameOf('coalition') }), ADVISOR_REASON.tension);
   }
