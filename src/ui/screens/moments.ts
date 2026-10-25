@@ -145,7 +145,10 @@ export function infoGainsHtml(gains: InfoGain[]) {
   return `<ul class="info-gains">${gains
     .map(
       (g) =>
-        `<li>${ICON.check}<span><b>${esc(g.label)}</b>${g.from || g.to ? ` <span class="num ig-ft">${esc(g.from ?? '')}${g.from && g.to ? ' → ' : ''}${esc(g.to ?? '')}</span>` : ''} <br><span class="ig-text">${esc(g.text)}</span></span></li>`,
+        // the engine may give a sentence only (label === text): say it once
+        !g.from && !g.to && g.label === g.text
+          ? `<li>${ICON.check}<span class="ig-text1">${esc(g.text)}</span></li>`
+          : `<li>${ICON.check}<span><b>${esc(g.label)}</b>${g.from || g.to ? ` <span class="num ig-ft">${esc(g.from ?? '')}${g.from && g.to ? ' → ' : ''}${esc(g.to ?? '')}</span>` : ''} <br><span class="ig-text">${esc(g.text)}</span></span></li>`,
     )
     .join('')}</ul>`;
 }
@@ -169,17 +172,17 @@ export async function showReport(r: SituationReport, traj: TrajectoryView, opts:
         })
         .join('')}</ul>`
     : '';
-  // the rest of what moved (when the engine has no "Background" sentence for it yet)
   const shownKeys = new Set<string>(r.headline.map((h) => h.key));
-  const rest = r.changes.filter((c) => !shownKeys.has(c.key));
+  // the rest of what moved this quarter; routine drift is already in the background line
+  const rest = r.changes.filter((c) => !shownKeys.has(c.key) && !(r.background && c.routine));
   const restHtml =
-    !r.background && rest.length
+    rest.length
       ? `<details class="rest"><summary>Other changes (${rest.length})</summary><ul class="changes">${rest
           .map((c) => `<li>${chip({ key: c.key, amount: c.delta })}<span class="cause">${esc(c.cause)}</span></li>`)
           .join('')}</ul></details>`
       : '';
   const quiet = !r.headline.length && !rest.length ? `<p class="muted">${r.background ? 'No surprises this quarter: only the usual drift.' : 'A quiet quarter: nothing you can see moved.'}</p>` : '';
-  const background = r.background ? `<p class="background"><span class="bg-k">Background</span> ${esc(r.background.replace(/^Background:\s*/i, ''))}</p>` : '';
+  const background = r.background ? `<p class="background"><span class="bg-k">Background</span> ${esc(r.background.replace(/^Background( drift)?:\s*/i, ''))}</p>` : '';
   const why = r.why.length ? `<ul class="why-list">${r.why.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : '';
   const risks = r.risksMoved.length ? `<h3 class="label">Risks that moved</h3><ul class="risks-moved">${r.risksMoved.map(riskLine).join('')}</ul>` : '';
   const change = r.trajectoryChange ?? traj.change;

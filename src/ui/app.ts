@@ -804,7 +804,8 @@ export class App {
       const g = this.gaugeViews().find((x) => x.key === key);
       if (!g) return;
       const th = THRESHOLDS[key];
-      html = `<h3 id="gpop-h">${esc(g.label)} <b class="num">${g.value}${g.errorBar ? ` ±${g.errorBar}` : ''}</b></h3>
+      // the value the tile shows (it animates while the clock runs), with the same rounding
+      html = `<h3 id="gpop-h">${esc(g.label)} <b class="num" data-pop-val>${esc(this.tileValue(g))}</b></h3>
         <p class="pop-help">${esc(GAUGE_HELP[key] ?? '')}</p>
         ${th ? `<p class="pop-th"><span class="pop-k">Threshold ${th.at}</span>${esc(th.meaning.replace(/^./, (c) => c.toUpperCase()))}.</p>` : ''}
         <p><span class="pop-k up">Rises when</span>${esc(g.risesWhen)}</p>
@@ -961,6 +962,12 @@ export class App {
     return { value, delta: g.delta - (g.value - value) };
   }
 
+  /** The number a gauge tile and its popover show: the displayed (animated) value, rounded, with its error bar. */
+  private tileValue(g: GaugeView) {
+    const v = Math.round(this.displayed(g).value);
+    return `${g.key === 'coalition' ? `${v}/3` : v}${g.errorBar ? ` ±${g.errorBar}` : ''}`;
+  }
+
   private renderGauges(flash = false) {
     const views = this.gaugeViews();
     const out: string[] = [];
@@ -1035,6 +1042,11 @@ export class App {
       }
     }
     if (crossed.length) this.toast(`Threshold crossed. ${crossed.join(' ')}`, 'alert');
+    // an open popover follows its tile
+    const pop = this.root.querySelector<HTMLElement>('#gpop');
+    const popVal = pop && !pop.hidden ? pop.querySelector<HTMLElement>('[data-pop-val]') : null;
+    const popGauge = popVal ? views.find((x) => x.key === pop!.dataset.for) : undefined;
+    if (popVal && popGauge) popVal.textContent = this.tileValue(popGauge);
     const eu = this.root.querySelector<HTMLElement>('.g-tile[data-hidden="eu"]');
     if (eu) {
       eu.classList.toggle('revealed', reveal);

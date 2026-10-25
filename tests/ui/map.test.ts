@@ -164,4 +164,20 @@ describe('WorldMap', () => {
     expect(onLea).toHaveBeenCalledTimes(1);
     expect(m.toPx(geo(4.85, 45.76))).toEqual({ x: expect.any(Number), y: expect.any(Number) });
   });
+
+  // B11: Léa's pin was a tiny "L" dot
+  it('Léa’s marker is a labelled HTML button laid over Lyon (its 44 px size is checked in the browser by npm run a11y)', () => {
+    const box = document.createElement('div');
+    Object.defineProperty(box, 'clientWidth', { value: 1000 });
+    Object.defineProperty(box, 'clientHeight', { value: 400 });
+    const m = new WorldMap(box);
+    const lea = box.querySelector<HTMLButtonElement>('button.lea-btn')!;
+    expect(lea).toBe(m.leaButton);
+    expect(lea.getAttribute('aria-label')).toBe('Léa, in Lyon: her messages');
+    expect(lea.textContent).toContain('Léa');
+    // placed at Lyon's point on the scaled map, in pixels
+    const p = m.toPx(geo(4.85, 45.76));
+    expect(lea.style.left).toBe(`${p.x.toFixed(1)}px`);
+    expect(lea.style.top).toBe(`${p.y.toFixed(1)}px`);
+  });
 });

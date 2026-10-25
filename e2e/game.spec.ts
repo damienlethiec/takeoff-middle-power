@@ -129,10 +129,17 @@ async function checkEnding(page: Page, s: Session, played: string[]) {
     await expect(ending.getByRole('heading', { level: 2, name: h })).toBeVisible();
   }
   await expect(ending.getByText('Léa, one last time')).toBeVisible();
-  // every played card appears in the debrief, in order
+  // the ending says why, for this game
+  await expect(ending.getByText('Why this ending')).toBeVisible();
+  // every played card appears in the debrief, in order of first play, repeated plays grouped ("… ×3")
   const titles = (await ending.locator('.deb-list').first().getByRole('heading', { level: 4 }).allTextContents()).map((t) => t.trim());
-  expect(titles.length).toBe(played.length);
-  titles.forEach((t, i) => expect(t.startsWith(played[i])).toBe(true));
+  const once = [...new Set(played)];
+  expect(titles.length).toBe(once.length);
+  titles.forEach((t, i) => {
+    expect(t.startsWith(once[i])).toBe(true);
+    const n = played.filter((x) => x === once[i]).length;
+    if (n > 1) expect(t.endsWith(`×${n}`)).toBe(true);
+  });
   // no note is left redacted
   await expect(ending.getByLabel('Redacted note')).toHaveCount(0);
   await checkText(page, s);

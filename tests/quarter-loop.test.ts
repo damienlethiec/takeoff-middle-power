@@ -307,10 +307,24 @@ describe('drift', () => {
     expect(at(50)).toEqual({ gdp: 2, approval: -1, publicPressure: 2 });
     expect(at(50, true)).toEqual({ gdp: 2, approval: 0, publicPressure: 2 });
     expect(at(30, true)).toEqual({ gdp: 1, approval: 0, publicPressure: 1 });
-    const jobs = logged(started({ gauges: { capability: 50 } }), 'economy')[0];
-    expect(jobs.title).toBe('AI adoption reshapes jobs');
-    expect(jobs.actor).toBe('us_labs');
-    expect(logged(started({}), 'economy')[0].title).toBe('AI adoption lifts GDP');
+    // one log entry per cause (B1: pressure used to be logged under "AI adoption lifts GDP")
+    const high = started({ gauges: { capability: 50 } });
+    expect(logged(high, 'economy')[0]).toMatchObject({ title: 'AI adoption lifts growth', visibleDeltas: [{ key: 'gdp', amount: 2, hidden: false }] });
+    expect(logged(high, 'layoffs')[0]).toMatchObject({ title: 'Layoffs hurt approval', actor: 'us_labs', visibleDeltas: [{ key: 'approval', amount: -1, hidden: false }] });
+    expect(logged(high, 'public_concern')[0]).toMatchObject({ title: 'AI is taking jobs', visibleDeltas: [{ key: 'publicPressure', amount: 2, hidden: false }] });
+    const low = started({});
+    expect(logged(low, 'economy')[0].visibleDeltas.map((d) => d.key)).toEqual(['gdp']);
+    expect(logged(low, 'layoffs')).toEqual([]);
+    expect(logged(low, 'public_concern')[0]).toMatchObject({ title: 'Growing public concern about AI', visibleDeltas: [{ key: 'publicPressure', amount: 1, hidden: false }] });
+  });
+
+  it('the situation report gives each economy change its own cause (B1)', () => {
+    const r = E.situationReport(started({ gauges: { capability: 50 } }));
+    const cause = (k: string) => r.changes.find((c) => c.key === k)!.cause;
+    expect(cause('gdp')).toBe('AI adoption lifts growth');
+    expect(cause('approval')).toBe('Layoffs hurt approval');
+    expect(cause('publicPressure')).toBe('AI is taking jobs');
+    expect(E.situationReport(started({})).changes.find((c) => c.key === 'publicPressure')!.cause).toBe('Growing public concern about AI');
   });
 
   it('reads every threshold on the values before drift', () => {
@@ -356,6 +370,7 @@ describe('order inside startQuarter', () => {
       'drift:eu_influence',
       'drift:misuse',
       'drift:economy',
+      'drift:public_concern',
       'event:ransomware',
     ]);
   });

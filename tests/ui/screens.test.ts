@@ -152,7 +152,7 @@ describe('the decision screen', () => {
     await expect(result).resolves.toEqual({ kind: 'card', id: 'asml', option: 'safety_commitment' });
   });
 
-  it('a locked or unaffordable card can be previewed but not confirmed', async () => {
+  it('a locked or unaffordable card cannot be confirmed (an unaffordable one is still previewed)', async () => {
     const s = { ...rich(), budget: 0, pc: 0 };
     void showDecision(engine, { ...s, gauges: { ...s.gauges, capability: 20 } });
     const m = openModalEl()!;
@@ -167,6 +167,59 @@ describe('the decision screen', () => {
     key('Enter');
     await sleep(5);
     expect(modalOpen()).toBe(true);
+  });
+
+  // B5: a locked coalition (tension 70+) used to preview "+12% verified slowdown"
+  it('a locked card shows its lock reason instead of a preview of effects and odds', () => {
+    const s = { ...rich(), gauges: { ...rich().gauges, tension: 75 } };
+    void showDecision(engine, s);
+    const m = openModalEl()!;
+    m.querySelector<HTMLElement>('.pcard[data-card="coalition"]')!.click();
+    const pv = m.querySelector('.preview')!;
+    expect(text(pv.querySelector('.pv-lock'))).toBe(`Not available now. ${engine.cardViews(s).find((c) => c.id === 'coalition')!.lockedReason}`);
+    expect(pv.querySelector('.oc-row')).toBeNull();
+    expect(pv.querySelector('.pv-sec')).toBeNull();
+    expect(pv.querySelector('.pv-notes')).toBeNull();
+    expect(text(pv)).not.toMatch(/%/);
+    const btn = m.querySelector<HTMLButtonElement>('.dec-bar [data-primary]')!;
+    expect(btn.disabled).toBe(true);
+    expect(text(btn)).toBe('Not available');
+  });
+
+  // B6: "next quarter" notes on the last decision
+  it('no note about later quarters on the last decision (tipping point or Q16)', () => {
+    const notes = (st: GameState) => {
+      void showDecision(engine, st, { tipping: st.phase === 'tipping' });
+      const m = openModalEl()!;
+      const out: string[] = [];
+      for (const id of ['coalition', 'flexicurity']) {
+        m.querySelector<HTMLElement>(`.pcard[data-card="${id}"]`)!.click();
+        out.push(text(m.querySelector('.pv-notes')));
+      }
+      m.querySelector<HTMLElement>('[data-action="pass"]')!.click();
+      return out.join(' ');
+    };
+    expect(notes(rich())).toMatch(/upkeep every quarter, from next quarter on.*Next quarter: PC −1/);
+    for (const last of [{ ...rich(), phase: 'tipping' as const }, { ...rich(), quarter: 16 }, { ...rich(), gauges: { ...rich().gauges, capability: 80 } }]) {
+      const said = notes(last);
+      expect(said).not.toMatch(/next quarter|every quarter|Next quarter/i);
+      expect(said).toContain('verified slowdown more likely');
+    }
+  });
+
+  // B7: AI Office capacity used to preview "No visible change"
+  it('information cards list what they let you see, computed from the state', () => {
+    const s = rich();
+    void showDecision(engine, s);
+    const m = openModalEl()!;
+    m.querySelector<HTMLElement>('.pcard[data-card="ai_office"]')!.click();
+    const sec = text(m.querySelector('.preview .info-gains'));
+    expect(sec).toContain('Capability error bar ±10 → ±5');
+    expect(sec).toContain('Apparent alignment error bar ±15 → ±5');
+    // a sentence-only gain is said once
+    expect(sec.match(/Capability error bar/g)).toHaveLength(1);
+    m.querySelector<HTMLElement>('.pcard[data-card="measure"]')!.click();
+    expect(text(m.querySelector('.preview .info-gains'))).toContain(`Europe’s three human-influence scores shown until ${engine.dateLabel(s.quarter + 3)}`);
   });
 
   it('pass and "look at the map" (Escape) resolve without a card', async () => {
@@ -271,6 +324,17 @@ describe('moments', () => {
     expect(openModalEl()!.querySelector('[data-action="decide"], [data-action="map"]')).toBeNull();
     key('Escape');
     await expect(again).resolves.toBe('close');
+    // routine drift only: folded into the background line (phase-0 B2)
+    const routineOnly = showReport(
+      { ...report, headline: [], changes: report.changes.map((c) => ({ ...c, routine: true })), background: 'Background drift: capability 30 (+4).' },
+      traj,
+      { leaRead: false },
+    );
+    expect(openModalEl()!.querySelectorAll('.headline li, .changes li')).toHaveLength(0);
+    expect(text(openModalEl()!.querySelector('.background'))).toBe('Background capability 30 (+4).');
+    expect(text(openModalEl())).toContain('No surprises this quarter');
+    key('Enter');
+    await expect(routineOnly).resolves.toBe('close');
     const quiet = showReport({ ...report, changes: [], headline: [], background: '', why: [], lea: null, newNotes: { total: 0, readable: 0 }, newNews: 1 }, traj, { leaRead: false });
     expect(text(openModalEl())).toContain('A quiet quarter');
     expect(text(openModalEl()!.querySelector('.report-foot'))).toBe('1 news item');
@@ -294,7 +358,6 @@ describe('moments', () => {
       // gains and losses carry words, not only colour
       expect(m.querySelector('.headline .chip')!.getAttribute('aria-label')).toBe('+4, bad for you');
       expect(text(m.querySelector('.background'))).toBe('Background capability +4, concentration +1, misuse +1.');
-      expect(m.querySelector('details.rest')).toBeNull(); // routine drift is in the background line
       expect([...m.querySelectorAll('.risks-moved li b')].map(text)).toEqual(['Model theft', 'Opaque reasoning']);
       expect(text(m.querySelector('.risks-moved .rm-prep.no'))).toBe('Not prepared');
       expect(text(m.querySelector('.traj-box .tc-line'))).toBe('Verified slowdown +6% (Verified slowdown up 6 points, good for you) You hosted inspections.');
