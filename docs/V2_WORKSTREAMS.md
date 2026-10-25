@@ -14,3 +14,33 @@ The v2 changes are specified in `docs/V2_SPEC.md` (team-approved, 25 Oct 2026; d
 **Integration.** Branch `v2` collects everything (`https://damienlethiec.github.io/takeoff-middle-power/preview/v2/`). Phase 0 bug fixes land on `main` in parallel: before your final push, merge `origin/v2` into your branch and resolve conflicts on your own files.
 
 **Done means:** `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`, `npm run test:e2e`, `npm run a11y` pass, and for the engine, `npm run sim` within the targets of `docs/V2_SPEC.md`. Accessibility rules in `CLAUDE.md` apply to every UI change.
+
+## Shared ids (engine triggers them, content writes their words)
+
+**Tips** (`TipCopy.id`), at most one shown per quarter, in this priority when several are due:
+
+| id | Shown when |
+| --- | --- |
+| `tip_clock` | Q1, as the clock first runs: the quarter, the clock, pausing |
+| `tip_decision` | Q1 decision: one decision per quarter, the two currencies, previews |
+| `tip_hidden` | First internal note or first time the alignment error bar matters: labs' reports vs what is true; true values revealed at the end |
+| `tip_trajectory` | Q2: the "Where the superpowers are heading" bar |
+| `tip_risks` | First risk appears on the risk track: telegraphed crises and being prepared |
+| `tip_coalition` | Coalition card unlocked |
+| `tip_pressure` | Public pressure indicator introduced: what it is, +1 PC when high |
+| `tip_misuse` | Misuse indicator introduced: open models vs misuse |
+| `tip_context` | First context card offered: it disappears after two quarters |
+| `tip_human_influence` | Act 3 opens: GDP can rise while people lose control; measuring it |
+| `tip_tipping` | Capability reaches 70: what happens at 80 |
+
+**Concern themes**: `jobs`, `safety`, `misuse`, `power`, `war`, `general` (see `ConcernCopy`). Regions `eu`, `us`, `cn`; most concerns are European.
+
+**Risks**: one `RiskCopy` per `EventId`.
+
+**Unlock reasons**: one `UnlockCopy` per card that is not available from Q1 (`coalition`, `weight_security`, `flexicurity`, `asml`, `open_models`, `cyber_defence`, `measure`, `oversight_mandate`) and per context card (`emergency_summit`, `joint_attribution`).
+
+**Indicator intros**: one `IndicatorIntroCopy` per `DashboardKey` that can be introduced after the opening four (`coalition`, `publicPressure`, `misuse`, `concentration`, `gdp`, `approval`).
+
+**Acts**: `ACTS` 1–3 (title, beat). **Intro**: `INTRO`, exactly two screens.
+
+**Engine-owned words**: report causes and sentences, advisor recommendations, card texts of the new cards. The content workstream may suggest rewording in its report; it does not edit engine files.
