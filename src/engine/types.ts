@@ -219,6 +219,8 @@ export interface CardPreview {
   visibleDeltas: Delta[];
   /** Plain-language consequences the player can know: "Unlocks the full effect of hosting verification". */
   notes: string[];
+  /** What the card lets the player see, computed from the state before and after: "Capability error bar ±10 → ±5". */
+  infoGains: string[];
   /** Plan odds now vs after the card (visible effects only). */
   oddsBefore: Record<PlanId, number>;
   oddsAfter: Record<PlanId, number>;
@@ -227,6 +229,8 @@ export interface CardPreview {
 export interface Briefing {
   title: string;
   visibleDeltas: Delta[];
+  /** What the player can now see that they could not before (same lines as the preview's). */
+  infoGains: string[];
   advisorNote: string; // hints at hidden effects without giving numbers
 }
 

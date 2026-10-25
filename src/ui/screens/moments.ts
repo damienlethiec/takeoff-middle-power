@@ -127,6 +127,7 @@ export async function showBriefing(b: Briefing | null, dateLabel: string, nextLa
     ? `<div class="dateline">${esc(dateLabel)} · Briefing</div>
        <h2>${esc(b.title)}</h2>
        <div class="fx-line big"><span class="fx-l">What moved</span><span class="fx">${chips(b.visibleDeltas)}</span></div>
+       ${b.infoGains.length ? `<div class="fx-line big gains-line"><span class="fx-l">What you can now see</span><ul class="pv-gains">${b.infoGains.map((g) => `<li>${ICON.check}${esc(g)}</li>`).join('')}</ul></div>` : ''}
        <blockquote class="advisor"><span class="ava adv">CS</span><div><small>Your chief of staff</small><p>${esc(b.advisorNote)}</p></div></blockquote>`
     : `<div class="dateline">${esc(dateLabel)} · Briefing</div>
        <h2>You passed</h2>

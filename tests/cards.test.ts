@@ -2,7 +2,7 @@
 // hidden effects, previews and the free decision at the tipping point.
 
 import { describe, expect, it } from 'vitest';
-import { E, craft, deltaMap, nextQuarter, started } from './helpers';
+import { E, craft, deepFreeze, deltaMap, nextQuarter, started } from './helpers';
 import { CARDS, CARD_BY_ID } from '../src/data/cards';
 import type { CardId, GameState } from '../src/engine/types';
 
@@ -301,6 +301,43 @@ describe('effects', () => {
     for (const q of [7, 8, 9]) expect(readable[q].every((r) => !r)).toBe(true);
     expect([4, 5, 6].flatMap((q) => readable[q]).length).toBeGreaterThan(0);
     expect([7, 8, 9].flatMap((q) => readable[q]).length).toBeGreaterThan(0);
+  });
+
+  // B7: the AI Office used to preview "No visible change", and its briefing showed only the cost
+  it('previews and briefings list information gains computed from the state, without mutating it or showing hidden values', () => {
+    let s = E.createInitialState(11);
+    for (let i = 0; i < 6; i++) s = nextQuarter(i === 0 ? E.startQuarter(s) : s);
+    const unread = s.notes.filter((n) => !n.readable).length;
+    expect(unread).toBeGreaterThan(1);
+    const frozen = deepFreeze(structuredClone(s));
+    const office = E.previewCard(frozen, 'ai_office');
+    expect(office.infoGains).toEqual([
+      'Capability error bar ±10 → ±5',
+      'Apparent alignment error bar ±15 → ±5',
+      `${unread} internal notes you already received become readable now`,
+      'Every internal note from now on is readable',
+    ]);
+    expect(E.playCard(s, 'ai_office').briefing.infoGains).toEqual(office.infoGains);
+    // with opaque reasoning the alignment bar is doubled before and after
+    expect(E.previewCard({ ...s, flags: { ...s.flags, alignmentErrorDoubled: true } }, 'ai_office').infoGains[1]).toBe('Apparent alignment error bar ±30 → ±10');
+
+    const audit = E.previewCard(frozen, 'measure');
+    const until = E.dateLabel(s.quarter + 3);
+    const thisQuarter = s.notes.filter((n) => n.quarter === s.quarter).length;
+    expect(audit.infoGains).toEqual([
+      ...(thisQuarter ? [`${thisQuarter} internal note${thisQuarter === 1 ? '' : 's'} you already received ${thisQuarter === 1 ? 'becomes' : 'become'} readable now`] : []),
+      `Europe’s three human-influence scores shown until ${until}`,
+      `Internal notes readable until ${until}`,
+    ]);
+    // no hidden value in what the player is told
+    for (const line of [...office.infoGains, ...audit.infoGains]) {
+      for (const v of [s.eu.economy, s.eu.culture, s.eu.state, s.gauges.trueAlignment]) expect(line).not.toMatch(new RegExp(`\\b${v}\\b`));
+    }
+    // a card that reveals nothing has no gains; the AI Office already bought has none either
+    expect(E.previewCard(s, 'fund_alignment').infoGains).toEqual([]);
+    expect(E.previewCard(E.playCard(s, 'ai_office').state, 'measure').infoGains).toEqual([`Europe’s three human-influence scores shown until ${until}`]);
+    // in the last quarter the audit lasts for the rest of the game
+    expect(E.previewCard({ ...s, quarter: 16 }, 'measure').infoGains).toContain('Europe’s three human-influence scores shown for the rest of the game');
   });
 
   it('flexicurity queues PC −1 for next quarter', () => {

@@ -38,7 +38,7 @@ Other state: `quarter` (1–16, shown as Q1 2027 to Q4 2030), `revealUntil`, `as
    - publicPressure +1 every quarter, +2 once capability ≥ 50 *(rebalanced, was +1 once capability ≥ 50)*
 5. **Events:** check in list order; at most one per quarter, each once. The clock stops on the event screen.
 6. **Situation report:** deltas since last quarter with their levels and causes (from the log), plan odds on current course, new notes. What is new comes first (events, actor moves, delayed card effects, a drift whose wording changed because a threshold was crossed); the routine drift and the labs' regular moves are folded into one background line.
-7. **Decision:** one card or pass. The preview shows visible deltas, costs and dependencies before confirming; the briefing after.
+7. **Decision:** one card or pass. The preview shows visible deltas, costs, dependencies and information gains (error bars narrowed, notes that become readable, the audit window, computed from the state before and after) before confirming; the briefing after. A locked card shows its lock reason, not a preview. Notes about later quarters (upkeep, delayed effects) are left out of the last decision.
 8. **End check:** capability ≥ 80 → tipping point. After Q16 → slow-world ending. Léa at Q1, Q6, Q11 and the end.
 
 All conditions are read on the values before drift. Every gauge is clamped 0–100, coalition 0–3, PC and Budget ≥ 0; deltas record what was actually applied.

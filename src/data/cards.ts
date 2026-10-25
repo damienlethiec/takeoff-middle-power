@@ -29,11 +29,8 @@ export const CARDS: CardDef[] = [
       { text: 'With verification 30+, Europe can lead the response to an AI incident', met: c('verification', '>=', 30) },
     ],
     hasHiddenEffects: false,
-    previewNotes: [
-      'Adds 1 PC of upkeep every quarter, from next quarter on.',
-      'Makes a verified slowdown more likely at the tipping point.',
-      'At two partners or more, coalition diplomacy starts to cool tension.',
-    ],
+    previewNotes: ['Makes a verified slowdown more likely at the tipping point.'],
+    futureNotes: ['Adds 1 PC of upkeep every quarter, from next quarter on.', 'At two partners or more, coalition diplomacy starts to cool tension.'],
     advisorNotes: [
       {
         when: c('coalition', '>=', 2),
@@ -156,11 +153,8 @@ export const CARDS: CardDef[] = [
     downside: 'No visible gain.',
     dependencies: [],
     hasHiddenEffects: true,
-    previewNotes: [
-      'Narrows the error bars on capability and alignment.',
-      'Internal notes become readable.',
-      'Unlocks the full effect of hosting verification.',
-    ],
+    // what it reveals (error bars, readable notes) is computed from the state: see infoGains in the engine
+    previewNotes: ['Unlocks the full effect of hosting verification.'],
     advisorNotes: [
       {
         when: c('alignmentGap', '>=', 15),
@@ -191,10 +185,8 @@ export const CARDS: CardDef[] = [
     downside: 'Pure cost: nothing visible changes.',
     dependencies: [],
     hasHiddenEffects: false,
-    previewNotes: [
-      'Shows Europe’s three human-influence scores for 3 quarters.',
-      'Internal notes are readable while the audit runs.',
-    ],
+    // what it reveals and for how long is computed from the state: see infoGains in the engine
+    previewNotes: [],
     advisorNotes: [
       {
         when: c('eu.average', '>=', 65),
@@ -292,7 +284,9 @@ export const CARDS: CardDef[] = [
     downside: 'Unions resist: PC −1 next quarter.',
     dependencies: [],
     hasHiddenEffects: true,
-    previewNotes: ['Approval no longer slides as AI takes over jobs.', 'Costs 1 more PC next quarter.'],
+    // the PC −1 next quarter is listed from `pending`
+    previewNotes: [],
+    futureNotes: ['Approval no longer slides as AI takes over jobs.'],
     advisorNotes: [
       {
         text: 'The first retraining centres open next month. Some people who were about to fall through the cracks now have somewhere to land. You might hear about it from friends.',

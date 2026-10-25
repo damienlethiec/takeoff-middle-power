@@ -56,6 +56,8 @@ export interface CardDef {
   dependencies: { text: string; met: Condition }[];
   /** Plain-language consequences shown in the preview (no hidden numbers). */
   previewNotes: string[];
+  /** Preview notes about later quarters, left out of the last decision (no quarter follows it). */
+  futureNotes?: string[];
   /** True when the card has consequences revealed only at the end (the preview says so, not what they are). */
   hasHiddenEffects: boolean;
   /** Hints at the hidden effect in words, never numbers. */

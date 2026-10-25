@@ -100,28 +100,41 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
     const optFocused = !!document.activeElement?.closest('.pv-opts');
     const c = cards.find((x) => x.id === selected)!;
     if (c.options.length && !option) option = c.options[0].id;
-    const p = e.previewCard(s, c.id, option);
     const ok = playable(c);
     const reason = !c.available ? c.lockedReason ?? 'Not available' : !ok ? "You can't afford it yet" : '';
-    pv.innerHTML = `
+    const head = `
       <div class="pv-card ${famClass(c.family)}">
         <span class="fam">${esc(c.family)}</span>
         <h3>${esc(c.name)}</h3>
         <p class="pv-text">${esc(c.playerText)}</p>
-      </div>
+      </div>`;
+    const foot = `<div class="pv-foot">
+        <button class="btn-primary" data-primary data-action="confirm" ${ok ? '' : 'disabled'}>${ok ? `Confirm <kbd>Enter</kbd>` : esc(reason)}</button>
+        ${srcLink(c.source)}
+      </div>`;
+    if (!c.available) {
+      // a locked card cannot be played: say why, not what it would do
+      pv.innerHTML = `${head}
+        <p class="pv-locked">${ICON.lock}<span><b>Locked.</b> ${esc(reason)}</span></p>
+        <p class="pv-down"><b>Downside</b> ${esc(c.downside)}</p>
+        ${foot}`;
+      pv.scrollTop = 0;
+      announce(`Selected: ${c.name}. Locked: ${reason}.`);
+      return;
+    }
+    const p = e.previewCard(s, c.id, option);
+    const gains = p.infoGains.length ? `<ul class="pv-gains">${p.infoGains.map((g) => `<li>${ICON.check}${esc(g)}</li>`).join('')}</ul>` : '';
+    pv.innerHTML = `${head}
       ${c.options.length ? `<div class="pv-opts" role="radiogroup" aria-label="Choose what to ask for">${c.options
         .map((o) => `<button class="opt${o.id === option ? ' on' : ''}" role="radio" aria-checked="${o.id === option}" tabindex="${o.id === option ? 0 : -1}" data-opt="${esc(o.id)}">${esc(o.label)}</button>`)
         .join('')}</div>` : ''}
       <div class="pv-sec"><span class="fx-l">Costs</span><span class="fx">${free ? '<span class="chip good"><span>Free: last decision</span></span>' : chips(p.costs, '<span class="chip flat"><span>Free</span></span>')}</span></div>
-      <div class="pv-sec"><span class="fx-l">What you'll see</span><span class="fx">${chips(p.visibleDeltas)}</span></div>
+      <div class="pv-sec"><span class="fx-l">What you'll see</span>${p.visibleDeltas.length || !gains ? `<span class="fx">${chips(p.visibleDeltas)}</span>` : ''}${gains}</div>
       ${p.notes.length ? `<ul class="pv-notes">${p.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
       <p class="pv-down"><b>Downside</b> ${esc(c.downside)}</p>
       ${c.dependencies.length ? `<ul class="pv-deps">${c.dependencies.map((d) => `<li class="${d.met ? 'met' : 'unmet'}">${d.met ? ICON.check : ICON.cross}${esc(d.text)}</li>`).join('')}</ul>` : ''}
       <div class="pv-odds"><span class="fx-l">If AI took off now, the superpowers' choice</span>${oddsChart(p.oddsBefore, p.oddsAfter)}</div>
-      <div class="pv-foot">
-        <button class="btn-primary" data-primary data-action="confirm" ${ok ? '' : 'disabled'}>${ok ? `Confirm <kbd>Enter</kbd>` : esc(reason)}</button>
-        ${srcLink(c.source)}
-      </div>`;
+      ${foot}`;
     const opts = [...pv.querySelectorAll<HTMLButtonElement>('.opt')];
     opts.forEach((b, i) => {
       b.addEventListener('click', () => {
@@ -141,9 +154,9 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
     // say what the preview shows, briefly (the full preview is in the dialog, after the cards)
     const said = [
       `Selected: ${c.name}${option && c.options.length ? `, ${c.options.find((o) => o.id === option)?.label ?? ''}` : ''}.`,
-      !c.available ? `Locked: ${c.lockedReason ?? 'not available'}.` : !ok ? "You can't afford it yet." : '',
+      !ok ? "You can't afford it yet." : '',
       free ? 'Free: last decision.' : p.costs.length ? `Costs ${p.costs.map((x) => `${Math.abs(Math.round(x.amount))} ${x.key === 'pc' ? 'Political Capital' : x.key === 'budget' ? 'Budget' : x.key}`).join(' and ')}.` : 'Free.',
-      `What you'll see: ${p.visibleDeltas.length ? p.visibleDeltas.map(deltaWords).join('; ') : 'no visible change'}.`,
+      `What you'll see: ${p.visibleDeltas.length || p.infoGains.length ? [...p.visibleDeltas.map(deltaWords), ...p.infoGains].join('; ') : 'no visible change'}.`,
       ok ? 'Confirm with Enter.' : '',
     ];
     announce(said.filter(Boolean).join(' '));

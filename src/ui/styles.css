@@ -422,6 +422,11 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .opt { background: transparent; border: 1px solid var(--rule); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--mute); }
 .opt.on { border-color: var(--cap); color: var(--ink); background: color-mix(in srgb, var(--cap) 15%, transparent); }
 .pv-notes { margin: 0; padding-left: 18px; font-size: 13px; display: grid; gap: 3px; color: var(--ink); }
+.pv-gains { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13.5px; color: var(--ink); }
+.pv-gains li { display: flex; gap: 6px; align-items: flex-start; }
+.pv-gains .ico { color: var(--good); flex: none; margin-top: 2px; }
+.pv-locked { margin: 0; display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--ink); background: var(--deck); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; }
+.pv-locked .ico { flex: none; color: var(--mute); margin-top: 2px; }
 .pv-down { margin: 0; font-size: 13px; color: var(--crit); }
 .pv-down b { font-family: var(--f-data); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; margin-right: 6px; }
 .pv-deps { list-style: none; margin: 0; padding: 0; font-size: 12.5px; display: grid; gap: 3px; }

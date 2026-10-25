@@ -813,6 +813,39 @@ function oddsShiftSentence(before: Record<PlanId, number>, after: Record<PlanId,
   return parts.length ? `Odds at the tipping point: ${parts.join(', ')}.` : 'It did not move the superpowers’ odds directly.';
 }
 
+/** True when another quarter follows the current decision (false at the tipping point, in Q16, or when capability is at 80). */
+function quarterFollows(s: GameState): boolean {
+  return s.phase === 'quarter' && s.quarter < TUNING.lastQuarter && s.gauges.capability < TUNING.tippingAt;
+}
+
+const ERROR_BAR_LABELS: [GaugeKey, string][] = [
+  ['capability', 'Capability'],
+  ['apparentAlignment', 'Apparent alignment'],
+];
+
+/**
+ * What a decision lets the player see, from the state before and after it: narrower error bars,
+ * notes that become readable, the audit window. Never a hidden value.
+ */
+function infoGains(before: GameState, after: GameState): string[] {
+  const out: string[] = [];
+  for (const [key, label] of ERROR_BAR_LABELS) {
+    const a = errorBar(before, key);
+    const b = errorBar(after, key);
+    if (a !== b) out.push(`${label} error bar ±${a} → ±${b}`);
+  }
+  const unlocked = after.notes.filter((n) => n.readable).length - before.notes.filter((n) => n.readable).length;
+  if (unlocked > 0) out.push(`${unlocked} internal note${unlocked === 1 ? '' : 's'} you already received ${unlocked === 1 ? 'becomes' : 'become'} readable now`);
+  const follows = quarterFollows(after);
+  if (after.flags.aiOffice && !before.flags.aiOffice && follows) out.push('Every internal note from now on is readable');
+  if (after.revealUntil > before.revealUntil && after.revealUntil >= after.quarter) {
+    const until = !follows || after.revealUntil >= TUNING.lastQuarter ? 'for the rest of the game' : `until ${dateLabel(after.revealUntil)}`;
+    out.push(`Europe’s three human-influence scores shown ${until}`);
+    if (!after.flags.aiOffice && follows) out.push(`Internal notes readable ${until}`);
+  }
+  return out;
+}
+
 export function previewCard(state: GameState, id: CardId, option?: string): CardPreview {
   const card = CARD_BY_ID[id];
   const draft = cloneState(state);
@@ -828,8 +861,12 @@ export function previewCard(state: GameState, id: CardId, option?: string): Card
     notes.push(`${dep.text}${evalCondition(state, dep.met) ? ' (met).' : ' (not yet).'}`);
   }
   notes.push(...card.previewNotes);
-  if (card.pending?.length) {
-    notes.push(`Next quarter: ${card.pending.map((p) => fmtDelta({ key: p.key, amount: p.amount, hidden: false })).join(', ')}.`);
+  // effects due in later quarters only matter if a quarter follows this decision
+  if (quarterFollows(state)) {
+    notes.push(...(card.futureNotes ?? []));
+    if (card.pending?.length) {
+      notes.push(`Next quarter: ${card.pending.map((p) => fmtDelta({ key: p.key, amount: p.amount, hidden: false })).join(', ')}.`);
+    }
   }
   if (card.hasHiddenEffects || (opt && opt.hiddenEffects.length > 0)) {
     notes.push('This decision has hidden effects. They will be revealed at the end.');
@@ -841,6 +878,7 @@ export function previewCard(state: GameState, id: CardId, option?: string): Card
     costs,
     visibleDeltas: deltas.filter((d) => !d.hidden),
     notes,
+    infoGains: infoGains(state, draft),
     oddsBefore: planOdds(state),
     oddsAfter: planOdds(maskHidden(draft, state)),
   };
@@ -878,7 +916,7 @@ export function playCard(state: GameState, id: CardId, option?: string): { state
     briefing: advisorNote,
     debrief: debriefText,
   });
-  return { state: s, briefing: { title, visibleDeltas: [...costs, ...visible], advisorNote } };
+  return { state: s, briefing: { title, visibleDeltas: [...costs, ...visible], infoGains: infoGains(state, s), advisorNote } };
 }
 
 export function pass(state: GameState): GameState {

@@ -95,7 +95,7 @@ describe('the decision screen', () => {
     await expect(result).resolves.toEqual({ kind: 'card', id: 'asml', option: 'safety_commitment' });
   });
 
-  it('a locked or unaffordable card can be previewed but not confirmed', async () => {
+  it('a locked or unaffordable card cannot be confirmed (an unaffordable one is still previewed)', async () => {
     const s = { ...rich(), budget: 0, pc: 0 };
     void showDecision(engine, { ...s, gauges: { ...s.gauges, capability: 20 } });
     const m = openModalEl()!;
@@ -105,9 +105,62 @@ describe('the decision screen', () => {
     expect(text(btn)).toBe('Needs capability 30+: jobs have not started to shift yet');
     m.querySelector<HTMLElement>('.pcard[data-card="fund_alignment"]')!.click();
     expect(text(m.querySelector('.preview [data-primary]'))).toBe("You can't afford it yet");
+    expect(m.querySelectorAll('.preview .oc-row')).toHaveLength(4);
     key('Enter');
     await sleep(5);
     expect(modalOpen()).toBe(true);
+  });
+
+  // B5: a locked coalition (tension 70+) used to preview "+12% verified slowdown"
+  it('a locked card shows its lock reason instead of a preview of effects and odds', () => {
+    const s = { ...rich(), gauges: { ...rich().gauges, tension: 75 } };
+    void showDecision(engine, s);
+    const m = openModalEl()!;
+    m.querySelector<HTMLElement>('.pcard[data-card="coalition"]')!.click();
+    const pv = m.querySelector('.preview')!;
+    expect(text(pv.querySelector('.pv-locked'))).toBe(`Locked. ${engine.cardViews(s).find((c) => c.id === 'coalition')!.lockedReason}`);
+    expect(pv.querySelector('.oc-row')).toBeNull();
+    expect(pv.querySelector('.pv-sec')).toBeNull();
+    expect(pv.querySelector('.pv-notes')).toBeNull();
+    expect(text(pv)).not.toMatch(/%/);
+    const btn = pv.querySelector<HTMLButtonElement>('[data-primary]')!;
+    expect(btn.disabled).toBe(true);
+    expect(text(btn)).toMatch(/^Tension is too high/);
+  });
+
+  // B6: "next quarter" notes on the last decision
+  it('no note about later quarters on the last decision (tipping point or Q16)', () => {
+    const notes = (st: GameState) => {
+      void showDecision(engine, st, { tipping: st.phase === 'tipping' });
+      const m = openModalEl()!;
+      const out: string[] = [];
+      for (const id of ['coalition', 'flexicurity']) {
+        m.querySelector<HTMLElement>(`.pcard[data-card="${id}"]`)!.click();
+        out.push(text(m.querySelector('.pv-notes')));
+      }
+      m.querySelector<HTMLElement>('[data-action="pass"]')!.click();
+      return out.join(' ');
+    };
+    expect(notes(rich())).toMatch(/upkeep every quarter, from next quarter on.*Next quarter: PC −1/);
+    for (const last of [{ ...rich(), phase: 'tipping' as const }, { ...rich(), quarter: 16 }, { ...rich(), gauges: { ...rich().gauges, capability: 80 } }]) {
+      const said = notes(last);
+      expect(said).not.toMatch(/next quarter|every quarter|Next quarter/i);
+      expect(said).toContain('verified slowdown more likely');
+    }
+  });
+
+  // B7: AI Office capacity used to preview "No visible change"
+  it('information cards list what they let you see, computed from the state', () => {
+    const s = rich();
+    void showDecision(engine, s);
+    const m = openModalEl()!;
+    m.querySelector<HTMLElement>('.pcard[data-card="ai_office"]')!.click();
+    const sec = text(m.querySelectorAll('.pv-sec')[1]);
+    expect(sec).toContain('Capability error bar ±10 → ±5');
+    expect(sec).toContain('Apparent alignment error bar ±15 → ±5');
+    expect(sec).not.toContain('No visible change');
+    m.querySelector<HTMLElement>('.pcard[data-card="measure"]')!.click();
+    expect(text(m.querySelectorAll('.pv-sec')[1])).toContain(`Europe’s three human-influence scores shown until ${engine.dateLabel(s.quarter + 3)}`);
   });
 
   it('pass and "look at the map" (Escape) resolve without a card', async () => {
