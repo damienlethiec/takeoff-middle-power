@@ -12,7 +12,7 @@ A Plague Inc.-style browser game about AI governance. The player is the EU's AI 
 
 - `src/engine/`: pure functions only. No DOM, no `Math.random` (use the seeded RNG stored in `GameState.rng`), never mutate inputs.
 - `src/data/`: declarative content (cards, events, news, notes, endings, Léa, sources). **All numbers live in `src/data/tuning.ts`.**
-- `src/ui/`: string-template DOM rendering, controller in `app.ts`, one file per screen in `screens/`. `src/engine-source.ts` switches between the real engine and `ui/mockEngine.ts`.
+- `src/ui/`: string-template DOM rendering, controller in `app.ts`, one file per screen in `screens/`. The UI imports the real engine directly (`src/main.ts`).
 - `scripts/sim.ts`: seeded simulation of thousands of games per strategy (passive, random, prepared).
 - `tests/`: Vitest.
 
@@ -33,6 +33,21 @@ npm run build     # typecheck + production build
 - Hidden values (true alignment, takeoff speed, human influence in Europe) never appear in visible deltas, previews or advisor notes; advisor notes contain no numbers.
 - Keep player text short and plain: card texts ≤ 25 words.
 - Changes to Louis's cards or events are flagged as "Changed from Louis's draft" in the spec.
+- **Fonts stay on Google Fonts** (team decision, 25 Oct): don't self-host them; the production CSP allows `fonts.googleapis.com` and `fonts.gstatic.com` only.
+- **Security**: content is static, but treat every string reaching `innerHTML` as untrusted: escape it, render only http(s) URLs as links, keep `rel="noopener"` on `target="_blank"`. CI permissions stay least-privilege and third-party actions stay pinned to commit SHAs. See `docs/AUDIT.md`.
+
+## Accessibility (required for every UI change)
+
+The game must be playable with a keyboard alone and with a screen reader, and comfortable for people sensitive to motion.
+
+- Every interactive element is a real `<button>` or `<a>` (never a clickable `div`), reachable with Tab in a logical order, with a visible focus style and an accessible name (`aria-label` when it has no text).
+- Map interactions (concern bubbles, Léa's pin, event pins) must have a keyboard and screen-reader equivalent.
+- Modals and overlays: move focus in when they open, trap it while open, close with Escape when closing is allowed, and return focus to the trigger.
+- Announce what changes without being looked at (new quarter, event, gauge changes, PC gained) through an `aria-live` region, politely and without flooding.
+- Never convey meaning by colour alone (gains/losses also carry + / − and words); text contrast at least WCAG AA (4.5:1, 3:1 for large text).
+- Respect `prefers-reduced-motion`: no pulsing, flashing or flying animations; state changes stay visible.
+- Keyboard shortcuts (Space to pause, Enter to confirm) must not fire while focus is in a text field or on another button, and must be listed on screen.
+- Check with the end-to-end tests and an automated audit (axe) before merging.
 
 ## Branches and previews
 

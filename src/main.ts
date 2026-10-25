@@ -1,5 +1,5 @@
 import './ui/styles.css';
-import { engine } from './engine-source';
+import { engine } from './engine';
 import { App } from './ui/app';
 
 const app = new App(document.getElementById('app')!, engine);
