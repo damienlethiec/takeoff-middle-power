@@ -51,6 +51,7 @@ import { showEnding } from './screens/ending';
 import { showHelp } from './screens/help';
 import { showBriefing, showEvent, showEventRecap, showLea, showReport, type Readiness } from './screens/moments';
 import { showOpening } from './screens/opening';
+import { Onboarding, clockMs } from './onboarding'; // v2-onboarding
 import { showSuperpowersChoose, showTippingAlarm } from './screens/tipping';
 
 const QUARTER_MS = 10_000;
@@ -132,10 +133,6 @@ export class App {
   /** Readiness and card names of this quarter, for the event screen. */
   private cardNames: Partial<Record<CardId, string>> = {};
 
-  // v2-onboarding hooks: the onboarding workstream (src/ui/onboarding/**) fills these in.
-  /** Léa's full message history; when absent, her button shows the latest letter. */
-  onboarding: { openLeaHistory?: () => Promise<void> } = {};
-  // end v2-onboarding hooks
 
   constructor(
     private root: HTMLElement,
@@ -245,6 +242,7 @@ export class App {
     const incomeText = !lost.length && income.length ? ` ${income.map((l) => l.briefing).join(' ')}` : '';
     const hint = this.s.quarter === 1 ? ' Press question mark for the keyboard shortcuts.' : '';
     announce(`${date} begins. The clock is running.${lostText}${incomeText} You have ${this.s.budget} Budget and ${this.s.pc} Political Capital.${hint}`);
+    this.obQuarterStart(); // v2-onboarding
     await new Promise<void>((r) => (this.clockDone = r));
     this.clockActive = false;
     this.coachQueue = [];
@@ -287,6 +285,7 @@ export class App {
         continue;
       }
       this.setPhase('Your decision');
+      await this.ob.beforeDecision(); // v2-onboarding
       const d = await showDecision(this.e, this.s);
       if (d.kind === 'map') continue;
       result = d;
@@ -372,7 +371,6 @@ export class App {
     }));
     this.setPhase('Clock running');
     this.renderAll();
-    if (this.s.quarter === 1) this.coach('clock', 'The clock is running. News arrives on the right and pings the map. Press Space to pause.');
   }
 
   /** The quarter's public concerns (the engine's, or a generic one or two while it has none). */
@@ -388,7 +386,7 @@ export class App {
     const dt = this.lastTs ? Math.min(100, ts - this.lastTs) : 0;
     this.lastTs = ts;
     if (!this.clockActive || !this.running || this.eventBusy) return;
-    this.t = Math.min(1, this.t + (dt * this.speed) / QUARTER_MS);
+    this.t = Math.min(1, this.t + (dt * this.speed) / this.obClockMs()); // v2-onboarding
     this.onTime();
   };
 
@@ -517,9 +515,8 @@ export class App {
     });
   }
 
+  /** Léa's latest letter (obMount replaces this with her full history, from the onboarding workstream). */
   private openLea() {
-    const history = this.onboarding.openLeaHistory;
-    if (history) return this.openFromMap(history);
     const l = this.lastLea;
     if (l) this.openFromMap(() => showLea(l.lea, l.date, 'Back to the map'));
     else this.toast('Léa lives in Lyon. She will write to you soon.');
@@ -633,7 +630,7 @@ export class App {
           </p>
         </div>
       </header>
-      <section class="trajectory" aria-labelledby="traj-h">
+      <section class="trajectory" aria-labelledby="traj-h" data-ob-anchor="trajectory">
         <h2 class="traj-k" id="traj-h">Where the superpowers are heading</h2>
         <div class="traj-bar" id="trajbar" role="img"></div>
         <p class="traj-change" id="trajchange"></p>
@@ -643,7 +640,7 @@ export class App {
           <span class="ava adv" aria-hidden="true">CS</span>
           <div><h2 id="adv-h">Your chief of staff</h2><p id="adv-text"></p><p class="adv-more" id="adv-more"></p></div>
         </section>
-        <section class="risks" aria-labelledby="risks-h">
+        <section class="risks" aria-labelledby="risks-h" data-ob-anchor="risks">
           <h2 id="risks-h">Risks <small>crises you can see coming</small></h2>
           <ul class="risk-list" id="risks"></ul>
         </section>
@@ -740,6 +737,7 @@ export class App {
         `<button type="button" class="g-tile hidden-slot" data-hidden="${esc(h.key)}" aria-expanded="false" aria-controls="gpop" aria-describedby="gdesc-hidden"><span class="g-name">${esc(h.label)}</span><span class="g-val q"><b>?</b></span><span class="g-tease"></span></button>`,
     ).join('');
     this.root.querySelectorAll<HTMLButtonElement>('.g-tile.hidden-slot').forEach((b) => b.addEventListener('click', () => this.togglePopover(b)));
+    this.obMount(); // v2-onboarding
   }
 
   /** The indicator tiles: primary ones in stable slots, the rest in the drawer. Rebuilt only when the set changes. */
@@ -1295,6 +1293,52 @@ export class App {
     }
     this.coachBusy = false;
   }
+
+  // ------------------------------------------------------------------ v2-onboarding hooks
+  // Owned by the onboarding workstream (src/ui/onboarding/ does the work). Call sites are marked "v2-onboarding".
+  private obSkipping = false;
+  private obInstance: Onboarding | null = null;
+  private get ob(): Onboarding {
+    return (this.obInstance ??= new Onboarding({
+      root: () => this.root,
+      engine: this.e,
+      state: () => this.s,
+      setState: (s) => {
+        this.s = s;
+      },
+      hold: () => {
+        const was = this.clockActive && this.running;
+        if (was) this.setRunning(false, false);
+        return () => {
+          if (was && this.clockActive && !this.running && !modalOpen()) this.setRunning(true, false);
+        };
+      },
+      clock: () => ({ active: this.clockActive, running: this.running, eventBusy: this.eventBusy, skipping: this.obSkipping }),
+      skip: () => {
+        if (!this.clockActive || this.obSkipping || this.eventBusy || modalOpen()) return false;
+        this.obSkipping = true; // same steps, faster; no bubbles to collect (no extra rewards)
+        for (const b of this.bubblePlan) {
+          if (b.state === 'live') this.map.popBubble(b.id);
+          b.state = 'gone';
+        }
+        if (!this.running) this.setRunning(true, false);
+        return true;
+      },
+      leaShownThisQuarter: () => this.lastLea?.date === this.e.dateLabel(this.s.quarter),
+      openFromMap: (show) => this.openFromMap(show),
+    }));
+  }
+  /** Q1 runs 5 s instead of 10; a skipped quarter runs fast. */
+  private obClockMs = () => clockMs(this.s.quarter, this.obSkipping, QUARTER_MS);
+  private obMount() {
+    this.ob.mount();
+    this.map.onLea = () => this.ob.openLeaHistory();
+  }
+  private obQuarterStart() {
+    this.obSkipping = false;
+    void this.ob.quarterStart();
+  }
+  // ------------------------------------------------------------------ end v2-onboarding hooks
 
   /** A short message at the bottom of the screen, also announced to screen readers unless `say` is false. */
   private toast(text: string, kind: 'info' | 'alert' = 'info', say = true) {

@@ -268,7 +268,7 @@ export class WorldMap {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'lea-btn';
-      b.setAttribute('aria-label', 'Léa, in Lyon: her messages');
+      b.setAttribute('aria-label', 'Léa, in Lyon: read her letters');
       b.innerHTML = '<span class="lea-tag"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4.5" width="15" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 5.5l7 5.5 7-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Léa<i class="lea-new" hidden>new</i></span>';
       b.addEventListener('click', () => this.onLea?.());
       container.appendChild(b);
@@ -321,7 +321,7 @@ export class WorldMap {
     if (!this.leaButton) return;
     this.leaButton.classList.toggle('unread', on);
     this.leaButton.querySelector<HTMLElement>('.lea-new')!.hidden = !on;
-    this.leaButton.setAttribute('aria-label', `Léa, in Lyon: her messages${on ? ' (new message)' : ''}`);
+    this.leaButton.setAttribute('aria-label', `Léa, in Lyon: read her letters${on ? ' (new letter)' : ''}`);
   }
 
   private drawPressure(protests: number, glitches: number, pressure: number) {

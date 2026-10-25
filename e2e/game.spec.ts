@@ -4,6 +4,7 @@
 
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { CARD_BY_ID } from '../src/data/cards';
+import { INTRO } from '../src/data/copy';
 import type { CardId } from '../src/engine/types';
 
 const BAD_TEXT = /undefined|NaN|\[object Object\]/;
@@ -186,8 +187,8 @@ test.describe('key interactions', () => {
     const intro = page.getByRole('dialog', { name: 'Introduction' });
     await expect(intro.getByText('Middle Power')).toBeVisible();
     await page.keyboard.press('Enter');
-    await expect(intro.getByRole('heading', { level: 2 })).toHaveText('AI already writes code and works on its own');
-    await intro.getByRole('button', { name: 'Skip' }).click();
+    await expect(intro.getByRole('heading', { level: 2 })).toHaveText(INTRO[0].title);
+    await intro.getByRole('button', { name: 'Skip to Q1' }).click();
     await advance(page, 600);
     await expect(intro).toHaveCount(0);
     await expect(page.locator('#date')).toHaveText('Q1 2027');

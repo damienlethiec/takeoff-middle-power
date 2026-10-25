@@ -2,6 +2,7 @@
 
 import { setSingleKeyShortcuts, shortcutsOn } from '../a11y';
 import { openModal } from '../modal';
+import { ONBOARDING_KEYS, bindTutorialToggles, tutorialToggleHtml } from '../onboarding/settings'; // v2-onboarding
 
 const KEYS: [string, string][] = [
   ['Tab / Shift+Tab', 'Move between buttons: the clock, your income, the risks, the map (Léa, event pins, concern bubbles), the indicators'],
@@ -14,6 +15,7 @@ const KEYS: [string, string][] = [
   ['C', 'Read the latest public concern on the map'],
   ['1 / 2', 'Normal or double speed'],
   ['?', 'Show these shortcuts'],
+  ...ONBOARDING_KEYS, // v2-onboarding
 ];
 
 export async function showHelp(): Promise<void> {
@@ -25,9 +27,11 @@ export async function showHelp(): Promise<void> {
        .join('')}</dt><dd>${what}</dd></div>`).join('')}</dl>
      <p class="muted">Speech bubbles on the map show what worries people. They stay while the clock is paused: pause, then read them at your own pace.</p>
      <label class="toggle"><input type="checkbox" id="single-keys" ${shortcutsOn() ? 'checked' : ''}> Single-key shortcuts (P, C, D, 1, 2, ?)</label>
+     ${tutorialToggleHtml('help-tutorial')}
      <div class="row-btns"><button class="btn-primary" data-primary data-escape data-action="ok">Back to the game <kbd>Enter</kbd></button></div>`,
     { cls: 'help', label: 'Keyboard shortcuts' },
   );
   m.el.querySelector<HTMLInputElement>('#single-keys')!.addEventListener('change', (e) => setSingleKeyShortcuts((e.target as HTMLInputElement).checked));
+  bindTutorialToggles(m.el); // v2-onboarding
   await m.result;
 }

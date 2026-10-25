@@ -28,9 +28,9 @@ describe('WorldMap', () => {
     // Léa is a real button over the map, labelled with her name
     expect(m.leaButton!.tagName).toBe('BUTTON');
     expect(m.leaButton!.textContent).toContain('Léa');
-    expect(m.leaButton!.getAttribute('aria-label')).toBe('Léa, in Lyon: her messages');
+    expect(m.leaButton!.getAttribute('aria-label')).toBe('Léa, in Lyon: read her letters');
     m.setLeaUnread(true);
-    expect(m.leaButton!.getAttribute('aria-label')).toBe('Léa, in Lyon: her messages (new message)');
+    expect(m.leaButton!.getAttribute('aria-label')).toBe('Léa, in Lyon: read her letters (new letter)');
     expect(m.leaButton!.querySelector<HTMLElement>('.lea-new')!.hidden).toBe(false);
     m.setLeaUnread(false);
     expect(m.leaButton!.querySelector<HTMLElement>('.lea-new')!.hidden).toBe(true);
@@ -173,7 +173,7 @@ describe('WorldMap', () => {
     const m = new WorldMap(box);
     const lea = box.querySelector<HTMLButtonElement>('button.lea-btn')!;
     expect(lea).toBe(m.leaButton);
-    expect(lea.getAttribute('aria-label')).toBe('Léa, in Lyon: her messages');
+    expect(lea.getAttribute('aria-label')).toBe('Léa, in Lyon: read her letters');
     expect(lea.textContent).toContain('Léa');
     // placed at Lyon's point on the scaled map, in pixels
     const p = m.toPx(geo(4.85, 45.76));

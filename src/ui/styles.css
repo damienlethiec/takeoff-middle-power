@@ -588,7 +588,7 @@ body.ended { overflow: auto; }
 .end-again { margin-top: 40px; }
 
 /* toast */
-.toast { position: fixed; z-index: 50; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--deck-2); border: 1px solid var(--concern); border-radius: 10px; padding: 9px 14px; font-size: 13.5px; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); animation: coachin .25s ease-out; transition: opacity .4s; max-width: calc(100% - 32px); }
+.toast { position: fixed; z-index: 18; /* above the map and the decision bar, below dialogs */ left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--deck-2); border: 1px solid var(--concern); border-radius: 10px; padding: 9px 14px; font-size: 13.5px; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); animation: coachin .25s ease-out; transition: opacity .4s; max-width: calc(100% - 32px); }
 .toast.out { opacity: 0; }
 .toast.alert { border-color: var(--rival); color: var(--ink); }
 .toast.alert::before { content: '!'; display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 8px; border-radius: 4px; background: var(--rival); color: #fff; font-family: var(--f-display); font-weight: 800; }

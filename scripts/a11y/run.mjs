@@ -16,6 +16,7 @@ const PREF = ['ai_office', 'coalition', 'host_verification', 'weight_security', 
 const MODAL = '.overlay:not(.leaving) .modal';
 
 const RUNS = [
+  // (fixtures: true adds ?obfixtures, the dev stand-ins of src/ui/onboarding for engine notices, tips and letters)
   { name: 'keyboard', seed: 9, viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference', intro: true },
   { name: 'reduced-motion-200%', seed: 3, viewport: { width: 640, height: 400 }, reducedMotion: 'reduce', intro: false },
 ];
@@ -64,7 +65,59 @@ async function playRun(browser, base, run) {
     }
   }
 
-  const url = `${base}?seed=${run.seed}${run.intro ? '' : '&skipintro'}`;
+  // ---------------------------------------------------------------- v2 onboarding checks
+  /** Tips, act transitions and notices: audited, Tab trapped once per kind, closed with Enter. */
+  async function onboardingDialog(screen) {
+    log.push(`  ${screen}: ${await evalText(`${MODAL} h2`)}`);
+    await audit(screen);
+    if (once(`trap-${screen}`)) await checkTrap(screen);
+    if (!(await page.evaluate(() => !!document.activeElement?.matches('[data-primary], [role="tab"]')))) fail(`${screen}: focus is not on its button (${await focused(page)})`);
+    if (screen === 'ob-journal') await press('Escape');
+    else {
+      await tabTo(page, '[data-primary]');
+      await press('Enter');
+    }
+  }
+  /** Once, while the clock runs: the journal from the keyboard, then Skip to decision. */
+  async function checkOnboarding() {
+    if (!(await tabTo(page, '#ob-journal'))) return fail('could not Tab to the Journal button');
+    await press('Enter');
+    await advance(page, 100);
+    if ((await screenOf(page)) !== 'ob-journal') return fail('Enter on Journal did not open it');
+    await audit('ob-journal');
+    await checkTrap('ob-journal');
+    const tabs = await page.evaluate(() => document.querySelectorAll('[role="tab"]').length);
+    if (tabs > 1) {
+      await tabTo(page, '[role="tab"][aria-selected="true"]');
+      await press('ArrowLeft');
+      if (!(await page.evaluate(() => document.activeElement?.matches('[role="tab"][aria-selected="true"]')))) fail('journal: ArrowLeft did not move to the previous quarter');
+    }
+    await press('Escape');
+    await advance(page, 300);
+    if (!(await page.evaluate(() => document.activeElement?.matches('#ob-journal')))) fail(`focus did not return to the Journal button (${await focused(page)})`);
+    if ((await phase()) !== 'Clock running') fail(`the clock did not resume after the journal (phase "${await phase()}")`);
+  }
+  async function checkSkip() {
+    // paused while tabbing (the page clock ticks in real time), so the quarter cannot end under the keyboard
+    if ((await phase()) === 'Clock running') await press('p');
+    if (!(await tabTo(page, '#ob-skip'))) return fail('could not Tab to Skip to decision');
+    // record everything announced from now on (the fast-forward announces news quickly, and the region keeps only the last few)
+    await page.evaluate(() => {
+      window.__said = '';
+      new window.MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => (window.__said += ` ${n.textContent}`)))).observe(document.body, { subtree: true, childList: true });
+    });
+    await press('Enter');
+    await advance(page, 200);
+    const said = await page.evaluate(() => window.__said);
+    if (!/bubbles you have not clicked are skipped/.test(said)) fail('Skip to decision was not announced');
+    if (!(await page.evaluate(() => document.querySelector('#ob-skip')?.getAttribute('aria-disabled') === 'true'))) fail('Skip to decision is not disabled while skipping');
+    if (!(await page.evaluate(() => document.activeElement?.matches('#ob-skip')))) fail(`Skip to decision lost keyboard focus (${await focused(page)})`);
+    for (let i = 0; i < 20 && (await screenOf(page)) === 'main'; i++) await advance(page, 200);
+    if ((await screenOf(page)) === 'main') fail('Skip to decision did not reach the end of the quarter');
+    log.push('  skipped to the decision');
+  }
+
+  const url = `${base}?seed=${run.seed}${run.intro ? '' : '&skipintro'}${run.fixtures ? '&obfixtures' : ''}`;
   await page.goto(url);
   await advance(page, 300);
 
@@ -150,6 +203,11 @@ async function playRun(browser, base, run) {
           if (!(await page.evaluate(() => document.querySelector('#gdrawer')?.hidden === true && document.activeElement?.matches('#gmore')))) fail(`Escape did not close the drawer back onto its button (${await focused(page)})`);
         }
       }
+      if (done.has('main') && once('onboarding')) await checkOnboarding();
+      if (q !== 'Q1 2027' && q !== 'Q2 2027' && bubblesByTab > 0 && (await phase()) === 'Clock running' && once('skip')) {
+        await checkSkip();
+        continue;
+      }
       // event pins: once one exists, open its recap from the keyboard
       // (only while the clock runs: a pin appears a moment before its event opens, and waits for it)
       if (!done.has('evpin') && (await phase()) === 'Clock running') {
@@ -171,6 +229,10 @@ async function playRun(browser, base, run) {
       }
       // concern bubbles: the first by Tab + Enter, later ones with the C shortcut; reading one pays nothing
       if (await page.evaluate(() => !!document.querySelector('.bubble:not(.read):not(.faded)'))) {
+        // pause first, as a keyboard player would (bubbles stay while paused): Q1's clock is short (v2 onboarding),
+        // and the page clock keeps ticking in real time while the audit and the Tab presses run
+        const wasRunning = (await phase()) === 'Clock running';
+        if (wasRunning) await press('p');
         await advance(page, 200); // announcements are batched for 150 ms
         const before = await pcShown();
         const announced = await page.evaluate(() => document.querySelector('.sr-live')?.textContent ?? '');
@@ -193,6 +255,7 @@ async function playRun(browser, base, run) {
         const after = await pcShown();
         if (after !== before) fail(`reading a concern changed Political Capital (${before} → ${after}); it must pay nothing`);
         if (!/Public concern in [^:]+: (?!press C|find)/.test(await page.evaluate(() => document.querySelector('.sr-live')?.textContent ?? ''))) fail('the concern was not read aloud');
+        if (wasRunning && (await phase()) === 'Paused') await press('p');
         continue;
       }
       await advance(page, 500);
@@ -229,7 +292,9 @@ async function playRun(browser, base, run) {
     }, MODAL);
     if (!labelled) fail(`${screen}: not a labelled modal dialog`);
 
-    if (screen === 'event') {
+    if (screen.startsWith('ob-')) {
+      await onboardingDialog(screen);
+    } else if (screen === 'event') {
       log.push(`  event: ${await evalText(`${MODAL} h2`)}`);
       await audit('event');
       if (once('trap-event')) await checkTrap('event');

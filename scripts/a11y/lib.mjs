@@ -90,6 +90,9 @@ export const screenOf = (page) =>
     const m = document.querySelector('.overlay:not(.leaving) .modal');
     if (!m) return document.querySelector('.dock:not([hidden])') ? 'dock' : 'main';
     const c = m.className;
+    // v2 onboarding dialogs (Léa's letters keep the 'lea' screen: same keys, same checks)
+    const ob = c.match(/\bob-(tip|act|notice|journal)\b/);
+    if (ob) return ob[0];
     if (c.includes('event-recap')) return 'event-recap';
     if (c.includes('help')) return 'help';
     if (c.includes('event')) return 'event';
