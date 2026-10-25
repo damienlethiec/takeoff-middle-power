@@ -5,6 +5,24 @@
 import type { RegionId } from '../engine/types';
 import { MAPDATA } from './mapdata';
 
+const REGION_NAME: Record<RegionId, string> = { eu: 'Europe', us: 'the United States', cn: 'China' };
+
+/** A button made of SVG (a <button> cannot live inside an <svg>): focusable, named, Enter and Space activate it. */
+function svgButton(g: SVGGElement, label: string, activate: () => void) {
+  g.setAttribute('role', 'button');
+  g.setAttribute('tabindex', '0');
+  g.setAttribute('aria-label', label);
+  g.addEventListener('click', activate);
+  g.addEventListener('keydown', (e) => {
+    const k = (e as KeyboardEvent).key;
+    if (k === 'Enter' || k === ' ') {
+      e.preventDefault();
+      e.stopPropagation(); // Space must not also pause the clock
+      activate();
+    }
+  });
+}
+
 const NS = 'http://www.w3.org/2000/svg';
 const VB = { x: 14, y: 0, w: 210, h: 68 };
 // The band that must always be visible: the US west coast to Japan, Scandinavia to southern China.
@@ -119,6 +137,8 @@ export interface MapView {
   publicPressure: number;
 }
 
+let mapIds = 0;
+
 export class WorldMap {
   readonly svg: SVGSVGElement;
   private layers: Record<'land' | 'arc' | 'labs' | 'pins' | 'pings' | 'bubbles' | 'labels', SVGGElement>;
@@ -129,26 +149,43 @@ export class WorldMap {
   private labDots: SVGGElement[] = [];
   private bubbles = new Map<string, SVGGElement>();
   private onBubble?: (id: string, region: RegionId, node: SVGGElement) => void;
+  /** Text alternative of the map for screen readers (null on a decorative map). */
+  private summary: HTMLElement | null = null;
+  private summaryParts = { state: '', events: [] as string[] };
   onLea?: () => void;
 
   constructor(container: HTMLElement, opts: { decorative?: boolean; onBubble?: (id: string, region: RegionId, node: SVGGElement) => void } = {}) {
     this.onBubble = opts.onBubble;
     const g = grid();
-    const svg = el('svg', { viewBox: `${VB.x} ${VB.y} ${VB.w} ${VB.h}`, preserveAspectRatio: 'xMidYMid meet', class: 'worldmap', role: 'img' });
-    svg.setAttribute('aria-label', 'Map of the world: the United States, Europe and China, with the tension between the US and China');
+    const svg = el('svg', { viewBox: `${VB.x} ${VB.y} ${VB.w} ${VB.h}`, preserveAspectRatio: 'xMidYMid meet', class: 'worldmap' });
+    if (opts.decorative) svg.setAttribute('aria-hidden', 'true');
+    else {
+      // a group, not an image: it holds Léa's pin, event pins and concern bubbles, which are buttons.
+      // Its description is a text summary of what the map shows, kept up to date by update().
+      svg.setAttribute('role', 'group');
+      svg.setAttribute('tabindex', '-1');
+      svg.setAttribute('aria-label', 'Map of the world: the United States, Europe and China, with the tension between the US and China');
+      this.summary = document.createElement('p');
+      this.summary.className = 'sr-only map-summary';
+      this.summary.id = `map-summary-${++mapIds}`;
+      svg.setAttribute('aria-describedby', this.summary.id);
+    }
     const defs = el('defs', {}, svg);
     defs.innerHTML = `
       <pattern id="sea" width="3" height="3" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r=".17" class="sea-dot"/></pattern>
       <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>
       <linearGradient id="arcgrad" x1="0" x2="1"><stop offset="0" stop-color="var(--cap)"/><stop offset=".5" stop-color="var(--arc-mid, var(--cap))"/><stop offset="1" stop-color="var(--rival)"/></linearGradient>`;
-    el('rect', { x: -60, y: -60, width: 360, height: 220, fill: 'url(#sea)' }, svg);
+    defs.setAttribute('aria-hidden', 'true');
+    el('rect', { x: -60, y: -60, width: 360, height: 220, fill: 'url(#sea)', 'aria-hidden': 'true' }, svg);
+    // the drawing is described in words by the summary, so only the pins and bubbles are exposed
+    const hide = { 'aria-hidden': 'true' };
     this.layers = {
-      land: el('g', { class: 'm-land' }, svg),
-      arc: el('g', { class: 'm-arc' }, svg),
-      labs: el('g', { class: 'm-labs' }, svg),
-      labels: el('g', { class: 'm-labels' }, svg),
+      land: el('g', { class: 'm-land', ...hide }, svg),
+      arc: el('g', { class: 'm-arc', ...hide }, svg),
+      labs: el('g', { class: 'm-labs', ...hide }, svg),
+      labels: el('g', { class: 'm-labels', ...hide }, svg),
       pins: el('g', { class: 'm-pins' }, svg),
-      pings: el('g', { class: 'm-pings' }, svg),
+      pings: el('g', { class: 'm-pings', ...hide }, svg),
       bubbles: el('g', { class: 'm-bubbles' }, svg),
     };
     (Object.keys(g.paths) as Zone[]).forEach((z) => {
@@ -191,19 +228,17 @@ export class WorldMap {
 
       // Léa lives in Lyon
       const ly = geo(LYON.lon, LYON.lat);
-      const lea = el('g', { class: 'lea-pin', transform: `translate(${ly.x} ${ly.y})`, tabindex: 0, role: 'button' }, this.layers.pins);
-      lea.setAttribute('aria-label', 'Léa, in Lyon: reread her last message');
+      const lea = el('g', { class: 'lea-pin', transform: `translate(${ly.x} ${ly.y})` }, this.layers.pins);
+      el('circle', { r: 2.6, class: 'pin-hit' }, lea);
+      el('circle', { r: 2.5, class: 'focus-ring' }, lea);
       el('circle', { r: 1.9, class: 'lea-ring' }, lea);
       el('circle', { r: 1.35, class: 'lea-dot' }, lea);
-      const lt = el('text', { y: 0.55, class: 'lea-l' }, lea);
+      const lt = el('text', { y: 0.55, class: 'lea-l', 'aria-hidden': 'true' }, lea);
       lt.textContent = 'L';
-      const go = () => this.onLea?.();
-      lea.addEventListener('click', go);
-      lea.addEventListener('keydown', (e) => {
-        if ((e as KeyboardEvent).key === 'Enter') go();
-      });
+      svgButton(lea, 'Léa, in Lyon: reread her last message', () => this.onLea?.());
     }
     container.appendChild(svg);
+    if (this.summary) container.appendChild(this.summary);
     this.svg = svg;
     // fit the core band to the box, and show more of the world when the box is taller
     const fit = () => {
@@ -250,6 +285,25 @@ export class WorldMap {
       const lbl = this.layers.labels.querySelector(`.l-${p.zone}`);
       lbl?.classList.toggle('joined', on);
     });
+    if (this.summary) {
+      const tension = Math.round(v.tension);
+      const joined = PARTNERS.filter((p) => v.coalition >= p.level).map((p) => p.name);
+      const waiting = PARTNERS.filter((p) => v.coalition < p.level).map((p) => p.name);
+      const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0]);
+      this.summaryParts.state =
+        `US–China tension ${tension} out of 100${tension >= 60 ? ', high' : ''}. ` +
+        (joined.length ? `Standing with Europe: ${list(joined)}.` : 'No partner stands with Europe yet.') +
+        (waiting.length ? ` Not yet: ${list(waiting)}.` : '') +
+        ` The labs, OpenBrain in the US and DeepCent in China, are at capability ${Math.round(v.capability)}.`;
+      this.writeSummary();
+    }
+  }
+
+  private writeSummary() {
+    if (!this.summary) return;
+    const ev = this.summaryParts.events;
+    const text = `${this.summaryParts.state}${ev.length ? ` Events pinned on the map: ${ev.join('; ')}.` : ''}`;
+    if (this.summary.textContent !== text) this.summary.textContent = text;
   }
 
   private randomCell(region: RegionId) {
@@ -266,31 +320,36 @@ export class WorldMap {
 
   spawnBubble(id: string, region: RegionId) {
     const c = this.randomCell(region);
-    const g = el('g', { class: 'bubble', transform: `translate(${c.x} ${c.y})`, tabindex: 0, role: 'button' }, this.layers.bubbles);
-    g.setAttribute('aria-label', 'Public concern: collect 1 Political Capital');
+    const g = el('g', { class: 'bubble', transform: `translate(${c.x} ${c.y})` }, this.layers.bubbles);
     const inner = el('g', { class: 'bubble-in' }, g);
     el('circle', { r: 3.4, class: 'bubble-hit' }, inner);
+    el('circle', { cy: -3.6, r: 3.6, class: 'focus-ring' }, inner);
     el('path', { d: 'M0 0 C-1.6 -1.9 -2.6 -2.9 -2.6 -4.3 A2.6 2.6 0 1 1 2.6 -4.3 C2.6 -2.9 1.6 -1.9 0 0Z', class: 'bubble-pin' }, inner);
     const t = el('text', { y: -3.45, class: 'bubble-t' }, inner);
     t.textContent = '+1';
-    const fire = () => this.onBubble?.(id, region, g);
-    g.addEventListener('click', fire);
-    g.addEventListener('keydown', (e) => {
-      if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
-        e.preventDefault();
-        e.stopPropagation();
-        fire();
-      }
-    });
+    svgButton(g, `Public concern in ${REGION_NAME[region]}: collect 1 Political Capital`, () => this.onBubble?.(id, region, g));
     this.bubbles.set(id, g);
+  }
+
+  /** The concern bubbles that can still be collected, oldest first. */
+  liveBubbles(): string[] {
+    return [...this.bubbles.keys()];
+  }
+  bubbleNode(id: string) {
+    return this.bubbles.get(id);
   }
 
   popBubble(id: string, collected: boolean) {
     const g = this.bubbles.get(id);
     if (!g) return;
     this.bubbles.delete(id);
+    const hadFocus = g.contains(document.activeElement);
     g.classList.add(collected ? 'popped' : 'faded');
     g.style.pointerEvents = 'none';
+    g.removeAttribute('tabindex');
+    g.setAttribute('aria-hidden', 'true');
+    // a keyboard player keeps their place: on to the next bubble, or back to the map
+    if (hadFocus) ((this.bubbles.values().next().value as SVGGElement | undefined) ?? this.svg).focus({ preventScroll: true });
     if (collected) {
       const m = g.getAttribute('transform')!;
       const gain = el('text', { class: 'gain', transform: m, y: -5 }, this.layers.bubbles);
@@ -312,13 +371,16 @@ export class WorldMap {
     setTimeout(() => g.remove(), 1800);
   }
 
-  addEventPin(region: RegionId, title: string, quarterLabel: string) {
+  /** Pin an event where it happened. With `onOpen`, the pin is a button that shows the event again. */
+  addEventPin(region: RegionId, title: string, quarterLabel: string, onOpen?: () => void) {
     this.layers.pins.querySelectorAll('.evpin.active').forEach((p) => p.classList.remove('active'));
     const a = geo(ANCHOR[region].lon, ANCHOR[region].lat);
     const offset = this.layers.pins.querySelectorAll(`.evpin-${region}`).length;
     const x = a.x + offset * 3.2;
     const y = a.y - 2 - (offset % 2) * 1.5;
     const g = el('g', { class: `evpin evpin-${region} active`, transform: `translate(${x} ${y})` }, this.layers.pins);
+    el('circle', { cy: -2.4, r: 3.4, class: 'pin-hit' }, g);
+    el('circle', { cy: -2.4, r: 3.6, class: 'focus-ring' }, g);
     el('circle', { r: 4.2, class: 'evpin-ring' }, g);
     el('path', { d: 'M0 0 L-1.5 -2.6 L1.5 -2.6Z', class: 'evpin-stem' }, g);
     el('rect', { x: -1.6, y: -5.6, width: 3.2, height: 3.2, rx: 0.5, class: 'evpin-head' }, g);
@@ -329,7 +391,11 @@ export class WorldMap {
     const q = el('text', { y: 2.6, class: 'evpin-q' }, g);
     q.textContent = quarterLabel;
     // setAttribute takes plain text: escaping here would make screen readers read "&#39;".
-    g.setAttribute('aria-label', `${title}, ${quarterLabel}`);
+    if (onOpen) svgButton(g, `${title}, ${quarterLabel}`, onOpen);
+    else g.setAttribute('aria-label', `${title}, ${quarterLabel}`);
+    for (const t of [bang, lbl, q]) t.setAttribute('aria-hidden', 'true');
+    this.summaryParts.events.push(`${title} (${REGION_NAME[region]}, ${quarterLabel})`);
+    this.writeSummary();
   }
 
   settlePins() {
