@@ -75,6 +75,35 @@ export const TUNING = {
   tippingAt: 80,
   lastQuarter: 16,
 
+  /** Public news per quarter and when they appear during the clock (0..1 of the quarter). */
+  news: {
+    minLines: 2, // drawn uniformly between min and max, event line included
+    maxLines: 4,
+    firstAt: 0.08, // lines are spread evenly from firstAt over `spread`, then jittered
+    spread: 0.84,
+    jitter: 0.3, // total jitter range, divided by the number of lines
+    earliestAt: 0.03,
+    latestAt: 0.95,
+  },
+
+  /** Internal notes per quarter: 0 below noneBelow, 1 below oneBelow, else 2 (on a uniform draw). */
+  notes: {
+    noneBelow: 0.2,
+    oneBelow: 0.7,
+    firstAt: 0.2, // a note appears at firstAt + random × spread of the quarter
+    spread: 0.7,
+  },
+
+  /** Thresholds behind the forecast's "What would help" lever (first match wins). */
+  forecast: {
+    lowVerification: 30, // below: AI Office first, then verification
+    midVerification: 50,
+    highVerification: 70,
+    coalitionMaxTension: 70, // same as the coalition card's requirement
+    highTension: 60,
+    coalitionTarget: 2,
+  },
+
   errorBars: {
     capability: 10,
     capabilityWithAiOffice: 5,
