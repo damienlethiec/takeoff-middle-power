@@ -72,7 +72,10 @@ const costOf = (p: CardPreview) => ({
 
 export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boolean } = {}): Promise<DecisionResult> {
   const free = !!opts.tipping;
-  const cards = e.cardViews(s);
+  const dealt = e.cardViews(s);
+  // Cards whose uses are all spent stay out of the hand: they are listed once as "in place".
+  const spent = dealt.filter((c) => c.usesLeft === 0 && !c.available);
+  const cards = dealt.filter((c) => !spent.includes(c));
   const date = e.dateLabel(s.quarter);
   const advice = e.advisor(s);
   const risks = e.riskViews(s).filter((r) => r.stage !== 'happened');
@@ -168,7 +171,7 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
     ${adviceHtml}
     ${riskBar}
     <div class="dec-body">
-      <div class="hand" role="group" aria-label="Your cards: pick one to preview it">${cards.length ? cards.map(cardHtml).join('') : '<p class="muted">No card to play this quarter.</p>'}</div>
+      <div class="hand" role="group" aria-label="Your cards: pick one to preview it">${cards.length ? cards.map(cardHtml).join('') : '<p class="muted">No card to play this quarter.</p>'}${spent.length ? `<p class="hand-done"><span class="hand-done-l">Already in place</span> ${spent.map((c) => esc(c.name)).join(' · ')}</p>` : ''}</div>
       <aside class="preview" aria-label="Preview of the selected card">
         <div class="pv-empty">
           <p class="pv-big">Pick a card to see what it would change before you commit.</p>

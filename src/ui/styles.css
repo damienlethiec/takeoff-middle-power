@@ -969,3 +969,7 @@ button.res:hover { border-color: var(--mute); }
 /* the feeds keep to their column whatever the length of an actor's name or a stamp */
 .feeds, .feed, .feed-body { min-width: 0; }
 .ni-meta { flex-wrap: wrap; row-gap: 3px; }
+
+/* Spent cards listed once under the hand */
+.hand-done { grid-column: 1 / -1; margin: 4px 0 0; font-size: 13px; color: var(--mute); }
+.hand-done-l { font-family: var(--f-data, monospace); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin-right: 6px; }
