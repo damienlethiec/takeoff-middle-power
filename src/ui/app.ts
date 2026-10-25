@@ -2,7 +2,7 @@
 // It talks to the engine only through EngineApi.
 
 import type { EngineApi } from '../engine/api';
-import type { CardId, GameState, GaugeView, InternalNote, LeaScene, PendingEvent, QuarterOutcome, RegionId } from '../engine/types';
+import type { Briefing, GameState, GaugeView, InternalNote, LeaScene, PendingEvent, QuarterOutcome, RegionId } from '../engine/types';
 import { $, ACTOR, ACTOR_SHORT, ACTOR_TONE, GAUGE_COLOR, HIDDEN_GAUGES, ICON, esc, signed, tone } from './format';
 import { WorldMap } from './map';
 import { modalOpen, openModal, wait } from './modal';
@@ -109,14 +109,20 @@ export class App {
     await this.ending();
   }
 
-  private tryPlay(id: CardId, option?: string) {
-    try {
-      return this.e.playCard(this.s, id, option);
-    } catch (err) {
-      console.warn('playCard refused', err);
-      this.toast('That decision is not possible right now. You passed instead.');
-      return null;
+  /** Plays the chosen card (or passes) and returns its briefing; a refused card counts as a pass. */
+  private applyDecision(result: DecisionResult): Briefing | null {
+    if (result.kind === 'card') {
+      try {
+        const r = this.e.playCard(this.s, result.id, result.option);
+        this.s = r.state;
+        return r.briefing;
+      } catch (err) {
+        console.warn('playCard refused', err);
+        this.toast('That decision is not possible right now. You passed instead.');
+      }
     }
+    this.s = this.e.pass(this.s);
+    return null;
   }
 
   private async playQuarter(): Promise<QuarterOutcome> {
@@ -168,14 +174,7 @@ export class App {
       result = d;
     }
 
-    let briefing = null;
-    if (result.kind === 'card') {
-      const r = this.tryPlay(result.id, result.option);
-      if (r) {
-        this.s = r.state;
-        briefing = r.briefing;
-      } else this.s = this.e.pass(this.s);
-    } else this.s = this.e.pass(this.s);
+    const briefing = this.applyDecision(result);
     this.renderAll(true);
 
     const end = this.e.endQuarter(this.s);
@@ -201,14 +200,7 @@ export class App {
       }
       result = d;
     }
-    let briefing = null;
-    if (result.kind === 'card') {
-      const r = this.tryPlay(result.id, result.option);
-      if (r) {
-        this.s = r.state;
-        briefing = r.briefing;
-      } else this.s = this.e.pass(this.s);
-    } else this.s = this.e.pass(this.s);
+    const briefing = this.applyDecision(result);
     this.renderAll(true);
     await showBriefing(briefing, date, 'Washington and Beijing decide');
     this.s = this.e.runTippingPoint(this.s);
