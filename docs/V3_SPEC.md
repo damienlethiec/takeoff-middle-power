@@ -176,6 +176,15 @@ The player must leave knowing why the story ended this way and what would have c
 
 The engine is rewritten around the new model; the UI shell, map, accessibility layer, content pipeline and test infrastructure are reused. The v2 game stays online on `main` until v3 is validated by playtests.
 
+## Realism
+
+The game must stay close to the scenarios it is built on: **AI 2027** for the story (OpenBrain, DeepCent, the stolen weights, AI that speeds up AI research, warning signs of misalignment) and **CFG, Advanced AI: Possible Futures** for the worlds and what drives them. Players should leave with an accurate picture of these projections, not with a game invention.
+
+- **Every card, event, threat and headline says where it comes from.** A `basis` field in the data: `ai2027`, `cfg` or `real`, with a precise reference ("AI 2027, theft of the model weights, early 2027"). A test fails on any content without a basis. Game devices (thresholds, costs, the safety-net rule) are not content and need none.
+- **Milestones come in AI 2027's order; their dates may vary** with the hidden AI pace. A milestone can arrive earlier or later than in the scenario, never out of order. The build takes the sequence from the AI 2027 text itself, not from memory.
+- **Effects follow the scenarios' cause and effect.** A theft speeds up the race and lowers Cooperation; warning signs of misalignment lower Confidence once they are public; the worlds and what decides them follow the CFG drivers. The size of an effect is a game choice tuned by the simulation; its direction is not.
+- **Realism notes.** The build notes list every place where the build interpreted or stretched the scenarios, for Louis and the fact-check to review.
+
 ## Validation
 
 **Simulation targets** (2,000 seeded games per strategy):
