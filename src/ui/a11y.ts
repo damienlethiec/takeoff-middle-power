@@ -32,7 +32,7 @@ export function focusOwnsKey(key: string): boolean {
 }
 
 // ---------------------------------------------------------------- single-key shortcuts setting
-// WCAG 2.1.4: single-character shortcuts (P, C, 1, 2, ?) can be turned off. Space, Enter and Escape always work.
+// WCAG 2.1.4: single-character shortcuts (P, C, D, 1, 2, ?) can be turned off. Space, Enter and Escape always work.
 
 const SHORTCUTS_KEY = 'takeoff.singleKeyShortcuts';
 export function singleKeyShortcuts(): boolean {

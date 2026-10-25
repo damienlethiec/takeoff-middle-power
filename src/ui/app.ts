@@ -263,25 +263,32 @@ export class App {
       this.map.setLeaUnread(false);
     }
 
-    let stage: 'report' | 'decision' = 'report';
-    let result: DecisionResult | null = null;
-    while (!result) {
-      if (stage === 'report') {
+    // the report first; then the game waits on the main screen until the player asks for the decision
+    const readReport = async () => {
+      for (;;) {
         const a = await showReport(report, this.e.trajectory(this.s), { leaRead: true });
         if (a === 'lea' && report.lea) {
           await showLea(report.lea, date, 'Back to the report');
           continue;
         }
-        if (a === 'map') await this.dock('The clock is stopped. Take your time to look at the map, the indicators, the risks and the notes.', 'Choose your decision');
-        stage = 'decision';
+        return;
+      }
+    };
+    await readReport();
+    let result: DecisionResult | null = null;
+    while (!result) {
+      const go = await this.dock(
+        'Paused. Explore the map, news, risks and indicators, then decide.',
+        'Make my decision',
+        { report: true },
+      );
+      if (go === 'report') {
+        await readReport();
         continue;
       }
       this.setPhase('Your decision');
       const d = await showDecision(this.e, this.s);
-      if (d.kind === 'map') {
-        await this.dock('The clock is stopped. Your cards are waiting.', 'Back to your cards');
-        continue;
-      }
+      if (d.kind === 'map') continue;
       result = d;
     }
 
@@ -306,7 +313,7 @@ export class App {
     while (!result) {
       const d = await showDecision(this.e, this.s, { tipping: true });
       if (d.kind === 'map') {
-        await this.dock('The world is holding its breath. Look as long as you need.', 'Back to your last decision');
+        await this.dock('The world is holding its breath. Look as long as you need.', 'Make my last decision');
         continue;
       }
       result = d;
@@ -520,7 +527,7 @@ export class App {
 
   /**
    * Keyboard shortcuts. Space and Enter are left to a focused button or link (they activate it);
-   * the single-key shortcuts (P, C, 1, 2, ?) can be turned off in the shortcuts dialog (WCAG 2.1.4).
+   * the single-key shortcuts (P, C, D, 1, 2, ?) can be turned off in the shortcuts dialog (WCAG 2.1.4).
    */
   private onKey = (ev: KeyboardEvent) => {
     if (ev.defaultPrevented || modalOpen() || document.querySelector('.opening')) return;
@@ -544,6 +551,9 @@ export class App {
       if (!this.clockActive) return;
       ev.preventDefault();
       this.setRunning(!this.running);
+    } else if ((k === 'd' || k === 'D') && this.dockResolve) {
+      ev.preventDefault();
+      this.dockResolve();
     } else if (k === 'c' || k === 'C') {
       const id = this.map.liveBubbles()[0];
       if (id) this.onBubble(id);
@@ -561,22 +571,32 @@ export class App {
     this.openFromMap(() => showHelp());
   }
 
-  private dock(text: string, label: string): Promise<void> {
+  /**
+   * The game paused on the main screen, waiting for the player: a bar that stays in view with the decision
+   * button (Enter or D), and optionally the report to reread. Resolves with what the player asked for.
+   */
+  private dock(text: string, label: string, opts: { report?: boolean } = {}): Promise<'decide' | 'report'> {
     const d = $('.dock', this.root);
-    d.innerHTML = `<p id="dock-text">${esc(text)}</p><button class="btn-primary" type="button" aria-describedby="dock-text">${esc(label)} <kbd>Enter</kbd></button>`;
+    d.innerHTML = `<p id="dock-text">${esc(text)}</p>
+      ${opts.report ? '<button class="btn-quiet" type="button" data-go="report">Reread the report</button>' : ''}
+      <button class="btn-primary" type="button" data-go="decide" aria-describedby="dock-text" aria-keyshortcuts="Enter D">${esc(label)} <kbd>Enter</kbd></button>`;
     d.hidden = false;
-    this.setPhase('Paused to assess');
-    const btn = d.querySelector('button')!;
-    // keyboard players land on the way back; the map, indicators and notes are a Tab away
+    this.root.querySelector('.game')?.classList.add('docked');
+    this.setPhase('Paused: your move');
+    const btn = d.querySelector<HTMLButtonElement>('[data-go="decide"]')!;
+    // keyboard players land on the way forward; the map, risks, indicators and notes are a Tab away
     tryFocus(btn);
+    announce(`${text} When you are ready, press ${label}${shortcutsOn() ? ', or the D key' : ''}.`);
     return new Promise((resolve) => {
-      const go = () => {
+      const go = (what: 'decide' | 'report') => {
         d.hidden = true;
+        this.root.querySelector('.game')?.classList.remove('docked');
         this.dockResolve = null;
-        resolve();
+        resolve(what);
       };
-      this.dockResolve = go;
-      btn.addEventListener('click', go);
+      this.dockResolve = () => go('decide');
+      btn.addEventListener('click', () => go('decide'));
+      d.querySelector('[data-go="report"]')?.addEventListener('click', () => go('report'));
     });
   }
 
@@ -592,8 +612,8 @@ export class App {
       </div>`;
     this.root.innerHTML = `
     <div class="game">
-      <h1 class="sr-only" id="game-title" tabindex="-1">Takeoff: Middle Power</h1>
       <header class="top">
+        <h1 class="sr-only" id="game-title" tabindex="-1">Takeoff: Middle Power</h1>
         <div class="brand"><span class="logo">TAKE<i>OFF</i></span><span class="sub">Middle Power</span></div>
         <div class="when">
           <div class="date"><span id="date" class="num"></span><span id="month" class="month num"></span><span class="sr-only" id="qof"></span></div>
@@ -634,7 +654,6 @@ export class App {
           <div class="mapwrap" id="mapwrap">
             <div class="ticker" aria-hidden="true"><span class="ticker-tag" id="tickTag">LIVE</span><span class="ticker-text" id="tickText">The clock starts in a moment.</span></div>
             <div class="coach" id="coach" hidden></div>
-            <div class="dock" hidden></div>
           </div>
           <section class="indicators" aria-label="Indicators: click one to see what moves it">
             <h2 class="sr-only">Indicators</h2>
@@ -652,7 +671,7 @@ export class App {
         <aside class="feeds">
           <section class="feed news-feed" aria-labelledby="news-h">
             <h2 id="news-h">Public news <small>what everyone sees</small></h2>
-            <div class="feed-body" id="news-body" role="region" aria-labelledby="news-h" tabindex="0">
+            <div class="feed-body" id="news-body" role="group" aria-labelledby="news-h" tabindex="0">
               <h3 class="feed-q">This quarter</h3>
               <ol id="news"></ol>
               <button type="button" class="feed-more" id="news-more" aria-expanded="false" aria-controls="news" hidden></button>
@@ -662,7 +681,7 @@ export class App {
           <section class="feed notes-feed" aria-labelledby="notes-h">
             <h2 id="notes-h">Internal notes <small>labs and intelligence</small> <span class="unread-n" id="notes-unread" hidden></span></h2>
             <p class="notes-hint" id="notesHint" hidden>Redacted notes: invest in oversight to read them (AI Office capacity, or measuring human influence).</p>
-            <div class="feed-body" id="notes-body" role="region" aria-labelledby="notes-h" tabindex="0">
+            <div class="feed-body" id="notes-body" role="group" aria-labelledby="notes-h" tabindex="0">
               <h3 class="feed-q">This quarter</h3>
               <ol id="notes"></ol>
               <button type="button" class="feed-more" id="notes-more" aria-expanded="false" aria-controls="notes" hidden></button>
@@ -672,6 +691,7 @@ export class App {
         </aside>
       </main>
       <div class="g-pop" id="gpop" role="region" aria-labelledby="gpop-h" hidden></div>
+      <section class="dock" aria-label="Your move" hidden></section>
     </div>`;
     this.map = new WorldMap($('#mapwrap', this.root), { onBubble: (id) => this.onBubble(id) });
     this.map.svg.parentElement!.insertBefore(this.map.svg, this.map.svg.parentElement!.firstChild);

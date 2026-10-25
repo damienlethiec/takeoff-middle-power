@@ -15,6 +15,8 @@ import {
   PLAN_TONE,
   RISK_NAME,
   STAGE_WORD,
+  STAT_LABEL,
+  chip,
   chips,
   deltaWords,
   effectChip,
@@ -23,6 +25,7 @@ import {
   pct,
   signed,
   srcLink,
+  tone,
 } from '../format';
 import { openModal } from '../modal';
 import { infoGainsHtml } from './moments';
@@ -52,6 +55,14 @@ export function oddsChart(before: Record<PlanId, number>, after: Record<PlanId, 
       <span class="oc-val num">${pct(before[p])}<span class="arrow">›</span><b>${pct(after[p])}</b><em class="${t}">${d ? signed(d) : '='}</em></span>
     </div>`;
   }).join('')}</div>`;
+}
+
+/** Where a visible value stands now, for "Verification 22 → 37" (null for what has no level). */
+function levelOf(s: GameState, key: string): number | null {
+  if (key === 'coalition') return s.coalition;
+  if (key === 'pc') return s.pc;
+  if (key === 'budget') return s.budget;
+  return key in s.gauges ? s.gauges[key as keyof GameState['gauges']] : null;
 }
 
 const costOf = (p: CardPreview) => ({
@@ -172,7 +183,7 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
     </div>
     <div class="dec-bar">
       <p class="dec-sel" id="dec-sel">No card selected.</p>
-      <button class="btn-quiet" data-action="map" data-escape>Look at the map</button>
+      <button class="btn-quiet" data-action="map" data-escape>Back to the map</button>
       <button class="btn-quiet" data-action="pass">${free ? 'Make no decision' : 'Pass this quarter'}</button>
       <button class="btn-primary" data-primary data-action="confirm" disabled>Pick a card</button>
     </div>`,
@@ -184,6 +195,27 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
   const sel = m.el.querySelector<HTMLElement>('#dec-sel')!;
   let selected: CardId | null = null;
   let option: string | undefined;
+
+  const errors = new Map(e.gaugeViews(s).map((g) => [g.key as string, g.errorBar]));
+  /** Each visible change as a chip and its absolute levels, before → after ("Verification 22 → 37"). */
+  const levels = (p: CardPreview) => {
+    if (!p.visibleDeltas.length) return `<span class="fx">${chips([])}</span>`;
+    return `<ul class="pv-levels">${p.visibleDeltas
+      .map((d) => {
+        const before = levelOf(s, d.key);
+        if (before === null) return `<li>${chip(d)}</li>`;
+        const max = d.key === 'coalition' ? 3 : d.key === 'pc' || d.key === 'budget' ? Infinity : 100;
+        // preview deltas are already clamped; clamp again in case a level sits outside its range
+        const after = Math.max(0, Math.min(max, before + d.amount));
+        const eb = errors.get(d.key) ?? 0;
+        const err = eb ? `<small> ±${eb}</small>` : '';
+        const unit = d.key === 'coalition' ? '/3' : '';
+        const t = tone(d.key, d.amount);
+        const num = `<span class="chip ${t}" role="img" aria-label="${esc(deltaWords(d))}"><b class="num">${signed(Math.round(d.amount))}</b></span>`;
+        return `<li><span class="lv">${esc(STAT_LABEL[d.key] ?? d.key)} ${Math.round(before)}${unit}${err} → <b>${Math.round(after)}${unit}</b>${err}</span> ${num}</li>`;
+      })
+      .join('')}</ul>`;
+  };
 
   const renderPreview = () => {
     if (!selected) return;
@@ -219,7 +251,7 @@ export function showDecision(e: EngineApi, s: GameState, opts: { tipping?: boole
           .map((o) => `<button class="opt${o.id === option ? ' on' : ''}" role="radio" aria-checked="${o.id === option}" tabindex="${o.id === option ? 0 : -1}" data-opt="${esc(o.id)}">${esc(o.label)}</button>`)
           .join('')}</div>` : ''}
         <div class="pv-sec"><span class="fx-l">Costs</span><span class="fx">${free ? '<span class="chip good"><span>Free: last decision</span></span>' : chips(p.costs, '<span class="chip flat"><span>Free</span></span>')}</span></div>
-        <div class="pv-sec"><span class="fx-l">What you'll see</span><span class="fx">${chips(p.visibleDeltas)}</span></div>
+        <div class="pv-sec"><span class="fx-l">What you'll see</span>${levels(p)}</div>
         ${p.infoGains?.length ? `<div class="pv-sec"><span class="fx-l">What you'll learn</span>${infoGainsHtml(p.infoGains)}</div>` : ''}
         ${c.prepares.length ? `<p class="pprep">Prepares for: ${esc(c.prepares.map(riskName).join(', '))}</p>` : ''}
         ${p.notes.length ? `<ul class="pv-notes">${p.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}

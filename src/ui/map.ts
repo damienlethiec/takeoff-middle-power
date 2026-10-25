@@ -264,7 +264,7 @@ export class WorldMap {
     }
     container.appendChild(svg);
     if (!opts.decorative) {
-      // Léa lives in Lyon: a real button laid over the map, with her name, at least 44 px tall
+      // Léa lives in Lyon: a real button laid over the map (its tag hangs below the city), at least 44 px tall
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'lea-btn';
@@ -409,7 +409,7 @@ export class WorldMap {
       if (region === 'us') return lat < 48 && lon > -124;
       if (region === 'cn') return lon > 98 && lat < 42;
       // Europe, away from Léa's button over Lyon
-      return lat < 56 && lon > -5 && lon < 26 && !(Math.abs(lon - LYON.lon) < 8 && lat > LYON.lat - 2 && lat < LYON.lat + 9);
+      return lat < 56 && lon > -5 && lon < 26 && !(Math.abs(lon - LYON.lon) < 8 && lat > LYON.lat - 9 && lat < LYON.lat + 3);
     });
     return pool[Math.floor(Math.random() * pool.length)] ?? geo(ANCHOR[region].lon, ANCHOR[region].lat);
   }
@@ -459,7 +459,11 @@ export class WorldMap {
     const p = m ? this.toPx({ x: Number(m[1]), y: Number(m[2]) - 7 }) : { x: 0, y: 0 };
     const w = this.container.clientWidth;
     pop.style.left = `${Math.max(8, Math.min(w - 248, p.x - 120)).toFixed(0)}px`;
-    pop.style.top = `${Math.max(8, p.y - 8).toFixed(0)}px`;
+    // above the bubble, or below it when there is no room above
+    const below = p.y < 96;
+    const base = m && below ? this.toPx({ x: Number(m[1]), y: Number(m[2]) + 1 }) : p;
+    pop.classList.toggle('below', below);
+    pop.style.top = `${Math.max(8, below ? base.y : p.y - 8).toFixed(0)}px`;
     this.container.appendChild(pop);
     this.concernPop = pop;
   }

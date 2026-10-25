@@ -113,4 +113,42 @@ describe('the controller from the keyboard', () => {
     h.querySelector<HTMLElement>('[data-primary]')!.click();
     await advance(100);
   });
+
+  it('after the report the game waits on the map: nothing opens by itself; D or the button opens the decision', async () => {
+    for (let i = 0; i < 200 && !openModalEl(); i++) await advance(100);
+    for (let i = 0; i < 5 && openModalEl() && !openModalEl()!.classList.contains('report'); i++) {
+      openModalEl()!.querySelector<HTMLElement>('[data-primary]')!.click(); // Léa's first letter
+      await advance(300);
+    }
+    expect(openModalEl()!.classList.contains('report')).toBe(true);
+    openModalEl()!.querySelector<HTMLElement>('[data-primary]')!.click();
+    await advance(400);
+    expect(openModalEl()).toBeNull();
+    const decide = $<HTMLButtonElement>('.dock [data-go="decide"]');
+    expect($('.dock').hidden).toBe(false);
+    expect(text('.dock [data-go="decide"]')).toBe('Make my decision Enter');
+    expect(document.activeElement).toBe(decide);
+    expect(said()).toContain('When you are ready, press Make my decision, or the D key.');
+    await advance(5000);
+    expect(openModalEl()).toBeNull(); // the decision waits for the player
+    decide.blur();
+    key('d');
+    await advance(100);
+    expect(openModalEl()!.classList.contains('decision')).toBe(true);
+    key('Escape'); // back to the map: the same paused screen
+    await advance(400);
+    expect(openModalEl()).toBeNull();
+    expect($('.dock').hidden).toBe(false);
+    $('.dock [data-go="report"]').click(); // the report can be reread
+    await advance(300);
+    expect(openModalEl()!.classList.contains('report')).toBe(true);
+    key('Escape');
+    await advance(400);
+    $('.dock [data-go="decide"]').click();
+    await advance(100);
+    expect(openModalEl()!.classList.contains('decision')).toBe(true);
+    openModalEl()!.querySelector<HTMLElement>('[data-action="pass"]')!.click();
+    await advance(2000);
+    expect($('.dock').hidden).toBe(true);
+  });
 });

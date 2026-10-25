@@ -156,7 +156,8 @@ function riskLine(r: RiskView) {
     <span class="cause">${esc(r.why)}</span></li>`;
 }
 
-export async function showReport(r: SituationReport, traj: TrajectoryView, opts: { leaRead: boolean; tipping?: boolean }): Promise<'decide' | 'map' | 'lea'> {
+/** The situation report. It closes onto the paused main screen ('close'), where the player decides when to decide. */
+export async function showReport(r: SituationReport, traj: TrajectoryView, opts: { leaRead: boolean }): Promise<'close' | 'lea'> {
   // the 1–3 things that matter this quarter, with absolute levels and their real cause
   const head = r.headline.length
     ? `<ul class="headline">${r.headline
@@ -164,7 +165,7 @@ export async function showReport(r: SituationReport, traj: TrajectoryView, opts:
           const t = tone(h.key, h.delta);
           return `<li class="hl-${h.kind}"><span class="hl-lvl">${esc(h.label)} <b class="num">${h.value}${h.key === 'coalition' ? '/3' : ''}</b></span> ${
             h.delta ? `<span class="chip ${t}" role="img" aria-label="${esc(`${signed(h.delta)}${TONE_WORDS[t] ? `, ${TONE_WORDS[t]}` : ''}`)}"><b class="num">${signed(h.delta)}</b></span> ` : ''
-          }<span class="cause">${esc(h.cause)}</span></li>`;
+          }<span class="cause">${esc(h.cause)}</span>${h.meaning ? ` <span class="hl-meaning">${esc(h.meaning)}</span>` : ''}</li>`;
         })
         .join('')}</ul>`
     : '';
@@ -202,12 +203,12 @@ export async function showReport(r: SituationReport, traj: TrajectoryView, opts:
     </div>
     <div class="report-foot">${lea}${notes}<span class="foot-item muted">${r.newNews} news item${r.newNews === 1 ? '' : 's'}</span></div>
     <div class="row-btns">
-      <button class="btn-primary" data-primary data-action="decide">${opts.tipping ? 'Take your last decision' : 'Choose your decision'} <kbd>Enter</kbd></button>
-      <button class="btn-quiet" data-escape data-action="map">Look at the map first</button>
+      <button class="btn-primary" data-primary data-escape data-action="close">Back to the map <kbd>Enter</kbd></button>
+      <span class="muted row-note">The clock stays stopped: decide when you are ready.</span>
     </div>`,
     { cls: 'report', label: `Situation report ${r.dateLabel}`, describedBy: '.headline, h2 + p.muted, .background' },
   );
-  return (await m.result) as 'decide' | 'map' | 'lea';
+  return (await m.result) as 'close' | 'lea';
 }
 
 export async function showBriefing(b: Briefing | null, dateLabel: string, nextLabel: string, extra: { change?: TrajectoryView['change'] } = {}): Promise<void> {

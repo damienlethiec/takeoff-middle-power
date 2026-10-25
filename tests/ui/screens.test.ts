@@ -118,7 +118,12 @@ describe('the decision screen', () => {
     const pv = m.querySelector('.preview')!;
     expect(text(pv.querySelector('h3'))).toBe('Offer to host verification');
     expect(text(pv.querySelectorAll('.pv-sec')[0])).toContain('Political Capital');
-    expect(text(pv.querySelectorAll('.pv-sec')[1])).toBe('What you\'ll see+7Verification+5Tension');
+    // each visible change with its absolute levels, before → after
+    expect([...pv.querySelectorAll('.pv-levels li')].map(text)).toEqual([
+      `Verification ${s.gauges.verification} → ${s.gauges.verification + 7} +7`,
+      `Tension ${s.gauges.tension} → ${s.gauges.tension + 5} +5`,
+    ]);
+    expect(pv.querySelector('.pv-levels .chip')!.getAttribute('aria-label')).toBe('+7 Verification, good for you');
     expect(pv.querySelectorAll('.pv-notes li').length).toBe(engine.previewCard(s, 'host_verification').notes.length);
     expect(pv.querySelectorAll('.oc-row')).toHaveLength(4);
     expect(m.querySelector('.pcard.selected')?.getAttribute('data-card')).toBe('host_verification');
@@ -260,15 +265,17 @@ describe('moments', () => {
     expect(text(m.querySelector('.report-foot'))).toContain(`${report.newNews} news item`);
     (m.querySelector('[data-action="lea"]') as HTMLElement).click();
     await expect(r).resolves.toBe('lea');
-    const again = showReport(report, traj, { leaRead: false, tipping: true });
-    expect(text(openModalEl()!.querySelector('[data-primary]'))).toBe('Take your last decision Enter');
+    // the report closes onto the paused map (Enter or Escape): the decision waits for the player
+    const again = showReport(report, traj, { leaRead: false });
+    expect(text(openModalEl()!.querySelector('[data-primary]'))).toBe('Back to the map Enter');
+    expect(openModalEl()!.querySelector('[data-action="decide"], [data-action="map"]')).toBeNull();
     key('Escape');
-    await expect(again).resolves.toBe('map');
+    await expect(again).resolves.toBe('close');
     const quiet = showReport({ ...report, changes: [], headline: [], background: '', why: [], lea: null, newNotes: { total: 0, readable: 0 }, newNews: 1 }, traj, { leaRead: false });
     expect(text(openModalEl())).toContain('A quiet quarter');
     expect(text(openModalEl()!.querySelector('.report-foot'))).toBe('1 news item');
     key('Enter');
-    await expect(quiet).resolves.toBe('decide');
+    await expect(quiet).resolves.toBe('close');
   });
 
   it('the situation report v2: the things that matter, background folded, risks that moved, the trajectory’s change', async () => {
@@ -279,10 +286,11 @@ describe('moments', () => {
       const r = showReport(report, engine.trajectory(s), { leaRead: false });
       const m = openModalEl()!;
       expect([...m.querySelectorAll('.headline li')].map(text)).toEqual([
-        'Tension 58 +4 China accused OpenBrain of espionage.',
-        'Verification readiness 37 +15 You offered to host verification.',
+        'Tension 58 +4 China accused OpenBrain of espionage. At 60 the race speeds up.',
+        'Verification readiness 37 +15 You offered to host verification. 13 more needed for a verified deal (50).',
         'Public pressure 52 +6 Layoffs at European call centres.',
       ]);
+      expect(m.querySelectorAll('.hl-meaning')).toHaveLength(2); // an empty meaning shows nothing
       // gains and losses carry words, not only colour
       expect(m.querySelector('.headline .chip')!.getAttribute('aria-label')).toBe('+4, bad for you');
       expect(text(m.querySelector('.background'))).toBe('Background capability +4, concentration +1, misuse +1.');

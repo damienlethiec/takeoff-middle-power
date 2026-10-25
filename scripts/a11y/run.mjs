@@ -128,15 +128,26 @@ async function playRun(browser, base, run) {
           if (!(await page.evaluate(() => document.activeElement?.matches('.g-tile[data-key="tension"]')))) fail(`focus did not return after the shortcuts closed (${await focused(page)})`);
           if ((await phase()) !== 'Clock running') fail('the clock did not resume after the shortcuts closed');
         }
-        // Léa's pin: Tab to it, Space opens her last message, Escape returns to the pin
-        if (!(await tabTo(page, '.lea-pin', { back: true }))) fail('could not Tab to Léa’s pin');
+        // Léa's button: Tab to it, Space opens her messages, Escape returns to the button
+        if (!(await tabTo(page, '.lea-btn', { back: true }))) fail('could not Tab to Léa’s button');
         else {
+          const box = await page.evaluate(() => document.querySelector('.lea-btn')?.getBoundingClientRect().toJSON());
+          if (!box || box.width < 44 || box.height < 44) fail(`Léa’s button is smaller than 44 px (${JSON.stringify(box)})`);
           await press(' ');
           await advance(page, 100);
-          if ((await screenOf(page)) !== 'lea') fail('Space on Léa’s pin did not open her message');
+          if ((await screenOf(page)) !== 'lea') fail('Space on Léa’s button did not open her message');
           await press('Escape');
           await advance(page, 300);
-          if (!(await page.evaluate(() => document.activeElement?.matches('.lea-pin')))) fail(`focus did not return to Léa’s pin (${await focused(page)})`);
+          if (!(await page.evaluate(() => document.activeElement?.matches('.lea-btn')))) fail(`focus did not return to Léa’s button (${await focused(page)})`);
+        }
+        // More indicators: a disclosure that opens with Enter and closes with Escape, focus back on it
+        if (!(await tabTo(page, '#gmore'))) fail('could not Tab to More indicators');
+        else {
+          await press('Enter');
+          if (await page.evaluate(() => document.querySelector('#gdrawer')?.hidden !== false)) fail('Enter on More indicators did not open the drawer');
+          await audit('more-indicators');
+          await press('Escape');
+          if (!(await page.evaluate(() => document.querySelector('#gdrawer')?.hidden === true && document.activeElement?.matches('#gmore')))) fail(`Escape did not close the drawer back onto its button (${await focused(page)})`);
         }
       }
       // event pins: once one exists, open its recap from the keyboard
@@ -158,26 +169,30 @@ async function playRun(browser, base, run) {
           }
         }
       }
-      // concern bubbles: the first by Tab + Enter, later ones with the C shortcut
-      if (await page.evaluate(() => !!document.querySelector('.bubble:not(.popped):not(.faded)'))) {
+      // concern bubbles: the first by Tab + Enter, later ones with the C shortcut; reading one pays nothing
+      if (await page.evaluate(() => !!document.querySelector('.bubble:not(.read):not(.faded)'))) {
         await advance(page, 200); // announcements are batched for 150 ms
         const before = await pcShown();
         const announced = await page.evaluate(() => document.querySelector('.sr-live')?.textContent ?? '');
         if (!/Public concern in/.test(announced)) fail(`a bubble appeared without an announcement ("${announced.slice(-80)}")`);
         if (bubblesByTab === 0) {
-          await audit('main-bubble');
-          if (await tabTo(page, '.bubble:not(.popped):not(.faded)')) {
+          if (await tabTo(page, '.bubble:not(.read):not(.faded)')) {
             await press('Enter');
             bubblesByTab++;
+            await advance(page, 200);
+            await audit('main-concern');
+            if (!(await page.evaluate(() => /read: /.test(document.activeElement?.getAttribute('aria-label') ?? '')))) fail(`the read bubble does not say its concern (${await focused(page)})`);
+            await press('Escape');
+            if (await page.evaluate(() => !!document.querySelector('.concern-pop'))) fail('Escape did not close the concern');
           } else fail('could not Tab to a concern bubble');
         } else {
           await press('c');
           bubblesByKey++;
         }
-        await advance(page, 900);
+        await advance(page, 300);
         const after = await pcShown();
-        if (after <= before && !(await page.evaluate(() => /all the public attention/.test(document.querySelector('.sr-live')?.textContent ?? '')))) fail(`collecting a bubble did not add PC (${before} → ${after})`);
-        if (!/Political Capital/.test(await page.evaluate(() => document.querySelector('.sr-live')?.textContent ?? ''))) fail('PC gain was not announced');
+        if (after !== before) fail(`reading a concern changed Political Capital (${before} → ${after}); it must pay nothing`);
+        if (!/Public concern in [^:]+: (?!press C|find)/.test(await page.evaluate(() => document.querySelector('.sr-live')?.textContent ?? ''))) fail('the concern was not read aloud');
         continue;
       }
       await advance(page, 500);
@@ -185,8 +200,19 @@ async function playRun(browser, base, run) {
     }
 
     if (screen === 'dock') {
+      // after the report the game waits on the map: nothing opens until the player asks for the decision
       await audit('dock');
-      if (!(await page.evaluate(() => document.activeElement?.matches('.dock button')))) fail(`the dock did not take focus (${await focused(page)})`);
+      if (!(await page.evaluate(() => document.activeElement?.matches('.dock [data-go="decide"]')))) fail(`the decision button did not take focus (${await focused(page)})`);
+      if (once('dock-wait')) {
+        await advance(page, 200);
+        const said = await page.evaluate(() => document.querySelector('body > .sr-live')?.textContent ?? '');
+        if (!/When you are ready, press Make my (last )?decision/.test(said)) fail(`the paused map was not announced ("${said.slice(-120)}")`);
+        await advance(page, 4000);
+        if ((await screenOf(page)) !== 'dock') fail(`the decision opened by itself (screen ${await screenOf(page)})`);
+        // the risks and indicators are explorable meanwhile, and focus comes back to the button
+        if (!(await tabTo(page, '.g-tile[data-key="tension"]', { back: true }))) fail('could not Tab from the paused map to an indicator');
+        if (!(await tabTo(page, '.dock [data-go="decide"]'))) fail('could not Tab back to Make my decision');
+      }
       await press('Enter');
       await advance(page, 300);
       continue;
@@ -222,9 +248,9 @@ async function playRun(browser, base, run) {
         continue;
       }
       if (once('report-map')) {
-        await press('Escape'); // look at the map first
+        await press('Escape'); // closes onto the paused map
         await advance(page, 300);
-        if ((await screenOf(page)) !== 'dock') fail('report: Escape did not go to the map');
+        if ((await screenOf(page)) !== 'dock') fail('report: Escape did not go to the paused map');
         continue;
       }
       await tabTo(page, '[data-primary]');
@@ -259,7 +285,7 @@ async function playRun(browser, base, run) {
         if (!(await tabTo(page, `.pcard[data-card="${ids[target].id}"]`, { back: true })) && !(await tabTo(page, `.pcard[data-card="${ids[target].id}"]`))) fail('decision: could not Tab to a card');
         await press('Enter');
         await advance(page, 200);
-        if (!(await page.evaluate(() => document.activeElement?.matches('.preview [data-primary]')))) fail(`decision: focus did not move to Confirm (${await focused(page)})`);
+        if (!(await page.evaluate(() => document.activeElement?.matches('.dec-bar [data-primary]')))) fail(`decision: focus did not move to Confirm (${await focused(page)})`);
         await audit('decision-preview');
         const said = await page.evaluate((m) => document.querySelector(`${m} .sr-live`)?.textContent ?? '', MODAL);
         if (!said.includes('Selected')) fail(`decision: the preview was not announced ("${said.slice(-80)}")`);
@@ -272,7 +298,7 @@ async function playRun(browser, base, run) {
       }
     } else if (screen === 'decision-preview') {
       // a preview left open from an earlier visit: confirm or pass
-      if (await tabTo(page, '.preview [data-primary]:not(:disabled)', { max: 30 })) await press('Enter');
+      if (await tabTo(page, '.dec-bar [data-primary]:not(:disabled)', { max: 30 })) await press('Enter');
       else if (await tabTo(page, '[data-action="pass"]', { back: true })) await press('Enter');
     } else if (screen === 'lea') {
       await audit('lea');
@@ -327,7 +353,7 @@ async function playRun(browser, base, run) {
     await advance(page, 600);
     if ((await evalText('#date')) !== 'Q1 2027') fail('Play again did not start a new game');
   }
-  if (bubblesByTab < 1) fail('no concern bubble was collected with Tab + Enter');
+  if (bubblesByTab < 1) fail('no concern bubble was read with Tab + Enter');
   await context.close();
   return { run, problems, errors, audits, log, bubblesByTab, bubblesByKey };
 }
@@ -342,7 +368,7 @@ try {
     const r = await playRun(browser, server.url, run);
     console.log(`\n=== ${run.name}: seed ${run.seed}, ${run.viewport.width}×${run.viewport.height}, reduced motion: ${run.reducedMotion}`);
     console.log(r.log.join('\n'));
-    console.log(`bubbles collected: ${r.bubblesByTab} by Tab+Enter, ${r.bubblesByKey} with C`);
+    console.log(`concerns read: ${r.bubblesByTab} by Tab+Enter, ${r.bubblesByKey} with C`);
     console.log('axe, per screen (serious+critical / all):');
     for (const [name, v] of Object.entries(r.audits)) {
       const sc = v.filter((x) => x.impact === 'serious' || x.impact === 'critical');

@@ -209,10 +209,7 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .coach { position: absolute; left: 12px; bottom: 54px; z-index: 3; max-width: min(420px, calc(100% - 24px)); background: var(--paper); color: var(--paper-ink); border-radius: 8px; padding: 9px 12px 9px 34px; font-size: 13.5px; font-weight: 600; box-shadow: 0 8px 22px rgba(0, 0, 0, .4); animation: coachin .3s ease-out; }
 .coach::before { content: '?'; position: absolute; left: 10px; top: 9px; width: 17px; height: 17px; border-radius: 50%; background: var(--paper-ink); color: var(--paper); font-size: 12px; display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; }
 @keyframes coachin { from { transform: translateY(-6px); opacity: 0; } }
-.dock { position: absolute; left: 50%; bottom: 54px; z-index: 4; transform: translateX(-50%); width: min(560px, calc(100% - 24px)); display: flex; align-items: center; gap: 14px; background: var(--deck-2); border: 1px solid var(--align); border-radius: 12px; padding: 10px 12px 10px 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, .5); animation: coachin .3s ease-out; }
-.dock p { margin: 0; font-size: 13.5px; flex: 1; }
-.dock .btn-primary { flex: none; font-size: 17px; padding: 8px 14px; }
-.game.paused .mapwrap::after { content: 'Paused'; position: absolute; top: 12px; right: 14px; font-family: var(--f-display); font-weight: 800; font-size: 18px; letter-spacing: .1em; text-transform: uppercase; color: var(--warn); }
+.game.docked .mapwrap::after, .game.paused .mapwrap::after { content: 'Paused'; position: absolute; top: 12px; right: 14px; font-family: var(--f-display); font-weight: 800; font-size: 18px; letter-spacing: .1em; text-transform: uppercase; color: var(--warn); }
 
 /* ---------- indicators ---------- */
 .g-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 7px; }
@@ -771,9 +768,9 @@ button.res:hover { border-color: var(--mute); }
 .g-grid.sec { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 
 /* ---------- map: Léa, pressure, glitches, concerns ---------- */
-.lea-btn { position: absolute; z-index: 3; min-width: 44px; min-height: 44px; transform: translate(-50%, -88%); display: grid; place-items: center; padding: 0; background: transparent; border: 0; }
+.lea-btn { position: absolute; z-index: 3; min-width: 44px; min-height: 44px; transform: translate(-50%, -6px); display: grid; place-items: center; padding: 0; background: transparent; border: 0; }
 .lea-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--paper); color: var(--paper-ink); font-family: var(--f-diary); font-style: italic; font-weight: 600; font-size: 14px; line-height: 1; border-radius: 999px; padding: 5px 9px 5px 7px; box-shadow: 0 3px 10px rgba(0, 0, 0, .5); position: relative; }
-.lea-tag::after { content: ''; position: absolute; left: 50%; bottom: -5px; margin-left: -5px; border: 5px solid transparent; border-bottom: 0; border-top-color: var(--paper); }
+.lea-tag::after { content: ''; position: absolute; left: 50%; top: -5px; margin-left: -5px; border: 5px solid transparent; border-top: 0; border-bottom-color: var(--paper); }
 .lea-tag svg { width: 15px; height: 15px; }
 .lea-new { font-family: var(--f-data); font-style: normal; font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; background: var(--alarm-bg); color: #fff; border-radius: 3px; padding: 1px 4px; }
 .lea-btn:hover .lea-tag, .lea-btn:focus-visible .lea-tag { box-shadow: 0 0 0 2px var(--align), 0 3px 10px rgba(0, 0, 0, .5); }
@@ -790,6 +787,7 @@ button.res:hover { border-color: var(--mute); }
 @keyframes glitch { 0% { transform: translate(0, 0); } 8% { transform: translate(.5px, -.2px); } 12% { transform: translate(-.4px, .3px); opacity: .5; } 16% { transform: translate(0, 0); opacity: 1; } }
 .worldmap.arc-hot .arc-label { font-weight: 600; }
 .concern-pop { position: absolute; z-index: 4; width: 240px; background: var(--paper); color: var(--paper-ink); border-radius: 10px; padding: 8px 11px; font-size: 13px; line-height: 1.35; box-shadow: 0 10px 24px rgba(0, 0, 0, .5); transform: translateY(-100%); pointer-events: none; }
+.concern-pop.below { transform: none; }
 .concern-pop::before { content: 'Public concern'; display: block; font-family: var(--f-data); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #6a4fc4; margin-bottom: 2px; }
 
 /* ---------- news feeds: this quarter first, older quarters folded ---------- */
@@ -935,4 +933,23 @@ button.res:hover { border-color: var(--mute); }
   .dec-sel { flex-basis: 100%; }
   .dec-bar .btn-primary { min-width: 0; flex: 1; }
   .res-next { display: none; }
+}
+
+/* ---------- the paused main screen: the player decides when to decide ---------- */
+.dock { position: fixed; left: 50%; bottom: 12px; top: auto; z-index: 15; transform: translateX(-50%); width: min(780px, calc(100% - 24px)); display: flex; align-items: center; gap: 10px; background: var(--deck-2); border: 1px solid var(--align); border-radius: 12px; padding: 10px 12px 10px 16px; box-shadow: 0 12px 30px rgba(0, 0, 0, .55); animation: dockin .3s ease-out; }
+@keyframes dockin { from { transform: translate(-50%, 10px); opacity: 0; } }
+.dock p { margin: 0; font-size: 13.5px; flex: 1; min-width: 0; }
+.dock .btn-primary { flex: none; font-size: 19px; padding: 9px 16px; }
+.dock .btn-quiet { flex: none; }
+.game.docked { padding-bottom: 84px; }
+.game.docked .phase { color: var(--align); }
+.hl-meaning { flex-basis: 100%; margin: -4px 0 0; padding-left: 2px; font-size: 13px; color: var(--align); }
+.row-note { font-size: 13px; }
+.pv-levels { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.pv-levels li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lv { font-family: var(--f-data); font-size: 12.5px; color: var(--ink); }
+.lv small { color: var(--mute); font-size: 11px; }
+@media (max-width: 640px) {
+  .dock { flex-wrap: wrap; bottom: 8px; }
+  .dock p { flex-basis: 100%; }
 }

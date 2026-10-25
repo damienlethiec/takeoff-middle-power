@@ -183,9 +183,9 @@ export function v2Fixtures(base: EngineApi): Partial<EngineApi> {
       return {
         ...r,
         headline: [
-          { key: 'tension', label: 'Tension', value: 58, delta: 4, cause: 'China accused OpenBrain of espionage.', kind: 'actor' },
-          { key: 'verification', label: 'Verification readiness', value: 37, delta: 15, cause: 'You offered to host verification.', kind: 'card' },
-          { key: 'publicPressure', label: 'Public pressure', value: 52, delta: 6, cause: 'Layoffs at European call centres.', kind: 'event' },
+          { key: 'tension', label: 'Tension', value: 58, delta: 4, cause: 'China accused OpenBrain of espionage.', kind: 'actor', meaning: 'At 60 the race speeds up.' },
+          { key: 'verification', label: 'Verification readiness', value: 37, delta: 15, cause: 'You offered to host verification.', kind: 'card', meaning: '13 more needed for a verified deal (50).' },
+          { key: 'publicPressure', label: 'Public pressure', value: 52, delta: 6, cause: 'Layoffs at European call centres.', kind: 'event', meaning: '' },
         ],
         background: 'Background: capability +4, concentration +1, misuse +1.',
         risksMoved: [FIXTURE_RISKS[0], FIXTURE_RISKS[2]],

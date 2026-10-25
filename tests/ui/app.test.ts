@@ -40,7 +40,8 @@ async function playToEnding(maxSteps = 600) {
     expect(document.body.textContent).not.toMatch(BAD_TEXT);
     const m = openModalEl();
     if (!m) {
-      document.querySelector('.dock:not([hidden]) button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      // the game waits on the map after the report: the player asks for the decision
+      document.querySelector('.dock:not([hidden]) [data-go="decide"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await advance(1000);
       continue;
     }
@@ -206,7 +207,8 @@ describe('the game controller', () => {
         expect(text('.modal h2')).toBe('Four years have passed');
       }
       if (m?.classList.contains('decision')) m.querySelector<HTMLElement>('[data-action="pass"]')!.click();
-      else m?.querySelector<HTMLElement>('[data-primary]:not(:disabled)')?.click();
+      else if (m) m.querySelector<HTMLElement>('[data-primary]:not(:disabled)')?.click();
+      else document.querySelector<HTMLElement>('.dock:not([hidden]) [data-go="decide"]')?.click();
       await advance(m ? 300 : 1000);
     }
     expect(sawClockStops).toBe(true);

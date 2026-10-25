@@ -49,25 +49,32 @@ async function checkText(page: Page, s: Session) {
 }
 
 const pcShown = async (page: Page) => Number(await page.locator('#pc').textContent());
-const liveBubble = (page: Page) => page.locator('[role="button"][aria-label^="Public concern"]:not(.popped):not(.faded)').first();
+const liveBubble = (page: Page) => page.locator('[role="button"][aria-label^="Public concern"]:not(.read):not(.faded)').first();
+/** After the report the game waits on the map until the player asks for the decision. */
+const decideButton = (page: Page) => page.getByRole('button', { name: /^Make my (last )?decision/ });
 const endingPage = (page: Page) => page.locator('.ending-page');
 
 /** Play until the ending page shows. Returns the names of the cards played. */
 async function playToEnd(page: Page, s: Session) {
   const played: string[] = [];
-  const seen = { tipping: false, clockStops: false, events: 0 };
+  const seen = { tipping: false, clockStops: false, events: 0, waited: 0 };
   // double speed, as an impatient player would
   await page.getByRole('button', { name: '×2' }).click();
   for (let step = 0; step < 800; step++) {
     if (await endingPage(page).count()) return { played, seen };
     const d = dialog(page);
     if (!(await d.count())) {
-      // the clock is running: catch public concern, leave the map dock if it opened
+      // the clock is running: read public concerns; once paused after the report, ask for the decision
       if (step % 4 === 0) await checkText(page, s);
       const bubble = liveBubble(page);
       if (await bubble.count()) await bubble.click({ force: true }).catch(() => {});
-      const dock = page.locator('.dock:not([hidden])').getByRole('button');
-      if (await dock.count()) await dock.click();
+      const decide = decideButton(page);
+      if (await decide.count()) {
+        seen.waited++;
+        await decide.click();
+        await advance(page, 200);
+        continue;
+      }
       await advance(page, 1000);
       continue;
     }
@@ -138,6 +145,7 @@ test.describe('a full game', () => {
     expect(seen.tipping).toBe(true);
     expect(seen.clockStops).toBe(false);
     expect(played.length).toBeGreaterThan(3);
+    expect(seen.waited).toBeGreaterThan(3); // every decision was asked for from the paused map
     await checkEnding(page, s, played);
     await expect(endingPage(page).getByText("The superpowers' choice")).toBeVisible();
     await expect(endingPage(page).getByText('chosen', { exact: true })).toHaveCount(1);
@@ -196,15 +204,39 @@ test.describe('key interactions', () => {
     expect(s.errors).toEqual([]);
   });
 
-  test('clicking a concern bubble gives +1 Political Capital', async ({ page }) => {
+  test('clicking a concern bubble explains it and gives nothing (team decision)', async ({ page }) => {
     const s = await boot(page, '?skipintro&seed=4');
     const bubble = liveBubble(page);
     for (let i = 0; i < 40 && !(await bubble.count()); i++) await advance(page, 250);
     await expect(bubble).toHaveCount(1);
     const before = await pcShown(page);
     await bubble.click({ force: true });
+    await expect(page.locator('.concern-pop')).not.toBeEmpty();
+    await expect(page.locator('.bubble.read')).toHaveCount(1);
     await advance(page, 1000);
-    expect(await pcShown(page)).toBe(before + 1);
+    expect(await pcShown(page)).toBe(before);
+    expect(s.errors).toEqual([]);
+  });
+
+  test('after the report the game waits on the map until "Make my decision"', async ({ page }) => {
+    const s = await boot(page, '?skipintro&seed=4');
+    for (let i = 0; i < 60 && !(await page.getByRole('dialog').count()); i++) await advance(page, 500);
+    while (!(await dialog(page).getAttribute('aria-label'))?.startsWith('Situation report')) {
+      await page.keyboard.press('Enter');
+      await advance(page, 400);
+    }
+    await dialog(page).getByRole('button', { name: /^Back to the map/ }).click();
+    await advance(page, 3000);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('#phase')).toHaveText('Paused: your move');
+    // the map, risks and indicators can be explored meanwhile
+    await page.locator('.g-tile[data-key="tension"]').click();
+    await expect(page.locator('#gpop')).toBeVisible();
+    await decideButton(page).click();
+    await expect(dialog(page)).toHaveAttribute('aria-label', 'Your decision');
+    await dialog(page).getByRole('button', { name: 'Back to the map' }).click();
+    await advance(page, 400);
+    await expect(decideButton(page)).toBeVisible();
     expect(s.errors).toEqual([]);
   });
 
@@ -212,18 +244,22 @@ test.describe('key interactions', () => {
     const s = await boot(page, '?skipintro&seed=4');
     // run the first quarter to the situation report, then on to the decision
     for (let i = 0; i < 60 && !(await page.getByRole('dialog').count()); i++) await advance(page, 500);
-    while ((await dialog(page).getAttribute('aria-label')) !== 'Your decision') {
-      await page.keyboard.press('Enter');
+    while (await page.getByRole('dialog').count()) {
+      await page.keyboard.press('Enter'); // Léa, then the report
       await advance(page, 400);
     }
+    await decideButton(page).click();
     const d = dialog(page);
+    await expect(d).toHaveAttribute('aria-label', 'Your decision');
     const budget = Number(await page.locator('#budget').textContent());
     const pc = await pcShown(page);
     await expect(d.getByText('Pick a card to see what it would change before you commit.')).toBeVisible();
     await cardButton(d, 'host_verification').click();
     await expect(d.getByRole('heading', { level: 3, name: 'Offer to host verification' })).toBeVisible();
-    await expect(d.getByText("If AI took off now, the superpowers' choice")).toBeVisible();
+    await expect(d.getByText('Where the superpowers would head, if AI took off now')).toBeVisible();
     await expect(d.getByText('Downside')).toBeVisible();
+    // absolute levels before → after
+    await expect(d.locator('.pv-levels li').first()).toHaveText(/^Verification \d+ → \d+/);
     await expect(d.getByRole('button', { name: /^Confirm/ })).toBeEnabled();
     // nothing is committed yet: the decision is still open and resources unchanged
     await expect(d).toHaveAttribute('aria-label', 'Your decision');
