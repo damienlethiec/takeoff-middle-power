@@ -47,15 +47,29 @@ describe('the controller from the keyboard', () => {
     expect(fast.getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('C collects a concern bubble, and the gain is announced', async () => {
-    for (let i = 0; i < 40 && !document.querySelector('.bubble:not(.popped):not(.faded)'); i++) await advance(100);
+  it('C reads the latest public concern aloud; it pays nothing', async () => {
+    for (let i = 0; i < 40 && !document.querySelector('.bubble:not(.faded)'); i++) await advance(100);
     await advance(160); // announcements said together are batched for 150 ms
-    expect(said()).toMatch(/Public concern in (Europe|United States|China): press C to collect 1 Political Capital\./);
+    expect(said()).toMatch(/Public concern in (Europe|United States|China): press C to read it\./);
     const before = Number(text('#pc'));
     key('c');
     await advance(300);
-    expect(Number(text('#pc'))).toBe(before + 1);
-    expect(said()).toContain(`+1 Political Capital. You have ${before + 1}.`);
+    expect(Number(text('#pc'))).toBe(before);
+    expect(said()).toMatch(/Public concern in (Europe|United States|China): [A-Z].+\./);
+    expect(document.querySelector('.bubble.read')).not.toBeNull();
+  });
+
+  it('the income tooltip shows on focus and hides with Escape', () => {
+    const btn = $<HTMLButtonElement>('#res-pc');
+    expect(document.getElementById(btn.getAttribute('aria-describedby')!)!.textContent).toMatch(/^Next quarter: [+−]?\d+ Political Capital/);
+    btn.focus();
+    btn.click(); // pinned open for touch
+    expect(btn.getAttribute('aria-expanded')).toBe('true');
+    key('Escape');
+    expect(btn.getAttribute('aria-expanded')).toBe('false');
+    expect(btn.closest('.res-wrap')!.classList.contains('dismissed')).toBe(true);
+    btn.blur();
+    expect(btn.closest('.res-wrap')!.classList.contains('dismissed')).toBe(false);
   });
 
   it('an indicator opens with its tile and closes with Escape, focus back on the tile', async () => {

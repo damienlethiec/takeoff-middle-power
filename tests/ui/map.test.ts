@@ -2,7 +2,7 @@
 // The world map (src/ui/map.ts).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PARTNERS, WorldMap, geo } from '../../src/ui/map';
+import { PARTNERS, WorldMap, geo, glitchCount, protestCount } from '../../src/ui/map';
 import { MAPDATA } from '../../src/ui/mapdata';
 import { FAKE_CLOCK } from './setup';
 
@@ -25,12 +25,21 @@ describe('WorldMap', () => {
     expect(m.svg.querySelectorAll('.lab')).toHaveLength(6);
     expect([...m.svg.querySelectorAll('.lab-name')].map((t) => t.textContent)).toEqual(['OpenBrain', 'DeepCent']);
     expect([...m.svg.querySelectorAll('.m-label')].map((t) => t.textContent)).toEqual(['UNITED STATES', 'EUROPE', 'CHINA', ...PARTNERS.map((p) => p.name)]);
-    expect(m.svg.querySelector('.lea-pin')).not.toBeNull();
+    // Léa is a real button over the map, labelled with her name
+    expect(m.leaButton!.tagName).toBe('BUTTON');
+    expect(m.leaButton!.textContent).toContain('Léa');
+    expect(m.leaButton!.getAttribute('aria-label')).toBe('Léa, in Lyon: her messages');
+    m.setLeaUnread(true);
+    expect(m.leaButton!.getAttribute('aria-label')).toBe('Léa, in Lyon: her messages (new message)');
+    expect(m.leaButton!.querySelector<HTMLElement>('.lea-new')!.hidden).toBe(false);
+    m.setLeaUnread(false);
+    expect(m.leaButton!.querySelector<HTMLElement>('.lea-new')!.hidden).toBe(true);
   });
 
   it('a decorative map has no labels, lab names or Léa', () => {
     const m = new WorldMap(box, { decorative: true });
-    expect(m.svg.querySelectorAll('.m-label, .lab-name, .lea-pin')).toHaveLength(0);
+    expect(m.svg.querySelectorAll('.m-label, .lab-name')).toHaveLength(0);
+    expect(box.querySelector('.lea-btn')).toBeNull();
   });
 
   it('maps longitude and latitude onto the grid', () => {
@@ -55,7 +64,28 @@ describe('WorldMap', () => {
     expect(Number(m.svg.style.getPropertyValue('--cap-glow'))).toBeCloseTo(0.85);
   });
 
-  it('concern bubbles: click or Enter collects, pop shows the gain, clear fades the rest', async () => {
+  it('pressure you can feel: protests grow with public pressure, glitches appear with misuse, the arc heats up', () => {
+    const m = new WorldMap(box);
+    m.update({ capability: 20, tension: 30, verification: 0, coalition: 0, publicPressure: 15, misuse: 10 });
+    expect(m.svg.querySelectorAll('.protest, .glitch')).toHaveLength(0);
+    expect(m.svg.classList.contains('arc-hot')).toBe(false);
+    const thin = Number(m.svg.querySelector<SVGPathElement>('.arc')!.style.strokeWidth);
+    m.update({ capability: 20, tension: 70, verification: 0, coalition: 0, publicPressure: 55, misuse: 40 });
+    expect(m.svg.querySelectorAll('.protest')).toHaveLength(protestCount(55));
+    expect(protestCount(55)).toBe(4);
+    expect(m.svg.querySelectorAll('.glitch')).toHaveLength(glitchCount(40));
+    expect(glitchCount(40)).toBe(2);
+    expect(m.svg.classList.contains('arc-hot')).toBe(true);
+    expect(Number(m.svg.querySelector<SVGPathElement>('.arc')!.style.strokeWidth)).toBeGreaterThan(thin * 3);
+    m.update({ capability: 20, tension: 70, verification: 0, coalition: 0, publicPressure: 100, misuse: 100 });
+    expect(m.svg.querySelectorAll('.protest')).toHaveLength(8);
+    expect(m.svg.querySelectorAll('.glitch')).toHaveLength(7);
+    m.update({ capability: 20, tension: 70, verification: 0, coalition: 0, publicPressure: 31, misuse: 0 });
+    expect(m.svg.querySelectorAll('.protest')).toHaveLength(2);
+    expect(m.svg.querySelectorAll('.glitch')).toHaveLength(0);
+  });
+
+  it('concern bubbles: click or Enter reads them (they pay nothing), the concern shows beside them, clear fades the rest', async () => {
     vi.useFakeTimers(FAKE_CLOCK);
     const onBubble = vi.fn();
     const m = new WorldMap(box, { onBubble });
@@ -64,8 +94,9 @@ describe('WorldMap', () => {
     m.spawnBubble('b3', 'cn');
     expect(m.svg.querySelectorAll('.bubble')).toHaveLength(3);
     const b1 = m.svg.querySelector<SVGGElement>('.bubble')!;
-    expect(b1.textContent).toBe('+1');
+    expect(b1.textContent).toBe('…');
     expect(b1.getAttribute('role')).toBe('button');
+    expect(b1.getAttribute('aria-label')).toBe('Public concern in Europe: read what worries people');
     b1.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(onBubble).toHaveBeenCalledWith('b1', 'eu', b1);
     const b2 = m.svg.querySelectorAll<SVGGElement>('.bubble')[1];
@@ -73,13 +104,20 @@ describe('WorldMap', () => {
     b2.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     b2.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
     expect(onBubble).toHaveBeenCalledTimes(3);
-    m.popBubble('b1', true);
-    expect(b1.classList.contains('popped')).toBe(true);
-    expect(m.svg.querySelector('.gain')!.textContent).toBe('+1 PC');
-    m.popBubble('b1', true); // already gone: no-op
+    m.readBubble('b1', 'eu', 'Teachers in Lyon worry AI tutors will replace them.');
+    expect(b1.classList.contains('read')).toBe(true);
+    expect(b1.textContent).toBe('✓');
+    expect(b1.getAttribute('aria-label')).toBe('Public concern in Europe, read: Teachers in Lyon worry AI tutors will replace them.');
+    expect(box.querySelector('.concern-pop')!.textContent).toBe('Teachers in Lyon worry AI tutors will replace them.');
+    expect(m.liveBubbles()).toEqual(['b2', 'b3', 'b1']); // unread first
+    expect(m.closeConcern()).toBe(true);
+    expect(m.closeConcern()).toBe(false);
+    m.popBubble('b1');
+    expect(b1.classList.contains('faded')).toBe(true);
+    m.popBubble('b1'); // already gone: no-op
     m.clearBubbles();
-    expect(m.svg.querySelectorAll('.bubble:not(.popped):not(.faded)')).toHaveLength(0);
-    expect(m.svg.querySelectorAll('.bubble.faded')).toHaveLength(2);
+    expect(m.svg.querySelectorAll('.bubble:not(.faded)')).toHaveLength(0);
+    expect(m.svg.querySelectorAll('.bubble.faded')).toHaveLength(3);
     await vi.advanceTimersByTimeAsync(500);
     expect(m.svg.querySelectorAll('.bubble')).toHaveLength(0);
   });
@@ -122,10 +160,8 @@ describe('WorldMap', () => {
     expect(m.svg.querySelectorAll('.evpin.active')).toHaveLength(0);
     const onLea = vi.fn();
     m.onLea = onLea;
-    const lea = m.svg.querySelector('.lea-pin')!;
-    lea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    lea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    expect(onLea).toHaveBeenCalledTimes(2);
-    expect(m.screenPos(lea)).toEqual({ x: expect.any(Number), y: expect.any(Number) });
+    m.leaButton!.click();
+    expect(onLea).toHaveBeenCalledTimes(1);
+    expect(m.toPx(geo(4.85, 45.76))).toEqual({ x: expect.any(Number), y: expect.any(Number) });
   });
 });

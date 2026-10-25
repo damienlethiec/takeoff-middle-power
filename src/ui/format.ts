@@ -1,4 +1,4 @@
-import type { ActorId, Delta, PlanId, RegionId, Speed, StatKey, Source } from '../engine/types';
+import type { ActorId, Delta, EffectChip, EventId, PlanId, RegionId, RiskView, Speed, StatKey, Source } from '../engine/types';
 import { TONE_WORDS } from './a11y';
 
 export const esc = (s: unknown): string =>
@@ -94,6 +94,17 @@ export const PLAN: Record<PlanId, { name: string; short: string; blurb: string }
 };
 export const PLAN_ORDER: PlanId[] = ['verified_slowdown', 'shut_down', 'fight_china', 'race'];
 export const PLAN_TONE: Record<PlanId, string> = { verified_slowdown: 'good', shut_down: 'concern', fight_china: 'rival', race: 'cap' };
+/** +1: more of this plan is good for the player; -1: bad. */
+export const PLAN_GOOD: Record<PlanId, 1 | -1> = { verified_slowdown: 1, shut_down: 1, fight_china: -1, race: -1 };
+
+/** "Verified slowdown +6%: you hosted inspections", with its tone (good / bad for the player). */
+export function trajectoryChangeText(c: { plan: PlanId; delta: number; because: string }) {
+  const pts = Math.round(c.delta * 100);
+  const tone = pts === 0 ? 'flat' : pts * PLAN_GOOD[c.plan] > 0 ? 'good' : 'bad';
+  const head = `${PLAN[c.plan].name} ${pts > 0 ? '+' : pts < 0 ? '−' : ''}${Math.abs(pts)}%`;
+  const said = `${PLAN[c.plan].name} ${pts > 0 ? 'up' : pts < 0 ? 'down' : 'unchanged,'} ${Math.abs(pts)} points${tone !== 'flat' ? `, ${TONE_WORDS[tone]}` : ''}`;
+  return { head, because: c.because, tone, said };
+}
 
 export const SPEED: Record<Speed, string> = { slow: 'Slow', steady: 'Steady', fast: 'Fast' };
 
@@ -146,3 +157,42 @@ export const HIDDEN_GAUGES: { key: string; label: string; teaser: string }[] = [
   { key: 'trueAlignment', label: 'True alignment', teaser: 'Whether the AI really does what we intend, not what the labs report.' },
   { key: 'eu', label: 'Human influence in Europe', teaser: 'Who really steers the economy, culture and state. An audit can show it for a while.' },
 ];
+
+// ---------------------------------------------------------------- v2
+
+/** Plain names of the crises (the risk track's titles win when the engine gives them). */
+export const RISK_NAME: Record<EventId, string> = {
+  weight_theft: 'Model theft',
+  warning_shot: 'AI incident',
+  opaque_reasoning: 'Opaque reasoning',
+  silicon_blackmail: 'Silicon blackmail',
+  ransomware: 'Ransomware wave',
+};
+
+export const STAGE_WORD: Record<RiskView['stage'], string> = { watch: 'Watch', rising: 'Rising', imminent: 'Imminent', happened: 'Happened' };
+export const STAGE_ORDER: RiskView['stage'][] = ['watch', 'rising', 'imminent', 'happened'];
+
+/**
+ * Gauge thresholds with a meaning, drawn as ticks on the indicator bars. Public values only.
+ * `at` is the level; crossing it upwards triggers a short alert.
+ */
+export const THRESHOLDS: Partial<Record<string, { at: number; meaning: string }>> = {
+  capability: { at: 80, meaning: 'AI improves itself' },
+  publicPressure: { at: 50, meaning: '+1 PC per quarter' },
+  tension: { at: 60, meaning: 'the race speeds up' },
+};
+
+/** A card-face effect chip from the engine: its words, its tone (with a mark and words, never colour alone). */
+export function effectChip(c: EffectChip): string {
+  const t = c.key === 'hidden' ? 'hid' : c.tone === 'good' ? 'good' : c.tone === 'bad' ? 'bad' : 'flat';
+  const words = c.tone === 'good' ? ', good for you' : c.tone === 'bad' ? ', bad for you' : '';
+  return `<span class="chip fchip ${t}"><span>${esc(c.text)}</span>${words ? `<span class="sr-only">${words}</span>` : ''}</span>`;
+}
+
+/** The missing amounts for a cost, in words: "1 more PC", "2 more Budget and 1 more PC". */
+export function missingWords(cost: { pc: number; budget: number }, have: { pc: number; budget: number }): string {
+  const parts: string[] = [];
+  if (cost.budget > have.budget) parts.push(`${cost.budget - have.budget} more Budget`);
+  if (cost.pc > have.pc) parts.push(`${cost.pc - have.pc} more PC`);
+  return parts.join(' and ');
+}

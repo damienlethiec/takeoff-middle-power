@@ -49,7 +49,7 @@ async function playToEnding(maxSteps = 600) {
       if (card) {
         card.click();
         played.push(card.querySelector('.pname')!.textContent!);
-        m.querySelector<HTMLElement>('.preview [data-primary]')!.click();
+        m.querySelector<HTMLElement>('.dec-bar [data-primary]')!.click();
       } else m.querySelector<HTMLElement>('[data-action="pass"]')!.click();
     } else if (m.querySelector('.choice')) m.querySelector<HTMLElement>('.choice')!.click();
     else m.querySelector<HTMLElement>('[data-primary]:not(:disabled)')?.click();
@@ -67,15 +67,50 @@ describe('the game controller', () => {
     expect(text('#phase')).toBe('Clock running');
     expect(text('#pc')).toBe('6');
     expect(text('#budget')).toBe('3');
-    expect(text('#goal')).toBe('when AI starts improving itself, the world must be able to verify a deal.');
-    expect(text('#forecast')).toMatch(/^On current course: .+ \(\d+%\)\. What would help: .+\.$/);
+    // next quarter's income on each currency, with its reasons in the tooltip
+    const inc = engine.nextIncome(app.debug.state());
+    expect(text('#next-budget')).toBe(`+${inc.budget} next`);
+    expect(text('#inc-budget')).toContain(`Next quarter: +${inc.budget} Budget`);
+    expect($('#res-pc').getAttribute('aria-describedby')).toBe('inc-pc');
+    // the advisor replaces the old goal and forecast lines; the trajectory bar is always there
+    expect(document.querySelector('#goal, #forecast')).toBeNull();
+    expect(text('#adv-text')).toBe(engine.advisor(app.debug.state()).text);
+    const tr = engine.trajectory(app.debug.state());
+    expect($('#trajbar').getAttribute('aria-label')).toMatch(/^Most likely: .+\. Verified slowdown \d+%, Shut it all down \d+%, Fight China \d+%, Race to superintelligence \d+%\.$/);
+    expect(document.querySelectorAll('#trajbar .tseg')).toHaveLength(4);
+    expect(document.querySelector(`#trajbar .tseg.hi`)!.getAttribute('data-plan')).toBe(tr.mostLikely);
+    expect(text('#risks')).toBe('No crisis on the horizon yet.');
     expect(document.querySelectorAll('#quarters li')).toHaveLength(16);
     expect(document.querySelector('#quarters li.now')!.getAttribute('data-q')).toBe('1');
-    // ten visible indicators plus three hidden ones
-    expect(document.querySelectorAll('.g-tile[data-key]')).toHaveLength(10);
+    // the primary indicators in their slots, the rest in "More indicators", GDP and approval in the header
+    const dash = engine.dashboard(app.debug.state());
+    expect([...document.querySelectorAll<HTMLElement>('#gauges .g-tile')].map((t) => t.dataset.key)).toEqual(dash.primary.map((g) => g.key));
+    expect([...document.querySelectorAll<HTMLElement>('#gsec .g-tile')].map((t) => t.dataset.key)).toEqual(
+      dash.secondary.filter((g) => g.visible && !['gdp', 'approval'].includes(g.key)).map((g) => g.key),
+    );
+    expect([...document.querySelectorAll<HTMLElement>('.home-ind')].map((t) => t.dataset.key)).toEqual(['gdp', 'approval']);
+    expect($('#gdrawer').hidden).toBe(true);
     expect([...document.querySelectorAll<HTMLElement>('.g-tile.hidden-slot')].map((t) => t.dataset.hidden)).toEqual(['takeoff', 'trueAlignment', 'eu']);
     expect(text('.g-tile[data-key="coalition"] .g-val b')).toBe('0/3');
+    // thresholds with their meaning
+    expect(text('.g-tile[data-key="capability"] .g-th')).toBe('80: AI improves itself');
+    expect($<HTMLElement>('.g-tile[data-key="tension"] .g-tick').style.left).toBe('60%');
     expect(text('#news')).toBe('Headlines will arrive while the clock runs.');
+  });
+
+  it('a concern bubble explains what worries people and pays nothing (team decision)', async () => {
+    for (let i = 0; i < 40 && !document.querySelector('.bubble:not(.faded)'); i++) await advance(100);
+    const before = app.debug.state().pc;
+    const b = $('.bubble:not(.faded)');
+    b.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(b.classList.contains('read')).toBe(true);
+    expect(b.getAttribute('aria-label')).toMatch(/^Public concern in (Europe|the United States|China), read: .+/);
+    expect(text('.concern-pop')).not.toBe('');
+    expect(app.debug.state().pc).toBe(before);
+    await advance(700);
+    expect(text('#pc')).toBe(String(before));
+    key('Escape');
+    expect(document.querySelector('.concern-pop')).toBeNull();
   });
 
   it('runs the clock: news arrives in the feed and the ticker, the month advances', async () => {
@@ -122,15 +157,17 @@ describe('the game controller', () => {
     expect(pop.hidden).toBe(true);
   });
 
-  it('a concern bubble gives +1 PC (at most 2 per quarter)', async () => {
-    // inject a bubble, as the clock would
-    const s = app.debug.state();
-    const map = (app as unknown as { map: { spawnBubble(id: string, r: string): void } }).map;
-    map.spawnBubble('t1', 'eu');
-    $('.bubble').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(app.debug.state().pc).toBe(s.pc + 1);
-    await advance(700);
-    expect(text('#pc')).toBe(String(s.pc + 1));
+  it('More indicators opens a drawer; Escape closes it, focus back on its button', () => {
+    const more = $<HTMLButtonElement>('#gmore');
+    more.focus();
+    more.click();
+    expect($('#gdrawer').hidden).toBe(false);
+    expect(more.getAttribute('aria-expanded')).toBe('true');
+    $<HTMLButtonElement>('#gsec .g-tile').focus();
+    key('Escape');
+    expect($('#gdrawer').hidden).toBe(true);
+    expect(document.activeElement).toBe(more);
+    more.blur();
   });
 
   it('plays on to the tipping point, the superpowers’ draw, the ending and the debrief', async () => {

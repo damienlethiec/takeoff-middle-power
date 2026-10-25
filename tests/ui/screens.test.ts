@@ -11,6 +11,10 @@ import { showOpening } from '../../src/ui/screens/opening';
 import { modalOpen } from '../../src/ui/modal';
 import { CARDS } from '../../src/data/cards';
 import { craft, playGame, prepared, randomStrategy, passive, started } from '../helpers';
+import { installV2Fixtures } from './fixtures';
+import { PLAN } from '../../src/ui/format';
+
+const PLAN_NAME = Object.fromEntries(Object.entries(PLAN).map(([k, v]) => [k, v.name]));
 import { BAD_TEXT, FAKE_CLOCK, key, openModalEl, preferReducedMotion, sleep } from './setup';
 import type { GameState, PlanId } from '../../src/engine/types';
 
@@ -46,7 +50,7 @@ describe('the decision screen', () => {
         expect(text(el.querySelector('.st'))).toBe(v.lockedReason);
       } else if (!v.affordable) {
         expect(el.classList.contains('short')).toBe(true);
-        expect(text(el.querySelector('.st'))).toBe("Can't afford yet");
+        expect(text(el.querySelector('.st'))).toMatch(/^(Affordable next quarter|Needs \d+ more (Budget|PC)( and \d+ more PC)?)$/);
       }
     }
     expect(text(m.querySelector('.res-mini.pc b'))).toBe('1');
@@ -55,6 +59,54 @@ describe('the decision screen', () => {
     expect(m.querySelector('.pcard[data-card="host_verification"] .cost .cost-b svg')).not.toBeNull();
     expect(m.querySelector('.pcard[data-card="host_verification"] .cost .cost-p svg')).not.toBeNull();
     expect(text(m.querySelector('.pcard[data-card="host_verification"] .st'))).toBe('Full effect needs AI Office capacity');
+    expect(text(m.querySelector('.pcard[data-card="coalition"] .st'))).toBe('Needs 2 more PC');
+    // with no card picked, Confirm waits in the action bar
+    const confirm = m.querySelector<HTMLButtonElement>('.dec-bar [data-primary]')!;
+    expect(confirm.disabled).toBe(true);
+    expect(text(confirm)).toBe('Pick a card');
+  });
+
+  it('card faces (v2): effect chips, levels, uses, "New", context offers, what they prepare for, the advisor’s pick', () => {
+    const restore = installV2Fixtures(engine);
+    try {
+      const s = started({ quarter: 6, pc: 2, budget: 4 });
+      void showDecision(engine, s);
+      const m = openModalEl()!;
+      const card = (id: string) => m.querySelector(`.pcard[data-card="${id}"]`)!;
+      expect([...m.querySelectorAll<HTMLElement>('.pcard')].map((c) => c.dataset.card)).toEqual(engine.cardViews(s).map((c) => c.id));
+      expect(card('ai_office').querySelectorAll('.pchips .chip').length).toBeLessThanOrEqual(3);
+      expect(text(card('ai_office').querySelector('.pprep'))).toBe('Prepares for: Opaque reasoning');
+      expect(text(card('host_verification').querySelector('.plevel'))).toBe('Inspection accord · 2 of 3');
+      expect(text(card('fund_alignment').querySelector('.pm'))).toBe('2 uses left');
+      expect(text(card('fund_alignment').querySelector('.chip.hid'))).toBe('+ hidden effect');
+      expect(text(card('weight_security').querySelector('.pbadge.new'))).toBe('New');
+      expect(text(card('weight_security').querySelector('.pwhy'))).toMatch(/^Unlocked because/);
+      expect(card('weight_security').classList.contains('recommended')).toBe(true);
+      expect(text(card('coalition').querySelector('.st'))).toBe(`Available again ${engine.dateLabel(s.quarter + 2)}`);
+      expect(text(card('emergency_summit').querySelector('.pbadge.ctx'))).toBe('Limited time');
+      expect(text(card('emergency_summit').querySelector('.pm.ctx'))).toBe(`Offer ends ${engine.dateLabel(s.quarter + 1)}`);
+      // tones in words, not colour alone
+      expect(text(card('emergency_summit').querySelector('.chip.good'))).toBe('Verification +10, good for you');
+      // the preview: information gains, the real-world cost line with its source, the odds before → after
+      card('ai_office').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const pv = m.querySelector('.preview')!;
+      expect([...pv.querySelectorAll('.info-gains li')].map(text)).toEqual([
+        'Capability uncertainty ±10 → ±5 Your experts narrow the capability estimate.',
+        'Alignment uncertainty ±15 → ±5 The labs’ safety reports can be checked.',
+        'Internal notes 2 confidential reports become readable now.',
+      ]);
+      const real = pv.querySelector('.pv-real')!;
+      expect(text(real)).toMatch(/^What this costs in the real world Example real-world cost line/);
+      expect(real.querySelector('a.src')!.getAttribute('rel')).toBe('noopener');
+      expect(pv.querySelectorAll('.oc-row')).toHaveLength(4);
+      // a card on cooldown: its reason, no preview
+      card('coalition').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(text(pv.querySelector('.pv-lock'))).toBe(`Not available now. Available again ${engine.dateLabel(s.quarter + 2)}.`);
+      expect(pv.querySelector('.oc-row')).toBeNull();
+      expect(text(m.querySelector('.dec-bar [data-primary]'))).toBe('Not available');
+    } finally {
+      restore();
+    }
   });
 
   it('previews a card on click without committing, then Enter confirms it', async () => {
@@ -91,7 +143,7 @@ describe('the decision screen', () => {
     expect(opts()[1].getAttribute('aria-checked')).toBe('true');
     expect(text(m.querySelectorAll('.pv-sec')[1])).not.toContain('GDP');
     expect(text(m.querySelector('.pv-notes'))).toContain('hidden effects');
-    m.querySelector<HTMLElement>('.preview [data-primary]')!.click();
+    m.querySelector<HTMLElement>('.dec-bar [data-primary]')!.click();
     await expect(result).resolves.toEqual({ kind: 'card', id: 'asml', option: 'safety_commitment' });
   });
 
@@ -100,11 +152,13 @@ describe('the decision screen', () => {
     void showDecision(engine, { ...s, gauges: { ...s.gauges, capability: 20 } });
     const m = openModalEl()!;
     m.querySelector<HTMLElement>('.pcard[data-card="flexicurity"]')!.click();
-    const btn = m.querySelector<HTMLButtonElement>('.preview [data-primary]')!;
+    const btn = m.querySelector<HTMLButtonElement>('.dec-bar [data-primary]')!;
     expect(btn.disabled).toBe(true);
-    expect(text(btn)).toBe('Needs capability 30+: jobs have not started to shift yet');
+    expect(text(btn)).toBe('Not available');
+    expect(text(m.querySelector('.pv-lock'))).toBe('Not available now. Needs capability 30+: jobs have not started to shift yet');
     m.querySelector<HTMLElement>('.pcard[data-card="fund_alignment"]')!.click();
-    expect(text(m.querySelector('.preview [data-primary]'))).toBe("You can't afford it yet");
+    expect(text(m.querySelector('.dec-bar [data-primary]'))).toMatch(/^(Affordable next quarter|Needs 2 more Budget)$/);
+    expect(text(m.querySelector('.pv-short'))).toMatch(/^You can't afford it yet\./);
     key('Enter');
     await sleep(5);
     expect(modalOpen()).toBe(true);
@@ -129,7 +183,7 @@ describe('the decision screen', () => {
     expect(text(m.querySelector('[data-action="pass"]'))).toBe('Make no decision');
     m.querySelector<HTMLElement>('.pcard[data-card="coalition"]')!.click();
     expect(text(m.querySelectorAll('.pv-sec')[0])).toContain('Free: last decision');
-    expect(m.querySelector<HTMLButtonElement>('.preview [data-primary]')!.disabled).toBe(false);
+    expect(m.querySelector<HTMLButtonElement>('.dec-bar [data-primary]')!.disabled).toBe(false);
   });
 
   it('the odds chart shows each plan before and after, coloured by whether the move helps', () => {
@@ -190,36 +244,85 @@ describe('moments', () => {
     expect(leaHtml(lea, 'Q1')).toContain('class="paper letter"');
   });
 
-  it('the situation report: changes with causes, why, forecast, Léa and counts', async () => {
+  it('the situation report: headline with levels and causes, background, why, trajectory, Léa and counts', async () => {
     const s = started({ quarter: 6, gauges: { tension: 60 } });
     const report = engine.situationReport(s);
-    const r = showReport(report, engine.planOdds(s), { leaRead: true });
+    const traj = engine.trajectory(s);
+    const r = showReport(report, traj, { leaRead: true });
     const m = openModalEl()!;
-    expect(m.querySelectorAll('.changes li')).toHaveLength(report.changes.length);
-    expect(text(m.querySelector('.changes li .cause'))).toBe(report.changes[0].cause);
+    expect(m.querySelectorAll('.headline li')).toHaveLength(report.headline.length);
+    expect(text(m.querySelector('.headline li .cause'))).toBe(report.headline[0].cause);
+    expect(text(m.querySelector('.headline .hl-lvl'))).toBe(`${report.headline[0].label} ${report.headline[0].value}${report.headline[0].key === 'coalition' ? '/3' : ''}`);
     expect([...m.querySelectorAll('.why-list li')].map(text)).toEqual(report.why);
-    expect(text(m.querySelector('.forecast-box p'))).toBe(report.forecast.sentence);
-    expect(m.querySelectorAll('.stack .seg')).toHaveLength(4);
+    expect(m.querySelectorAll('.traj-box .stack .seg')).toHaveLength(4);
+    expect(text(m.querySelector('.traj-box .help'))).toContain(PLAN_NAME[traj.mostLikely]);
     expect(text(m.querySelector('.foot-item.linkish'))).toBe('Léa wrote to you · reread');
     expect(text(m.querySelector('.report-foot'))).toContain(`${report.newNews} news item`);
     (m.querySelector('[data-action="lea"]') as HTMLElement).click();
     await expect(r).resolves.toBe('lea');
-    const again = showReport(report, engine.planOdds(s), { leaRead: false, tipping: true });
+    const again = showReport(report, traj, { leaRead: false, tipping: true });
     expect(text(openModalEl()!.querySelector('[data-primary]'))).toBe('Take your last decision Enter');
     key('Escape');
     await expect(again).resolves.toBe('map');
-    const quiet = showReport({ ...report, changes: [], why: [], lea: null, newNotes: { total: 0, readable: 0 }, newNews: 1 }, engine.planOdds(s), { leaRead: false });
+    const quiet = showReport({ ...report, changes: [], headline: [], background: '', why: [], lea: null, newNotes: { total: 0, readable: 0 }, newNews: 1 }, traj, { leaRead: false });
     expect(text(openModalEl())).toContain('A quiet quarter');
     expect(text(openModalEl()!.querySelector('.report-foot'))).toBe('1 news item');
     key('Enter');
     await expect(quiet).resolves.toBe('decide');
   });
 
+  it('the situation report v2: the things that matter, background folded, risks that moved, the trajectory’s change', async () => {
+    const restore = installV2Fixtures(engine);
+    try {
+      const s = started({ quarter: 6 });
+      const report = engine.situationReport(s);
+      const r = showReport(report, engine.trajectory(s), { leaRead: false });
+      const m = openModalEl()!;
+      expect([...m.querySelectorAll('.headline li')].map(text)).toEqual([
+        'Tension 58 +4 China accused OpenBrain of espionage.',
+        'Verification readiness 37 +15 You offered to host verification.',
+        'Public pressure 52 +6 Layoffs at European call centres.',
+      ]);
+      // gains and losses carry words, not only colour
+      expect(m.querySelector('.headline .chip')!.getAttribute('aria-label')).toBe('+4, bad for you');
+      expect(text(m.querySelector('.background'))).toBe('Background capability +4, concentration +1, misuse +1.');
+      expect(m.querySelector('details.rest')).toBeNull(); // routine drift is in the background line
+      expect([...m.querySelectorAll('.risks-moved li b')].map(text)).toEqual(['Model theft', 'Opaque reasoning']);
+      expect(text(m.querySelector('.risks-moved .rm-prep.no'))).toBe('Not prepared');
+      expect(text(m.querySelector('.traj-box .tc-line'))).toBe('Verified slowdown +6% (Verified slowdown up 6 points, good for you) You hosted inspections.');
+      key('Enter');
+      await r;
+    } finally {
+      restore();
+    }
+  });
+
+  it('an event names the decision that prepared Europe, or the one that was missing', async () => {
+    const pe = started({ speed: 'slow', gauges: { capability: 38, tension: 49, trueAlignment: 60 } }).pendingEvent!;
+    const miss = showEvent(pe, 'Q3 2028', { prepared: false, preparedBy: 'Weight security standards would make a theft fail', cards: ['Weight security standards'], played: [] });
+    expect(text(openModalEl()!.querySelector('.readiness'))).toBe('What was missing: Weight security standards would make a theft fail.');
+    key('Enter');
+    await miss;
+    const ok = showEvent({ ...pe, prepared: true }, 'Q3 2028', { prepared: true, preparedBy: null, cards: [], played: [{ title: 'Weight security standards', date: 'Q1 2028' }] });
+    expect(text(openModalEl()!.querySelector('.readiness'))).toBe('Weight security standards (Q1 2028) prepared Europe for this.');
+    expect(text(openModalEl()!.querySelector('.badge'))).toBe('You were prepared');
+    key('Enter');
+    await ok;
+  });
+
   it('the briefing after a card, or after passing', async () => {
     const { briefing } = engine.playCard(rich(), 'fund_alignment');
-    const a = showBriefing(briefing, 'Q5 2028', 'Start Q6 2028');
+    const a = showBriefing(
+      { ...briefing, infoGains: [{ label: 'Internal notes', text: '2 confidential reports become readable now.' }], consequence: 'Ready if a theft is attempted.' },
+      'Q5 2028',
+      'Start Q6 2028',
+      { change: { plan: 'race', delta: -0.04, because: 'Labs now check each other.' } },
+    );
     let m = openModalEl()!;
     expect(text(m.querySelector('h2'))).toBe('Fund alignment research');
+    expect(text(m.querySelector('.info-gains'))).toBe('Internal notes 2 confidential reports become readable now.');
+    expect(text(m.querySelector('.consequence'))).toBe('What it will matter for: Ready if a theft is attempted.');
+    expect(text(m.querySelector('.tc-line'))).toBe('Race to superintelligence −4% (Race to superintelligence down 4 points, good for you) Labs now check each other.');
     expect(text(m.querySelector('.advisor p'))).toBe(briefing.advisorNote);
     expect(text(m.querySelector('[data-primary]'))).toBe('Start Q6 2028 Enter');
     key('Enter');

@@ -1,21 +1,62 @@
 // The game controller: builds the main screen, runs the clock, and walks through each quarter's pauses.
 // It talks to the engine only through EngineApi.
+//
+// v2 main screen, top to bottom: the header (date, clock, Budget and PC with next quarter's income, GDP and
+// approval), the trajectory bar ("Where the superpowers are heading"), the chief of staff's advice and the risk
+// track, then the map with the indicators (4 → 5 → 6, the rest in "More indicators") and the two news feeds.
 
 import type { EngineApi } from '../engine/api';
-import type { Briefing, GameState, GaugeView, InternalNote, LeaScene, PendingEvent, QuarterOutcome, RegionId } from '../engine/types';
+import type {
+  Briefing,
+  CardId,
+  Concern,
+  DashboardView,
+  GameState,
+  GaugeView,
+  InternalNote,
+  LeaScene,
+  PendingEvent,
+  QuarterOutcome,
+  RegionId,
+  RiskView,
+  TrajectoryView,
+} from '../engine/types';
 import { TONE_WORDS, announce, focusOwnsKey, moveWords, reducedMotion, shortcutsOn, tryFocus } from './a11y';
-import { $, ACTOR, ACTOR_SHORT, ACTOR_TONE, GAUGE_COLOR, HIDDEN_GAUGES, ICON, REGION, esc, signed, tone } from './format';
+import {
+  $,
+  ACTOR,
+  ACTOR_SHORT,
+  ACTOR_TONE,
+  GAUGE_COLOR,
+  HIDDEN_GAUGES,
+  ICON,
+  PLAN,
+  PLAN_ORDER,
+  PLAN_TONE,
+  REGION,
+  RISK_NAME,
+  STAGE_ORDER,
+  STAGE_WORD,
+  THRESHOLDS,
+  esc,
+  pct,
+  signed,
+  tone,
+  trajectoryChangeText,
+} from './format';
 import { WorldMap } from './map';
 import { modalOpen, openModal, setFocusFallback, wait } from './modal';
 import { showDecision, type DecisionResult } from './screens/decision';
 import { showEnding } from './screens/ending';
 import { showHelp } from './screens/help';
-import { showBriefing, showEvent, showEventRecap, showLea, showReport } from './screens/moments';
+import { showBriefing, showEvent, showEventRecap, showLea, showReport, type Readiness } from './screens/moments';
 import { showOpening } from './screens/opening';
 import { showSuperpowersChoose, showTippingAlarm } from './screens/tipping';
 
 const QUARTER_MS = 10_000;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** How many of this quarter's items each feed shows before "More". */
+const FEED_FIRST = 3;
 const GAUGE_HELP: Record<string, string> = {
   capability: 'How capable the leading AI systems are. At 80, AI starts improving itself: the tipping point.',
   apparentAlignment: 'How well-behaved the AI looks, according to the labs. The true value is hidden.',
@@ -23,10 +64,26 @@ const GAUGE_HELP: Record<string, string> = {
   coalition: 'Middle powers standing with Europe: UK and Norway, then Canada, then Japan and Korea.',
   tension: 'How close the US and China are to confrontation. Shown as the arc on the map.',
   concentration: 'How few companies hold the most powerful AI.',
-  misuse: 'How easily criminals can turn AI against hospitals, grids and banks.',
-  publicPressure: 'How loudly citizens demand AI safety. High pressure earns Political Capital.',
+  misuse: 'How easily criminals can turn AI against hospitals, grids and banks. Shown as glitches on the map.',
+  publicPressure: 'How loudly citizens demand AI safety. Shown as protests on the map; high pressure earns Political Capital.',
   gdp: "Europe's economy. It usually rises with AI adoption.",
-  approval: "How much Europeans approve of their governments.",
+  approval: 'How much Europeans approve of their governments.',
+};
+/** Shown in the header, not as tiles. */
+const HOME_KEYS = ['gdp', 'approval'];
+/** Concerns the map shows when the engine has none for the quarter (generic, no claim about the world). */
+const FALLBACK_CONCERN: Record<RegionId, string> = {
+  eu: 'People in Europe are asking who checks what AI systems can do.',
+  us: 'Americans worry about jobs as AI agents spread through offices.',
+  cn: 'In China, people debate how far AI should run public services.',
+};
+/** Cards that prepare for each crisis, when the risk track does not say (the engine's risk views win). */
+const PREPARES_FALLBACK: Record<string, CardId[]> = {
+  weight_theft: ['weight_security'],
+  warning_shot: ['coalition', 'host_verification'],
+  opaque_reasoning: ['ai_office'],
+  silicon_blackmail: ['open_models'],
+  ransomware: ['cyber_defence'],
 };
 
 interface FeedItem {
@@ -51,7 +108,7 @@ export class App {
   private drift: Record<string, number> = {};
   private seen = new Set<string>();
   private feed: FeedItem[] = [];
-  private bubblePlan: { id: string; at: number; until: number; region: RegionId; state: 'wait' | 'live' | 'gone' }[] = [];
+  private bubblePlan: { id: string; at: number; until: number; region: RegionId; text: string; state: 'wait' | 'live' | 'gone' }[] = [];
   private lastLea: { lea: LeaScene; date: string } | null = null;
   private shownRes = { pc: NaN, budget: NaN };
   private coached = new Set<string>();
@@ -60,8 +117,25 @@ export class App {
   private lastGaugeSig = '';
   private dockResolve: (() => void) | null = null;
   private gameId = 0;
-  /** Gauges announced as high this quarter (tension, misuse), so each warning is said once. */
+  /** Gauges announced as high this quarter (misuse), so each warning is said once. */
   private warned = new Set<string>();
+  /** v2 state of the screen */
+  private tileKeys = '';
+  private thresholdSeen: Record<string, number> = {};
+  private trajSig = '';
+  private trajChangeSig = '';
+  private riskStages: Record<string, string> = {};
+  private introducedSaid = '';
+  private unread = new Set<string>();
+  private moreNews = false;
+  private moreNotes = false;
+  /** Readiness and card names of this quarter, for the event screen. */
+  private cardNames: Partial<Record<CardId, string>> = {};
+
+  // v2-onboarding hooks: the onboarding workstream (src/ui/onboarding/**) fills these in.
+  /** Léa's full message history; when absent, her button shows the latest letter. */
+  onboarding: { openLeaHistory?: () => Promise<void> } = {};
+  // end v2-onboarding hooks
 
   constructor(
     private root: HTMLElement,
@@ -72,7 +146,10 @@ export class App {
     requestAnimationFrame(this.tick);
     document.addEventListener('keydown', this.onKey);
     document.addEventListener('click', (ev) => {
-      if (!(ev.target as HTMLElement).closest('.g-tile, .g-pop')) this.closePopover();
+      const t = ev.target as HTMLElement;
+      if (!t.closest('[aria-controls="gpop"], .g-pop')) this.closePopover();
+      if (!t.closest('#gmore, #gdrawer, .g-pop')) this.toggleDrawer(false);
+      if (!t.closest('.bubble')) this.map?.closeConcern();
     });
     // when a dialog closes and what opened it is gone (a bubble, a dialog button), focus lands on the map
     setFocusFallback(() => this.root.querySelector<HTMLElement>('.worldmap') ?? this.root.querySelector<HTMLElement>('#game-title'));
@@ -98,6 +175,13 @@ export class App {
     this.shownRes = { pc: NaN, budget: NaN };
     this.lastGaugeSig = '';
     this.warned.clear();
+    this.tileKeys = '';
+    this.thresholdSeen = {};
+    this.trajSig = '';
+    this.trajChangeSig = '';
+    this.riskStages = {};
+    this.introducedSaid = '';
+    this.unread.clear();
     document.title = 'Takeoff: Middle Power';
     this.buildShell();
     this.renderAll();
@@ -136,11 +220,22 @@ export class App {
     return null;
   }
 
+  /** After a decision, the trajectory bar moves in view for a moment before the briefing. */
+  private async showTrajectoryMove(): Promise<TrajectoryView['change']> {
+    const before = `${this.trajSig}|${this.trajChangeSig}`;
+    this.renderAll(true);
+    const tr = this.e.trajectory(this.s);
+    if (`${this.trajSig}|${this.trajChangeSig}` !== before) await wait(1300);
+    return tr.change;
+  }
+
   private async playQuarter(): Promise<QuarterOutcome> {
     this.s = this.e.startQuarter(this.s);
     const date = this.e.dateLabel(this.s.quarter);
+    this.moreNews = false;
+    this.moreNotes = false;
     this.beginClock();
-    // income, upkeep and partners lost, as the quarter opens
+    // income and partners lost, as the quarter opens
     const income = this.s.log.filter((l) => l.quarter === this.s.quarter && l.kind === 'income');
     const lost = income.filter((l) => l.visibleDeltas.some((d) => d.key === 'coalition' && d.amount < 0));
     if (lost.length) this.toast(lost.map((l) => l.briefing).join(' '), 'alert', false);
@@ -163,21 +258,21 @@ export class App {
     const report = this.e.situationReport(this.s);
     if (report.lea) {
       this.lastLea = { lea: report.lea, date };
-      this.root.querySelector('.lea-pin')?.classList.add('unread');
+      this.map.setLeaUnread(true);
       await showLea(report.lea, date, 'Read the situation report');
-      this.root.querySelector('.lea-pin')?.classList.remove('unread');
+      this.map.setLeaUnread(false);
     }
 
     let stage: 'report' | 'decision' = 'report';
     let result: DecisionResult | null = null;
     while (!result) {
       if (stage === 'report') {
-        const a = await showReport(report, this.e.planOdds(this.s), { leaRead: true });
+        const a = await showReport(report, this.e.trajectory(this.s), { leaRead: true });
         if (a === 'lea' && report.lea) {
           await showLea(report.lea, date, 'Back to the report');
           continue;
         }
-        if (a === 'map') await this.dock('The clock is stopped. Take your time to look at the map, the gauges and the notes.', 'Choose your decision');
+        if (a === 'map') await this.dock('The clock is stopped. Take your time to look at the map, the indicators, the risks and the notes.', 'Choose your decision');
         stage = 'decision';
         continue;
       }
@@ -191,13 +286,13 @@ export class App {
     }
 
     const briefing = this.applyDecision(result);
-    this.renderAll(true);
+    this.setPhase('Briefing');
+    const change = await this.showTrajectoryMove();
 
     const end = this.e.endQuarter(this.s);
     const next =
       end.outcome === 'next_quarter' ? `Start ${this.e.dateLabel(this.s.quarter + 1)}` : end.outcome === 'tipping_point' ? 'Continue' : 'See how it ends';
-    this.setPhase('Briefing');
-    await showBriefing(briefing, date, next);
+    await showBriefing(briefing, date, next, { change });
     this.s = end.state;
     this.renderAll();
     return end.outcome;
@@ -217,8 +312,8 @@ export class App {
       result = d;
     }
     const briefing = this.applyDecision(result);
-    this.renderAll(true);
-    await showBriefing(briefing, date, 'Washington and Beijing decide');
+    const change = await this.showTrajectoryMove();
+    await showBriefing(briefing, date, 'Washington and Beijing decide', { change });
     this.s = this.e.runTippingPoint(this.s);
     this.renderAll();
     await showSuperpowersChoose(this.s.tipping!);
@@ -260,16 +355,25 @@ export class App {
       const evOff = pe?.appliedDeltas.filter((d) => d.key === g.key).reduce((a, d) => a + d.amount, 0) ?? 0;
       this.drift[g.key] = g.value - start - evOff;
     }
-    // concern bubbles: 1 to 3 per quarter, more when the public is worried
-    const n = 1 + Math.floor(Math.random() * 2) + (this.s.gauges.publicPressure >= 40 ? 1 : 0);
-    const regions: RegionId[] = ['eu', 'eu', 'us', 'cn'];
-    this.bubblePlan = Array.from({ length: n }, (_, i) => {
-      const at = 0.08 + (i / n) * 0.72 + Math.random() * 0.1;
-      return { id: `b${this.s.quarter}-${i}`, at, until: at + 0.32, region: regions[Math.floor(Math.random() * regions.length)], state: 'wait' as const };
-    });
+    this.bubblePlan = this.concerns().map((c, i) => ({
+      id: `b${this.s.quarter}-${i}-${c.id}`,
+      at: c.at,
+      until: Math.min(1.01, c.at + 0.4),
+      region: c.region,
+      text: c.text,
+      state: 'wait' as const,
+    }));
     this.setPhase('Clock running');
     this.renderAll();
     if (this.s.quarter === 1) this.coach('clock', 'The clock is running. News arrives on the right and pings the map. Press Space to pause.');
+  }
+
+  /** The quarter's public concerns (the engine's, or a generic one or two while it has none). */
+  private concerns(): Concern[] {
+    if (this.s.concerns?.length) return this.s.concerns;
+    const n = 1 + (this.s.gauges.publicPressure >= 40 ? 1 : 0);
+    const regions: RegionId[] = ['eu', this.s.quarter % 2 ? 'us' : 'cn'];
+    return regions.slice(0, n).map((region, i) => ({ id: `generic-${region}`, region, text: FALLBACK_CONCERN[region], at: 0.12 + i * 0.4 }));
   }
 
   private tick = (ts: number) => {
@@ -287,6 +391,7 @@ export class App {
     for (const n of s.news) {
       if (n.quarter === q && n.at <= this.t && !this.seen.has(n.id)) {
         this.seen.add(n.id);
+        this.unread.add(n.id);
         this.feed.push({ id: n.id, kind: 'news', quarter: n.quarter, actor: n.actor, text: n.text });
         this.renderNews(n.id);
         this.map.ping(n.region, 'news');
@@ -295,6 +400,7 @@ export class App {
     for (const n of s.notes) {
       if (n.quarter === q && n.at <= this.t && !this.seen.has(n.id)) {
         this.seen.add(n.id);
+        this.unread.add(n.id);
         this.renderNotes(n.id);
         this.map.ping(n.region, 'note');
         if (!n.readable) this.coach('note', 'A confidential note arrived, redacted. Invest in oversight (AI Office capacity) to read these.');
@@ -302,16 +408,14 @@ export class App {
       }
     }
     for (const b of this.bubblePlan) {
-      if (b.state === 'wait' && this.t >= b.at && this.s.bubblesThisQuarter < 2) {
+      if (b.state === 'wait' && this.t >= b.at) {
         b.state = 'live';
         this.map.spawnBubble(b.id, b.region);
-        announce(
-          `Public concern in ${REGION[b.region]}: ${shortcutsOn() ? 'press C' : 'find the bubble on the map'} to collect 1 Political Capital.`,
-        );
-        this.coach('bubble', 'Public concern is rising. Click the purple bubble on the map: +1 Political Capital.');
+        announce(`Public concern in ${REGION[b.region]}: ${shortcutsOn() ? 'press C' : 'find the speech bubble on the map'} to read it.`);
+        this.coach('bubble', 'Speech bubbles show what worries people. Click one to read it: public concern is where pressure comes from.');
       } else if (b.state === 'live' && this.t >= b.until) {
         b.state = 'gone';
-        this.map.popBubble(b.id, false);
+        this.map.popBubble(b.id);
       }
     }
     const pe = s.pendingEvent;
@@ -332,12 +436,29 @@ export class App {
     }
   }
 
+  /** What prepared Europe for this crisis, or what was missing, in plain words. */
+  private readiness(pe: PendingEvent): Readiness {
+    const risk = this.e.riskViews(this.s).find((r) => r.id === pe.id);
+    const ids = risk?.preparingCards.length ? risk.preparingCards : PREPARES_FALLBACK[pe.id] ?? [];
+    const names = this.namesOf(ids);
+    const played = this.s.log
+      .filter((l) => l.kind === 'card' && ids.includes(l.id as CardId))
+      .map((l) => ({ title: l.title, date: this.e.dateLabel(l.quarter) }));
+    return { prepared: pe.prepared, preparedBy: risk?.preparedBy ?? null, cards: names, played };
+  }
+
+  private namesOf(ids: CardId[]) {
+    if (!Object.keys(this.cardNames).length) for (const c of this.e.cardViews(this.s)) this.cardNames[c.id] = c.name;
+    return ids.map((id) => this.cardNames[id] ?? id.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase()));
+  }
+
   private async fireEvent(pe: PendingEvent) {
     this.eventShown = true;
     this.eventBusy = true;
     const date = this.e.dateLabel(this.s.quarter);
+    const ready = this.readiness(pe);
     this.setPhase('Event');
-    this.map.addEventPin(pe.region, pe.title, date, () => this.openFromMap(() => showEventRecap(pe, date)));
+    this.map.addEventPin(pe.region, pe.title, date, () => this.openFromMap(() => showEventRecap(pe, date, ready)));
     this.feed.push({ id: `ev-${pe.id}-${this.s.quarter}`, kind: 'event', quarter: this.s.quarter, actor: pe.actor, text: pe.title });
     this.renderNews(`ev-${pe.id}-${this.s.quarter}`);
     if (!reducedMotion()) {
@@ -346,7 +467,7 @@ export class App {
     }
     this.renderGauges(true);
     await wait(900);
-    const opt = await showEvent(pe, date);
+    const opt = await showEvent(pe, date, ready);
     try {
       this.s = this.e.resolveEvent(this.s, opt ?? pe.options[0]?.id);
     } catch (err) {
@@ -358,27 +479,12 @@ export class App {
     this.eventBusy = false;
   }
 
-  private onBubble = (id: string, region: RegionId, node: SVGGElement) => {
-    if (!this.clockActive) return;
-    const before = this.s.pc;
-    this.s = this.e.collectBubble(this.s, region);
-    const got = this.s.pc > before;
-    const pos = this.map.screenPos(node);
-    this.map.popBubble(id, got);
+  /** A concern bubble: it explains what worries people (team decision: it pays nothing). */
+  private onBubble = (id: string) => {
     const b = this.bubblePlan.find((x) => x.id === id);
-    if (b) b.state = 'gone';
-    if (got) {
-      this.flyToPc(pos);
-      announce(`+1 Political Capital. You have ${this.s.pc}.`);
-    }
-    if (this.s.bubblesThisQuarter >= 2) {
-      for (const x of this.bubblePlan) {
-        if (x.state === 'live') this.map.popBubble(x.id, false);
-        x.state = 'gone';
-      }
-      this.toast('That is all the public attention you can catch this quarter (2 max).');
-    }
-    if (!got) this.renderTop();
+    if (!b) return;
+    this.map.readBubble(id, b.region, b.text);
+    announce(`Public concern in ${REGION[b.region]}: ${b.text}`);
   };
 
   private setRunning(on: boolean, say = true) {
@@ -404,6 +510,14 @@ export class App {
     });
   }
 
+  private openLea() {
+    const history = this.onboarding.openLeaHistory;
+    if (history) return this.openFromMap(history);
+    const l = this.lastLea;
+    if (l) this.openFromMap(() => showLea(l.lea, l.date, 'Back to the map'));
+    else this.toast('Léa lives in Lyon. She will write to you soon.');
+  }
+
   /**
    * Keyboard shortcuts. Space and Enter are left to a focused button or link (they activate it);
    * the single-key shortcuts (P, C, 1, 2, ?) can be turned off in the shortcuts dialog (WCAG 2.1.4).
@@ -412,7 +526,12 @@ export class App {
     if (ev.defaultPrevented || modalOpen() || document.querySelector('.opening')) return;
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
     const k = ev.key;
-    if (k === 'Escape') return this.closePopover(true);
+    if (k === 'Escape') {
+      if (this.map.closeConcern()) return;
+      if (!$('#gpop', this.root).hidden) return this.closePopover(true);
+      if (!$('#gdrawer', this.root).hidden) return this.toggleDrawer(false, true);
+      return this.dismissIncome();
+    }
     if (focusOwnsKey(k)) return;
     if (k === ' ' && this.clockActive) {
       ev.preventDefault();
@@ -427,10 +546,8 @@ export class App {
       this.setRunning(!this.running);
     } else if (k === 'c' || k === 'C') {
       const id = this.map.liveBubbles()[0];
-      const b = this.bubblePlan.find((x) => x.id === id);
-      const node = id ? this.map.bubbleNode(id) : undefined;
-      if (b && node) this.onBubble(b.id, b.region, node);
-      else announce('No public concern to collect right now.');
+      if (id) this.onBubble(id);
+      else announce('No public concern on the map right now.');
     } else if (k === '1' || k === '2') {
       this.setSpeed(Number(k) as 1 | 2);
       announce(k === '2' ? 'Double speed.' : 'Normal speed.');
@@ -450,7 +567,7 @@ export class App {
     d.hidden = false;
     this.setPhase('Paused to assess');
     const btn = d.querySelector('button')!;
-    // keyboard players land on the way back; the map, gauges and notes are a Tab away
+    // keyboard players land on the way back; the map, indicators and notes are a Tab away
     tryFocus(btn);
     return new Promise((resolve) => {
       const go = () => {
@@ -466,6 +583,13 @@ export class App {
   // ------------------------------------------------------------------ shell
 
   private buildShell() {
+    const purse = (k: 'budget' | 'pc', label: string) => `
+      <div class="res-wrap" data-res="${k}">
+        <button type="button" class="res ${k}" id="res-${k}" aria-describedby="inc-${k}" aria-expanded="false">
+          ${ICON[k]}<span class="res-v num" id="${k}"></span><span class="res-l">${label}<small class="res-next" id="next-${k}"></small></span>
+        </button>
+        <div class="inc-tip" id="inc-${k}" role="tooltip"></div>
+      </div>`;
     this.root.innerHTML = `
     <div class="game">
       <h1 class="sr-only" id="game-title" tabindex="-1">Takeoff: Middle Power</h1>
@@ -481,12 +605,28 @@ export class App {
           <button class="iconbtn help-btn" id="help" aria-label="Keyboard shortcuts (?)" aria-haspopup="dialog">?</button>
           <span class="phase" id="phase"></span>
         </div>
-        <div class="res budget" title="Budget pays for investments. +1 every quarter.">${ICON.budget}<span class="res-v num" id="budget"></span><span class="res-l">Budget</span></div>
-        <div class="res pc" title="Political Capital pays for regulation and diplomacy. Earn it by clicking concern bubbles (up to 2 per quarter), +1 per quarter when public pressure is high, minus coalition upkeep.">${ICON.pc}<span class="res-v num" id="pc"></span><span class="res-l">Political<br>Capital</span></div>
+        <div class="purse">
+          <div class="res-row">${purse('budget', 'Budget')}${purse('pc', 'Political<br>Capital')}</div>
+          <p class="home-line" aria-label="Europe at home">
+            <button type="button" class="home-ind" data-key="gdp" aria-expanded="false" aria-controls="gpop" aria-describedby="gdesc-gdp">GDP <b class="num"></b><span class="g-delta"></span></button>
+            <button type="button" class="home-ind" data-key="approval" aria-expanded="false" aria-controls="gpop" aria-describedby="gdesc-approval">Approval <b class="num"></b><span class="g-delta"></span></button>
+          </p>
+        </div>
       </header>
-      <section class="lines" aria-label="Goal and forecast">
-        <p class="goal"><span class="ln-k">Goal</span><span id="goal"></span></p>
-        <p class="forecast"><span class="ln-k">Forecast</span><span id="forecast"></span></p>
+      <section class="trajectory" aria-labelledby="traj-h">
+        <h2 class="traj-k" id="traj-h">Where the superpowers are heading</h2>
+        <div class="traj-bar" id="trajbar" role="img"></div>
+        <p class="traj-change" id="trajchange"></p>
+      </section>
+      <section class="brief-row">
+        <section class="advisor-panel" aria-labelledby="adv-h">
+          <span class="ava adv" aria-hidden="true">CS</span>
+          <div><h2 id="adv-h">Your chief of staff</h2><p id="adv-text"></p><p class="adv-more" id="adv-more"></p></div>
+        </section>
+        <section class="risks" aria-labelledby="risks-h">
+          <h2 id="risks-h">Risks <small>crises you can see coming</small></h2>
+          <ul class="risk-list" id="risks"></ul>
+        </section>
       </section>
       <main class="stage">
         <div class="theatre">
@@ -498,94 +638,210 @@ export class App {
           </div>
           <section class="indicators" aria-label="Indicators: click one to see what moves it">
             <h2 class="sr-only">Indicators</h2>
+            <p class="g-intro" id="gintro" hidden></p>
             <div class="g-grid" id="gauges"></div>
+            <div class="g-row2">
+              <button type="button" class="g-more" id="gmore" aria-expanded="false" aria-controls="gdrawer">More indicators <span id="gmore-n"></span></button>
+              <span class="g-hidden-k" aria-hidden="true">Hidden until the end</span>
+              <div class="g-hidden" id="ghidden"></div>
+            </div>
+            <div class="g-drawer" id="gdrawer" role="region" aria-labelledby="gdrawer-h" hidden><h3 id="gdrawer-h">More indicators</h3><div class="g-grid sec" id="gsec"></div></div>
+            <div class="g-descs" id="gdescs" hidden></div>
           </section>
         </div>
         <aside class="feeds">
-          <section class="feed news-feed" aria-labelledby="news-h"><h2 id="news-h">Public news <small>what everyone sees</small></h2><ol id="news" aria-labelledby="news-h" tabindex="0"></ol></section>
-          <section class="feed notes-feed" aria-labelledby="notes-h"><h2 id="notes-h">Internal notes <small>labs and intelligence</small></h2><p class="notes-hint" id="notesHint" hidden>Redacted. Invest in oversight to read these: AI Office capacity, or measuring human influence.</p><ol id="notes" aria-labelledby="notes-h" tabindex="0"></ol></section>
+          <section class="feed news-feed" aria-labelledby="news-h">
+            <h2 id="news-h">Public news <small>what everyone sees</small></h2>
+            <div class="feed-body" id="news-body" role="region" aria-labelledby="news-h" tabindex="0">
+              <h3 class="feed-q">This quarter</h3>
+              <ol id="news"></ol>
+              <button type="button" class="feed-more" id="news-more" aria-expanded="false" aria-controls="news" hidden></button>
+              <div class="feed-past" id="news-past"></div>
+            </div>
+          </section>
+          <section class="feed notes-feed" aria-labelledby="notes-h">
+            <h2 id="notes-h">Internal notes <small>labs and intelligence</small> <span class="unread-n" id="notes-unread" hidden></span></h2>
+            <p class="notes-hint" id="notesHint" hidden>Redacted notes: invest in oversight to read them (AI Office capacity, or measuring human influence).</p>
+            <div class="feed-body" id="notes-body" role="region" aria-labelledby="notes-h" tabindex="0">
+              <h3 class="feed-q">This quarter</h3>
+              <ol id="notes"></ol>
+              <button type="button" class="feed-more" id="notes-more" aria-expanded="false" aria-controls="notes" hidden></button>
+              <div class="feed-past" id="notes-past"></div>
+            </div>
+          </section>
         </aside>
       </main>
       <div class="g-pop" id="gpop" role="region" aria-labelledby="gpop-h" hidden></div>
     </div>`;
-    this.map = new WorldMap($('#mapwrap', this.root), { onBubble: this.onBubble });
+    this.map = new WorldMap($('#mapwrap', this.root), { onBubble: (id) => this.onBubble(id) });
     this.map.svg.parentElement!.insertBefore(this.map.svg, this.map.svg.parentElement!.firstChild);
-    this.map.onLea = () => {
-      const l = this.lastLea;
-      if (l) this.openFromMap(() => showLea(l.lea, l.date, 'Back to the map'));
-      else this.toast('Léa lives in Lyon. She will write to you soon.');
-    };
+    this.map.onLea = () => this.openLea();
     $('#play', this.root).addEventListener('click', () => this.setRunning(!this.running));
     $('#help', this.root).addEventListener('click', () => this.openHelp());
     this.root.querySelectorAll<HTMLButtonElement>('.speed button').forEach((b) => b.addEventListener('click', () => this.setSpeed(Number(b.dataset.speed) as 1 | 2)));
-    this.buildGauges();
+    this.root.querySelectorAll<HTMLButtonElement>('.home-ind').forEach((b) => b.addEventListener('click', () => this.togglePopover(b)));
+    $('#gmore', this.root).addEventListener('click', () => this.toggleDrawer($('#gdrawer', this.root).hidden));
+    for (const k of ['budget', 'pc'] as const) {
+      const wrap = $(`.res-wrap[data-res="${k}"]`, this.root);
+      const btn = $<HTMLButtonElement>(`#res-${k}`, this.root);
+      // the income tooltip shows on hover and focus; a click (or tap) pins it open; Escape hides it
+      btn.addEventListener('click', () => {
+        const open = btn.getAttribute('aria-expanded') !== 'true';
+        this.root.querySelectorAll('.res').forEach((r) => r.setAttribute('aria-expanded', 'false'));
+        btn.setAttribute('aria-expanded', String(open));
+        wrap.classList.remove('dismissed');
+      });
+      wrap.addEventListener('mouseleave', () => wrap.classList.remove('dismissed'));
+      btn.addEventListener('blur', () => {
+        wrap.classList.remove('dismissed');
+        btn.setAttribute('aria-expanded', 'false');
+      });
+    }
+    // the feeds: looking at one (pointer or keyboard) marks its items as read
+    for (const [sel, kind] of [
+      ['.news-feed', 'news'],
+      ['.notes-feed', 'notes'],
+    ] as const) {
+      const f = $(sel, this.root);
+      const mark = () => this.markRead(kind);
+      f.addEventListener('pointerenter', mark);
+      f.addEventListener('focusin', mark);
+    }
+    $('#news-more', this.root).addEventListener('click', () => {
+      this.moreNews = !this.moreNews;
+      this.renderNews();
+    });
+    $('#notes-more', this.root).addEventListener('click', () => {
+      this.moreNotes = !this.moreNotes;
+      this.renderNotes();
+    });
+    $('#ghidden', this.root).innerHTML = HIDDEN_GAUGES.map(
+      (h) =>
+        `<button type="button" class="g-tile hidden-slot" data-hidden="${esc(h.key)}" aria-expanded="false" aria-controls="gpop" aria-describedby="gdesc-hidden"><span class="g-name">${esc(h.label)}</span><span class="g-val q"><b>?</b></span><span class="g-tease"></span></button>`,
+    ).join('');
+    this.root.querySelectorAll<HTMLButtonElement>('.g-tile.hidden-slot').forEach((b) => b.addEventListener('click', () => this.togglePopover(b)));
   }
 
-  private buildGauges() {
-    const views = this.gaugeViews().filter((g) => g.visible);
-    const tiles = views
-      .map(
-        (g) => `<button class="g-tile${g.key === 'gdp' || g.key === 'approval' ? ' home' : ''}" data-key="${esc(g.key)}" style="--c:${GAUGE_COLOR[g.key] ?? 'var(--mute)'}" aria-expanded="false" aria-controls="gpop" aria-describedby="gdesc-${esc(g.key)}">
+  /** The indicator tiles: primary ones in stable slots, the rest in the drawer. Rebuilt only when the set changes. */
+  private buildTiles(dash: DashboardView) {
+    const primary = dash.primary.filter((g) => g.visible && !HOME_KEYS.includes(g.key));
+    const secondary = dash.secondary.filter((g) => g.visible && !HOME_KEYS.includes(g.key) && !primary.some((p) => p.key === g.key));
+    const sig = `${primary.map((g) => g.key).join(',')}|${secondary.map((g) => g.key).join(',')}`;
+    if (sig === this.tileKeys) return;
+    this.tileKeys = sig;
+    const tile = (g: GaugeView) => {
+      const th = THRESHOLDS[g.key];
+      return `<button type="button" class="g-tile" data-key="${esc(g.key)}" style="--c:${GAUGE_COLOR[g.key] ?? 'var(--mute)'}" aria-expanded="false" aria-controls="gpop" aria-describedby="gdesc-${esc(g.key)}">
           <span class="g-name">${esc(g.label)}</span>
           <span class="g-delta"></span>
           <span class="g-val num"><b></b><small></small></span>
-          ${g.key === 'coalition' ? '<span class="g-pips"><i></i><i></i><i></i></span>' : '<span class="g-bar"><i class="g-err"></i><i class="g-fill"></i></span>'}
-        </button>`,
-      )
-      .join('');
-    const hidden = HIDDEN_GAUGES.map(
-      (h) => `<button class="g-tile hidden-slot" data-hidden="${esc(h.key)}" aria-expanded="false" aria-controls="gpop" aria-describedby="gdesc-hidden"><span class="g-name">${esc(h.label)}</span><span class="g-val q"><b>?</b></span><span class="g-tease">Revealed at the end</span></button>`,
-    ).join('');
+          ${
+            g.key === 'coalition'
+              ? '<span class="g-pips"><i></i><i></i><i></i></span>'
+              : `<span class="g-bar"><i class="g-err"></i><i class="g-fill"></i>${th ? `<i class="g-tick" style="left:${th.at}%"></i>` : ''}</span>`
+          }
+          ${th ? `<span class="g-th" aria-hidden="true">${th.at}: ${esc(th.meaning)}</span>` : ''}
+          <span class="g-new" hidden>New</span>
+        </button>`;
+    };
     const grid = $('#gauges', this.root);
-    grid.innerHTML = tiles + hidden;
-    // each tile's value, error bar and change in words (read after the tile's name)
-    const descs = document.createElement('div');
-    descs.hidden = true;
-    descs.innerHTML = views.map((g) => `<span id="gdesc-${esc(g.key)}"></span>`).join('') + '<span id="gdesc-hidden">Hidden from you, as from a real envoy. Revealed in the final debrief.</span>';
-    grid.after(descs);
-    grid.querySelectorAll<HTMLButtonElement>('.g-tile').forEach((b) => b.addEventListener('click', () => this.togglePopover(b)));
+    grid.style.setProperty('--cols', String(Math.max(4, primary.length)));
+    grid.innerHTML = primary.map(tile).join('');
+    $('#gsec', this.root).innerHTML = secondary.map(tile).join('');
+    $('#gmore-n', this.root).textContent = `(${secondary.length})`;
+    $<HTMLButtonElement>('#gmore', this.root).hidden = !secondary.length;
+    // each tile's value, error bar, threshold and change in words (read after the tile's name)
+    const keys = [...primary, ...secondary].map((g) => g.key).concat(HOME_KEYS as GaugeView['key'][]);
+    $('#gdescs', this.root).innerHTML =
+      keys.map((k) => `<span id="gdesc-${esc(k)}"></span>`).join('') + '<span id="gdesc-hidden">Hidden from you, as from a real envoy. Revealed in the final debrief.</span>';
+    this.root.querySelectorAll<HTMLButtonElement>('#gauges .g-tile, #gsec .g-tile').forEach((b) => b.addEventListener('click', () => this.togglePopover(b)));
+    this.lastGaugeSig = '';
   }
 
-  private togglePopover(tile: HTMLElement) {
+  private toggleDrawer(open: boolean, refocus = false) {
+    const d = this.root.querySelector<HTMLElement>('#gdrawer');
+    if (!d || d.hidden === !open) return;
+    d.hidden = !open;
+    $('#gmore', this.root).setAttribute('aria-expanded', String(open));
+    if (!open) {
+      if (d.contains(document.activeElement) || refocus) tryFocus($('#gmore', this.root));
+      if ($('#gpop', this.root).dataset.in === 'drawer') this.closePopover();
+    }
+  }
+
+  /** The popover of an indicator, a hidden value or a risk: what it is, what moves it. */
+  private togglePopover(anchor: HTMLElement) {
     const pop = $('#gpop', this.root);
-    if (!pop.hidden && pop.dataset.for === (tile.dataset.key ?? tile.dataset.hidden)) return this.closePopover();
-    const key = tile.dataset.key;
+    const id = anchor.dataset.key ?? anchor.dataset.hidden ?? `risk:${anchor.dataset.risk}`;
+    if (!pop.hidden && pop.dataset.for === id) return this.closePopover();
     let html: string;
-    if (key) {
-      const g = this.gaugeViews().find((x) => x.key === key)!;
+    if (anchor.dataset.risk) {
+      const r = this.e.riskViews(this.s).find((x) => x.id === anchor.dataset.risk);
+      if (!r) return;
+      html = this.riskPopHtml(r);
+    } else if (anchor.dataset.key) {
+      const key = anchor.dataset.key;
+      const g = this.gaugeViews().find((x) => x.key === key);
+      if (!g) return;
+      const th = THRESHOLDS[key];
       html = `<h3 id="gpop-h">${esc(g.label)} <b class="num">${g.value}${g.errorBar ? ` ±${g.errorBar}` : ''}</b></h3>
         <p class="pop-help">${esc(GAUGE_HELP[key] ?? '')}</p>
+        ${th ? `<p class="pop-th"><span class="pop-k">Threshold ${th.at}</span>${esc(th.meaning.replace(/^./, (c) => c.toUpperCase()))}.</p>` : ''}
         <p><span class="pop-k up">Rises when</span>${esc(g.risesWhen)}</p>
         <p><span class="pop-k down">Falls when</span>${esc(g.fallsWhen)}</p>
         ${g.errorBar ? '<p class="pop-err">The ± band is your uncertainty. Your experts can narrow it (AI Office capacity).</p>' : ''}`;
     } else {
-      const h = HIDDEN_GAUGES.find((x) => x.key === tile.dataset.hidden)!;
+      const h = HIDDEN_GAUGES.find((x) => x.key === anchor.dataset.hidden)!;
       html = `<h3 id="gpop-h">${esc(h.label)} <b>?</b></h3><p class="pop-help">${esc(h.teaser)}</p><p class="pop-err">Hidden from you, as it would be from a real envoy. Revealed in the final debrief.</p>`;
     }
     pop.innerHTML = html;
-    pop.dataset.for = key ?? tile.dataset.hidden;
-    // right after its tile in the page, so a screen reader reads it next (it is positioned absolutely)
-    if (tile.nextElementSibling !== pop) tile.after(pop);
+    pop.dataset.for = id;
+    pop.dataset.in = anchor.closest('#gdrawer') ? 'drawer' : '';
+    // right after its anchor in the page, so a screen reader reads it next (it is positioned absolutely)
+    const host = anchor.closest('li') ?? anchor;
+    if (host.nextElementSibling !== pop) host.after(pop);
     pop.hidden = false;
-    this.root.querySelectorAll('.g-tile').forEach((t) => t.setAttribute('aria-expanded', String(t === tile)));
-    const r = tile.getBoundingClientRect();
-    const pw = Math.min(300, window.innerWidth - 24);
+    this.root.querySelectorAll('[aria-controls="gpop"]').forEach((t) => t.setAttribute('aria-expanded', String(t === anchor)));
+    const r = anchor.getBoundingClientRect();
+    const pw = Math.min(320, window.innerWidth - 24);
     pop.style.width = `${pw}px`;
     const left = Math.max(12, Math.min(window.innerWidth - pw - 12, r.left + r.width / 2 - pw / 2));
     pop.style.left = `${left + window.scrollX}px`;
     const ph = pop.offsetHeight;
-    const above = r.top - ph - 10 > 8;
+    const above = r.top - ph - 10 > 8 && !anchor.closest('.top, .brief-row');
     pop.style.top = `${(above ? r.top - ph - 10 : r.bottom + 10) + window.scrollY}px`;
     pop.classList.toggle('below', !above);
   }
 
-  /** Close the indicator popover; with `refocus`, focus goes back to its tile (Escape). */
+  private riskPopHtml(r: RiskView) {
+    const names = this.namesOf(r.preparingCards);
+    return `<h3 id="gpop-h">${esc(r.title || RISK_NAME[r.id])} <b>${esc(STAGE_WORD[r.stage])}</b></h3>
+      <p class="pop-help">${esc(r.why)}</p>
+      <p><span class="pop-k">${r.certainty === 'possible' ? 'Possible' : 'Likely'}</span>${
+        r.certainty === 'possible' ? 'It also depends on something you cannot see, so it may never happen.' : 'If nothing changes, expect it.'
+      }</p>
+      <p class="pop-prep ${r.prepared ? 'yes' : 'no'}">${r.prepared ? ICON.check : ICON.cross}<span><b>${r.prepared ? 'Prepared.' : 'Not prepared.'}</b> ${esc(r.preparedBy)}</span></p>
+      ${names.length ? `<p><span class="pop-k">Cards that prepare</span>${esc(names.join(', '))}</p>` : ''}`;
+  }
+
+  /** Close the popover; with `refocus`, focus goes back to what opened it (Escape). */
   private closePopover(refocus = false) {
     const pop = this.root.querySelector<HTMLElement>('#gpop');
     if (!pop || pop.hidden) return;
     pop.hidden = true;
-    this.root.querySelectorAll('.g-tile').forEach((t) => t.setAttribute('aria-expanded', 'false'));
-    if (refocus) tryFocus(this.root.querySelector(`.g-tile[data-key="${pop.dataset.for}"], .g-tile[data-hidden="${pop.dataset.for}"]`));
+    this.root.querySelectorAll('[aria-controls="gpop"]').forEach((t) => t.setAttribute('aria-expanded', 'false'));
+    if (refocus) {
+      const f = pop.dataset.for ?? '';
+      const sel = f.startsWith('risk:') ? `[data-risk="${f.slice(5)}"]` : `[data-key="${f}"][aria-controls="gpop"], [data-hidden="${f}"]`;
+      tryFocus(this.root.querySelector(sel));
+    }
+  }
+
+  private dismissIncome() {
+    this.root.querySelectorAll('.res-wrap').forEach((w) => {
+      if (w.matches(':hover, :focus-within') || w.querySelector('[aria-expanded="true"]')) w.classList.add('dismissed');
+      w.querySelector('.res')?.setAttribute('aria-expanded', 'false');
+    });
   }
 
   // ------------------------------------------------------------------ rendering
@@ -594,18 +850,22 @@ export class App {
     if (this.viewsFor !== this.s) {
       this.views = this.e.gaugeViews(this.s);
       this.viewsFor = this.s;
+      this.cardNames = {};
     }
     return this.views;
   }
 
   private renderAll(flash = false) {
+    this.buildTiles(this.e.dashboard(this.s));
     this.renderTop();
     this.renderClock();
     this.renderGauges(flash);
+    this.renderTrajectory();
+    this.renderAdvisor();
+    this.renderRisks();
+    this.renderIntro();
     this.renderNews();
     this.renderNotes();
-    $('#goal', this.root).textContent = this.e.goalLine().replace(/^Goal:\s*/i, '');
-    $('#forecast', this.root).textContent = this.e.forecastLine(this.s).replace(/^On current course:\s*/i, 'On current course: ');
   }
 
   private setPhase(text: string) {
@@ -627,6 +887,7 @@ export class App {
         const f = document.createElement('span');
         f.className = `res-float ${v > prev ? 'up' : 'down'}`;
         f.textContent = signed(v - prev);
+        f.setAttribute('aria-hidden', 'true');
         box.appendChild(f);
         setTimeout(() => f.remove(), 1300);
       }
@@ -634,6 +895,16 @@ export class App {
     };
     bump('pc', s.pc);
     bump('budget', s.budget);
+    // next quarter's income, and why
+    const inc = this.e.nextIncome(s);
+    for (const k of ['budget', 'pc'] as const) {
+      const n = inc[k];
+      $(`#next-${k}`, this.root).textContent = inc.nextQuarterExists ? `${signed(n)} next` : 'no next quarter';
+      const mine = inc.reasons.filter((r) => (k === 'pc' ? /\bPC\b|Political/.test(r) : /Budget/.test(r)));
+      $(`#inc-${k}`, this.root).innerHTML = inc.nextQuarterExists
+        ? `<b>Next quarter: ${esc(signed(n))} ${k === 'pc' ? 'Political Capital' : 'Budget'}</b>${mine.length ? `<span>${mine.map(esc).join(' · ')}</span>` : ''}`
+        : '<b>No income: this is the last decision.</b>';
+    }
   }
 
   private renderClock() {
@@ -682,12 +953,43 @@ export class App {
     const sig = out.join('|') + (reveal ? `|eu${this.s.eu.economy},${this.s.eu.culture},${this.s.eu.state}` : '');
     if (sig === this.lastGaugeSig && !flash) return;
     this.lastGaugeSig = sig;
+    const crossed: string[] = [];
     for (const g of views) {
-      const tile = this.root.querySelector<HTMLElement>(`.g-tile[data-key="${g.key}"]`);
-      if (!tile) continue;
       const d = this.displayed(g);
       const v = Math.round(d.value);
       const dl = Math.round(d.delta);
+      const tw = TONE_WORDS[tone(g.key, dl)];
+      const th = THRESHOLDS[g.key];
+      // a threshold crossed upwards during play: a short alert, once
+      if (th) {
+        const prev = this.thresholdSeen[g.key];
+        if (prev !== undefined && prev < th.at && v >= th.at && this.s.quarter > 0) crossed.push(`${g.label} reached ${th.at}: ${th.meaning}.`);
+        this.thresholdSeen[g.key] = v;
+      }
+      const hot = (g.key === 'misuse' && v >= 60) || (!!th && v >= th.at && g.key !== 'publicPressure');
+      const desc = this.root.querySelector<HTMLElement>(`#gdesc-${g.key}`);
+      if (desc) {
+        const label =
+          `${g.label}: ${v}${g.key === 'coalition' ? ' of 3 partners' : ' out of 100'}${g.errorBar ? `, plus or minus ${g.errorBar}` : ''}` +
+          `${hot ? ', high' : ''}. ${dl ? `${moveWords(dl)} this quarter${tw ? `, ${tw}` : ''}` : 'No change this quarter'}.` +
+          (th ? ` At ${th.at}: ${th.meaning}.` : '');
+        // a description, not the name: the name stays the tile's visible text (WCAG 2.5.3, label in name)
+        if (desc.textContent !== label) desc.textContent = label;
+      }
+      if (g.key === 'misuse' && hot && !this.warned.has(g.key) && this.clockActive) {
+        this.warned.add(g.key);
+        announce(`Warning: ${g.label} is high, at ${v}.`);
+      } else if (!hot) this.warned.delete(g.key);
+      // the header's GDP and approval
+      const home = this.root.querySelector<HTMLElement>(`.home-ind[data-key="${g.key}"]`);
+      if (home) {
+        home.querySelector('b')!.textContent = String(v);
+        const hd = home.querySelector<HTMLElement>('.g-delta')!;
+        hd.textContent = dl ? signed(dl) : '';
+        hd.className = `g-delta ${tone(g.key, dl)}`;
+      }
+      const tile = this.root.querySelector<HTMLElement>(`.g-tile[data-key="${g.key}"]`);
+      if (!tile) continue;
       tile.querySelector('.g-val b')!.textContent = g.key === 'coalition' ? `${v}/3` : String(v);
       tile.querySelector('.g-val small')!.textContent = g.errorBar ? `±${g.errorBar}` : '';
       const dEl = tile.querySelector<HTMLElement>('.g-delta')!;
@@ -703,55 +1005,199 @@ export class App {
         err.style.left = `${Math.max(0, d.value - g.errorBar)}%`;
         err.style.width = `${Math.min(100, d.value + g.errorBar) - Math.max(0, d.value - g.errorBar)}%`;
         err.style.opacity = g.errorBar ? '1' : '0';
+        tile.classList.toggle('past-th', !!th && v >= th.at);
       }
-      const hot = (g.key === 'tension' || g.key === 'misuse') && v >= 60;
       tile.classList.toggle('hot', hot);
-      // the tile's name says everything the colours and bars show
-      const tw = TONE_WORDS[tone(g.key, dl)];
-      const label =
-        `${g.label}: ${v}${g.key === 'coalition' ? ' of 3 partners' : ' out of 100'}${g.errorBar ? `, plus or minus ${g.errorBar}` : ''}` +
-        `${hot ? ', high' : ''}. ${dl ? `${moveWords(dl)} this quarter${tw ? `, ${tw}` : ''}` : 'No change this quarter'}.`;
-      // a description, not the name: the name stays the tile's visible text (WCAG 2.5.3, label in name)
-      const desc = this.root.querySelector<HTMLElement>(`#gdesc-${g.key}`);
-      if (desc && desc.textContent !== label) desc.textContent = label;
-      if (hot && !this.warned.has(g.key) && this.clockActive) {
-        this.warned.add(g.key);
-        announce(`Warning: ${g.label} is high, at ${v}.`);
-      } else if (!hot) this.warned.delete(g.key);
       if (flash && prev !== undefined && prev !== String(dl)) {
         tile.classList.remove('flash');
         void tile.offsetWidth;
         tile.classList.add('flash');
       }
     }
+    if (crossed.length) this.toast(`Threshold crossed. ${crossed.join(' ')}`, 'alert');
     const eu = this.root.querySelector<HTMLElement>('.g-tile[data-hidden="eu"]');
     if (eu) {
       eu.classList.toggle('revealed', reveal);
       eu.querySelector('.g-val')!.innerHTML = reveal
         ? `<span class="eu3"><span>Econ <b>${this.s.eu.economy}</b></span><span>Culture <b>${this.s.eu.culture}</b></span><span>State <b>${this.s.eu.state}</b></span></span>`
         : '<b>?</b>';
-      eu.querySelector('.g-tease')!.textContent = reveal ? `Audit visible until ${this.e.dateLabel(this.s.revealUntil)}` : 'Revealed at the end';
+      eu.querySelector('.g-tease')!.textContent = reveal ? `Audit visible until ${this.e.dateLabel(this.s.revealUntil)}` : '';
     }
     const gv = (k: string) => views.find((x) => x.key === k);
     const disp = (k: string) => {
       const g = gv(k);
       return g ? this.displayed(g).value : 0;
     };
-    this.map.update({ capability: disp('capability'), tension: disp('tension'), verification: disp('verification'), coalition: gv('coalition')?.value ?? 0, publicPressure: disp('publicPressure') });
+    this.map.update({
+      capability: disp('capability'),
+      tension: disp('tension'),
+      verification: disp('verification'),
+      coalition: gv('coalition')?.value ?? 0,
+      publicPressure: disp('publicPressure'),
+      misuse: disp('misuse'),
+    });
+  }
+
+  /** The trajectory bar: the four plans' odds, and the last movement with its cause. */
+  private renderTrajectory() {
+    const tr = this.e.trajectory(this.s);
+    const sig = PLAN_ORDER.map((p) => Math.round(tr.odds[p] * 100)).join(',');
+    const bar = $('#trajbar', this.root);
+    if (sig !== this.trajSig) {
+      const first = !bar.childElementCount;
+      if (first) {
+        bar.innerHTML = PLAN_ORDER.map((p) => `<span class="tseg s-${PLAN_TONE[p]}" data-plan="${p}"><i></i></span>`).join('');
+      }
+      for (const p of PLAN_ORDER) {
+        const seg = bar.querySelector<HTMLElement>(`[data-plan="${p}"]`)!;
+        seg.style.flexGrow = String(Math.max(0.0001, tr.odds[p]));
+        seg.classList.toggle('hi', p === tr.mostLikely);
+        seg.querySelector('i')!.textContent = tr.odds[p] >= 0.12 ? `${PLAN[p].short} ${pct(tr.odds[p])}` : tr.odds[p] >= 0.06 ? pct(tr.odds[p]) : '';
+      }
+      bar.setAttribute('aria-label', `Most likely: ${PLAN[tr.mostLikely].name}. ${PLAN_ORDER.map((p) => `${PLAN[p].name} ${pct(tr.odds[p])}`).join(', ')}.`);
+      this.trajSig = sig;
+    }
+    const c = tr.change;
+    const csig = c ? `${c.plan}:${c.delta}:${c.because}` : '';
+    const out = $('#trajchange', this.root);
+    if (csig !== this.trajChangeSig) {
+      this.trajChangeSig = csig;
+      if (c) {
+        const t = trajectoryChangeText(c);
+        out.innerHTML = `<span class="tc-head ${t.tone}">${esc(t.head)}</span><span class="tc-why">${esc(t.because)}</span>`;
+        out.className = 'traj-change moved';
+        const seg = bar.querySelector<HTMLElement>(`[data-plan="${c.plan}"]`);
+        seg?.classList.remove('pulse');
+        if (seg && !reducedMotion()) {
+          void seg.offsetWidth;
+          seg.classList.add('pulse');
+        }
+        announce(`Where the superpowers are heading: ${t.said}. ${t.because}`);
+      } else {
+        out.innerHTML = `<span class="tc-why">Most likely if AI starts improving itself: <b>${esc(PLAN[tr.mostLikely].name)}</b>.</span>`;
+        out.className = 'traj-change';
+      }
+    } else if (!c) {
+      const b = out.querySelector('b');
+      if (b && b.textContent !== PLAN[tr.mostLikely].name) b.textContent = PLAN[tr.mostLikely].name;
+    }
+  }
+
+  private renderAdvisor() {
+    const a = this.e.advisor(this.s);
+    $('#adv-text', this.root).textContent = a.text;
+    const parts: string[] = [];
+    if (a.recommend) parts.push(`<span class="adv-k">Recommended</span><b>${esc(this.namesOf([a.recommend])[0])}</b>${a.reason ? ` · ${esc(a.reason)}` : ''}`);
+    else if (a.reason) parts.push(esc(a.reason));
+    if (a.alternative) parts.push(`<span class="adv-k">Alternative</span>${esc(a.alternative.text)}`);
+    $('#adv-more', this.root).innerHTML = parts.join('<br>');
+  }
+
+  private renderRisks() {
+    const risks = this.e.riskViews(this.s);
+    const ul = $('#risks', this.root);
+    const moved: string[] = [];
+    for (const r of risks) {
+      const before = this.riskStages[r.id];
+      const name = r.title || RISK_NAME[r.id];
+      if (before !== r.stage && r.stage !== 'happened') {
+        if (!before) moved.push(`New risk: ${name}, ${STAGE_WORD[r.stage].toLowerCase()}, ${r.prepared ? 'you are prepared' : 'you are not prepared'}.`);
+        else if (STAGE_ORDER.indexOf(r.stage) > STAGE_ORDER.indexOf(before as RiskView['stage']))
+          moved.push(`${name} is now ${STAGE_WORD[r.stage].toLowerCase()}${r.prepared ? '' : ', and you are not prepared'}.`);
+      }
+    }
+    const sig = risks.map((r) => `${r.id}:${r.stage}:${r.prepared}:${r.certainty}`).join('|');
+    if (ul.dataset.sig !== sig) {
+      ul.dataset.sig = sig;
+      const focusedRisk = (document.activeElement as HTMLElement | null)?.dataset?.risk;
+      ul.innerHTML = risks.length
+        ? risks
+            .map((r) => {
+              const stageN = STAGE_ORDER.indexOf(r.stage);
+              const isNew = this.riskStages[r.id] !== undefined && this.riskStages[r.id] !== r.stage;
+              return `<li><button type="button" class="risk st-${r.stage}${r.prepared ? ' prepared' : ''}${isNew || this.riskStages[r.id] === undefined ? ' moved' : ''}" data-risk="${esc(r.id)}" aria-expanded="false" aria-controls="gpop">
+                <span class="rk-name">${esc(r.title || RISK_NAME[r.id])}</span>
+                <span class="rk-meter" aria-hidden="true">${[0, 1, 2].map((i) => `<i class="${i <= stageN ? 'on' : ''}"></i>`).join('')}</span>
+                <span class="rk-stage">${esc(STAGE_WORD[r.stage])}${r.stage !== 'happened' ? ` · ${r.certainty === 'possible' ? 'Possible' : 'Likely'}` : ''}</span>
+                <span class="rk-prep">${r.prepared ? `${ICON.check}Prepared` : `${ICON.cross}Not prepared`}</span>
+              </button></li>`;
+            })
+            .join('')
+        : '<li class="risk-none">No crisis on the horizon yet.</li>';
+      ul.querySelectorAll<HTMLButtonElement>('.risk').forEach((b) => b.addEventListener('click', () => this.togglePopover(b)));
+      if (focusedRisk) tryFocus(ul.querySelector(`[data-risk="${focusedRisk}"]`));
+    }
+    for (const r of risks) this.riskStages[r.id] = r.stage;
+    if (moved.length) announce(`Risks: ${moved.join(' ')}`);
+  }
+
+  /** The indicator introduced this quarter: a "New" tag on its tile and one line on why it matters now. */
+  private renderIntro() {
+    const intro = this.e.dashboard(this.s).introduced;
+    const p = $('#gintro', this.root);
+    this.root.querySelectorAll<HTMLElement>('.g-tile .g-new').forEach((n) => (n.hidden = n.closest<HTMLElement>('.g-tile')!.dataset.key !== intro?.key));
+    if (!intro) {
+      p.hidden = true;
+      return;
+    }
+    const g = this.gaugeViews().find((x) => x.key === intro.key);
+    const name = g?.label ?? intro.key;
+    p.innerHTML = `<span class="g-intro-k">New indicator</span><b>${esc(name)}</b> ${esc(intro.why)}`;
+    p.hidden = false;
+    const said = `${this.s.quarter}:${intro.key}`;
+    if (this.introducedSaid !== said) {
+      this.introducedSaid = said;
+      announce(`New indicator: ${name}. ${intro.why}`);
+    }
+  }
+
+  private markRead(kind: 'news' | 'notes') {
+    const ids = kind === 'news' ? this.feed.map((f) => f.id) : this.s.notes.map((n) => n.id);
+    let changed = false;
+    for (const id of ids) if (this.unread.delete(id)) changed = true;
+    if (changed && kind === 'notes') this.renderUnreadCount();
+  }
+
+  private renderUnreadCount() {
+    const n = this.s.notes.filter((x) => this.unread.has(x.id)).length;
+    const el = $('#notes-unread', this.root);
+    el.textContent = `${n} unread`;
+    el.hidden = !n;
+  }
+
+  /** Earlier quarters, folded under their date (newest first). */
+  private past<T extends { quarter: number }>(items: T[], li: (x: T) => string, kind: string) {
+    const qs = [...new Set(items.map((x) => x.quarter))].sort((a, b) => b - a);
+    return qs
+      .map((q) => {
+        const xs = items.filter((x) => x.quarter === q).reverse();
+        return `<details class="feed-fold"><summary>${esc(this.e.dateLabel(q))} <small>${xs.length} ${kind}${xs.length > 1 ? 's' : ''}</small></summary><ol>${xs.map(li).join('')}</ol></details>`;
+      })
+      .join('');
+  }
+
+  private renderFolds(container: HTMLElement, html: string) {
+    // keep open folds open across redraws
+    const open = new Set([...container.querySelectorAll('details[open] summary')].map((s) => s.firstChild?.textContent?.trim()));
+    container.innerHTML = html;
+    container.querySelectorAll('details').forEach((d) => {
+      if (open.has(d.querySelector('summary')?.firstChild?.textContent?.trim())) d.open = true;
+    });
   }
 
   private renderNews(fresh?: string) {
-    const ol = $('#news', this.root);
-    const items = this.feed.slice(-40).reverse();
-    ol.innerHTML = items.length
-      ? items
-          .map(
-            (n) => `<li class="ni ${n.kind === 'event' ? 'ni-event' : ''}${n.id === fresh ? ' new' : ''}">
-              <span class="ni-meta"><span class="actor t-${ACTOR_TONE[n.actor]}">${esc(n.kind === 'event' ? 'Breaking' : ACTOR_SHORT[n.actor])}</span><time class="num">${esc(this.e.dateLabel(n.quarter))}</time></span>
-              <p>${esc(n.text)}</p></li>`,
-          )
-          .join('')
-      : '<li class="empty">Headlines will arrive while the clock runs.</li>';
+    const q = this.s.quarter;
+    const li = (n: FeedItem) => `<li class="ni ${n.kind === 'event' ? 'ni-event' : ''}${n.id === fresh ? ' new' : ''}${this.unread.has(n.id) ? ' unread' : ''}">
+        <span class="ni-meta"><span class="actor t-${ACTOR_TONE[n.actor]}">${esc(n.kind === 'event' ? 'Breaking' : ACTOR_SHORT[n.actor])}</span><time class="num">${esc(this.e.dateLabel(n.quarter))}</time>${this.unread.has(n.id) ? '<span class="new-tag">New</span>' : ''}</span>
+        <p>${esc(n.text)}</p></li>`;
+    const now = this.feed.filter((n) => n.quarter === q).reverse();
+    const shown = this.moreNews ? now : now.slice(0, FEED_FIRST);
+    $('#news', this.root).innerHTML = now.length ? shown.map(li).join('') : '<li class="empty">Headlines will arrive while the clock runs.</li>';
+    const more = $<HTMLButtonElement>('#news-more', this.root);
+    more.hidden = now.length <= FEED_FIRST;
+    more.textContent = this.moreNews ? 'Show fewer' : `More this quarter (${now.length - FEED_FIRST})`;
+    more.setAttribute('aria-expanded', String(this.moreNews));
+    this.renderFolds($('#news-past', this.root), this.past(this.feed.filter((n) => n.quarter < q), li, 'item'));
     const last = this.feed[this.feed.length - 1];
     if (last) {
       $('#tickTag', this.root).textContent = last.kind === 'event' ? 'BREAKING' : ACTOR_SHORT[last.actor].toUpperCase();
@@ -767,46 +1213,32 @@ export class App {
   }
 
   private renderNotes(fresh?: string) {
-    const ol = $('#notes', this.root);
-    const shown = this.s.notes.filter((n) => this.seen.has(n.id) || n.quarter < this.s.quarter).slice(-30).reverse();
-    shown.forEach((n) => this.seen.add(n.id));
-    const redact = (n: InternalNote) =>
-      n.text
-        .split(/\s+/)
-        .map((w) => `<i style="width:${Math.min(9, Math.max(2, w.length)) * 0.62}em"></i>`)
-        .join('');
-    ol.innerHTML = shown.length
-      ? shown
-          .map(
-            (n) => `<li class="note ${n.readable ? 'readable' : 'redacted'}${n.id === fresh ? ' new' : ''}">
-              <span class="ni-meta"><span class="actor t-${ACTOR_TONE[n.actor]}">${esc(ACTOR[n.actor])}</span><time class="num">${esc(this.e.dateLabel(n.quarter))}</time>${n.readable ? '<span class="stamp">Confidential</span>' : ''}</span>
-              ${n.readable ? `<p>${esc(n.text)}</p>` : `<p class="bars"><span class="sr-only">Redacted note — invest in oversight to read</span>${redact(n)}</p>`}</li>`,
-          )
-          .join('')
-      : '<li class="empty">No confidential reports yet.</li>';
-    $('#notesHint', this.root).hidden = !shown.some((n) => !n.readable);
+    const q = this.s.quarter;
+    const all = this.s.notes.filter((n) => this.seen.has(n.id) || n.quarter < q);
+    all.forEach((n) => this.seen.add(n.id));
+    const li = (n: InternalNote) => {
+      const lines = Math.max(1, Math.min(3, Math.round(n.text.length / 60)));
+      return `<li class="note ${n.readable ? 'readable' : 'redacted'}${n.id === fresh ? ' new' : ''}${this.unread.has(n.id) ? ' unread' : ''}">
+        <span class="ni-meta"><span class="actor t-${ACTOR_TONE[n.actor]}">${esc(ACTOR[n.actor])}</span><time class="num">${esc(this.e.dateLabel(n.quarter))}</time>${this.unread.has(n.id) ? '<span class="new-tag">New</span>' : ''}<span class="stamp">${n.readable ? 'Confidential' : 'Redacted'}</span></span>
+        ${
+          n.readable
+            ? `<p>${esc(n.text)}</p>`
+            : `<p class="redacted-body"><span class="sr-only">Redacted note: invest in oversight to read it.</span>${Array.from({ length: lines }, (_, i) => `<span class="rl" style="width:${i === lines - 1 ? 45 + ((n.text.length * 7) % 40) : 100}%" aria-hidden="true"></span>`).join('')}</p>`
+        }</li>`;
+    };
+    const now = all.filter((n) => n.quarter === q).reverse();
+    const shown = this.moreNotes ? now : now.slice(0, FEED_FIRST);
+    $('#notes', this.root).innerHTML = now.length ? shown.map(li).join('') : '<li class="empty">No confidential report this quarter yet.</li>';
+    const more = $<HTMLButtonElement>('#notes-more', this.root);
+    more.hidden = now.length <= FEED_FIRST;
+    more.textContent = this.moreNotes ? 'Show fewer' : `More this quarter (${now.length - FEED_FIRST})`;
+    more.setAttribute('aria-expanded', String(this.moreNotes));
+    this.renderFolds($('#notes-past', this.root), this.past(all.filter((n) => n.quarter < q), li, 'note'));
+    $('#notesHint', this.root).hidden = !all.some((n) => !n.readable);
+    this.renderUnreadCount();
   }
 
   // ------------------------------------------------------------------ juice
-
-  private flyToPc(from: { x: number; y: number }) {
-    if (reducedMotion()) return this.renderTop();
-    const target = $('.res.pc', this.root).getBoundingClientRect();
-    const f = document.createElement('div');
-    f.className = 'fly';
-    f.innerHTML = ICON.pc;
-    f.style.left = `${from.x}px`;
-    f.style.top = `${from.y}px`;
-    document.body.appendChild(f);
-    requestAnimationFrame(() => {
-      f.style.transform = `translate(${target.left + 22 - from.x}px, ${target.top + target.height / 2 - from.y}px) scale(.6)`;
-      f.style.opacity = '0.2';
-    });
-    setTimeout(() => {
-      f.remove();
-      this.renderTop();
-    }, 650);
-  }
 
   private coachQueue: string[] = [];
   private coachBusy = false;

@@ -10,6 +10,7 @@ import { modalOpen, openModal } from '../../src/ui/modal';
 import { showDecision } from '../../src/ui/screens/decision';
 import { engine } from '../../src/engine/index';
 import { craft } from '../helpers';
+import { installV2Fixtures } from './fixtures';
 import { FAKE_CLOCK, key, openModalEl, preferReducedMotion, sleep } from './setup';
 
 beforeAll(() => preferReducedMotion(true));
@@ -111,19 +112,20 @@ describe('the map', () => {
     const box = document.body.appendChild(document.createElement('div'));
     const m = new WorldMap(box);
     expect(m.svg.getAttribute('role')).toBe('group');
-    m.update({ capability: 52, tension: 63, verification: 10, coalition: 2, publicPressure: 30 });
+    m.update({ capability: 52, tension: 63, verification: 10, coalition: 2, publicPressure: 30, misuse: 35 });
     m.addEventPin('cn', 'Weight theft', 'Q3 2028', () => {});
     const summary = document.getElementById(m.svg.getAttribute('aria-describedby')!)!;
     expect(summary.textContent).toBe(
       'US–China tension 63 out of 100, high. Standing with Europe: UK, Norway and Canada. Not yet: Japan and Korea. ' +
-        'The labs, OpenBrain in the US and DeepCent in China, are at capability 52. Events pinned on the map: Weight theft (China, Q3 2028).',
+        'The labs, OpenBrain in the US and DeepCent in China, are at capability 52. Public pressure 30: protests in 2 European cities. ' +
+        'Misuse risk 35: 2 AI-enabled attacks on the map. Events pinned on the map: Weight theft (China, Q3 2028).',
     );
     // the drawing itself is hidden from screen readers; only pins and bubbles are exposed
     expect(m.svg.querySelector('.m-land')!.getAttribute('aria-hidden')).toBe('true');
     expect(new WorldMap(box, { decorative: true }).svg.getAttribute('aria-hidden')).toBe('true');
   });
 
-  it('Léa’s pin, event pins and bubbles are keyboard buttons; Space works and does not reach the page', () => {
+  it('Léa’s button, event pins and bubbles are keyboard buttons; Space works and does not reach the page', () => {
     const box = document.body.appendChild(document.createElement('div'));
     const onBubble = vi.fn();
     const m = new WorldMap(box, { onBubble });
@@ -131,28 +133,32 @@ describe('the map', () => {
     m.onLea = onLea;
     const pageKeys = vi.fn();
     document.addEventListener('keydown', pageKeys);
-    const lea = m.svg.querySelector<SVGGElement>('.lea-pin')!;
-    expect([lea.getAttribute('role'), lea.getAttribute('tabindex')]).toEqual(['button', '0']);
-    key(' ', lea);
+    // Léa: a real <button> with her name in it (label in name)
+    const lea = box.querySelector<HTMLButtonElement>('button.lea-btn')!;
+    expect(lea.getAttribute('aria-label')).toMatch(/^Léa/);
+    expect(lea.textContent).toContain('Léa');
+    lea.click();
     expect(onLea).toHaveBeenCalledTimes(1);
-    expect(pageKeys).not.toHaveBeenCalled();
     const open = vi.fn();
     m.addEventPin('us', 'Opaque reasoning', 'Q1 2029', open);
     const pin = m.svg.querySelector<SVGGElement>('.evpin')!;
     expect([pin.getAttribute('role'), pin.getAttribute('aria-label')]).toEqual(['button', 'Opaque reasoning, Q1 2029']);
     key('Enter', pin);
     expect(open).toHaveBeenCalledTimes(1);
+    key(' ', pin);
+    expect(open).toHaveBeenCalledTimes(2);
+    expect(pageKeys).not.toHaveBeenCalled();
     m.spawnBubble('b1', 'eu');
     m.spawnBubble('b2', 'cn');
     const [b1, b2] = m.svg.querySelectorAll<SVGGElement>('.bubble');
-    expect(b1.getAttribute('aria-label')).toBe('Public concern in Europe: collect 1 Political Capital');
+    expect(b1.getAttribute('aria-label')).toBe('Public concern in Europe: read what worries people');
     expect(m.liveBubbles()).toEqual(['b1', 'b2']);
     // a focused bubble that goes away hands focus on to the next one, then to the map
     b1.focus();
-    m.popBubble('b1', true);
+    m.popBubble('b1');
     expect(document.activeElement).toBe(b2);
     expect(b1.hasAttribute('tabindex')).toBe(false);
-    m.popBubble('b2', false);
+    m.popBubble('b2');
     expect(document.activeElement).toBe(m.svg);
     document.removeEventListener('keydown', pageKeys);
   });
@@ -181,13 +187,50 @@ describe('words, not colour alone', () => {
     m.querySelector<HTMLElement>('.pcard[data-card="host_verification"]')!.click();
     expect(m.querySelector('.pcard[data-card="host_verification"]')!.getAttribute('aria-pressed')).toBe('true');
     expect(m.querySelector('.oc-row')!.getAttribute('aria-label')).toMatch(/^Verified slowdown: \d+% now, \d+% after/);
-    m.querySelector<HTMLElement>('.pcard[data-card="asml"]')!.click();
-    const opts = () => [...m.querySelectorAll<HTMLElement>('.opt')];
+    // a locked card shows why, not a preview of the odds (B5)
+    locked.click();
+    expect(m.querySelector('.pv-lock')!.textContent).toContain('Not available now.');
+    expect(m.querySelector('.preview .oc-row')).toBeNull();
+    expect(m.querySelector<HTMLButtonElement>('.dec-bar [data-primary]')!.disabled).toBe(true);
+    m.querySelector<HTMLElement>('[data-action="pass"]')!.click();
+    await sleep(60);
+    void showDecision(engine, engine.startQuarter(craft({ quarter: 3, pc: 1, budget: 2, gauges: { capability: 40 } })));
+    const m2 = openModalEl()!;
+    m2.querySelector<HTMLElement>('.pcard[data-card="asml"]')!.click();
+    const opts = () => [...m2.querySelectorAll<HTMLElement>('.opt')];
     opts()[0].focus();
     key('ArrowRight', opts()[0]);
     expect(opts()[1].getAttribute('aria-checked')).toBe('true');
     expect(document.activeElement).toBe(opts()[1]); // focus stays on the choice after the preview redraws
     expect(opts().map((o) => o.getAttribute('tabindex'))).toEqual(['-1', '0']);
-    m.querySelector<HTMLElement>('[data-action="pass"]')!.click();
+    // an unaffordable card says how far off it is, in words
+    expect(m2.querySelector('.pcard[data-card="asml"] .st.short')!.textContent).toBe('Needs 1 more PC');
+    m2.querySelector<HTMLElement>('[data-action="pass"]')!.click();
+  });
+
+  it('the decision: Confirm and Pass in a bar after the preview, a risk highlights its cards and says so', async () => {
+    const restore = installV2Fixtures(engine);
+    try {
+      const s = engine.startQuarter(craft({ quarter: 3, pc: 1, budget: 2 }));
+      void showDecision(engine, s);
+      const m = openModalEl()!;
+      const bar = m.querySelector('.dec-bar')!;
+      expect([...bar.querySelectorAll('button')].map((b) => b.dataset.action)).toEqual(['map', 'pass', 'confirm']);
+      expect(m.querySelector('.preview')!.compareDocumentPosition(bar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      const theft = m.querySelector<HTMLButtonElement>('.risk-tg[data-risk="weight_theft"]')!;
+      expect(theft.textContent).toContain('not prepared'); // in words, not only a cross
+      theft.click();
+      expect(theft.getAttribute('aria-pressed')).toBe('true');
+      expect([...m.querySelectorAll<HTMLElement>('.pcard.prep-hi')].map((c) => c.dataset.card)).toEqual(['weight_security']);
+      flush();
+      expect(m.querySelector('.sr-live')!.textContent).toContain('1 card prepares for Model theft: Weight security standards.');
+      theft.click();
+      expect(m.querySelectorAll('.pcard.prep-hi')).toHaveLength(0);
+      // the advisor's pick is marked in words
+      expect(m.querySelector('.pcard.recommended .pbadge.pick')!.textContent).toBe('Advisor’s pick');
+      m.querySelector<HTMLElement>('[data-action="pass"]')!.click();
+    } finally {
+      restore();
+    }
   });
 });
