@@ -9,11 +9,16 @@ import type { EndingId, GameState, PlanId } from '../src/engine/types';
 
 const PLAN_IDS: PlanId[] = ['verified_slowdown', 'shut_down', 'fight_china', 'race'];
 
-/** The plan weights exactly as docs/DEVELOPER_NOTES.md states them (with rebalance 2: shut-down threshold 60). */
-function docWeights(s: GameState): Record<PlanId, number> {
+/**
+ * The plan weights exactly as docs/DEVELOPER_NOTES.md states them (with rebalance 2: shut-down threshold 60;
+ * v2: +10 after an emergency inspection summit). `withHidden` adds the term that reads hidden true alignment:
+ * the real draw uses it, the odds shown to the player do not.
+ */
+function docWeights(s: GameState, withHidden = false): Record<PlanId, number> {
   const g = s.gauges;
-  const slowdown = 5 + 0.6 * g.verification + 0.3 * g.publicPressure + 10 * s.coalition + (s.flags.warningShotPrepared ? 15 : 0) - 0.2 * g.tension;
-  const shut = 2 + (g.publicPressure >= 60 ? 0.3 * g.publicPressure : 0) + (s.firedEvents.warning_shot && g.trueAlignment < 40 ? 10 : 0);
+  const slowdown =
+    5 + 0.6 * g.verification + 0.3 * g.publicPressure + 10 * s.coalition + (s.flags.warningShotPrepared ? 15 : 0) + ((s.cardsPlayed.emergency_summit ?? 0) > 0 ? 10 : 0) - 0.2 * g.tension;
+  const shut = 2 + (g.publicPressure >= 60 ? 0.3 * g.publicPressure : 0) + (withHidden && s.firedEvents.warning_shot && g.trueAlignment < 40 ? 10 : 0);
   const fight = 10 + 0.5 * g.tension;
   const race = Math.max(5, 25 - 0.2 * g.publicPressure - 0.1 * g.verification);
   return {
@@ -23,8 +28,8 @@ function docWeights(s: GameState): Record<PlanId, number> {
     race: Math.max(1, race),
   };
 }
-const docOdds = (s: GameState) => {
-  const w = docWeights(s);
+const docOdds = (s: GameState, withHidden = false) => {
+  const w = docWeights(s, withHidden);
   const t = PLAN_IDS.reduce((a, p) => a + w[p], 0);
   return Object.fromEntries(PLAN_IDS.map((p) => [p, w[p] / t])) as Record<PlanId, number>;
 };
@@ -42,13 +47,18 @@ describe('plan odds', () => {
         for (const tension of [0, 40, 100])
           for (const coalition of [0, 1, 3])
             for (const ws of [false, true])
-              for (const trueAlignment of [39, 40]) {
-                const s = craft({ gauges: { verification, publicPressure, tension, trueAlignment }, coalition, flags: { warningShotPrepared: ws } });
-                const t = ws ? { ...s, firedEvents: { warning_shot: { quarter: 3, prepared: true } } } : s;
-                const odds = E.planOdds(t);
-                const expected = docOdds(t);
-                for (const p of PLAN_IDS) expect(odds[p]).toBeCloseTo(expected[p], 12);
-              }
+              for (const trueAlignment of [39, 40])
+                for (const summit of [0, 1]) {
+                  const s = craft({ gauges: { verification, publicPressure, tension, trueAlignment }, coalition, flags: { warningShotPrepared: ws } });
+                  const t = { ...(ws ? { ...s, firedEvents: { warning_shot: { quarter: 3, prepared: true } } } : s), cardsPlayed: { emergency_summit: summit } };
+                  const odds = E.planOdds(t);
+                  const expected = docOdds(t);
+                  for (const p of PLAN_IDS) expect(odds[p]).toBeCloseTo(expected[p], 12);
+                  // the real draw at the tipping point uses the hidden term too
+                  const drawn = E.runTippingPoint({ ...t, phase: 'tipping' }).tipping!.odds;
+                  const real = docOdds(t, true);
+                  for (const p of PLAN_IDS) expect(drawn[p]).toBeCloseTo(real[p], 12);
+                }
   });
 
   it('shut it all down gets the pressure term from 60 (not 59)', () => {
@@ -229,13 +239,13 @@ describe('endings, at every boundary', () => {
     expect(ending(b(40), null, rw(false))).toBe('agent_economy');
   });
 
-  it('diplomacy (both plans): verification 50+, concentration 70 or less, true alignment 35+', () => {
+  it('diplomacy (both plans): verification 45+, concentration 70 or less, true alignment 47+ (v2 tuning)', () => {
     for (const plan of ['verified_slowdown', 'shut_down'] as PlanId[]) {
       const d = (verification: number, concentration: number, trueAlignment: number) => ending({ gauges: { verification, concentration, trueAlignment } }, plan);
-      expect(d(50, 70, 35)).toBe('licensed_utopia');
-      expect(d(49, 70, 35)).toBe('unstable_pause');
-      expect(d(50, 71, 35)).toBe('unstable_pause');
-      expect(d(50, 70, 34)).toBe('unstable_pause');
+      expect(d(45, 70, 47)).toBe('licensed_utopia');
+      expect(d(44, 70, 47)).toBe('unstable_pause');
+      expect(d(45, 71, 47)).toBe('unstable_pause');
+      expect(d(45, 70, 46)).toBe('unstable_pause');
     }
   });
 
@@ -299,23 +309,23 @@ describe('the ending says what happened in this game', () => {
   };
 
   it('unstable pause: only the conditions that failed, with their values', () => {
-    const one = finished({ gauges: { verification: 40, trueAlignment: 50, concentration: 60 } }, 'verified_slowdown');
+    const one = finished({ gauges: { verification: 40, trueAlignment: 55, concentration: 60 } }, 'verified_slowdown');
     expect(one.id).toBe('unstable_pause');
     expect(one.text).toContain('But nobody could really check the other side.');
     expect(one.text).not.toMatch(/less trustworthy|all the cards|, or /);
-    expect(one.why).toBe('Washington and Beijing chose a verified slowdown. Verification readiness was 40, below the 50 a lasting deal needs.');
+    expect(one.why).toBe('Washington and Beijing chose a verified slowdown. Verification readiness was 40, below the 45 a lasting deal needs.');
 
     const two = finished({ gauges: { verification: 60, trueAlignment: 30, concentration: 75 } }, 'shut_down');
     expect(two.id).toBe('unstable_pause');
     expect(two.text).toContain('But the AIs already running were less trustworthy than they looked and a few companies held all the cards.');
     expect(two.text).not.toMatch(/check the other side/);
-    expect(two.why).toMatch(/^Washington and Beijing chose to shut it all down\. True alignment was 30, below 35: .+ Power concentration was 75, above 70\.$/);
+    expect(two.why).toMatch(/^Washington and Beijing chose to shut it all down\. True alignment was 30, below 47: .+ Power concentration was 75, above 70\.$/);
   });
 
   it('licensed utopia names what held', () => {
-    const v = finished({ gauges: { verification: 64, trueAlignment: 41, concentration: 58 } }, 'verified_slowdown');
+    const v = finished({ gauges: { verification: 64, trueAlignment: 51, concentration: 58 } }, 'verified_slowdown');
     expect(v.id).toBe('licensed_utopia');
-    expect(v.why).toContain('Verification was ready (64, at least 50), power was not too concentrated (58, at most 70) and the AIs were aligned enough (true alignment 41, at least 35).');
+    expect(v.why).toContain('Verification was ready (64, at least 45), power was not too concentrated (58, at most 70) and the AIs were aligned enough (true alignment 51, at least 47).');
   });
 
   it('hot war: no coalition, too much tension, or both', () => {

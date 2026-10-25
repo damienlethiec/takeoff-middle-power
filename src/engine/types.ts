@@ -198,6 +198,8 @@ export interface GameState {
   notices: Notice[];
   /** Tips already shown (by id), so each shows once. */
   tipsShown: string[];
+  /** When each tip was shown, for the one-per-quarter rule and the journal. */
+  tipLog: { id: string; quarter: number }[];
   /** Public concern of the quarter, shown as map bubbles; clicking explains, it pays nothing. */
   concerns: Concern[];
   /** Every Léa letter delivered so far, oldest first. */
@@ -382,7 +384,7 @@ export interface AdvisorView {
 export interface TrajectoryView {
   odds: Record<PlanId, number>;
   mostLikely: PlanId;
-  /** The last movement and its cause, null at the start. */
+  /** The last movement and its cause, null at the start. `delta` is in probability (0.06 = +6 points). */
   change: { plan: PlanId; delta: number; because: string } | null;
 }
 
@@ -407,6 +409,8 @@ export interface Tip {
   id: string;
   title: string;
   text: string; // one screen, plain words
+  /** Optional "Already real" fact shown under the tip. */
+  fact?: { text: string; source: Source };
 }
 
 export interface JournalEntry {

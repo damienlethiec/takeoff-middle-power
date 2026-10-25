@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { E, craft, deltaMap, nextQuarter, started, type CraftOptions } from './helpers';
+import { CAUSE_TEXT } from '../src/data/causes';
 import { EVENTS, EVENT_BY_ID } from '../src/data/events';
 import type { EventId, GameState } from '../src/engine/types';
 
@@ -77,8 +78,8 @@ describe('prepared conditions, at their boundaries', () => {
     expect(started(base).pendingEvent!.prepared).toBe(true);
     expect(started({ ...base, gauges: { ...base.gauges, verification: 29 } }).pendingEvent!.prepared).toBe(false);
     expect(started({ ...base, coalition: 0, gauges: { ...base.gauges, verification: 80 } }).pendingEvent!.prepared).toBe(false);
-    // a partner lost to unpaid upkeep this quarter means unprepared
-    expect(started({ ...base, pc: 0 }).pendingEvent!.prepared).toBe(false);
+    // v2: no upkeep, so a partner is never lost for want of PC
+    expect(started({ ...base, pc: 0 }).pendingEvent!.prepared).toBe(true);
   });
 
   it('the other events: one flag each', () => {
@@ -159,7 +160,9 @@ describe('effects of each variant', () => {
         // the event's visible effects explain the changes they caused
         for (const d of pe.appliedDeltas) {
           const change = E.situationReport(s).changes.find((c) => c.key === d.key);
-          if (change && Math.abs(d.amount) >= Math.abs(change.delta) / 2) expect(change.cause.toLowerCase()).toContain(v.short.toLowerCase().slice(0, 10));
+          const own = CAUSE_TEXT[ev.id]?.[d.key];
+          if (change && Math.abs(d.amount) >= Math.abs(change.delta) / 2)
+            expect(change.cause.toLowerCase()).toContain((own ?? v.short).toLowerCase().slice(0, 10));
         }
       }
     }
@@ -289,6 +292,10 @@ describe('the warning shot shapes the tipping point', () => {
     };
     expect(w(prep)).toBeGreaterThan(w(base));
     const unsafe = (trueAlignment: number) => ({ ...base, gauges: { ...base.gauges, trueAlignment }, firedEvents: { warning_shot: { quarter: 3, prepared: false } } });
-    expect(E.planOdds(unsafe(39)).shut_down).toBeGreaterThan(E.planOdds(unsafe(40)).shut_down);
+    // the real draw reads hidden true alignment...
+    const drawn = (t: number) => E.runTippingPoint({ ...unsafe(t), phase: 'tipping' as const }).tipping!.odds.shut_down;
+    expect(drawn(39)).toBeGreaterThan(drawn(40));
+    // ...the odds shown to the player never do
+    expect(E.planOdds(unsafe(39))).toEqual(E.planOdds(unsafe(40)));
   });
 });

@@ -8,7 +8,10 @@
 import { all, c } from './conditions';
 import type { ActorRuleDef, NewsTemplate } from './schema';
 
-export const ACTOR_RULES: Record<'labs_report' | 'labs_consolidate' | 'us_chip_controls', ActorRuleDef & { news?: string }> = {
+export const ACTOR_RULES: Record<
+  'labs_report' | 'labs_consolidate' | 'us_chip_controls' | 'us_escalation' | 'us_escalation_averted' | 'employment_shock_40' | 'employment_shock_70',
+  ActorRuleDef & { news?: string }
+> = {
   labs_report: {
     id: 'labs_report',
     actor: 'us_labs',
@@ -33,6 +36,43 @@ export const ACTOR_RULES: Record<'labs_report' | 'labs_consolidate' | 'us_chip_c
     briefing: 'With tension high, Washington restricts AI chip sales to China.',
     debrief: 'Once tension reached 60, the US tightened chip controls, which raised tension further.',
     news: 'Washington tightens export controls on AI chips and chip-making tools. Beijing promises "resolute countermeasures".',
+  },
+  // v2
+  us_escalation: {
+    id: 'us_escalation',
+    actor: 'us',
+    region: 'us',
+    title: 'The US widens export controls after the theft',
+    briefing: 'Washington answers the stolen model with wider export controls, alone.',
+    debrief: 'Two quarters after the stolen model, the US widened export controls on its own, which raised tension again.',
+    news: 'Washington widens export controls to every chip tool sold to China, without consulting its allies.',
+  },
+  us_escalation_averted: {
+    id: 'us_escalation_averted',
+    actor: 'us',
+    region: 'us',
+    title: 'Washington holds back new export controls',
+    briefing: 'Because Europe and its partners attributed the theft together, Washington held back from escalating alone.',
+    debrief: 'Joint attribution with allies stopped a US export-control escalation.',
+    news: 'Washington shelves a new round of export controls, citing "close coordination with allies".',
+  },
+  employment_shock_40: {
+    id: 'employment_shock_40',
+    actor: 'us_labs',
+    region: 'eu',
+    title: 'First wave of AI layoffs',
+    briefing: 'AI agents now do entire jobs. The first wave of layoffs hits Europe: approval falls, public pressure rises.',
+    debrief: 'When capability reached 40, the first wave of AI layoffs cost approval and raised public pressure.',
+    news: 'First wave of AI layoffs: European insurers and call centres cut thousands of jobs in a week.',
+  },
+  employment_shock_70: {
+    id: 'employment_shock_70',
+    actor: 'us_labs',
+    region: 'eu',
+    title: 'A second, bigger wave of AI layoffs',
+    briefing: 'AI now does most office work. A second wave of layoffs hits Europe: approval falls, public pressure rises.',
+    debrief: 'When capability reached 70, a second wave of AI layoffs cost approval and raised public pressure.',
+    news: 'A second, bigger wave of AI layoffs hits offices across Europe. Unions call a general strike in Belgium.',
   },
 };
 
