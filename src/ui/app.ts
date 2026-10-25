@@ -3,12 +3,14 @@
 
 import type { EngineApi } from '../engine/api';
 import type { Briefing, GameState, GaugeView, InternalNote, LeaScene, PendingEvent, QuarterOutcome, RegionId } from '../engine/types';
-import { $, ACTOR, ACTOR_SHORT, ACTOR_TONE, GAUGE_COLOR, HIDDEN_GAUGES, ICON, esc, signed, tone } from './format';
+import { TONE_WORDS, announce, focusOwnsKey, moveWords, reducedMotion, shortcutsOn, tryFocus } from './a11y';
+import { $, ACTOR, ACTOR_SHORT, ACTOR_TONE, GAUGE_COLOR, HIDDEN_GAUGES, ICON, REGION, esc, signed, tone } from './format';
 import { WorldMap } from './map';
-import { modalOpen, openModal, wait } from './modal';
+import { modalOpen, openModal, setFocusFallback, wait } from './modal';
 import { showDecision, type DecisionResult } from './screens/decision';
 import { showEnding } from './screens/ending';
-import { showBriefing, showEvent, showLea, showReport } from './screens/moments';
+import { showHelp } from './screens/help';
+import { showBriefing, showEvent, showEventRecap, showLea, showReport } from './screens/moments';
 import { showOpening } from './screens/opening';
 import { showSuperpowersChoose, showTippingAlarm } from './screens/tipping';
 
@@ -58,6 +60,8 @@ export class App {
   private lastGaugeSig = '';
   private dockResolve: (() => void) | null = null;
   private gameId = 0;
+  /** Gauges announced as high this quarter (tension, misuse), so each warning is said once. */
+  private warned = new Set<string>();
 
   constructor(
     private root: HTMLElement,
@@ -70,6 +74,8 @@ export class App {
     document.addEventListener('click', (ev) => {
       if (!(ev.target as HTMLElement).closest('.g-tile, .g-pop')) this.closePopover();
     });
+    // when a dialog closes and what opened it is gone (a bubble, a dialog button), focus lands on the map
+    setFocusFallback(() => this.root.querySelector<HTMLElement>('.worldmap') ?? this.root.querySelector<HTMLElement>('#game-title'));
     const params = new URLSearchParams(location.search);
     if (!params.has('skipintro')) await showOpening();
     const seed = params.has('seed') ? Number(params.get('seed')) : undefined;
@@ -91,8 +97,13 @@ export class App {
     this.lastLea = null;
     this.shownRes = { pc: NaN, budget: NaN };
     this.lastGaugeSig = '';
+    this.warned.clear();
+    document.title = 'Takeoff: Middle Power';
     this.buildShell();
     this.renderAll();
+    // a new game (after the introduction or "Play again"): start keyboard and screen-reader users at the top
+    const a = document.activeElement;
+    if (!a || a === document.body || !a.isConnected) tryFocus($('#game-title', this.root));
     void this.loop(this.gameId);
   }
 
@@ -132,8 +143,13 @@ export class App {
     // income, upkeep and partners lost, as the quarter opens
     const income = this.s.log.filter((l) => l.quarter === this.s.quarter && l.kind === 'income');
     const lost = income.filter((l) => l.visibleDeltas.some((d) => d.key === 'coalition' && d.amount < 0));
-    if (lost.length) this.toast(lost.map((l) => l.briefing).join(' '), 'alert');
-    else if (income.length) this.toast(`${date} begins. ${income.map((l) => l.briefing).join(' ')}`);
+    if (lost.length) this.toast(lost.map((l) => l.briefing).join(' '), 'alert', false);
+    else if (income.length) this.toast(`${date} begins. ${income.map((l) => l.briefing).join(' ')}`, 'info', false);
+    // one announcement per quarter start: the date, what came in, what you hold
+    const lostText = lost.length ? ` ${lost.map((l) => l.briefing).join(' ')}` : '';
+    const incomeText = !lost.length && income.length ? ` ${income.map((l) => l.briefing).join(' ')}` : '';
+    const hint = this.s.quarter === 1 ? ' Press question mark for the keyboard shortcuts.' : '';
+    announce(`${date} begins. The clock is running.${lostText}${incomeText} You have ${this.s.budget} Budget and ${this.s.pc} Political Capital.${hint}`);
     await new Promise<void>((r) => (this.clockDone = r));
     this.clockActive = false;
     this.coachQueue = [];
@@ -214,7 +230,7 @@ export class App {
        <h2>Four years have passed</h2>
        <p>AI never learned to improve itself before the end of 2030. The superpowers never had to make their decisive choice. The world you prepared is the world you get.</p>
        <div class="row-btns"><button class="btn-primary" data-primary data-action="ok">See how it ends <kbd>Enter</kbd></button></div>`,
-      { cls: 'report', label: 'The clock stops' },
+      { cls: 'report', label: 'The clock stops', describedBy: 'p' },
     );
     await m.result;
   }
@@ -282,12 +298,16 @@ export class App {
         this.renderNotes(n.id);
         this.map.ping(n.region, 'note');
         if (!n.readable) this.coach('note', 'A confidential note arrived, redacted. Invest in oversight (AI Office capacity) to read these.');
+        else announce(`Confidential note from ${ACTOR[n.actor]}.`);
       }
     }
     for (const b of this.bubblePlan) {
       if (b.state === 'wait' && this.t >= b.at && this.s.bubblesThisQuarter < 2) {
         b.state = 'live';
         this.map.spawnBubble(b.id, b.region);
+        announce(
+          `Public concern in ${REGION[b.region]}: ${shortcutsOn() ? 'press C' : 'find the bubble on the map'} to collect 1 Political Capital.`,
+        );
         this.coach('bubble', 'Public concern is rising. Click the purple bubble on the map: +1 Political Capital.');
       } else if (b.state === 'live' && this.t >= b.until) {
         b.state = 'gone';
@@ -317,11 +337,13 @@ export class App {
     this.eventBusy = true;
     const date = this.e.dateLabel(this.s.quarter);
     this.setPhase('Event');
-    this.map.addEventPin(pe.region, pe.title, date);
+    this.map.addEventPin(pe.region, pe.title, date, () => this.openFromMap(() => showEventRecap(pe, date)));
     this.feed.push({ id: `ev-${pe.id}-${this.s.quarter}`, kind: 'event', quarter: this.s.quarter, actor: pe.actor, text: pe.title });
     this.renderNews(`ev-${pe.id}-${this.s.quarter}`);
-    document.body.classList.add('jolt');
-    setTimeout(() => document.body.classList.remove('jolt'), 700);
+    if (!reducedMotion()) {
+      document.body.classList.add('jolt');
+      setTimeout(() => document.body.classList.remove('jolt'), 700);
+    }
     this.renderGauges(true);
     await wait(900);
     const opt = await showEvent(pe, date);
@@ -345,7 +367,10 @@ export class App {
     this.map.popBubble(id, got);
     const b = this.bubblePlan.find((x) => x.id === id);
     if (b) b.state = 'gone';
-    if (got) this.flyToPc(pos);
+    if (got) {
+      this.flyToPc(pos);
+      announce(`+1 Political Capital. You have ${this.s.pc}.`);
+    }
     if (this.s.bubblesThisQuarter >= 2) {
       for (const x of this.bubblePlan) {
         if (x.state === 'live') this.map.popBubble(x.id, false);
@@ -356,30 +381,77 @@ export class App {
     if (!got) this.renderTop();
   };
 
-  private setRunning(on: boolean) {
+  private setRunning(on: boolean, say = true) {
     if (!this.clockActive) return;
+    if (say && on !== this.running) announce(on ? 'Clock running.' : 'Paused.');
     this.running = on;
     this.setPhase(on ? 'Clock running' : 'Paused');
     this.renderClock();
   }
 
+  private setSpeed(n: 1 | 2) {
+    this.speed = n;
+    this.root.querySelectorAll('.speed button').forEach((x) => x.setAttribute('aria-pressed', String(Number((x as HTMLElement).dataset.speed) === n)));
+  }
+
+  /** Open a dialog from the map (Léa, an event pin, the shortcuts) with the clock paused, and resume after. */
+  private openFromMap(show: () => Promise<unknown>) {
+    if (modalOpen() || this.eventBusy) return;
+    const was = this.clockActive && this.running;
+    if (was) this.setRunning(false, false);
+    void show().then(() => {
+      if (was && !modalOpen()) this.setRunning(true, false);
+    });
+  }
+
+  /**
+   * Keyboard shortcuts. Space and Enter are left to a focused button or link (they activate it);
+   * the single-key shortcuts (P, C, 1, 2, ?) can be turned off in the shortcuts dialog (WCAG 2.1.4).
+   */
   private onKey = (ev: KeyboardEvent) => {
-    if (modalOpen() || document.querySelector('.opening')) return;
-    const tag = (document.activeElement as HTMLElement | null)?.tagName;
-    if (ev.key === ' ' && this.clockActive && tag !== 'BUTTON' && tag !== 'A') {
+    if (ev.defaultPrevented || modalOpen() || document.querySelector('.opening')) return;
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    const k = ev.key;
+    if (k === 'Escape') return this.closePopover(true);
+    if (focusOwnsKey(k)) return;
+    if (k === ' ' && this.clockActive) {
       ev.preventDefault();
       this.setRunning(!this.running);
-    } else if (ev.key === 'Enter' && this.dockResolve && tag !== 'BUTTON' && tag !== 'A') {
+    } else if (k === 'Enter' && this.dockResolve) {
       ev.preventDefault();
       this.dockResolve();
-    } else if (ev.key === 'Escape') this.closePopover();
+    } else if (!shortcutsOn() || (!this.clockActive && !this.dockResolve)) return;
+    else if (k === 'p' || k === 'P') {
+      if (!this.clockActive) return;
+      ev.preventDefault();
+      this.setRunning(!this.running);
+    } else if (k === 'c' || k === 'C') {
+      const id = this.map.liveBubbles()[0];
+      const b = this.bubblePlan.find((x) => x.id === id);
+      const node = id ? this.map.bubbleNode(id) : undefined;
+      if (b && node) this.onBubble(b.id, b.region, node);
+      else announce('No public concern to collect right now.');
+    } else if (k === '1' || k === '2') {
+      this.setSpeed(Number(k) as 1 | 2);
+      announce(k === '2' ? 'Double speed.' : 'Normal speed.');
+    } else if (k === '?') {
+      ev.preventDefault();
+      this.openHelp();
+    }
   };
+
+  private openHelp() {
+    this.openFromMap(() => showHelp());
+  }
 
   private dock(text: string, label: string): Promise<void> {
     const d = $('.dock', this.root);
-    d.innerHTML = `<p>${esc(text)}</p><button class="btn-primary" type="button">${esc(label)} <kbd>Enter</kbd></button>`;
+    d.innerHTML = `<p id="dock-text">${esc(text)}</p><button class="btn-primary" type="button" aria-describedby="dock-text">${esc(label)} <kbd>Enter</kbd></button>`;
     d.hidden = false;
     this.setPhase('Paused to assess');
+    const btn = d.querySelector('button')!;
+    // keyboard players land on the way back; the map, gauges and notes are a Tab away
+    tryFocus(btn);
     return new Promise((resolve) => {
       const go = () => {
         d.hidden = true;
@@ -387,7 +459,7 @@ export class App {
         resolve();
       };
       this.dockResolve = go;
-      d.querySelector('button')!.addEventListener('click', go);
+      btn.addEventListener('click', go);
     });
   }
 
@@ -396,58 +468,56 @@ export class App {
   private buildShell() {
     this.root.innerHTML = `
     <div class="game">
+      <h1 class="sr-only" id="game-title" tabindex="-1">Takeoff: Middle Power</h1>
       <header class="top">
         <div class="brand"><span class="logo">TAKE<i>OFF</i></span><span class="sub">Middle Power</span></div>
         <div class="when">
-          <div class="date"><span id="date" class="num"></span><span id="month" class="month num"></span></div>
+          <div class="date"><span id="date" class="num"></span><span id="month" class="month num"></span><span class="sr-only" id="qof"></span></div>
           <ol class="quarters" id="quarters" aria-label="Progress through the 16 quarters">${Array.from({ length: 16 }, (_, i) => `<li data-q="${i + 1}"><i></i></li>`).join('')}</ol>
         </div>
         <div class="clockctl">
-          <button class="iconbtn" id="play" aria-label="Pause the clock (Space)"></button>
+          <button class="iconbtn" id="play" aria-label="Pause the clock (Space)" aria-keyshortcuts="Space"></button>
           <div class="speed" role="group" aria-label="Clock speed"><button data-speed="1" aria-pressed="true">×1</button><button data-speed="2" aria-pressed="false">×2</button></div>
-          <span class="phase" id="phase" aria-live="polite"></span>
+          <button class="iconbtn help-btn" id="help" aria-label="Keyboard shortcuts (?)" aria-haspopup="dialog">?</button>
+          <span class="phase" id="phase"></span>
         </div>
         <div class="res budget" title="Budget pays for investments. +1 every quarter.">${ICON.budget}<span class="res-v num" id="budget"></span><span class="res-l">Budget</span></div>
         <div class="res pc" title="Political Capital pays for regulation and diplomacy. Earn it by clicking concern bubbles (up to 2 per quarter), +1 per quarter when public pressure is high, minus coalition upkeep.">${ICON.pc}<span class="res-v num" id="pc"></span><span class="res-l">Political<br>Capital</span></div>
       </header>
-      <section class="lines">
+      <section class="lines" aria-label="Goal and forecast">
         <p class="goal"><span class="ln-k">Goal</span><span id="goal"></span></p>
         <p class="forecast"><span class="ln-k">Forecast</span><span id="forecast"></span></p>
       </section>
       <main class="stage">
         <div class="theatre">
+          <h2 class="sr-only">World map</h2>
           <div class="mapwrap" id="mapwrap">
-            <div class="ticker" aria-live="off"><span class="ticker-tag" id="tickTag">LIVE</span><span class="ticker-text" id="tickText">The clock starts in a moment.</span></div>
-            <div class="coach" id="coach" role="status" hidden></div>
+            <div class="ticker" aria-hidden="true"><span class="ticker-tag" id="tickTag">LIVE</span><span class="ticker-text" id="tickText">The clock starts in a moment.</span></div>
+            <div class="coach" id="coach" hidden></div>
             <div class="dock" hidden></div>
           </div>
           <section class="indicators" aria-label="Indicators: click one to see what moves it">
+            <h2 class="sr-only">Indicators</h2>
             <div class="g-grid" id="gauges"></div>
           </section>
         </div>
         <aside class="feeds">
-          <section class="feed news-feed"><h2>Public news <small>what everyone sees</small></h2><ol id="news"></ol></section>
-          <section class="feed notes-feed"><h2>Internal notes <small>labs and intelligence</small></h2><p class="notes-hint" id="notesHint" hidden>Redacted. Invest in oversight to read these: AI Office capacity, or measuring human influence.</p><ol id="notes"></ol></section>
+          <section class="feed news-feed" aria-labelledby="news-h"><h2 id="news-h">Public news <small>what everyone sees</small></h2><ol id="news" aria-labelledby="news-h" tabindex="0"></ol></section>
+          <section class="feed notes-feed" aria-labelledby="notes-h"><h2 id="notes-h">Internal notes <small>labs and intelligence</small></h2><p class="notes-hint" id="notesHint" hidden>Redacted. Invest in oversight to read these: AI Office capacity, or measuring human influence.</p><ol id="notes" aria-labelledby="notes-h" tabindex="0"></ol></section>
         </aside>
       </main>
-      <div class="g-pop" id="gpop" role="dialog" hidden></div>
+      <div class="g-pop" id="gpop" role="region" aria-labelledby="gpop-h" hidden></div>
     </div>`;
     this.map = new WorldMap($('#mapwrap', this.root), { onBubble: this.onBubble });
     this.map.svg.parentElement!.insertBefore(this.map.svg, this.map.svg.parentElement!.firstChild);
     this.map.onLea = () => {
-      if (this.lastLea && !modalOpen()) {
-        const was = this.running;
-        this.setRunning(false);
-        void showLea(this.lastLea.lea, this.lastLea.date, 'Back to the map').then(() => was && this.setRunning(true));
-      } else if (!this.lastLea) this.toast('Léa lives in Lyon. She will write to you soon.');
+      const l = this.lastLea;
+      if (l) this.openFromMap(() => showLea(l.lea, l.date, 'Back to the map'));
+      else this.toast('Léa lives in Lyon. She will write to you soon.');
     };
     $('#play', this.root).addEventListener('click', () => this.setRunning(!this.running));
-    this.root.querySelectorAll<HTMLButtonElement>('.speed button').forEach((b) =>
-      b.addEventListener('click', () => {
-        this.speed = Number(b.dataset.speed) as 1 | 2;
-        this.root.querySelectorAll('.speed button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-      }),
-    );
+    $('#help', this.root).addEventListener('click', () => this.openHelp());
+    this.root.querySelectorAll<HTMLButtonElement>('.speed button').forEach((b) => b.addEventListener('click', () => this.setSpeed(Number(b.dataset.speed) as 1 | 2)));
     this.buildGauges();
   }
 
@@ -455,7 +525,7 @@ export class App {
     const views = this.gaugeViews().filter((g) => g.visible);
     const tiles = views
       .map(
-        (g) => `<button class="g-tile${g.key === 'gdp' || g.key === 'approval' ? ' home' : ''}" data-key="${esc(g.key)}" style="--c:${GAUGE_COLOR[g.key] ?? 'var(--mute)'}" aria-expanded="false">
+        (g) => `<button class="g-tile${g.key === 'gdp' || g.key === 'approval' ? ' home' : ''}" data-key="${esc(g.key)}" style="--c:${GAUGE_COLOR[g.key] ?? 'var(--mute)'}" aria-expanded="false" aria-controls="gpop" aria-describedby="gdesc-${esc(g.key)}">
           <span class="g-name">${esc(g.label)}</span>
           <span class="g-delta"></span>
           <span class="g-val num"><b></b><small></small></span>
@@ -464,10 +534,15 @@ export class App {
       )
       .join('');
     const hidden = HIDDEN_GAUGES.map(
-      (h) => `<button class="g-tile hidden-slot" data-hidden="${esc(h.key)}" aria-expanded="false"><span class="g-name">${esc(h.label)}</span><span class="g-val q"><b>?</b></span><span class="g-tease">Revealed at the end</span></button>`,
+      (h) => `<button class="g-tile hidden-slot" data-hidden="${esc(h.key)}" aria-expanded="false" aria-controls="gpop" aria-describedby="gdesc-hidden"><span class="g-name">${esc(h.label)}</span><span class="g-val q"><b>?</b></span><span class="g-tease">Revealed at the end</span></button>`,
     ).join('');
     const grid = $('#gauges', this.root);
     grid.innerHTML = tiles + hidden;
+    // each tile's value, error bar and change in words (read after the tile's name)
+    const descs = document.createElement('div');
+    descs.hidden = true;
+    descs.innerHTML = views.map((g) => `<span id="gdesc-${esc(g.key)}"></span>`).join('') + '<span id="gdesc-hidden">Hidden from you, as from a real envoy. Revealed in the final debrief.</span>';
+    grid.after(descs);
     grid.querySelectorAll<HTMLButtonElement>('.g-tile').forEach((b) => b.addEventListener('click', () => this.togglePopover(b)));
   }
 
@@ -478,17 +553,19 @@ export class App {
     let html: string;
     if (key) {
       const g = this.gaugeViews().find((x) => x.key === key)!;
-      html = `<h3>${esc(g.label)} <b class="num">${g.value}${g.errorBar ? ` ±${g.errorBar}` : ''}</b></h3>
+      html = `<h3 id="gpop-h">${esc(g.label)} <b class="num">${g.value}${g.errorBar ? ` ±${g.errorBar}` : ''}</b></h3>
         <p class="pop-help">${esc(GAUGE_HELP[key] ?? '')}</p>
         <p><span class="pop-k up">Rises when</span>${esc(g.risesWhen)}</p>
         <p><span class="pop-k down">Falls when</span>${esc(g.fallsWhen)}</p>
         ${g.errorBar ? '<p class="pop-err">The ± band is your uncertainty. Your experts can narrow it (AI Office capacity).</p>' : ''}`;
     } else {
       const h = HIDDEN_GAUGES.find((x) => x.key === tile.dataset.hidden)!;
-      html = `<h3>${esc(h.label)} <b>?</b></h3><p class="pop-help">${esc(h.teaser)}</p><p class="pop-err">Hidden from you, as it would be from a real envoy. Revealed in the final debrief.</p>`;
+      html = `<h3 id="gpop-h">${esc(h.label)} <b>?</b></h3><p class="pop-help">${esc(h.teaser)}</p><p class="pop-err">Hidden from you, as it would be from a real envoy. Revealed in the final debrief.</p>`;
     }
     pop.innerHTML = html;
     pop.dataset.for = key ?? tile.dataset.hidden;
+    // right after its tile in the page, so a screen reader reads it next (it is positioned absolutely)
+    if (tile.nextElementSibling !== pop) tile.after(pop);
     pop.hidden = false;
     this.root.querySelectorAll('.g-tile').forEach((t) => t.setAttribute('aria-expanded', String(t === tile)));
     const r = tile.getBoundingClientRect();
@@ -502,11 +579,13 @@ export class App {
     pop.classList.toggle('below', !above);
   }
 
-  private closePopover() {
+  /** Close the indicator popover; with `refocus`, focus goes back to its tile (Escape). */
+  private closePopover(refocus = false) {
     const pop = this.root.querySelector<HTMLElement>('#gpop');
     if (!pop || pop.hidden) return;
     pop.hidden = true;
     this.root.querySelectorAll('.g-tile').forEach((t) => t.setAttribute('aria-expanded', 'false'));
+    if (refocus) tryFocus(this.root.querySelector(`.g-tile[data-key="${pop.dataset.for}"], .g-tile[data-hidden="${pop.dataset.for}"]`));
   }
 
   // ------------------------------------------------------------------ rendering
@@ -561,6 +640,8 @@ export class App {
     const s = this.s;
     const q = Math.max(1, s.quarter);
     $('#date', this.root).textContent = this.e.dateLabel(q);
+    const qof = `, quarter ${q} of 16`;
+    if ($('#qof', this.root).textContent !== qof) $('#qof', this.root).textContent = qof;
     const m0 = ((q - 1) % 4) * 3;
     const mi = this.clockActive ? Math.min(2, Math.floor(this.t * 3)) : 2;
     $('#month', this.root).textContent = s.quarter ? MONTHS[m0 + mi] : '';
@@ -623,7 +704,20 @@ export class App {
         err.style.width = `${Math.min(100, d.value + g.errorBar) - Math.max(0, d.value - g.errorBar)}%`;
         err.style.opacity = g.errorBar ? '1' : '0';
       }
-      tile.classList.toggle('hot', (g.key === 'tension' || g.key === 'misuse') && v >= 60);
+      const hot = (g.key === 'tension' || g.key === 'misuse') && v >= 60;
+      tile.classList.toggle('hot', hot);
+      // the tile's name says everything the colours and bars show
+      const tw = TONE_WORDS[tone(g.key, dl)];
+      const label =
+        `${g.label}: ${v}${g.key === 'coalition' ? ' of 3 partners' : ' out of 100'}${g.errorBar ? `, plus or minus ${g.errorBar}` : ''}` +
+        `${hot ? ', high' : ''}. ${dl ? `${moveWords(dl)} this quarter${tw ? `, ${tw}` : ''}` : 'No change this quarter'}.`;
+      // a description, not the name: the name stays the tile's visible text (WCAG 2.5.3, label in name)
+      const desc = this.root.querySelector<HTMLElement>(`#gdesc-${g.key}`);
+      if (desc && desc.textContent !== label) desc.textContent = label;
+      if (hot && !this.warned.has(g.key) && this.clockActive) {
+        this.warned.add(g.key);
+        announce(`Warning: ${g.label} is high, at ${v}.`);
+      } else if (!hot) this.warned.delete(g.key);
       if (flash && prev !== undefined && prev !== String(dl)) {
         tile.classList.remove('flash');
         void tile.offsetWidth;
@@ -686,7 +780,7 @@ export class App {
           .map(
             (n) => `<li class="note ${n.readable ? 'readable' : 'redacted'}${n.id === fresh ? ' new' : ''}">
               <span class="ni-meta"><span class="actor t-${ACTOR_TONE[n.actor]}">${esc(ACTOR[n.actor])}</span><time class="num">${esc(this.e.dateLabel(n.quarter))}</time>${n.readable ? '<span class="stamp">Confidential</span>' : ''}</span>
-              ${n.readable ? `<p>${esc(n.text)}</p>` : `<p class="bars" aria-label="Redacted note">${redact(n)}</p>`}</li>`,
+              ${n.readable ? `<p>${esc(n.text)}</p>` : `<p class="bars"><span class="sr-only">Redacted note — invest in oversight to read</span>${redact(n)}</p>`}</li>`,
           )
           .join('')
       : '<li class="empty">No confidential reports yet.</li>';
@@ -696,6 +790,7 @@ export class App {
   // ------------------------------------------------------------------ juice
 
   private flyToPc(from: { x: number; y: number }) {
+    if (reducedMotion()) return this.renderTop();
     const target = $('.res.pc', this.root).getBoundingClientRect();
     const f = document.createElement('div');
     f.className = 'fly';
@@ -728,6 +823,7 @@ export class App {
     while (this.coachQueue.length) {
       el.textContent = this.coachQueue.shift()!;
       el.hidden = false;
+      announce(el.textContent);
       await wait(5200);
       el.hidden = true;
       await wait(250);
@@ -735,11 +831,12 @@ export class App {
     this.coachBusy = false;
   }
 
-  private toast(text: string, kind: 'info' | 'alert' = 'info') {
+  /** A short message at the bottom of the screen, also announced to screen readers unless `say` is false. */
+  private toast(text: string, kind: 'info' | 'alert' = 'info', say = true) {
     const t = document.createElement('div');
     t.className = `toast ${kind}`;
-    t.setAttribute('role', 'status');
     t.textContent = text;
+    if (say) announce(text);
     document.body.appendChild(t);
     const life = kind === 'alert' ? 5200 : 2600;
     setTimeout(() => t.classList.add('out'), life);
