@@ -21,6 +21,8 @@ export interface TipCopy {
   id: string; // stable id the engine triggers, e.g. 'tip_clock', 'tip_hidden_alignment'
   title: string;
   text: string; // one screen
+  /** Optional "Already real" fact shown under the tip (v2-content addition, additive). */
+  fact?: { text: string; source: Source };
 }
 
 export interface ConcernCopy {
