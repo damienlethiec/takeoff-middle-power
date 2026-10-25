@@ -1663,6 +1663,61 @@ function lineKind(s: GameState, e: LogEntry): ReportLine['kind'] {
 
 const KIND_RANK: Record<ReportLine['kind'], number> = { event: 0, threshold: 1, card: 2, actor: 3, background: 4 };
 
+/**
+ * What a level means for winning, from public rules and thresholds only (tuning.ts): never a hidden value.
+ * "Verification 37: 8 more needed for a verified deal (45)". '' when there is nothing useful to say.
+ */
+export function levelMeaning(s: GameState, key: DashboardKey): string {
+  const e = TUNING.endings;
+  const v = key === 'coalition' ? s.coalition : s.gauges[key];
+  const label = GAUGE_INFO[key].label;
+  const head = `${label} ${v}`;
+  switch (key) {
+    case 'capability':
+      return v >= TUNING.tippingAt ? `${head}: AI now improves itself` : `${head}: at ${TUNING.tippingAt} AI starts improving itself`;
+    case 'verification':
+      return v >= e.utopiaVerification
+        ? `${head}: enough inspectors to verify a deal (${e.utopiaVerification}+)`
+        : `${head}: ${e.utopiaVerification - v} more needed for a verified deal (${e.utopiaVerification})`;
+    case 'tension': {
+      const hi = TUNING.drift.highTensionAt;
+      if (v > e.multipolarMaxTension) return `${head}: above ${e.multipolarMaxTension}, partners stay away and a US–China fight would turn into a hot war`;
+      if (v >= hi) return `${head}: above ${hi} the race speeds up and a fight becomes likelier`;
+      return `${head}: ${hi - v} below the level where the race speeds up (${hi})`;
+    }
+    case 'coalition':
+      if (v === 0) return `${head} of 3: one partner lets Europe mediate a US–China fight; each level makes a verified slowdown likelier`;
+      if (v < TUNING.drift.coalitionCoolsAt) return `${head} of 3: from level ${TUNING.drift.coalitionCoolsAt}, coalition diplomacy cools tension every quarter`;
+      return `${head} of 3: coalition diplomacy cools tension every quarter`;
+    case 'publicPressure': {
+      const at = TUNING.income.highPressureAt;
+      const shut = TUNING.plans.shutDown.pressureAt;
+      if (v >= shut) return `${head}: +1 PC every quarter, and a full shutdown becomes possible (${shut}+)`;
+      if (v >= at) return `${head}: +1 PC every quarter while it stays at ${at}+`;
+      return `${head}: at ${at}, you get 1 more PC every quarter`;
+    }
+    case 'misuse': {
+      const wave = TUNING.risks.ransomwareMisuse;
+      if (s.firedEvents.ransomware) return '';
+      return v >= wave ? `${head}: a ransomware wave can hit at any time` : `${head}: at ${wave} a ransomware wave hits Europe`;
+    }
+    case 'concentration': {
+      const big = TUNING.endings.bigAiConcentration;
+      if (v > e.utopiaMaxConcentration) return `${head}: above ${e.utopiaMaxConcentration}, a verified deal would not hold`;
+      if (v >= big) return `${head}: at ${big}+ a few labs can bend Europe’s rules`;
+      return `${head}: at ${big} a few labs can bend Europe’s rules`;
+    }
+    case 'approval': {
+      const low = TUNING.income.lowApprovalBelow;
+      return v < low ? `${head}: below ${low}, you get 1 PC less every quarter` : `${head}: below ${low}, you would get 1 PC less every quarter`;
+    }
+    case 'apparentAlignment':
+      return `${head}: what the labs claim, not necessarily what is true`;
+    default:
+      return '';
+  }
+}
+
 /** The state as it was when the quarter started, as far as the risk track can tell (public values only). */
 function startOfQuarter(s: GameState): GameState {
   const fired: GameState['firedEvents'] = {};
@@ -1701,14 +1756,14 @@ export function situationReport(state: GameState): SituationReport {
   const news = candidates.filter((c) => c.kind !== 'background').sort((a, b) => KIND_RANK[a.kind] - KIND_RANK[b.kind] || Math.abs(b.amount) - Math.abs(a.amount));
   for (const c of news) {
     if (headline.length >= 3 || headline.some((h) => h.key === c.key)) continue;
-    headline.push({ key: c.key, label: GAUGE_INFO[c.key].label, value: valueOf(c.key), delta: deltaOf(c.key), cause: causeText(c.e, c.key), kind: c.kind });
+    headline.push({ key: c.key, label: GAUGE_INFO[c.key].label, value: valueOf(c.key), delta: deltaOf(c.key), cause: causeText(c.e, c.key), kind: c.kind, meaning: levelMeaning(s, c.key) });
   }
   if (!headline.length) {
     const primary = s.dashboard.slots;
     const bg = candidates
       .filter((c) => c.kind === 'background')
       .sort((a, b) => Number(primary.includes(b.key)) - Number(primary.includes(a.key)) || Math.abs(b.amount) - Math.abs(a.amount))[0];
-    if (bg) headline.push({ key: bg.key, label: GAUGE_INFO[bg.key].label, value: valueOf(bg.key), delta: deltaOf(bg.key), cause: causeText(bg.e, bg.key), kind: 'background' });
+    if (bg) headline.push({ key: bg.key, label: GAUGE_INFO[bg.key].label, value: valueOf(bg.key), delta: deltaOf(bg.key), cause: causeText(bg.e, bg.key), kind: 'background', meaning: levelMeaning(s, bg.key) });
   }
   const routine = changes.filter((c) => c.routine && !headline.some((h) => h.key === c.key));
   const background = routine.length

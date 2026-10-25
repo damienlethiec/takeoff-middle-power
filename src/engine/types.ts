@@ -352,6 +352,9 @@ export interface ReportLine {
   delta: number;
   cause: string; // the real cause, from the log (never a neighbour's)
   kind: 'card' | 'event' | 'actor' | 'threshold' | 'background';
+  /** What this level means for the player's goal, from public rules only:
+   *  "Verification 37: 13 more needed for a verified deal (50)". Empty string when nothing to say. */
+  meaning: string;
 }
 
 /** A crisis telegraphed before it happens. Reads only public values. */
