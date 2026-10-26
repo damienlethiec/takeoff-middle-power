@@ -191,8 +191,8 @@ test.describe('a full game', () => {
     expect(seen.breaking).toBeGreaterThan(0);
     expect(seen.requests).toBeGreaterThan(0);
     await checkEnding(page, s);
-    // every card played shows in the debrief, in order
-    const names = (await page.locator('.deb-list h3').allTextContents()).map((x) => x.trim());
+    // every card played shows in the debrief, in order (a diplomatic card may not have worked: it says so)
+    const names = (await page.locator('.deb-list h3').allTextContents()).map((x) => x.trim().replace(/\s*\(did not work\)$/, ''));
     expect(names).toEqual(seen.played);
     await page.getByRole('button', { name: /^Play again/ }).click();
     await advance(page, 600);

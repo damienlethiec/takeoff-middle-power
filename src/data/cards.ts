@@ -56,6 +56,8 @@ export interface CardDef {
   arrives: Arrival;
   opportunity?: boolean;
   basis: Basis;
+  /** Cards that can fail (TUNING.failure): the one plain sentence the news gives when it does not work, and its basis. */
+  failure?: { text: string; basis: Basis };
 }
 
 export const CARDS: CardDef[] = [
@@ -74,6 +76,7 @@ export const CARDS: CardDef[] = [
     downs: [down(COH(C.talks.cohesion))],
     arrives: { round: TUNING.arrive.talks },
     basis: cfg('Arms race, Ending B (Multipolar world): the EU and neutral states mediate between the superpowers'),
+    failure: { text: 'The Geneva talks broke up: neither side trusts what the other says it is building.', basis: cfg('Arms race: “No one can verify what anyone else is doing”') },
   },
   {
     id: 'inspections',
@@ -92,6 +95,7 @@ export const CARDS: CardDef[] = [
     protects: 'incident',
     arrives: { round: TUNING.arrive.inspections },
     basis: cfg('Diplomacy: “without verification any deal would be meaningless”; Licensed utopia’s IAEA-style enforcement'),
+    failure: { text: 'Washington and Beijing refused to let European inspectors into their labs.', basis: ai2027('May 2027: National Security (allies are kept out of the loop)') },
   },
   {
     id: 'ai_office',
@@ -140,6 +144,7 @@ export const CARDS: CardDef[] = [
     protects: 'incident',
     arrives: { round: TUNING.arrive.coalition },
     basis: real('europe2031: Europe 2031, recommendation 2 (coalition of middle powers); with CFG, Arms race, Ending B'),
+    failure: { text: 'The partners held back this time: Washington offered them privileged access to its AI instead.', basis: ai2027('August 2027: The Geopolitics of Superintelligence (the Five Eyes allies get limited access)') },
   },
   {
     id: 'audit',
@@ -176,6 +181,7 @@ export const CARDS: CardDef[] = [
     ],
     arrives: { aiPower: C.asml.arrivesAt },
     basis: cfg('Arms race: “Control over chips becomes a geopolitical weapon”; the US invokes the Foreign Direct Product Rule against European toolmakers'),
+    failure: { text: 'The lever failed: US export rules, not Europe, decide where ASML may sell.', basis: cfg('Arms race: the US invokes the Foreign Direct Product Rule against European toolmakers') },
   },
   {
     id: 'weight_security',
@@ -304,6 +310,7 @@ export const CARDS: CardDef[] = [
     downs: [down(COH(C.licensing_treaty.cohesion)), down('Only in a pause')],
     arrives: { pauseDeal: true },
     basis: cfg('Diplomacy, Ending A (Licensed utopia): “a licensing regime for advanced AI systems”, the IAEA expands to enforce it'),
+    failure: { text: 'The treaty talks stalled: the labs’ lobbying split the negotiators.', basis: cfg('Diplomacy, Ending B (Unstable pause): only a bilateral pact, frontier models withheld, no treaty') },
   },
   {
     id: 'biosecurity',
@@ -317,6 +324,7 @@ export const CARDS: CardDef[] = [
     protects: 'bio',
     arrives: { threatSeen: 'bio' },
     basis: cfg('Take-off: a bioterror plot with an open model; “Europe leads a new international initiative to establish a global biosecurity framework”'),
+    failure: { text: 'The pact stalled: Washington and Beijing would not share what their labs test.', basis: cfg('Arms race: “No one can verify what anyone else is doing”') },
   },
   {
     id: 'summit',
@@ -360,6 +368,7 @@ export const CARDS: CardDef[] = [
     arrives: { opportunity: true },
     opportunity: true,
     basis: ai2027('October 2027: Government Oversight (European leaders “hold summits demanding a pause, with India, Israel, Russia, and China all joining in”)'),
+    failure: { text: 'The pause call fell flat: few capitals joined, and Washington shrugged it off.', basis: ai2027('Race ending: the Oversight Committee votes 6–4 to continue (“A slowdown would sacrifice America’s lead”)') },
   },
 ];
 

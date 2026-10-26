@@ -43,8 +43,9 @@ export function fresh(seed = 1, patch: Partial<GameState> = {}): GameState {
   return { ...s, influence: 10, ...patch };
 }
 
+/** Play cards as if they worked (cards that can fail are tested in tests/failure.test.ts). */
 export function play(s: GameState, ...picks: Pick[]): GameState {
-  return picks.reduce((x, p) => playCard(x, p), s);
+  return picks.reduce((x, p) => playCard(x, p, { assumeSuccess: true }), s);
 }
 
 /** Answer every request still waiting this round (default: left). */

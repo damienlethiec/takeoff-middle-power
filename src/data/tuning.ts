@@ -92,6 +92,30 @@ export const TUNING = {
    *  after the decision. Presentation only: no rule reads these. */
   effectWords: { little: 3, some: 7 },
 
+  /** Actions can fail (v4, playtests of 26 Oct: "too easy", one player asked for it). Diplomatic and external cards
+   *  work only with some chance, from public values only: `base`, plus `pause` / `rupture` in that cooperation zone,
+   *  `highCohesion` from `cohesion.high`, `lowCohesion` below `cohesion.low`, `perCoalition` per coalition level;
+   *  kept within [`min`, `max`]. The card says it in words: from `likely` "Likely to work", from `uncertain`
+   *  "Uncertain", below "Long shot". A failed card costs its Influence and does nothing else (no level climbed, no
+   *  blowback); it can be tried again in a later round. Europe's own testing (inspections, level 1) and the cards
+   *  that spend Europe's own money never fail. Each roll draws from its own stream (seed, round, card). */
+  failure: {
+    likely: 0.75,
+    uncertain: 0.5,
+    min: 0.15,
+    max: 0.95,
+    cohesion: { high: 60, low: 45 },
+    cards: {
+      talks: { base: 0.75, pause: 0.15, rupture: -0.3 },
+      coalition: { base: 0.75, highCohesion: 0.1, lowCohesion: -0.25 },
+      inspections: { base: 0.65, pause: 0.15, rupture: -0.3 },
+      pause_call: { base: 0.55, perCoalition: 0.1 },
+      licensing_treaty: { base: 0.55, perCoalition: 0.1 },
+      biosecurity: { base: 0.8, rupture: -0.3 },
+      asml: { base: 0.7, highCohesion: 0.1, lowCohesion: -0.25 },
+    } satisfies Partial<Record<CardId, { base: number; pause?: number; rupture?: number; highCohesion?: number; lowCohesion?: number; perCoalition?: number }>>,
+  },
+
   /** Card effects. Costs per level for cards with levels. */
   cards: {
     talks: { cost: 1, cooperation: 6, cohesion: -2, uses: 3, rest: 1 },

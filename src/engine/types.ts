@@ -362,6 +362,15 @@ export interface Change {
 export interface Pick {
   id: CardId;
   option?: string;
+  /** Set by the engine on a played card that did not work (v4: diplomatic and external cards can fail). */
+  failed?: boolean;
+}
+
+/** How likely a card that can fail is to work, in words only (public values; never a number). */
+export interface CardOdds {
+  word: 'Likely to work' | 'Uncertain' | 'Long shot';
+  /** What makes it easier or harder now ("harder in a rupture", "Europe holds together"); may be empty. */
+  why: string[];
 }
 
 export interface RoundRecord {
@@ -589,6 +598,8 @@ export interface CardView {
   isNew: boolean;
   /** The family it is shown under in the hand (Diplomacy, Oversight & security…). */
   family: CardFamily;
+  /** Null for a card that always works; else how likely it is to work now, in words. */
+  odds: CardOdds | null;
   basis: Basis;
 }
 
@@ -684,7 +695,7 @@ export interface EndingView {
     readLeaks: Leak[];
   };
   counterfactuals: string[];
-  decisions: { round: number; date: string; name: string; ups: Chip[]; downs: Chip[] }[];
+  decisions: { round: number; date: string; name: string; ups: Chip[]; downs: Chip[]; failed?: string }[];
   threats: { id: ThreatId; name: string; struck: boolean; prepared: boolean | null; by: string }[];
   /** One short epilogue per friend, in the order lea, mother, malik. */
   friends: FriendEpilogue[];

@@ -28,6 +28,12 @@ export interface DecisionView {
 
 const lc = (x: string) => x.replace(/^(\w)(?=[a-z])/, (c) => c.toLowerCase());
 
+/** A card that can fail says how likely it is to work, in words (never a number), and what makes it easier or harder. */
+const oddsHtml = (c: CardView) =>
+  c.odds
+    ? `<span class="pc-odds o-${c.odds.word === 'Likely to work' ? 'likely' : c.odds.word === 'Uncertain' ? 'uncertain' : 'long'}"><b>${esc(c.odds.word)}</b>${c.odds.why.length ? `<span class="pc-odds-why">: ${esc(c.odds.why.join(', '))}</span>` : ''}</span>`
+    : '';
+
 function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: string | undefined, fresh: boolean): string {
   const locked = !c.playable && !selected;
   const opts =
@@ -42,6 +48,7 @@ function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: 
       ${c.level ? `<span class="pc-level">Level ${c.level} of ${c.levels!.length}</span>` : ''}
       <span class="pc-chips">${chips(c.ups)}${chips(c.downs)}</span>
       ${c.protectsName ? `<span class="pc-prot">${ICON.check}Protects against ${esc(lc(c.protectsName))}</span>` : ''}
+      ${oddsHtml(c)}
       <span class="pc-text" id="pc-${esc(c.id)}-d">${esc(c.text)}${locked && c.reason ? ` <span class="pc-reason">${esc(c.reason)}</span>` : ''}</span>
       <span class="pc-tags">${provTag(c.basis)}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? '<span class="tag sel">Selected</span>' : ''}</span>
     </button>
@@ -61,6 +68,7 @@ async function showDetails(c: CardView, selected: boolean, canSelect: boolean): 
      <p class="pc-chips">${chips(c.ups)}${chips(c.downs)}</p>
      ${c.options.length ? `<p class="label">You choose what to ask for</p><ul class="plain">${c.options.map((o) => `<li>${esc(o.label)}: ${chips(o.ups)}</li>`).join('')}</ul>` : ''}
      ${c.protectsName ? `<p class="pc-prot">${ICON.check}Protects against ${esc(lc(c.protectsName))}.</p>` : ''}
+     ${c.odds ? `<p class="pc-odds-p">${oddsHtml(c)}. Diplomacy can fail: if it does, the Influence is spent and nothing else happens. You can try again in a later round.</p>` : ''}
      ${c.example ? factBox(c.example, 'Real-world example') : ''}
      ${c.costLine ? factBox(c.costLine, 'What this costs in the real world') : ''}
      ${!c.playable && !selected && c.reason ? `<p class="bad-text">${esc(c.reason)}</p>` : ''}
@@ -133,7 +141,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   /** The hand as it would be after the picks so far: what is still affordable, what is locked. */
   const views = () => {
     let after = s;
-    for (const p of picks) after = e.playCard(after, p);
+    for (const p of picks) after = e.playCard(after, p, { assumeSuccess: true });
     const view = e.hand(after);
     return {
       after,

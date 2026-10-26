@@ -18,7 +18,8 @@
 //     hand(s), advisor(s)    the hand and the chief of staff's one recommendation
 //     preview(s, picks)      the selection's effect, in public values only (nothing committed), with
 //                            outlookAfter: where the world would head
-//   s = playCard(s, pick)    as many cards as Influence covers, each at most once a round
+//   s = playCard(s, pick)    as many cards as Influence covers, each at most once a round; a diplomatic or external
+//                            card may fail (s.played marks it `failed`: Influence spent, nothing else; the feed says why)
 //   { state, outcome } = endRound(s)
 //     'next'  → startRound again (no stop between rounds)
 //     'ended' → the tipping point was reached this round, or the last round (TUNING.rounds, 10) is over; s.phase === 'ended'
@@ -62,7 +63,8 @@ export interface EngineApi {
   answerRequest(state: GameState, side: Side): { state: GameState; outcome: RequestOutcome };
   endRound(state: GameState): { state: GameState; outcome: 'next' | 'ended' };
   hand(state: GameState): CardView[];
-  playCard(state: GameState, pick: Pick): GameState;
+  /** Diplomatic and external cards can fail (TUNING.failure): `assumeSuccess` plays one as if it worked, without drawing. */
+  playCard(state: GameState, pick: Pick, opts?: { assumeSuccess?: boolean }): GameState;
   preview(state: GameState, picks: Pick[]): PreviewView;
   gauges(state: GameState): GaugeView[];
   heading(state: GameState): HeadingView;

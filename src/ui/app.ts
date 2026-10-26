@@ -333,8 +333,11 @@ export class App {
     const played = this.s.played.map((p) => {
       const d = CARD_BY_ID[p.id];
       const n = (before.uses[p.id] ?? 0);
-      return d.levels ? d.levels[Math.min(n, d.levels.length - 1)] : d.name;
+      const name = d.levels ? d.levels[Math.min(n, d.levels.length - 1)] : d.name;
+      return p.failed ? `${name} (did not work)` : name;
     });
+    // diplomacy can fail (v4): one plain sentence says why, in the announcement and in the feed
+    const failures = this.s.played.filter((p) => p.failed).map((p) => CARD_BY_ID[p.id].failure?.text ?? '').filter(Boolean);
     const a = this.vals(before);
     const b = this.vals();
     const moved: string[] = [];
@@ -354,7 +357,7 @@ export class App {
     this.setPhase(played.length ? 'Consequences' : 'Paused');
     this.renderAll(true);
     const headAfter = this.e.heading(this.s).text;
-    if (played.length) announce(`${this.headingWhy} ${headAfter !== headBefore ? headAfter : ''}`);
+    if (played.length) announce(`${this.headingWhy} ${failures.join(' ')} ${headAfter !== headBefore ? headAfter : ''}`);
     // long enough to see the gauges move before the next six months begin
     await wait(reducedMotion() ? 600 : 1600);
   }

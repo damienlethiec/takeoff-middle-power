@@ -71,6 +71,20 @@ Once the memo has leaked (`memo_public`), the committee votes at the tipping poi
 | *Joint attribution with allies* | 1 | Cooperation +5 | 2 rounds | Theft, with a coalition |
 | *Call for a pause with other capitals* | 2 | Cooperation +4, one committee vote to slow down, Influence −2 next round | 2 rounds | The memo leaks |
 
+**Cards that can fail** (v4, playtests of 26 Oct; `TUNING.failure`). Diplomatic and external cards work with a chance read from public values only; domestic cards that spend Europe's own money, and Europe's own testing (inspections level 1), always work. Chance = `base` + zone and cohesion modifiers + coalition levels, kept within 0.15–0.95; the card shows it in words: **Likely to work** (≥ 0.75), **Uncertain** (≥ 0.5), **Long shot** (below), with what makes it easier or harder ("harder in a rupture", "Europe holds together", "your allies add weight").
+
+| Card | Base | Modifiers |
+| --- | --- | --- |
+| Diplomatic talks | 0.75 | Pause +0.15, Rupture −0.30 |
+| Coalition of middle powers | 0.75 | Cohesion 60+ +0.10, below 45 −0.25 |
+| Inspection accord, joint inspection agency (levels 2–3) | 0.65 | Pause +0.15, Rupture −0.30 |
+| Push to use the ASML lever | 0.70 | Cohesion 60+ +0.10, below 45 −0.25 |
+| Pact against bioweapons | 0.80 | Rupture −0.30 |
+| Call for a pause with other capitals | 0.55 | +0.10 per coalition level |
+| Licensing treaty | 0.55 | +0.10 per coalition level |
+
+On failure the Influence is spent and nothing else happens: no effect, no level climbed, no blowback (no rest for the talks, no chip-tool ban after the ASML lever, no Influence penalty), and the card can be tried again in a later round (not twice in one). `s.played` marks it `failed`; the feed gives one plain sentence (`failure` on the card, with its basis) as a headline and the decision as "did not work"; the end screen lists it as such. Each roll draws from its own stream (seed, round, card, uses), so the game's other draws never move and a reload gives the same result. `preview()`, the decision screen's affordability (`playCard(…, { assumeSuccess: true })`) and the tests' `play()` helper assume success; the advisor weighs a card by its chance, the thoughtful strategy by the words on the card (Likely 0.85, Uncertain 0.6, Long shot 0.3).
+
 **Oversight** (to read leaks): AI Office 2, each inspection level 1, an audit 1. Leak levels in order: 1, 1, 2, 2. A leak's text says whether the labs are overconfident (estimate − truth ≥ 6) or not.
 
 ## Requests: which side means yes
@@ -136,6 +150,7 @@ v4 changed three rules (requests, no cap on cards a round, AI safety uncertainty
 | Threat windows: theft (`threats.theft.stages`), opaque reasoning (`threats.opaque.stages`), ransomware (`threats.ransomware.stages`) | 28 / 36 / 42; 45 / 50 / 55; 32 / 40 / 48 | 28 / 33 / 38; 45 / 48 / 51; 32 / 37 / 42 | After the Social cohesion mechanics (008c176) the saver was 70.5% vs thoughtful 73.0%: holding Influence for a burst cost almost nothing. Shorter windows between "seen" and "imminent" reward preparing early; the first stage (when the threat appears) is unchanged. A lower Influence cap (7 or 8) was tried: it hurt the thoughtful player as much as the saver. | Quick sim (n=200 a strategy): passive 0.0%, random 21.0%, thoughtful 77.0%, cooperation-only 0.0%, home-first 56.0%, advised 46.0%, saver 63.5%; every target passes (every ending ≥ 2%: lowest *The race pays off* 3.0%, thoughtful). |
 | Friends' requests (new, 26 Oct): your mother (`mum_triage_pilot`, `mum_near_miss`) and Malik (`mk_visa`, `mk_paris_office`) | 46 requests from 11 characters | 50 from 13 | The three friends back home replace Léa as the game's human heart; each gets personal requests. Effects sized like Léa's (2–3 points, a later cost on the tempting side). | Quick sim (100 games a strategy), before → after: random 16% → 15%, thoughtful 74% → 73%, passive, cooperation-only, home-first, advised and saver unchanged (0, 0, 57, 43, 59%); every target passes. |
 | Rounds (`rounds`), user decision of 26 Oct | 12 (H1 2027–H2 2032) | 10 (H1 2027–H2 2031) | A shorter game (five years). Only what the round count and the end year require changed: copy, the progress bar, the ending's year (now the year the game ended, "The world in 2030"), tests. **No other number was retuned: rebalancing to follow.** The requests test's "rounds without a request" floor was relaxed from 10% to 8% (9.7% now) until then. | Sim before rebalancing below. |
+| Cards can fail (`failure`), playtests of 26 Oct | always worked | talks, coalition, inspection accord, ASML lever, bioweapons pact, pause call, licensing treaty work with a chance from public values (above) | Playtesters found the game too easy and one asked that actions can fail. Not rebalanced (owner's decision: a rebalancing pass follows). | `npm run sim`, 100 games: thoughtful 38% → 31% good, advised 34% → 35%, home-first 25% → 24%, saver 37% → 37%, random 13% → 13%, passive 0% → 0%, cooperation-only 0% → 0%. Thoughtful's plays fail 7.7% of the time (talks 66 of 298, coalition 19 of 93, ASML 12 of 48); talks reach 21.6% of its plays (retries count). *Licensed utopia* falls below 2% for every strategy. |
 
 ### Ten rounds, before rebalancing (26 Oct, `npm run sim`, 100 games a strategy)
 
@@ -188,6 +203,7 @@ Ideas kept for the final pass, in this order, each checked with `npm run sim` at
    - **Fewer requests**: the living-world pass removed `rs_compute_pledge`, `sc_biosecurity` and `us_licence_treaty` (duplicates of the CERN for AI, biosecurity and licensing cards) and its own Five Eyes headline (the milestone has one): check the "6–10 requests a game" and "rounds without a request" guardrails.
    - The strategies were taught the new rules (event choices, Europe's AI weighted 8 when heading for Big AI, the committee's world change scored): check they still play like the people they stand for.
 10. **Effects in words (26 Oct, playtests):** the strategies still weigh request answers by the exact move behind each chip (`chip.move`), while players now see only a direction and a size before deciding. Consider rounding the strategies' view to the word scale (a little ≈ 2, some ≈ 5, a lot ≈ 10) so they play like the people they stand for. They also keep a historical quirk: a delayed effect ending on a gauge move ("Later: Social cohesion down a little") counts for nothing, while one ending on "more/less verified" counts ±2; make it consistent.
+11. **Cards can fail (26 Oct, playtests):** thoughtful 38% → 31% good (target 55–80%), saver now above thoughtful (37%), talks 21.6% of thoughtful's plays (> 20%: failed talks are retried), *Licensed utopia* below 2% everywhere (the licensing treaty and the pause call are long shots without a coalition). Levers: the bases in `TUNING.failure.cards` (talks 0.75, coalition 0.75, accord 0.65, pause call and treaty 0.55), a partial effect on failure instead of nothing, or a cheaper retry. Check that diplomacy stays worth trying in a rupture (talks are a long shot there, where they matter most).
 
 ## Final simulation (2,000 games per strategy)
 

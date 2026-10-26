@@ -27,6 +27,7 @@ import type {
   AnswerView,
   Basis,
   CardId,
+  CardOdds,
   Condition,
   ReqEffects,
   RequestCard,
@@ -1169,6 +1170,47 @@ function cardDef(id: CardId): CardDef {
  *  loop; CFG discusses verification after the warning shot). */
 const inspectionDeal = (s: GameState) => s.threats.incident.struck || used(s, 'summit') || zoneOf(s.cooperation) === 'pause';
 
+/** The chance a card works if played now (v4: diplomatic and external cards can fail), from public values only;
+ *  null for a card that always works. TUNING.failure. */
+function chanceOf(s: GameState, id: CardId): number | null {
+  const F = T.failure;
+  const f = (F.cards as Partial<Record<CardId, { base: number; pause?: number; rupture?: number; highCohesion?: number; lowCohesion?: number; perCoalition?: number }>>)[id];
+  if (!f) return null;
+  // Europe's own testing of the models sold in Europe (level 1) needs nobody's consent
+  if (id === 'inspections' && (s.uses.inspections ?? 0) < 1) return null;
+  const z = zoneOf(s.cooperation);
+  let p = f.base;
+  if (z === 'pause') p += f.pause ?? 0;
+  if (z === 'rupture') p += f.rupture ?? 0;
+  if (s.cohesion >= F.cohesion.high) p += f.highCohesion ?? 0;
+  if (s.cohesion < F.cohesion.low) p += f.lowCohesion ?? 0;
+  p += (f.perCoalition ?? 0) * s.coalition;
+  return Math.max(F.min, Math.min(F.max, p));
+}
+
+/** The odds in words, with what makes them easier or harder now (never a number). */
+function oddsOf(s: GameState, id: CardId): CardOdds | null {
+  const p = chanceOf(s, id);
+  if (p === null) return null;
+  const f = (T.failure.cards as Partial<Record<CardId, { pause?: number; rupture?: number; highCohesion?: number; lowCohesion?: number; perCoalition?: number }>>)[id]!;
+  const z = zoneOf(s.cooperation);
+  const why: string[] = [];
+  if (z === 'pause' && f.pause) why.push('easier in a pause');
+  if (z === 'rupture' && f.rupture) why.push('harder in a rupture');
+  if (s.cohesion >= T.failure.cohesion.high && f.highCohesion) why.push('Europe holds together');
+  if (s.cohesion < T.failure.cohesion.low && f.lowCohesion) why.push('Europe looks divided');
+  if (s.coalition > 0 && f.perCoalition) why.push('your allies add weight');
+  return { word: p >= T.failure.likely ? 'Likely to work' : p >= T.failure.uncertain ? 'Uncertain' : 'Long shot', why };
+}
+
+/** Whether a card played now works: its own seeded stream (seed, round, card), so other draws never move. */
+function works(s: GameState, id: CardId): boolean {
+  const p = chanceOf(s, id);
+  if (p === null) return true;
+  const h: RngHolder = { rng: seedToRng(s.seed * 4513 + s.round * 7907 + (CARDS.findIndex((c) => c.id === id) + 1) * 131 + (s.uses[id] ?? 0) * 17 + 3) };
+  return random(h) < p;
+}
+
 /** Why a card cannot be played now, or null. */
 function blocked(s: GameState, id: CardId): string | null {
   if (s.phase !== 'play') return 'The game is over.';
@@ -1285,7 +1327,13 @@ function cardFx(s: GameState, p: Pick): Fx[] {
   }
 }
 
-export function playCard(state: GameState, p: Pick): GameState {
+/**
+ * Play a card. A card that can fail (TUNING.failure) works with its chance, drawn from its own seeded stream: when it
+ * fails, its Influence is spent and nothing else happens (no effect, no level climbed, no blowback); it is marked
+ * `failed` in `played` and the news says why. `assumeSuccess` plays it as if it worked, without drawing: previews
+ * and the decision screen's affordability use it.
+ */
+export function playCard(state: GameState, p: Pick, opts: { assumeSuccess?: boolean } = {}): GameState {
   const why = blocked(state, p.id);
   if (why) throw new Error(`${p.id}: ${why}`);
   const def = cardDef(p.id);
@@ -1294,6 +1342,10 @@ export function playCard(state: GameState, p: Pick): GameState {
   const n = s.uses[p.id] ?? 0;
   const name = def.levels ? def.levels[n] : def.name;
   s.influence -= cardCost(p.id, n);
+  if (!opts.assumeSuccess && !works(state, p.id)) {
+    s.played.push({ id: p.id, ...(p.option ? { option: p.option } : {}), failed: true });
+    return s;
+  }
   s.uses[p.id] = n + 1;
   s.played.push({ id: p.id, ...(p.option ? { option: p.option } : {}) });
   const a = snap(s);
@@ -1346,6 +1398,12 @@ export function playCard(state: GameState, p: Pick): GameState {
   return s;
 }
 
+/** A card's name at its next level ("Inspection accord"), else its name. */
+function cardTitle(s: GameState, id: CardId): string {
+  const def = cardDef(id);
+  return def.levels ? def.levels[Math.min(s.uses[id] ?? 0, def.levels.length - 1)] : def.name;
+}
+
 function cardView(s: GameState, id: CardId): CardView {
   const def = cardDef(id);
   const n = s.uses[id] ?? 0;
@@ -1375,6 +1433,7 @@ function cardView(s: GameState, id: CardId): CardView {
     reason,
     isNew: s.arrivals[id] === s.round,
     family: def.family,
+    odds: oddsOf(s, id),
     basis: def.basis,
   };
 }
@@ -1406,7 +1465,7 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
     const def = cardDef(p.id);
     const choice = def.options ? (p.option ?? def.options[0].id) : undefined;
     cost += cardCost(p.id, s.uses[p.id] ?? 0);
-    s = playCard(s, { id: p.id, ...(choice ? { option: choice } : {}) });
+    s = playCard(s, { id: p.id, ...(choice ? { option: choice } : {}) }, { assumeSuccess: true });
   }
   const notes: string[] = [];
   for (const p of picks) {
@@ -1431,6 +1490,9 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
     if (p.id === 'talks') notes.push('The envoys rest next round.');
     if (p.id === 'pause_call') notes.push(`One more vote to slow down in Washington’s oversight committee. Influence ${signed(T.cards.pause_call.influence)} next round.`);
   }
+  // cards that can fail: the preview shows them working; say so in words
+  const risky = picks.map((p) => ({ p, o: oddsOf(base, p.id) })).filter((x) => x.o && x.o.word !== 'Likely to work');
+  if (risky.length) notes.push(`${risky.map((x) => `${cardDef(x.p.id).levels ? cardTitle(base, x.p.id) : cardDef(x.p.id).name}: ${x.o!.word.toLowerCase()}`).join('; ')}. If it fails, the Influence is spent and nothing else happens.`);
   return {
     ok: true,
     reason: null,
@@ -1790,7 +1852,8 @@ export function advisor(s: GameState): AdvisorView {
         parts.threat += 8;
         threat = seen.find((t) => t.id === 'blackmail')!;
       }
-      const v = Object.values(parts).reduce((a, b) => a + b, 0);
+      // a card that can fail is worth what it brings when it works, times its chance (public values)
+      const v = Object.values(parts).reduce((a, b) => a + b, 0) * (chanceOf(s, cv.id) ?? 1);
       const why = (Object.entries(parts) as [Why, number][]).sort((a, b) => b[1] - a[1])[0][0];
       return { cv, option, v, ratio: v / Math.max(1, cv.cost), why, threat };
     }),
@@ -1921,9 +1984,11 @@ export function ending(s: GameState): EndingView {
   const decisions = s.history.flatMap((r) =>
     r.decisions.map((p) => {
       const def = CARD_BY_ID[p.id];
-      const nth = s.history.filter((x) => x.round < r.round).flatMap((x) => x.decisions).filter((x) => x.id === p.id).length;
+      const nth = s.history.filter((x) => x.round < r.round).flatMap((x) => x.decisions).filter((x) => x.id === p.id && !x.failed).length;
       const ups: Chip[] = p.option && def.options ? def.options.find((o) => o.id === p.option)!.ups : def.ups;
-      return { round: r.round, date: dateLabel(r.round), name: def.levels ? def.levels[nth] : def.name, ups, downs: def.downs };
+      const name = def.levels ? def.levels[Math.min(nth, def.levels.length - 1)] : def.name;
+      if (p.failed) return { round: r.round, date: dateLabel(r.round), name, ups: [], downs: [], failed: def.failure?.text ?? 'It did not work.' };
+      return { round: r.round, date: dateLabel(r.round), name, ups, downs: def.downs };
     }),
   );
   const threatList = THREATS.filter((t) => s.threats[t.id].stage > 0 || s.threats[t.id].struck).map((t) => ({
@@ -2103,12 +2168,19 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
   }
   out.sort((a, b) => a.at - b.at);
   // the player's decisions, after the six months, with what they changed
-  const earlier = s.history.filter((x) => x.round < r.round).flatMap((x) => x.decisions);
+  // a failed card climbed no level: only the ones that worked count
+  const earlier = s.history.filter((x) => x.round < r.round).flatMap((x) => x.decisions).filter((x) => !x.failed);
   r.decisions.forEach((p, i) => {
     const def = CARD_BY_ID[p.id];
     const nth = earlier.filter((x) => x.id === p.id).length;
     const name = def.levels ? def.levels[Math.min(nth, def.levels.length - 1)] : def.name;
     const opt = p.option && def.options ? ` (${def.options.find((o) => o.id === p.option)!.label.toLowerCase()})` : '';
+    if (p.failed && def.failure) {
+      // it did not work: the news says why, in one plain sentence (with its basis), and the decision says what it cost
+      out.push({ ...base, id: `f_${p.id}`, at: 1.1 + i * 0.01, kind: 'headline', label: 'Headline', text: def.failure.text, detail: `Your decision did not work: ${name}.`, region: 'eu', tone: -1, prov: def.failure.basis });
+      out.push({ ...base, id: `d_${p.id}`, at: 1.1 + i * 0.01 + 0.005, kind: 'decision', label: 'Your decision', text: `${name}${opt}: did not work`, detail: 'Influence spent; nothing else changed.', region: 'eu', tone: -1, prov: def.basis });
+      return;
+    }
     const detail = r.changes.filter((c) => c.by === 'card' && c.cause === name).map((c) => c.text);
     out.push({ ...base, id: `d_${p.id}`, at: 1.1 + i * 0.01, kind: 'decision', label: 'Your decision', text: `${name}${opt}`, detail: detail.length ? detail.join(', ') : null, region: 'eu', tone: 0, prov: def.basis });
   });

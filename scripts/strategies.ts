@@ -5,7 +5,7 @@
 import { TUNING } from '../src/data/tuning';
 import { advisor, answerRequest, createInitialState, endRound, gauges, hand, heading, playCard, preview, request, resolveEvent, startRound, threats } from '../src/engine/index';
 import { pick, randomInt, seedToRng, type RngHolder } from '../src/engine/rng';
-import type { CardId, GameState, Pick, RequestView, Side } from '../src/engine/types';
+import type { CardId, CardView, GameState, Pick, RequestView, Side } from '../src/engine/types';
 
 export interface Strategy {
   name: string;
@@ -165,6 +165,9 @@ function thoughtfulWeights(s: GameState) {
   return { w, conf, plateau };
 }
 
+/** How much a player counts on a card that can fail, from the words on the card (v4: never a number). */
+const oddsWeight = (o: CardView['odds']) => (!o ? 1 : o.word === 'Likely to work' ? 0.85 : o.word === 'Uncertain' ? 0.6 : 0.3);
+
 /** Requests: the answer whose visible effects help most the world it aims for. */
 const thoughtfulAnswer = (s: GameState, v: RequestView): Side => {
   const { w } = thoughtfulWeights(s);
@@ -212,8 +215,9 @@ export const thoughtful: Strategy = {
       return v;
     };
     const options = cards.flatMap((c): { c: (typeof cards)[number]; option?: string }[] => (c.options.length ? c.options.map((o) => ({ c, option: o.id })) : [{ c }]));
+    // a card that can fail is worth less: the player reads its odds in words (v4)
     const ranked = options
-      .map((o) => ({ ...o, v: score(o.c.id, o.option) }))
+      .map((o) => ({ ...o, v: score(o.c.id, o.option) * oddsWeight(o.c.odds) }))
       .filter((o) => o.v > 1.5)
       .sort((a, b) => b.v / b.c.cost - a.v / a.c.cost);
     const out: Pick[] = [];

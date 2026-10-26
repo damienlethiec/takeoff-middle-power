@@ -658,6 +658,11 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .pc-chips .chip { font-size: 12.5px; white-space: normal; }
 .pc-prot { display: flex; gap: 5px; align-items: center; font-size: 12.5px; color: var(--good); margin: 0; }
 .pc-text { font-size: 13px; line-height: 1.38; color: var(--ink); }
+/* cards that can fail: the odds in words (v4, playtests); the word carries the meaning, the colour only repeats it */
+.pc-odds { font-size: 12.5px; line-height: 1.3; color: var(--mute); }
+.pc-odds b { font-weight: 700; color: var(--ink); }
+.pc-odds.o-uncertain b { color: var(--warn); }
+.pc-odds.o-long b { color: var(--crit-text); }
 .pc-reason { display: block; margin-top: 3px; color: var(--crit-text); }
 .pc-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .pc-tags:empty { display: none; }
