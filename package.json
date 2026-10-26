@@ -13,7 +13,10 @@
     "sim": "vite-node scripts/sim.ts",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "a11y": "node scripts/a11y/run.mjs"
+    "a11y": "node scripts/a11y/run.mjs",
+    "i18n:extract": "vite-node scripts/i18n.ts extract",
+    "i18n:check": "vite-node scripts/i18n.ts check",
+    "i18n:missing": "vite-node scripts/i18n.ts missing"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
