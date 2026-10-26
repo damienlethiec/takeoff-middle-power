@@ -115,17 +115,18 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .game.paused .phase { color: var(--warn); }
 .help-btn { font-family: var(--f-display); font-weight: 800; font-size: 18px; color: var(--ink); }
 .top-btns { display: flex; gap: 8px; align-items: center; }
-.inf { position: relative; display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; background: var(--deck); border: 1px solid var(--rule); border-radius: 10px; padding: 4px 12px 4px 9px; }
+.inf { position: relative; display: grid; grid-template-columns: auto auto auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; background: var(--deck); border: 1px solid var(--rule); border-radius: 10px; padding: 4px 12px 4px 9px; }
 .inf-ico { grid-row: 1 / span 2; color: var(--concern); display: flex; align-items: center; gap: 6px; }
 .inf-ico .ico { width: 22px; height: 22px; }
-.inf-v { position: absolute; left: 36px; top: 50%; transform: translateY(-50%); font-family: var(--f-display); font-weight: 800; font-size: 28px; color: var(--concern); line-height: 1; }
-.inf-l { grid-column: 2; padding-left: 30px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--mute); line-height: 1.2; }
+/* the value has its own column, as wide as its digits: "10" or "25" never runs into the label */
+.inf-v { grid-column: 2; grid-row: 1 / span 2; font-family: var(--f-display); font-weight: 800; font-size: 28px; color: var(--concern); line-height: 1; white-space: nowrap; }
+.inf-l { grid-column: 3; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--mute); line-height: 1.2; }
 .inf-l small { display: block; text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--ink); }
-.inf-why { grid-column: 2; padding-left: 30px; font-size: 11px; color: var(--mute); max-width: 230px; line-height: 1.25; }
+.inf-why { grid-column: 3; font-size: 11px; color: var(--mute); max-width: 230px; line-height: 1.25; }
 /* the "?" by Influence: what it is and how to earn it */
 .inf:has(.inf-help) { padding-right: 34px; }
 .inf-help { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; font-size: 13px; }
-.top .inf-why { max-width: 200px; }
+.top .inf-why { max-width: 160px; }
 .inf-rules li { margin: 2px 0; }
 
 .stage { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 8px; min-height: 0; }
@@ -522,7 +523,7 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .badge-was { font-size: 12px; color: var(--mute); }
 .dec-inf { margin: 0 0 6px auto; display: flex; gap: 8px; align-items: center; }
 .dec-inf small { font-size: 14px; color: var(--mute); }
-.dec-inf .inf-v { position: static; transform: none; white-space: nowrap; }
+.dec-inf .inf-v { white-space: nowrap; }
 .dec-inf .inf-l { padding: 0; }
 .ava { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--align); color: var(--night); font-family: var(--f-display); font-weight: 800; font-size: 14px; }
 .hand { list-style: none; margin: 10px 0 0; padding: 3px; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; align-content: start; overflow: auto; flex: 1; min-height: 0; }
@@ -824,6 +825,10 @@ body.ended { overflow: auto; }
   .snd-btn { width: 40px; min-height: 32px; height: 32px; padding: 0; justify-content: center; }
   .snd-btn .ico { width: 18px; height: 18px; }
   .snd-word, .snd-state { display: none; }
+  /* Influence keeps the second row with the clock and help: a tighter box, the value as wide as its digits */
+  .top .inf { column-gap: 6px; padding: 3px 8px 3px 7px; }
+  .top .inf:has(.inf-help) { padding-right: 32px; }
+  .top .inf-v { font-size: 25px; }
 }
 .snd-end { position: absolute; top: 12px; right: 16px; z-index: 2; }
 .ending-page { position: relative; }
