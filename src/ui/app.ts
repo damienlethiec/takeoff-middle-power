@@ -784,7 +784,7 @@ export class App {
         .join('');
       const words =
         g.key === 'aiPower'
-          ? `${v} out of 100. At 80, AI improves itself: the tipping point, and the game ends.${g.eta ? ` ${g.eta}` : ''}`
+          ? `${v} out of 100. At 80, AI starts improving itself: the tipping point, where the world’s ending is decided.${g.eta ? ` ${g.eta}` : ''}`
           : g.key === 'confidence'
             ? g.audited
               ? `${v}, audited: the true value.`

@@ -20,7 +20,7 @@ export const GAUGE_SUB: Record<GaugeKey, string> = {
 };
 
 /** What the tipping point means, on the capabilities gauge. */
-export const TIPPING_LINE = (at: number) => `${at} = AI improves itself: the game ends`;
+export const TIPPING_LINE = (at: number) => `Tipping point at ${at}: your choices decide the ending`;
 
 /** "71, could be as low as 41": what the labs report, and how low the truth could be (never higher). */
 export const lowText = (reported: number, low: number) => `${reported}, could be as low as ${low}`;
@@ -97,7 +97,7 @@ export const CREDITS =
  *  At most four before the first decision (the race, the world, where it is heading, Influence); after that,
  *  only what does not explain itself, the first time it appears. All are listed in Help. */
 export const TIPS = {
-  race: { anchor: 'clock confidence', title: 'The race', text: '**AI capabilities** rise every round; at 80, AI improves itself and the game ends.\n**AI safety** is how sure we are that AI does what we intend: the labs report a number, and it could be as low as the bottom of the band. Keep safety ahead.' },
+  race: { anchor: 'clock confidence', title: 'The race', text: '**AI capabilities** rise every round; at 80, AI starts improving itself: the tipping point, where the world’s ending is decided.\n**AI safety** is how sure we are that AI does what we intend: the labs report a number, and it could be as low as the bottom of the band. Keep safety ahead.' },
   world: { anchor: 'cooperation cohesion', title: 'The superpowers and Europe', text: '**US–China cooperation** sets the kind of world: Pause 60+, Race 30–59, Rupture below 30.\n**Social cohesion** is whether Europe holds together: jobs, trust, safety from misuse.' },
   outlook: { anchor: 'heading', title: 'Where the world is heading', text: 'If AI tipped now, this is the world you would get and what it needs to end well. Each round is six months from 2027; the game ends at the tipping point, or after 12 rounds.' },
   influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.' },
@@ -118,7 +118,7 @@ export const HELP = {
     ['← →', 'In a request: look at an answer, press again to answer'],
   ] as [string, string][],
   rules: [
-    'AI capabilities rise every round. At 80, AI improves itself: the tipping point (never before round 6), and the game ends. If it never gets there, the game ends after round 12.',
+    'AI capabilities rise every round. At 80, AI starts improving itself: the tipping point (never before round 6). Where the world stands then decides the ending. If it never gets there, the game ends after round 12.',
     'At the tipping point, the US–China cooperation zone sets the world: Pause, Race or Rupture. Without a tipping point, Europe’s AI badge sets it.',
     'In each world, one gauge decides (its goal) and the other pillar is a safety net (its floor). Both are marked on their gauges, and the line under the gauges names the world you are heading for. Europe’s AI, at the end of that line, decides the world if AI never tips.',
     'AI safety is what the labs and testers report, and how low it could really be. The truth is never above the reported value; it is revealed at the end. Your actions can only narrow the uncertainty; secrecy and opaque AI widen it.',
