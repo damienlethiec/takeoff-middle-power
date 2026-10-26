@@ -78,5 +78,10 @@ export const SOURCES = {
     label: 'Council of the EU, Platform workers: Council adopts new rules (14 Oct 2024)',
     url: 'https://www.consilium.europa.eu/en/press/press-releases/2024/10/14/platform-workers-council-adopts-new-rules-to-improve-their-working-conditions/',
   },
+  // the EU AI Act as published in the Official Journal (checked on the text of Regulation (EU) 2024/1689, 26 Oct 2026):
+  // Art. 50 (marking AI-generated content), Art. 51 and 53(2) (open-source models, systemic-risk threshold), Annex III 5(d)
+  aiActOj: { label: 'Regulation (EU) 2024/1689, the AI Act (Official Journal, 12 Jul 2024)', url: 'https://eur-lex.europa.eu/eli/reg/2024/1689/oj' },
+  // AI 2027's authors on their own timelines since publication (checked 26 Oct 2026)
+  aifTimelines: { label: 'AI Futures Project, Clarifying how our AI timelines forecasts have changed since AI 2027 (Jan 2026)', url: 'https://blog.aifutures.org/p/clarifying-how-our-ai-timelines-forecasts' },
   idaisVenice: { label: 'International Dialogues on AI Safety, IDAIS-Venice statement (Sept 2024)', url: 'https://idais.ai/dialogue/idais-venice/' },
 } satisfies Record<string, Source>;

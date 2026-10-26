@@ -8,7 +8,7 @@ export const MOTHER_REQUESTS: RequestCard[] = [
   {
     id: 'mum_triage_pilot',
     character: 'mother',
-    text: 'My old hospital wants to try an AI that sorts emergency patients. The director says it would end the waiting. They need a nod from Brussels to start this winter. Will you back it?',
+    text: 'My old hospital wants to try an AI that sorts emergency patients this winter. The director says it would end the waiting, and he’d love your public support. Will you back it?',
     left: {
       label: 'Test it first',
       stance: 'refuse',
@@ -25,16 +25,16 @@ export const MOTHER_REQUESTS: RequestCard[] = [
       reaction: 'Wonderful! I’ll tell the nurses it was my child.',
     },
     when: { milestone: 'ai_takes_jobs' },
-    basis: { kind: 'real', ref: 'Lund University, AI-supported mammography screening is found to be safe (MASAI trial, Aug 2023)' },
+    basis: { kind: 'real', ref: 'EU AI Act, Annex III, point 5(d) (emergency healthcare patient triage systems are high-risk)' },
     learnMore: {
-      text: 'In a Swedish screening trial reported in 2023, AI support found 20% more breast cancers and cut doctors’ reading work by 44%.',
-      source: SOURCES.lundMasai,
+      text: 'Under the EU AI Act, AI used to triage emergency patients counts as “high-risk”: from August 2026 it must be tested, documented and overseen by people.',
+      source: SOURCES.aiActOj,
     },
   },
   {
     id: 'mum_near_miss',
     character: 'mother',
-    text: 'Our triage AI nearly sent a man with a heart attack home. A nurse caught it. The director wants it kept quiet, to avoid a panic. Shouldn’t hospitals have to report these near misses?',
+    text: 'Our hospital’s AI prescribed a child an adult’s dose. A pharmacist caught it in time. The director wants it kept quiet, to avoid a panic. Shouldn’t hospitals have to report these near misses?',
     left: {
       label: 'Keep it quiet',
       stance: 'refuse',
@@ -48,7 +48,7 @@ export const MOTHER_REQUESTS: RequestCard[] = [
       stance: 'accept',
       effects: { margin: -2, cohesion: -2 },
       why: 'Frightening headlines for a while',
-      reaction: 'Thank you. That nurse deserves a medal.',
+      reaction: 'Thank you. That pharmacist deserves a medal.',
     },
     when: { milestone: 'alignment_inconclusive' },
     basis: { kind: 'ai2027', ref: 'AI 2027, "October 2027: Government Oversight" (warning signs, once public, turn opinion against AI)' },

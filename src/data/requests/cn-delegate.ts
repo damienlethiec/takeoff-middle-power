@@ -8,7 +8,7 @@ export const CN_DELEGATE: RequestCard[] = [
   {
     id: 'cn_nuclear',
     character: 'cn_delegate',
-    text: 'Our presidents once agreed that humans, not AI, must decide on nuclear weapons. Let us go further: a joint statement keeping AI out of all launch decisions.',
+    text: 'In 2024, Presidents Biden and Xi agreed that humans, not AI, must decide on nuclear weapons. Let us go further: a joint statement keeping AI out of all launch decisions.',
     left: {
       label: 'Leave it to them',
       stance: 'refuse',
@@ -32,7 +32,7 @@ export const CN_DELEGATE: RequestCard[] = [
   {
     id: 'cn_tools',
     character: 'cn_delegate',
-    text: 'Our companies want Europe’s chip-design software and cloud access. Open the door, and our labs will join your safety testing talks.',
+    text: 'Our companies want time on Europe’s supercomputers and its cloud. Open the door, and our labs will join your safety testing talks.',
     left: {
       label: 'Keep it closed',
       stance: 'refuse',
@@ -49,9 +49,11 @@ export const CN_DELEGATE: RequestCard[] = [
       reaction: 'A sensible partner. Our engineers will be in touch.',
     },
     when: { notFlags: ['chip_controls'], milestone: 'china_wakes_up' },
+    // not first in line when China wakes up: it came in nine games out of ten
+    priority: false,
     basis: { kind: 'cfg', ref: 'CFG, Arms race, main scenario (Europe squeezed between the US and China; some organisations shift to Chinese tools)' },
     learnMore: {
-      text: 'In March 2023, the Netherlands announced export controls on ASML’s older DUV chip machines, citing national security.',
+      text: 'In March 2023, the Netherlands announced export controls on ASML’s most advanced DUV chip machines, citing national security.',
       source: SOURCES.dutchDuv,
     },
   },
@@ -150,10 +152,36 @@ export const CN_DELEGATE: RequestCard[] = [
       why: 'Security services object',
       reaction: 'Science travels better than diplomats.',
     },
-    when: { minRound: 2, maxRound: 9 },
+    when: { minRound: 2, maxRound: 9, minCoop: 35 },
     basis: { kind: 'cfg', ref: 'CFG, Diplomacy, main scenario (European researchers collaborate with Chinese and American counterparts)' },
     learnMore: {
       text: 'In CFG’s Diplomacy scenario, European researchers work with Chinese and American counterparts on AI security, while the UK coordinates the first AI Security Summit.',
+      source: SOURCES.cfg,
+    },
+  },
+  {
+    id: 'cn_watch_chips',
+    character: 'cn_delegate',
+    text: 'Washington and Beijing could both stand down, if each may watch Europe’s chip factories. Our inspectors and theirs, side by side. Will you let them in?',
+    left: {
+      label: 'Our factories, our rules',
+      stance: 'refuse',
+      effects: { coop: -4 },
+      why: 'Both capitals call Europe selfish',
+      reaction: 'Then keep your factories, and your war.',
+    },
+    right: {
+      label: 'Let them watch',
+      stance: 'accept',
+      effects: { coop: 6, cohesion: -3 },
+      badge: 'dependent',
+      why: 'Europe’s chips under foreign eyes',
+      reaction: 'A peace with witnesses. The best kind.',
+    },
+    when: { maxCoop: 29, minRound: 6, minCoalition: 1 },
+    basis: { kind: 'cfg', ref: 'CFG, Arms race, Ending B "Multipolar world" (“The U.S. and China will jointly oversee European AI supply chains”)' },
+    learnMore: {
+      text: 'In CFG’s “Multipolar world”, the EU and neutral countries mediate, and the deal lets the US and China jointly oversee European AI supply chains.',
       source: SOURCES.cfg,
     },
   },

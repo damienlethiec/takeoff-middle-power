@@ -8,7 +8,7 @@ export const PARTNER: RequestCard[] = [
   {
     id: 'pt_back_channel',
     character: 'partner',
-    text: 'Washington and Beijing have stopped talking. Our coalition could carry messages between them, quietly. Will Europe host the back channel?',
+    text: 'Washington and Beijing have stopped talking. Our coalition, with neutral Switzerland, could carry messages between them, quietly. Will Europe host the back channel?',
     left: {
       label: 'Not our fight',
       stance: 'refuse',
@@ -50,8 +50,8 @@ export const PARTNER: RequestCard[] = [
     when: { maxRound: 8 },
     basis: { kind: 'cfg', ref: 'CFG, Diplomacy, main scenario (the UK AI Security Institute coordinates international testing)' },
     learnMore: {
-      text: 'In May 2024, 16 AI companies from the US, China and elsewhere committed to publish safety frameworks and set risk thresholds with input from governments.',
-      source: SOURCES.seoulCommitments,
+      text: 'In November 2024, ten AI safety institutes, the EU’s among them, agreed to run joint testing exercises on AI models.',
+      source: SOURCES.aisiNetwork,
     },
   },
 ];

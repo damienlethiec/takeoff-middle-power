@@ -85,7 +85,8 @@ describe('request content', () => {
   });
 
   it('conditions use flags some answer sets and milestones that exist; follow-ups wait for an earlier answer', () => {
-    const set = new Set(REQUESTS.flatMap((r) => [...(r.left.set ?? []), ...(r.right.set ?? [])]));
+    // flags set by answers, and those the engine sets itself (the memo leak, the pause call card, the committee vote)
+    const set = new Set([...REQUESTS.flatMap((r) => [...(r.left.set ?? []), ...(r.right.set ?? [])]), 'memo_public', 'pause_call', 'committee_slowdown', 'committee_race']);
     const ids = MILESTONES.map((m) => m.id) as string[];
     const check = (c: Condition | undefined, id: string) => {
       for (const f of [...(c?.flags ?? []), ...(c?.notFlags ?? [])]) expect(set.has(f), `${id}: flag ${f}`).toBe(true);

@@ -1,10 +1,20 @@
 // The two intro screens: the world today, then you, your goal and the three friends back home (the people you are
 // doing this for). Skip goes straight to round 1.
 
-import { CREDITS, INTRO } from '../../data/copy';
-import { esc, factBox } from '../format';
+import { BUILT_ON, INTRO } from '../../data/copy';
+import { esc, factBox, link } from '../format';
 import { friendPortrait } from '../friends';
 import { openModal } from '../modal';
+
+/** The "Built on" block: the two scenarios with links, the calendar, and the tags the news carries (in words). */
+function builtOn(): string {
+  const B = BUILT_ON;
+  return `<section class="built-on" aria-labelledby="built-on-h"><h3 id="built-on-h">${esc(B.title)}</h3><ul>${B.scenarios
+    .map((x) => `<li><b>${link(x.source, x.name)}</b> (${esc(x.by)}): ${esc(x.what)}</li>`)
+    .join('')}</ul><p>${esc(B.calendar.text)} (${link(B.calendar.source, B.calendar.linkText)})</p><p>${esc(B.tagsText)} ${B.tags
+    .map((t, i) => `<span class="tag prov p-${['real', 'ai2027', 'cfg', 'game'][i]}">${esc(t)}</span>`)
+    .join(' ')}</p></section>`;
+}
 
 export async function showIntro(): Promise<void> {
   for (let i = 0; i < INTRO.length; ) {
@@ -25,7 +35,7 @@ export async function showIntro(): Promise<void> {
             : ''
         }
         ${sc.fact ? factBox(sc.fact) : ''}
-        ${last ? `<p class="credits">${esc(CREDITS)}</p>` : ''}
+        ${last ? builtOn() : ''}
         <div class="row-btns">
           ${i > 0 ? '<button type="button" class="btn-quiet" data-action="back">Back</button>' : ''}
           <button type="button" class="btn-primary" data-primary data-action="next">${last ? 'Start round 1' : 'Next'} <kbd>Enter</kbd></button>

@@ -390,7 +390,7 @@ export class App {
         x.state = 'live';
         // only the newest headline shows as a banner, briefly; then its icon stays in the region's cluster
         if (x.kind === 'headline') this.map.flashBanner(x.item.region, x.item.text, 'headline');
-        announce(`${x.kind === 'voice' ? 'Heard in ' + (x.item.region === 'eu' ? 'Europe' : x.item.region === 'us' ? 'the US' : 'China') : 'Headline'}: ${x.item.text}`);
+        announce(`${x.kind === 'voice' ? 'Heard in ' + (x.item.place ?? (x.item.region === 'eu' ? 'Europe' : x.item.region === 'us' ? 'the US' : 'China')) : 'Headline'}: ${x.item.text}`);
         if (x.item.id.startsWith('t_')) this.revealThreats();
       }
     }

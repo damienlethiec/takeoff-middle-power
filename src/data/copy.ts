@@ -69,7 +69,7 @@ export const INTRO: IntroScreen[] = [
     title: 'The world today',
     paragraphs: [
       'AI is grown, not built. Nobody writes these systems line by line: they are trained on huge amounts of data, and what they learn is hard to check, even for their makers. They are improving fast.',
-      'Two labs lead the race: OpenBrain in the US and DeepCent in China. Both are invented for this game, as is everything that happens after today.',
+      'Two labs lead the race: OpenBrain in the US and DeepCent in China. Both come from the AI 2027 scenario and are fictional, as is everything that happens after today.',
     ],
     stakes: ['Will AI do what we intend?', 'Will the superpowers race, or talk?', 'Will our societies hold together?'],
     fact: {
@@ -96,8 +96,18 @@ export const INTRO: IntroScreen[] = [
   },
 ];
 
-export const CREDITS =
-  'Built on the AI 2027 scenario and CFG’s Advanced AI: Possible Futures. OpenBrain, DeepCent and every event after today are fiction.';
+/** "Built on" (the intro's last screen, replacing the old credits line): the two scenarios, the calendar, and the
+ *  provenance tags the news carries. About 80 words, to fit a phone screen. */
+export const BUILT_ON = {
+  title: 'Built on two scenarios',
+  scenarios: [
+    { name: 'AI 2027', by: 'Kokotajlo et al., 2025', what: 'a month-by-month forecast of AI improving itself by late 2027, told through two fictional labs.', source: SOURCES.ai2027 },
+    { name: 'Advanced AI: Possible Futures', by: 'Centre for Future Generations, 2025', what: 'five worlds, from an AI plateau to an arms race; ten endings.', source: SOURCES.cfg },
+  ],
+  calendar: { text: 'AI 2027 is the fast case: its authors now expect it to take a few years longer. Here the dates move with the pace.', source: SOURCES.aifTimelines, linkText: 'their update' },
+  tags: ['Real', 'From AI 2027', 'From CFG', 'Invented'],
+  tagsText: 'Every news item says where it comes from:',
+};
 
 /** Coach marks: each shown once, pointing at `anchor` (data-coach values, space-separated: all are highlighted),
  *  only when it is on screen. In `text`, a new line starts a paragraph and **x** is bold (rendered by tipHtml).

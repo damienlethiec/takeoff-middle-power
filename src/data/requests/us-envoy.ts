@@ -8,7 +8,7 @@ export const US_ENVOY: RequestCard[] = [
   {
     id: 'us_chip_controls',
     character: 'us_envoy',
-    text: 'Washington is tightening chip export controls on China. We want Europe in: no advanced chips or chip tools for Chinese labs. Allies stand together, or they don’t.',
+    text: 'Washington is tightening chip export controls on China. We want Europe’s governments in: no advanced chips or chip tools for Chinese labs. Allies stand together, or they don’t.',
     left: {
       label: 'Keep trading',
       stance: 'refuse',
@@ -106,31 +106,6 @@ export const US_ENVOY: RequestCard[] = [
     learnMore: {
       text: 'In February 2025, the European Commission launched InvestAI to mobilise €200 billion for AI, including a €20 billion fund for AI gigafactories.',
       source: SOURCES.investAi,
-    },
-  },
-  {
-    id: 'us_licence_treaty',
-    character: 'us_envoy',
-    text: 'If Beijing accepts inspectors, Washington could accept an international licence for training frontier AI. Will Europe draft the treaty and host its inspectors?',
-    left: {
-      label: 'Too early for that',
-      stance: 'refuse',
-      effects: { coop: -4 },
-      reaction: 'The window won’t stay open long.',
-    },
-    right: {
-      label: 'Draft the treaty',
-      stance: 'accept',
-      effects: { coop: 7, cohesion: -3, truth: 3 },
-      inspections: 1,
-      why: 'Years of costly diplomacy',
-      reaction: 'Then let’s make it airtight.',
-    },
-    when: { minCoop: 50, milestone: 'self_improving' },
-    basis: { kind: 'cfg', ref: 'CFG, Diplomacy, Ending A "Licensed utopia" (a global licensing treaty, IAEA-style enforcement)' },
-    learnMore: {
-      text: 'In CFG’s “Licensed utopia”, the US, the EU, China and dozens of countries sign an AI treaty with a licensing regime, enforced by an expanded IAEA.',
-      source: SOURCES.cfg,
     },
   },
   {

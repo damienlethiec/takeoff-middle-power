@@ -707,6 +707,10 @@ export interface FeedItem {
   postcard?: boolean;
   /** A social event (v4): its kind and city (the map shows it there). */
   social?: { kind: SocialKind; city: string; lon: number; lat: number };
+  /** Where it comes from, for the provenance tag (Real / From AI 2027 / From CFG / Invented). A story event set after
+   *  today that rests on a real precedent is tagged Invented (its precedent is in `detail`): only the player's own
+   *  decisions can be tagged Real. */
+  prov?: Basis;
 }
 
 export interface FeedRound {

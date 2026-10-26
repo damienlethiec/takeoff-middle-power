@@ -115,7 +115,7 @@ export const OPENBRAIN_CEO: RequestCard[] = [
   {
     id: 'ob_datacenter',
     character: 'openbrain_ceo',
-    text: 'OpenBrain wants to build Europe’s largest datacenter. Thousands of jobs. We need cheap power and permits within the year.',
+    text: 'OpenBrain wants to build Europe’s largest datacenter. Thousands of jobs. We need cheap power and permits within the year. Will you back us with the governments?',
     left: {
       label: 'Not on our grid',
       stance: 'refuse',
@@ -124,7 +124,7 @@ export const OPENBRAIN_CEO: RequestCard[] = [
       reaction: 'Texas will be thrilled.',
     },
     right: {
-      label: 'Fast-track it',
+      label: 'Back the project',
       stance: 'accept',
       effects: { cohesion: 4, ai: 3 },
       badge: 'dependent',

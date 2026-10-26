@@ -6,33 +6,6 @@ import { SOURCES } from '../sources';
 
 export const RESEARCHER: RequestCard[] = [
   {
-    id: 'rs_compute_pledge',
-    character: 'researcher',
-    text: 'Pledge a third of the compute in Europe’s new AI gigafactories to safety research, like a CERN for AI. Firms will complain.',
-    left: {
-      label: 'Keep it commercial',
-      stance: 'refuse',
-      effects: { cohesion: 3, ai: 1 },
-      why: 'More compute for the race',
-      reaction: 'Then safety stays a hobby.',
-    },
-    right: {
-      label: 'Pledge the compute',
-      stance: 'accept',
-      effects: { truth: 10, conf: 2, cohesion: -3, ai: -1 },
-      tag: 'safety',
-      why: 'Fewer jobs from commercial use',
-      reaction: 'Now the best minds can work on the hard part.',
-    },
-    when: { minRound: 3 },
-    weight: 2,
-    basis: { kind: 'cfg', ref: 'CFG, Diplomacy, main scenario (the EU pledges 35% of its AI Gigafactories’ compute to safety research)' },
-    learnMore: {
-      text: 'In CFG’s Diplomacy scenario, the EU pledges 35% of its AI gigafactories’ compute to safety and security research, overseen by a new “CERN for AI”.',
-      source: SOURCES.cfg,
-    },
-  },
-  {
     id: 'rs_look_inside',
     character: 'researcher',
     text: 'OpenBrain says its model is honest wherever they can check. That is exactly the problem. Fund work to look inside the model, not just at its answers.',
@@ -62,32 +35,35 @@ export const RESEARCHER: RequestCard[] = [
   {
     id: 'rs_memo',
     character: 'researcher',
-    text: 'Colleagues inside OpenBrain say their newest AI may be working against them. No proof, only signs. Should Europe call for it to be paused until tested?',
+    text: 'The memo is out, and OpenBrain says its new AI is fixed. Their own team checked it. Will Europe insist that outside testers check it before it runs here?',
     left: {
-      label: 'Wait for proof',
+      label: 'Take their word',
       stance: 'refuse',
-      effects: { ai: 1 },
-      why: 'The signs stay buried',
-      reaction: 'By the time there is proof, it may be too late.',
+      effects: {},
+      tag: 'claim',
+      why: 'Only OpenBrain checked the fix',
+      reaction: 'Their word was the problem.',
     },
     right: {
-      label: 'Call for a pause',
+      label: 'Outside tests first',
       stance: 'accept',
-      effects: { ai: -3, conf: -4, coop: 3, cohesion: -2 },
-      why: 'The public takes fright',
-      reaction: 'Someone had to say it out loud.',
+      effects: { margin: -4, coop: -2, cohesion: -1 },
+      set: ['memo_tested'],
+      why: 'Washington calls it grandstanding',
+      reaction: 'Good. We start on Monday.',
     },
-    when: { milestone: 'tipping_point' },
-    basis: { kind: 'ai2027', ref: 'AI 2027, "Sep 2027: Agent-4" (the safety team’s memo, “no smoking gun”) and "Oct 2027" (European leaders call for a pause)' },
+    // after the memo leaks (core's Breaking news), and not when Sam already brought it to you
+    when: { flags: ['memo_public'], notFlags: ['memo_heard'] },
+    basis: { kind: 'ai2027', ref: 'AI 2027, "Oct 2027: Government Oversight" (the leaked memo; outside researchers brought in, in the slowdown ending)' },
     learnMore: {
-      text: 'In AI 2027, once a memo about the misaligned model leaks, European leaders accuse the US of “creating rogue AGI” and call for a pause; China and India join in.',
+      text: 'In AI 2027’s slowdown ending, the oversight committee brings in outside alignment researchers, and the model is rebuilt so that people can read its reasoning.',
       source: SOURCES.ai2027,
     },
   },
   {
     id: 'rs_red_team',
     character: 'researcher',
-    text: 'OpenBrain wants to deploy its new coding AI across Europe’s firms. Let my team attack it for a month first, looking for what it hides.',
+    text: 'OpenBrain will sell a cut-down version of its new coding AI to Europe’s firms. Let my team attack it for a month first, looking for what it hides.',
     left: {
       label: 'Let it deploy',
       stance: 'refuse',

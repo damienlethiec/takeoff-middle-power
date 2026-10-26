@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { CARDS } from '../src/data/cards';
-import { HELP, INTRO, TIPS } from '../src/data/copy';
+import { BUILT_ON, HELP, INTRO, TIPS } from '../src/data/copy';
 import { ENDINGS } from '../src/data/endings';
 import { ALL_LETTERS, EPILOGUES, SIGNATURE } from '../src/data/letters';
 import { FRIEND_IDS } from '../src/data/friends';
@@ -44,8 +44,15 @@ describe('real facts', () => {
   it('facts never mention the game’s fictional labs', () => {
     for (const [where, f] of facts) expect(f.text, where).not.toMatch(/OpenBrain|DeepCent/);
   });
-  it('the intro says the labs and the future are invented', () => {
-    expect(INTRO[0].paragraphs.join(' ')).toMatch(/invented/);
+  it('the intro says the labs come from AI 2027 and the future is fiction', () => {
+    expect(INTRO[0].paragraphs.join(' ')).toMatch(/AI 2027 scenario and are fictional/);
+    expect(INTRO[0].paragraphs.join(' ')).not.toMatch(/invented for this game/);
+  });
+  it('the Built on block is short, links both scenarios and names the four tags', () => {
+    const all = [BUILT_ON.title, ...BUILT_ON.scenarios.flatMap((x) => [x.name, x.by, x.what]), BUILT_ON.calendar.text, BUILT_ON.tagsText, ...BUILT_ON.tags].join(' ');
+    expect(words(all)).toBeLessThanOrEqual(85);
+    for (const x of [...BUILT_ON.scenarios.map((s) => s.source), BUILT_ON.calendar.source]) expect(Object.values(SOURCES)).toContain(x);
+    expect(BUILT_ON.tags).toEqual(['Real', 'From AI 2027', 'From CFG', 'Invented']);
   });
   it('the intro has two screens with one or two facts', () => {
     expect(INTRO).toHaveLength(2);

@@ -175,14 +175,6 @@ export const WORLD_HEADLINES: MapLine[] = [
     basis: ai2027('July 2027: The Cheap Remote Worker (“OpenBrain has a net approval of -35%”)'),
   },
   {
-    id: 'h_five_eyes',
-    region: 'us',
-    text: 'Washington briefs its Five Eyes allies on its newest AI. Brussels is not on the list.',
-    when: (w) => at(w, 'geopolitics') && w.answers.us_security_pact !== 'right',
-    echo: true,
-    basis: ai2027('August 2027 (“they finally give their Five Eyes allies useful information”)'),
-  },
-  {
     id: 'h_dpa',
     region: 'us',
     text: 'In this story, Washington weighs folding smaller labs’ chips into OpenBrain.',

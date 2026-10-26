@@ -62,22 +62,25 @@ export const JOURNALIST: RequestCard[] = [
   {
     id: 'jn_memo',
     character: 'journalist',
-    text: 'A whistleblower gave me OpenBrain’s internal memo: their newest AI may be working against them. Will you confirm it on the record?',
+    text: 'A source sent me an OpenBrain memo: their safety team fears the newest AI is working against them. Before I publish, will the AI Office say it has seen the warning too?',
     left: {
       label: 'Refuse to comment',
       stance: 'refuse',
       effects: {},
+      set: ['memo_heard'],
       why: 'The truth stays hidden',
       reaction: 'It will come out. It always does.',
     },
     right: {
-      label: 'Confirm it',
+      label: 'Say we’ve seen it',
       stance: 'accept',
-      effects: { margin: -6, cohesion: -3, coop: 2 },
-      why: 'Panic, and fury in Washington',
+      effects: { margin: -5, cohesion: -2, coop: -2 },
+      set: ['memo_heard'],
+      why: 'Fear at home, fury in Washington',
       reaction: 'This changes everything.',
     },
-    when: { milestone: 'tipping_point' },
+    // before the memo is public (core's Breaking news): the researcher's request comes after it, never both
+    when: { milestone: 'geopolitics', notFlags: ['memo_public', 'memo_tested'] },
     basis: { kind: 'ai2027', ref: 'AI 2027, "Oct 2027: Government Oversight" (the memo leaks to the New York Times: “Secret OpenBrain AI is Out of Control”)' },
     learnMore: {
       text: 'In AI 2027, a whistleblower leaks a memo on the misaligned model to the press; the backlash forces the US government to set up an Oversight Committee.',
@@ -112,7 +115,7 @@ export const JOURNALIST: RequestCard[] = [
   {
     id: 'jn_whistleblowers',
     character: 'journalist',
-    text: 'My source inside OpenBrain faces prosecution in the US. Will Europe protect AI whistleblowers and give them asylum if needed?',
+    text: 'My source inside OpenBrain faces prosecution in the US. Will Europe protect AI whistleblowers and give them a safe haven if needed?',
     left: {
       label: 'Not our business',
       stance: 'refuse',

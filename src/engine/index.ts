@@ -2,6 +2,7 @@
 // and no function mutates its input: each works on a deep copy and returns it.
 // The round flow is documented at the top of api.ts; rules and numbers in docs/DEVELOPER_NOTES.md.
 
+import { game } from '../data/basis';
 import { CARD_BY_ID, CARDS, cardCost, cardUses, type CardDef } from '../data/cards';
 import { CHARACTERS } from '../data/characters';
 import { REQUEST_BY_ID, REQUESTS } from '../data/requests';
@@ -23,6 +24,7 @@ import type {
   CommitteeVote,
   Answer,
   AnswerView,
+  Basis,
   CardId,
   Condition,
   ReqEffects,
@@ -750,12 +752,20 @@ function letterFor(s: GameState): LetterDef | null {
   if (friend === 'lea') {
     if (nth === 0) return pick(h, LEA_FIRST);
     if (nth === 1) return pick(h, s.jobShocks > 0 || s.cohesion < L.leaHard ? LEA_WORK.hard : LEA_WORK.calm);
-    return pick(h, used(s, 'flexicurity') ? LEA_LATER.retrained : s.cohesion >= L.leaHolding ? LEA_LATER.holding : LEA_LATER.breaking);
+    return pick(h, used(s, 'flexicurity') ? LEA_LATER.retrained : zoneOf(s.cooperation) === 'rupture' ? LEA_LATER.rupture : s.cohesion >= L.leaHolding ? LEA_LATER.holding : LEA_LATER.breaking);
   }
   if (friend === 'malik') {
     if (nth === 0) return pick(h, s.cooperation < L.malikTense ? MALIK_FIRST.tense : MALIK_FIRST.excited);
     const pool =
-      s.cooperation < L.malikRupture ? MALIK_LATER.rupture : s.europeAi === 'open' ? MALIK_LATER.home : reached(s, 'self_improving') ? MALIK_LATER.inside : MALIK_LATER.race;
+      s.cooperation < L.malikRupture
+        ? MALIK_LATER.rupture
+        : zoneOf(s.cooperation) === 'pause'
+          ? MALIK_LATER.pause
+          : s.europeAi === 'open'
+            ? MALIK_LATER.home
+            : reached(s, 'self_improving')
+              ? MALIK_LATER.inside
+              : MALIK_LATER.race;
     return pick(h, pool);
   }
   if (nth === 0) return pick(h, verified < L.motherDoubt ? MOTHER_FIRST.doubt : MOTHER_FIRST.trust);
@@ -1966,6 +1976,10 @@ function shortfall(key: GaugeKey, gap: number): string {
 const REGION_NAME: Record<RegionId, string> = { eu: 'Europe', us: 'the US', cn: 'China' };
 
 /** The feed items of one round, in the order they appeared. */
+/** The basis a story item is tagged with: what happens after today is never tagged Real, even when it rests on a
+ *  real precedent (the precedent is cited in the item's detail or Learn more). */
+const storyBasis = (b: Basis): Basis => (b.kind === 'real' ? game(`a story event resting on a real precedent: ${b.ref}`) : b);
+
 function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): FeedItem[] {
   const out: FeedItem[] = [];
   const base = { round: r.round, detail: null, threat: null, tone: 0 as const };
@@ -1973,13 +1987,16 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
   const def = r.letter ? letterDef(r.letter) : null;
   const friend = def?.friend ?? 'lea';
   if (def)
-    out.push({ ...base, id: `lea_${r.round}`, at: 0.03, kind: 'lea', label: letterLabel(friend), text: def.text, region: FRIENDS[friend].region, friend, mood: def.mood, postcard: true });
+    out.push({ ...base, id: `lea_${r.round}`, at: 0.03, kind: 'lea', label: letterLabel(friend), text: def.text, region: FRIENDS[friend].region, friend, mood: def.mood, postcard: true, prov: storyBasis(def.basis) });
   for (const h of r.headlines) {
     const t = /^t_(\w+)_(\d)$/.exec(h.id);
     const threat = t ? (t[1] as ThreatId) : null;
-    out.push({ ...base, id: h.id, at: h.at, kind: threat ? 'threat' : h.id.startsWith('m_') ? 'milestone' : 'headline', label: threat ? 'Threat' : h.id.startsWith('m_') ? 'AI 2027 milestone' : 'Headline', text: h.text, region: h.region, threat, tone: threat ? -1 : 0 });
+    const kind = threat ? 'threat' : h.id.startsWith('m_') ? 'milestone' : 'headline';
+    const label = kind === 'threat' ? 'Threat' : kind === 'milestone' ? 'AI 2027 milestone' : 'Headline · in this story';
+    out.push({ ...base, id: h.id, at: h.at, kind, label, text: h.text, region: h.region, threat, tone: threat ? -1 : 0, prov: storyBasis(h.basis) });
   }
-  for (const v of r.voices) out.push({ ...base, id: v.id, at: v.at, kind: 'voice', label: `Heard in ${v.place ?? REGION_NAME[v.region]}`, text: v.text, region: v.region });
+  for (const v of r.voices)
+    out.push({ ...base, id: v.id, at: v.at, kind: 'voice', label: `Heard in ${v.place ?? REGION_NAME[v.region]} · in this story`, text: v.text, region: v.region, prov: storyBasis(v.basis) });
   if (r.leak)
     out.push({
       ...base,
@@ -1991,6 +2008,7 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
       region: 'us',
       // what to do about it, one short line
       detail: r.leak.readable || s.phase === 'ended' ? r.leak.advice : LEAK_REDACTED_ADVICE,
+      prov: storyBasis(r.leak.basis),
     });
   const ev = r.event ?? (pending ? { id: pending.id, title: pending.title, prepared: pending.prepared, choice: null, at: pending.at, region: pending.region } : null);
   if (ev) {
@@ -2006,6 +2024,7 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
       region: ev.region,
       threat: ev.id in s.threats ? (ev.id as ThreatId) : null,
       tone: ev.prepared ? 1 : -1,
+      ...(EVENTS[ev.id] ? { prov: storyBasis(EVENTS[ev.id].basis) } : {}),
     });
     // a job shock also shows where it hits, like the social events (v4)
     if (ev.id === 'job_shock_1' || ev.id === 'job_shock_2') {
@@ -2021,6 +2040,7 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
         region: 'eu',
         tone: -1,
         social: { kind: 'jobs', city: pl.city, lon: pl.lon, lat: pl.lat },
+        prov: storyBasis(EVENTS[ev.id].basis),
       });
     }
   }
@@ -2038,6 +2058,7 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
       text: card.text,
       detail: a ? `You answered “${a.label}”${detail.length ? `: ${detail.join(', ')}` : ''}.` : null,
       region: ch.region,
+      prov: storyBasis(card.basis),
     });
   }
   // social events (v4): story events in European cities, with why they matter and what they changed
@@ -2057,6 +2078,7 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
       region: 'eu',
       tone: tone as -1 | 1,
       social: { kind: def.kind, city: def.city, lon: def.lon, lat: def.lat },
+      prov: storyBasis(def.basis),
     });
   }
   out.sort((a, b) => a.at - b.at);
@@ -2068,7 +2090,7 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
     const name = def.levels ? def.levels[Math.min(nth, def.levels.length - 1)] : def.name;
     const opt = p.option && def.options ? ` (${def.options.find((o) => o.id === p.option)!.label.toLowerCase()})` : '';
     const detail = r.changes.filter((c) => c.by === 'card' && c.cause === name).map((c) => c.text);
-    out.push({ ...base, id: `d_${p.id}`, at: 1.1 + i * 0.01, kind: 'decision', label: 'Your decision', text: `${name}${opt}`, detail: detail.length ? detail.join(', ') : null, region: 'eu', tone: 0 });
+    out.push({ ...base, id: `d_${p.id}`, at: 1.1 + i * 0.01, kind: 'decision', label: 'Your decision', text: `${name}${opt}`, detail: detail.length ? detail.join(', ') : null, region: 'eu', tone: 0, prov: def.basis });
   });
   // ids are unique across the whole game
   return out.map((x) => ({ ...x, id: `r${r.round}_${x.id}` }));

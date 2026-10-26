@@ -16,7 +16,7 @@ export const LEA_REQUESTS: RequestCard[] = [
       reaction: 'Okay. I’ll figure something out. I always do.',
     },
     right: {
-      label: 'Speed it up',
+      label: 'Push to speed it up',
       stance: 'accept',
       effects: { cohesion: 4 },
       set: ['retraining'],
@@ -34,7 +34,7 @@ export const LEA_REQUESTS: RequestCard[] = [
   {
     id: 'lea_labels',
     character: 'lea',
-    text: 'I keep finding “translations” that are pure AI, full of errors, on medicine leaflets! Shouldn’t AI-made text have to say so?',
+    text: 'Online pharmacies post AI “translations” of medicine leaflets, full of errors, with no label. The EU’s labelling rules exist, but nobody checks! Will you push Brussels to enforce them?',
     left: {
       label: 'Too much red tape',
       stance: 'refuse',
@@ -43,7 +43,7 @@ export const LEA_REQUESTS: RequestCard[] = [
       reaction: 'So who checks the leaflets? Nobody?',
     },
     right: {
-      label: 'Label AI text',
+      label: 'Push to enforce them',
       stance: 'accept',
       effects: { cohesion: 3, margin: -1 },
       set: ['enforcement'],
@@ -52,10 +52,10 @@ export const LEA_REQUESTS: RequestCard[] = [
       reaction: 'Thank you! My mum reads those leaflets.',
     },
     when: { minRound: 2 },
-    basis: { kind: 'cfg', ref: 'CFG, Plateau, Ending B (AI disinformation and public backlash)' },
+    basis: { kind: 'real', ref: 'EU AI Act, Article 50 (AI-generated content must be marked, from August 2026); CFG, Plateau, Ending B (disinformation)' },
     learnMore: {
-      text: 'The EU’s General-Purpose AI Code of Practice (July 2025) has a transparency chapter for all general-purpose AI makers. Signing it is voluntary.',
-      source: SOURCES.gpaiCode,
+      text: 'Under the EU AI Act, from August 2026, makers of AI that generates text, images or sound must mark what it produces as AI-made, in a machine-readable way.',
+      source: SOURCES.aiActOj,
     },
   },
   {

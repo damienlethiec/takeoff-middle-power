@@ -6,9 +6,10 @@
 // Items are real buttons: clicking one highlights it on the map; clicking a map pin highlights its item here.
 // On phones the feed sits under the map with all of this round's items; tablets and desktops keep it beside the map.
 // Announcements stay with the app (it already announces each item once, politely).
+// Each item carries a provenance tag in words (Real / From AI 2027 / From CFG / Invented), never colour alone.
 
 import type { Change, FeedItem, FeedRound, SocialKind } from '../engine/types';
-import { esc } from './format';
+import { esc, provTag } from './format';
 import { friendPortrait } from './friends';
 
 const I = (d: string) => `<svg class="ico" viewBox="0 0 20 20" aria-hidden="true">${d}</svg>`;
@@ -167,7 +168,7 @@ export class Feed {
     const tone = x.tone > 0 ? ' good' : x.tone < 0 ? ' bad' : '';
     return `<li><button type="button" class="fd-item k-${x.kind}${x.social ? ` s-${x.social.kind}` : ''}${tone}${this.selected === x.id ? ' on' : ''}" data-id="${esc(x.id)}" aria-pressed="${this.selected === x.id}">
       <span class="fd-ico">${x.kind === 'lea' && x.mood ? friendPortrait(x.friend ?? 'lea', x.mood) : itemIcon(x)}</span>
-      <span class="fd-body"><span class="fd-k">${esc(x.label)}</span><span class="fd-t">${esc(x.text)}</span>${x.detail ? `<span class="fd-d">${esc(x.detail)}</span>` : ''}</span>
+      <span class="fd-body"><span class="fd-k">${esc(x.label)}${x.prov ? ` ${provTag(x.prov)}` : ''}</span><span class="fd-t">${esc(x.text)}</span>${x.detail ? `<span class="fd-d">${esc(x.detail)}</span>` : ''}</span>
       <span class="sr-only">: show on the map</span>
     </button></li>`;
   }

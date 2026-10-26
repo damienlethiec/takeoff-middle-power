@@ -8,7 +8,7 @@ export const MALIK_REQUESTS: RequestCard[] = [
   {
     id: 'mk_visa',
     character: 'malik',
-    text: 'My colleague Wei has to leave the US: born in China, so now he’s a risk. A Paris lab would hire him tomorrow, but your visas take a year. Can Europe fast-track AI researchers?',
+    text: 'My teammate Wei has to leave the US: born in Chengdu, so now he’s a risk. A Paris lab would hire him tomorrow, but visas take a year. Will you push for a fast track for AI researchers?',
     left: {
       label: 'Not now',
       stance: 'refuse',
@@ -17,13 +17,14 @@ export const MALIK_REQUESTS: RequestCard[] = [
       reaction: 'Then he goes home to Chengdu, and works for DeepCent.',
     },
     right: {
-      label: 'Fast-track them',
+      label: 'Push for a fast track',
       stance: 'accept',
-      effects: { coop: 2, cohesion: -2 },
+      effects: { cohesion: -2 },
+      later: { rounds: 2, effects: { truth: 2 }, why: 'Wei joins a European safety team' },
       why: 'Hawks at home warn of spies',
       reaction: 'Wei owes you a dumpling feast. So do I.',
     },
-    when: { minRound: 2, maxCoop: 50 },
+    when: { minRound: 2, maxCoop: 59 },
     basis: { kind: 'cfg', ref: 'CFG, Arms race (“AI becomes the ultimate national security asset”; “No one can verify what anyone else is doing”)' },
     learnMore: {
       text: 'In CFG’s arms race scenario, AI becomes “the ultimate national security asset”, and “no one can verify what anyone else is doing”.',

@@ -35,7 +35,7 @@ export const OPEN_SOURCE: RequestCard[] = [
   {
     id: 'os_exemption',
     character: 'open_source',
-    text: 'The AI rules treat our small open models like OpenBrain’s giants. Exempt open models below a size limit, or Europe’s open scene dies.',
+    text: 'Brussels may lower the size at which an AI model counts as a “systemic risk”. Push to keep small open models out of those rules, or Europe’s open scene dies.',
     left: {
       label: 'Same rules for all',
       stance: 'refuse',
@@ -44,7 +44,7 @@ export const OPEN_SOURCE: RequestCard[] = [
       reaction: 'Then only giants can afford to build AI here.',
     },
     right: {
-      label: 'Exempt small models',
+      label: 'Keep them out',
       stance: 'accept',
       effects: { cohesion: 3 },
       badge: 'open',
@@ -53,10 +53,10 @@ export const OPEN_SOURCE: RequestCard[] = [
       reaction: 'You just saved a hundred startups.',
     },
     when: { maxRound: 8 },
-    basis: { kind: 'cfg', ref: 'CFG, Take-off, main scenario (the EU Codes of Practice are more lenient to open-source models)' },
+    basis: { kind: 'cfg', ref: 'CFG, Take-off, main scenario (the EU Codes of Practice are more lenient to open-source models); AI Act, Articles 51 and 53(2)' },
     learnMore: {
-      text: 'The EU’s General-Purpose AI Code of Practice, published in July 2025, is voluntary. Its safety chapter applies only to the most advanced models.',
-      source: SOURCES.gpaiCode,
+      text: 'Under the EU AI Act, open-source models are spared some documentation duties unless they pose “systemic risks”. The Commission can change the size that counts as one.',
+      source: SOURCES.aiActOj,
     },
   },
   {

@@ -35,7 +35,7 @@ export const SECURITY: RequestCard[] = [
   {
     id: 'sc_hack_back',
     character: 'security',
-    text: 'Washington is hitting DeepCent with cyberattacks and wants our cyber units to join. They say Europe owes them.',
+    text: 'Washington is hitting DeepCent with cyberattacks and wants Europe’s national cyber commands to join. They say Europe owes them.',
     left: {
       label: 'Stay out',
       stance: 'refuse',
@@ -44,7 +44,7 @@ export const SECURITY: RequestCard[] = [
       reaction: 'Wise, I think. Washington won’t agree.',
     },
     right: {
-      label: 'Join the attacks',
+      label: 'Back joining in',
       stance: 'accept',
       effects: { coop: -8, cohesion: 1 },
       why: 'Beijing sees Europe at war',
@@ -80,32 +80,6 @@ export const SECURITY: RequestCard[] = [
     basis: { kind: 'ai2027', ref: 'AI 2027, "May 2027: National Security" (one spy still relays algorithmic secrets to Beijing)' },
     learnMore: {
       text: 'In AI 2027, even after security clearances, one spy inside OpenBrain keeps relaying its algorithmic secrets to Beijing.',
-      source: SOURCES.ai2027,
-    },
-  },
-  {
-    id: 'sc_biosecurity',
-    character: 'security',
-    text: 'Tests suggest new AI models could help build biological weapons if stolen or released openly. Should Europe lead a global biosecurity framework?',
-    left: {
-      label: 'Leave it to others',
-      stance: 'refuse',
-      effects: { coop: -2 },
-      why: 'Nobody checks the dangerous uses',
-      reaction: 'Then pray nobody tries.',
-    },
-    right: {
-      label: 'Lead it',
-      stance: 'accept',
-      effects: { coop: 4, cohesion: -2, truth: 2 },
-      tag: 'safety',
-      why: 'Costly labs and screening',
-      reaction: 'We’ll need every lab on board.',
-    },
-    when: { milestone: 'cheap_remote_worker' },
-    basis: { kind: 'ai2027', ref: 'AI 2027, "Jul 2027" (an evaluation suggests the model could give bioweapon instructions if stolen); CFG, Take-off (Europe leads a global biosecurity framework)' },
-    learnMore: {
-      text: 'In AI 2027, a test before release suggests the new cheap model could give bioweapon instructions if its weights were stolen.',
       source: SOURCES.ai2027,
     },
   },
