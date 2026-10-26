@@ -3,6 +3,7 @@
 
 import type { PendingEvent } from '../../engine/types';
 import { ICON, esc, factBox, impactLine, provTag } from '../format';
+import { glossed } from '../glossary';
 import { openModal } from '../modal';
 
 export async function showBreaking(ev: PendingEvent, date: string, cardNames: string[]): Promise<string | undefined> {
@@ -16,7 +17,7 @@ export async function showBreaking(ev: PendingEvent, date: string, cardNames: st
   const m = openModal(
     `<div class="dateline"><span class="tag-breaking">Breaking news</span> ${esc(date)} ${provTag(ev.basis)}</div>
      <h2>${esc(ev.title)}</h2>
-     <p class="scene">${esc(ev.scene)}</p>
+     <p class="scene">${glossed(ev.scene)}</p>
      ${prep}
      ${
        choose

@@ -12,6 +12,7 @@ import { FAMILIES } from '../../data/cards';
 import { impactWords } from '../../data/effects';
 import { announce } from '../a11y';
 import { ICON, chips, esc, factBox, provTag } from '../format';
+import { glossed } from '../glossary';
 import { modalOpen, openModal } from '../modal';
 
 export type DecisionResult = { kind: 'play'; picks: Pick[] } | { kind: 'map' };
@@ -55,7 +56,7 @@ async function showDetails(c: CardView, selected: boolean, canSelect: boolean): 
     `<div class="dateline">Card · ${c.cost} Influence${c.level ? ` · level ${c.level} of ${c.levels!.length}` : ''} ${provTag(c.basis)}</div>
      <h2>${esc(c.title)}</h2>
      ${c.levels ? `<ol class="levels">${c.levels.map((l, i) => `<li class="${i + 1 === c.level ? 'now' : i + 1 < (c.level ?? 1) ? 'done' : ''}">${esc(l)}${i + 1 === c.level ? '<span class="sr-only"> (this level)</span>' : i + 1 < (c.level ?? 1) ? '<span class="sr-only"> (done)</span>' : ''}</li>`).join('')}</ol>` : ''}
-     <p class="proposal">${esc(c.proposal)}</p>
+     <p class="proposal">${glossed(c.proposal)}</p>
      <p class="muted small">Based on: ${esc(c.basis.ref)}.</p>
      <p class="pc-chips">${chips(c.ups)}${chips(c.downs)}</p>
      ${c.options.length ? `<p class="label">You choose what to ask for</p><ul class="plain">${c.options.map((o) => `<li>${esc(o.label)}: ${chips(o.ups)}</li>`).join('')}</ul>` : ''}

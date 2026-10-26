@@ -4,6 +4,7 @@
 import { HELP } from '../../data/copy';
 import { tipHtml } from '../coach';
 import { esc, link } from '../format';
+import { glossaryListHtml } from '../glossary';
 import { openModal } from '../modal';
 
 export async function showHelp(opts: {
@@ -17,6 +18,9 @@ export async function showHelp(opts: {
     `<div class="dateline">Help</div>
      <h2>How to play</h2>
      <ul class="rules">${HELP.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
+     <h3>Words used in the game</h3>
+     <p class="muted small">In requests, cards and news, an underlined word opens its meaning.</p>
+     ${glossaryListHtml()}
      <h3>Keyboard</h3>
      <dl class="keys">${HELP.shortcuts.map(([k, v]) => `<div><dt><kbd>${esc(k)}</kbd></dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
      <p class="muted small">Space and Enter act on the focused button first. Shortcuts never fire while you type.</p>

@@ -217,7 +217,7 @@ export const CARDS: CardDef[] = [
     name: 'Back safety nets for AI layoffs',
     text: 'Back the Danish model, “flexicurity”: firms adopt AI freely, laid-off workers get pay and retraining. Job shocks soften; unions are wary at first.',
     proposal:
-      'Labour law is national, but the EU can fund and coordinate. Europe backs Danish-style deals in each country, with EU retraining funds: firms adopt AI more freely, and workers who lose their jobs get generous income support and paid retraining. Job shocks hurt far less. Unions distrust the bargain at first, and it costs you political goodwill for a while.',
+      'Labour law is national, but the EU can fund and coordinate. Europe backs Danish-style “flexicurity” deals in each country, with EU retraining funds: firms adopt AI more freely, and workers who lose their jobs get generous income support and paid retraining. Job shocks hurt far less. Unions distrust the bargain at first, and it costs you political goodwill.',
     example: {
       text: 'The Europe 2031 report: “A flexicurity model, like the Danish example, allows firms to adopt AI more deeply.”',
       source: SOURCES.europe2031,

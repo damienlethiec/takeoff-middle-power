@@ -553,4 +553,43 @@ test.describe('key interactions', () => {
     await expect(dialog(page).getByRole('checkbox', { name: /Show tips/ })).not.toBeChecked();
     expect(s.errors).toEqual([]);
   });
+
+  test('glossary words: a button opens the meaning, Escape closes it and keeps the request; Help lists the words', async ({ page }) => {
+    const s = await boot(page, '?skipintro&notutorial&seed=4');
+    let checked = false;
+    for (let i = 0; i < 400 && !checked; i++) {
+      const d = dialog(page);
+      const term = d.locator('.req-card.asking .req-text .gl-term').first();
+      if (await term.count()) {
+        const meaning = d.locator(`#${await term.getAttribute('aria-controls')}`);
+        await expect(meaning).toBeHidden();
+        await term.focus();
+        await page.keyboard.press('Enter');
+        await expect(term).toHaveAttribute('aria-expanded', 'true');
+        await expect(meaning).toBeVisible();
+        // the arrows still belong to the answers only when an answer has focus: not on a glossary word
+        await page.keyboard.press('ArrowLeft');
+        await expect(d.locator('.req-card.asking')).toHaveCount(1);
+        await term.focus();
+        await page.keyboard.press('Escape');
+        await expect(meaning).toBeHidden();
+        await expect(term).toBeFocused();
+        await expect(d.locator('.req-card.asking')).toHaveCount(1);
+        checked = true;
+        await closeDialog(page);
+        break;
+      }
+      if (await d.count()) await closeDialog(page);
+      else if (await decisions(page).count()) await decisions(page).getByRole('button', { name: 'Play no card' }).click();
+      else if (await dockButton(page, /^Make my/).count()) await dockButton(page, /^Make my/).click();
+      await advance(page, 300, false);
+    }
+    expect(checked).toBe(true);
+    await advance(page, 200, true);
+    if (await dialog(page).count()) await closeDialog(page);
+    await page.keyboard.press('?');
+    await expect(dialog(page).getByRole('heading', { name: 'Words used in the game' })).toBeVisible();
+    await expect(dialog(page).locator('.gloss dt').first()).toBeVisible();
+    expect(s.errors).toEqual([]);
+  });
 });

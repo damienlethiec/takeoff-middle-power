@@ -4,6 +4,7 @@ import { GAUGE_HELP, GAUGE_LABEL, GAUGE_SUB } from '../../data/copy';
 import { TUNING as T } from '../../data/tuning';
 import type { CardView, EuropeAi, GaugeKey, GaugeView, IncomeView, Leak, ThreatView } from '../../engine/types';
 import { ICON, esc } from '../format';
+import { glossed } from '../glossary';
 import { openModal } from '../modal';
 
 const close = '<div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">Back to the map <kbd>Esc</kbd></button></div>';
@@ -17,7 +18,7 @@ export async function showThreat(t: ThreatView, hand: CardView[]): Promise<void>
   const m = openModal(
     `<div class="dateline">Threat · ${esc(t.stageWord)}${t.certainty === 'possible' ? ' · possible' : ' · likely'}</div>
      <h2>${esc(t.name)}</h2>
-     <p class="why">${esc(t.why)}</p>
+     <p class="why">${glossed(t.why)}</p>
      ${t.certainty === 'possible' ? '<p class="muted">Possible: it also depends on something you cannot see, so it may never happen.</p>' : ''}
      <p class="prep ${t.prepared ? 'yes' : 'no'}">${t.prepared ? ICON.check : ICON.cross}<span><b>${t.prepared ? 'Prepared.' : 'Not prepared.'}</b> ${esc(t.prepared ? t.ifPrepared : t.ifUnprepared)}</span></p>
      ${t.prepared ? '' : `<p><span class="label-in">If prepared</span> ${esc(t.ifPrepared)}</p>`}

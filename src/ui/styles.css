@@ -531,6 +531,16 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .keys { display: grid; gap: 4px; margin: 0; }
 .keys div { display: flex; gap: 12px; }
 .keys dt { min-width: 80px; }
+.gloss { display: grid; gap: 6px; margin: 0; }
+.gloss div { display: grid; grid-template-columns: minmax(110px, 30%) 1fr; gap: 10px; }
+.gloss dt { font-weight: 600; }
+.gloss dd { margin: 0; }
+@media (max-width: 520px) { .gloss div { grid-template-columns: 1fr; gap: 0; } }
+/* glossary words inline (src/ui/glossary.ts): a dotted underline, never colour alone; the meaning opens after the word */
+.gl-term { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: help; text-decoration: underline dotted; text-decoration-thickness: 1.5px; text-underline-offset: 3px; text-decoration-color: var(--align); }
+.gl-term[aria-expanded="true"] { text-decoration-style: solid; }
+.gl-def { margin: 0 .2em 0 .35em; padding: 1px 6px; border-radius: 6px; background: color-mix(in srgb, var(--align) 16%, transparent); border: 1px solid color-mix(in srgb, var(--align) 45%, transparent); font-family: var(--f-body); font-size: .86em; font-style: normal; line-height: 1.5; }
+.gl-def[hidden] { display: none; }
 .keys dd { margin: 0; }
 .switch { display: flex; gap: 8px; align-items: center; }
 .switch input { width: 20px; height: 20px; }
