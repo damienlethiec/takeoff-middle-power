@@ -57,6 +57,18 @@ export async function newPage(browser, { reducedMotion = 'no-preference', viewpo
   return { page, errors, context };
 }
 
+/** Stop the page's time where it is (time flows in real time after clock.install or resume). On a busy machine
+ *  the target can pass before the call lands: then try again a little further ahead. */
+export async function freeze(page) {
+  for (let ahead = 50; ; ahead *= 2) {
+    try {
+      return await page.clock.pauseAt((await page.evaluate(() => Date.now())) + ahead);
+    } catch (e) {
+      if (ahead > 3200 || !/to the past/.test(String(e))) throw e;
+    }
+  }
+}
+
 /** Advance the fake clock in 100 ms steps (the game caps a frame at 100 ms). */
 export async function advance(page, ms) {
   for (let t = 0; t < ms; t += 100) await page.clock.fastForward(100);

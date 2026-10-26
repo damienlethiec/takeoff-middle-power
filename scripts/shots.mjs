@@ -4,7 +4,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { advance, loadPlaywright, newPage, startServer } from './a11y/lib.mjs';
+import { advance, freeze, loadPlaywright, newPage, startServer } from './a11y/lib.mjs';
 
 const OUT = process.argv[2] ?? 'docs/screenshots/v4';
 fs.mkdirSync(OUT, { recursive: true });
@@ -26,7 +26,7 @@ try {
     const has = (sel) => page.evaluate((s) => !!document.querySelector(s), sel);
     const cls = () => page.evaluate((m) => document.querySelector(m)?.className ?? '', modal);
     await page.goto(`${server.url}?seed=9`);
-    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 50);
+    await freeze(page);
     await advance(page, 400);
     await shot('intro-1');
     await page.keyboard.press('Enter');
