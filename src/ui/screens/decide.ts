@@ -15,6 +15,9 @@ import { ICON, chips, esc, factBox, provTag } from '../format';
 import { glossed } from '../glossary';
 import { modalOpen, openModal, wait } from '../modal';
 
+/** Where the cards have a fixed space beside the threats (and the hand may get denser); see styles.css. */
+const WIDE = typeof matchMedia === 'function' ? matchMedia('(min-width: 768px) and (min-height: 541px)') : null;
+
 export type DecisionResult = { kind: 'play'; picks: Pick[] } | { kind: 'map' };
 
 export interface DecisionView {
@@ -43,14 +46,14 @@ function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: 
           .join('')}</fieldset>`
       : '';
   return `<li class="pc-wrap${selected ? ' sel' : ''}${locked ? ' locked' : ''}${c.opportunity ? ' opp' : ''}">
-    <button type="button" class="pcard" data-card="${esc(c.id)}" aria-pressed="${selected}" aria-describedby="pc-${esc(c.id)}-d">
+    <button type="button" class="pcard" data-card="${esc(c.id)}" aria-pressed="${selected}" aria-describedby="pc-${esc(c.id)}-d${locked && c.reason ? ` pc-${esc(c.id)}-r` : ''}">
       <span class="pc-top"><span class="pc-name">${esc(c.title)}</span>${fresh ? '<span class="tag new">New</span>' : ''}<span class="pc-cost num"><span class="sr-only">costs </span>${ICON.influence}${c.cost}<span class="sr-only"> Influence</span></span></span>
-      ${c.level ? `<span class="pc-level">Level ${c.level} of ${c.levels!.length}</span>` : ''}
       <span class="pc-chips">${chips(c.ups)}${chips(c.downs)}</span>
       ${c.protectsName ? `<span class="pc-prot">${ICON.check}Protects against ${esc(lc(c.protectsName))}</span>` : ''}
       ${oddsHtml(c)}
-      <span class="pc-text" id="pc-${esc(c.id)}-d">${esc(c.text)}${locked && c.reason ? ` <span class="pc-reason">${esc(c.reason)}</span>` : ''}</span>
-      <span class="pc-tags">${provTag(c.basis)}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? `<span class="tag sel">${ICON.check}Selected</span>` : ''}</span>
+      <span class="pc-text" id="pc-${esc(c.id)}-d">${esc(c.text)}</span>
+      ${locked && c.reason ? `<span class="pc-reason" id="pc-${esc(c.id)}-r">${esc(c.reason)}</span>` : ''}
+      <span class="pc-tags">${c.level ? `<span class="pc-level">Level ${c.level} of ${c.levels!.length}</span>` : ''}${provTag(c.basis)}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? `<span class="tag sel">${ICON.check}Selected</span>` : ''}</span>
     </button>
     ${opts}
     <button type="button" class="pc-details btn-link" data-details="${esc(c.id)}" aria-label="Details: ${esc(c.title)}">Details</button>
@@ -108,9 +111,11 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     <section class="dk-main" aria-labelledby="dk-h">
       <header class="dk-head">
         <div class="dk-title"><div class="dateline">${esc(date)} · Your decisions</div><h2 id="dk-h" tabindex="-1">Play your cards</h2></div>
-        <p class="dk-adv"><span class="ava" aria-hidden="true">CS</span><span><b>Your chief of staff:</b> ${esc(adv.text)}</span></p>
+        <div class="dk-say">
+          <p class="dk-adv"><span class="ava" aria-hidden="true">CS</span><span><b>Your chief of staff:</b> ${esc(adv.text)}</span></p>
+          <p class="dk-hint" id="dk-hint">${ICON.influence}Play as many cards as your Influence allows.</p>
+        </div>
       </header>
-      <p class="dk-hint" id="dk-hint">${ICON.influence}Play as many cards as your Influence allows.</p>
       <div class="hand" role="group" aria-label="Your cards" aria-describedby="dk-hint" data-coach="hand"></div>
       <div class="dk-bar">
         <p class="dec-inf" data-coach="dec-influence"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">Influence left</span></p>
@@ -129,9 +134,11 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     </aside>`;
   host.hidden = false;
   const handEl = host.querySelector<HTMLElement>('.hand')!;
-  // the families sit side by side and wrap (see .hand in styles.css)
+  // the families follow each other in balanced columns on a wide screen, one under the other on a phone (see .hand in
+  // styles.css); a small hand gets no more columns than it has cards
   const families = FAMILIES.map((f) => ({ ...f, ids: hand.filter((c) => c.family === f.id).map((c) => c.id) })).filter((f) => f.ids.length);
   handEl.classList.toggle('few', hand.length <= 4);
+  handEl.style.setProperty('--cols', String(Math.max(1, hand.length)));
   // "New" marks a card that arrived this round (not the opening hand of round 1)
   const fresh = (c: CardView) => c.isNew && s.round > 1;
   const notesEl = host.querySelector<HTMLElement>('#dec-notes')!;
@@ -161,18 +168,42 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     thrEl.innerHTML = threatsHtml(threats, covering);
   };
 
+  /** On a wide screen, a hand taller than its space gets denser cards (texts cut shorter, in full in Details and for
+   *  screen readers) before it has to scroll inside: "dense", "denser", then "densest". Within a decision it only gets denser,
+   *  so the cards do not jump back and forth while the player selects; a resize starts again from the roomy cards. */
+  const DENSITY = ['dense', 'denser', 'densest'];
+  const fits = () => handEl.scrollHeight <= handEl.clientHeight + 1;
+  const fitHand = (fresh = false) => {
+    if (fresh) handEl.classList.remove(...DENSITY);
+    for (const d of DENSITY) {
+      if (fits()) break;
+      handEl.classList.add(d);
+    }
+  };
+  // the chief of staff speaks over the cards on a phone, and over the threats on a wide screen, where the cards need
+  // the height (not focusable: moving it changes no Tab order)
+  const advEl = host.querySelector<HTMLElement>('.dk-adv')!;
+  const placeAdv = () => {
+    const to = host.querySelector<HTMLElement>(WIDE?.matches ? '.dk-side' : '.dk-say')!;
+    if (advEl.parentElement !== to) to.prepend(advEl);
+  };
+  const onResize = () => {
+    placeAdv();
+    fitHand(true);
+  };
+
   /** `moved`: the card just selected or removed, for a brief lift or settle (decorative; none with reduced motion). */
   const render = (refocus?: string, moved?: { id: string; on: boolean }) => {
     const { after, cards } = views();
     const card = (c: CardView) => cardHtml(c, picks.some((p) => p.id === c.id), adv.recommend === c.id, picks.find((p) => p.id === c.id)?.option, fresh(c));
     handEl.innerHTML = cards.length
-      ? families
+      ? `<div class="hand-cols">${families
           .map((f) => {
             const list = f.ids.map((id) => cards.find((c) => c.id === id)!);
             const nNew = list.filter(fresh).length;
             return `<section class="fam" aria-labelledby="fam-${f.id}"><h3 class="fam-h" id="fam-${f.id}">${esc(f.name)}${nNew ? ` <span class="fam-new">· ${nNew} new</span>` : ''}</h3><ul class="fam-cards">${list.map(card).join('')}</ul></section>`;
           })
-          .join('')
+          .join('')}</div>`
       : '<p class="muted">No cards in your hand.</p>';
     host.querySelector('#dec-inf')!.innerHTML = picks.length ? `${after.influence}<small> of ${s.influence}</small>` : String(after.influence);
     const cost = picks.reduce((a, p) => a + (hand.find((c) => c.id === p.id)?.cost ?? 0), 0);
@@ -187,6 +218,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
         showPreview();
       }),
     );
+    fitHand();
     if (moved) handEl.querySelector(`.pcard[data-card="${CSS.escape(moved.id)}"]`)?.closest('.pc-wrap')?.classList.add(moved.on ? 'just-on' : 'just-off');
     if (refocus) handEl.querySelector<HTMLElement>(refocus)?.focus({ preventScroll: true });
   };
@@ -231,7 +263,10 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     if (toggle(id)) render(`[data-card="${id}"]`, { id, on: !was });
   });
 
+  placeAdv();
   render();
+  window.addEventListener('resize', onResize);
+  void document.fonts?.ready.then(() => host.contains(handEl) && fitHand(true));
   // focus lands on the first card the player can play, in the order they are shown
   const focusFirst = () =>
     (handEl.querySelector<HTMLElement>('.pc-wrap:not(.locked) .pcard') ?? handEl.querySelector<HTMLElement>('.pcard') ?? host.querySelector<HTMLElement>('#dk-h'))?.focus({ preventScroll: true });
@@ -261,6 +296,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     host.classList.remove('playing');
     host.inert = false;
   }
+  window.removeEventListener('resize', onResize);
   view.onPreview(null);
   host.hidden = true;
   host.innerHTML = '';

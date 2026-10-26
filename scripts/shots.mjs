@@ -99,7 +99,14 @@ try {
           const second = decisions % 2 ? await pick() : null;
           if (second) await second.click();
           await advance(page, 100);
-          if (!taken.has('decision-preview')) await shot('decision-preview');
+          if (!taken.has('decision-preview')) {
+            await shot('decision-preview');
+            // on a phone the gauges are above the cards: their preview (words and status chips side by side)
+            if (size.name === 'mobile') {
+              await page.evaluate(() => window.scrollTo(0, 0));
+              await shot('decision-preview-gauges');
+            }
+          }
           await page.click('#dec-ok');
           // the consequences: the gauges move and the line under them says why (the next round starts by itself)
           if (!taken.has('consequences')) await shot('consequences', false, 0);
