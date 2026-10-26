@@ -150,14 +150,10 @@ export class App {
     announce(
       `${date} begins, round ${s.round} of 12. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${letter ? ' Léa wrote to you: her portrait is over Lyon on the map.' : ''}${s.round === 1 ? ' Press question mark for help.' : ''}`,
     );
-    // the tutorial: round 1 is guided, one coach mark at a time, each pointing at its part of the screen
-    // (the gauges, the outlook, the map, the news, Léa's first letter); later parts get theirs when they first appear
-    for (const id of ['clock', 'safety', 'heading', 'map', 'feed'] as const) await this.coach.show(id, s.round, this.root);
-    if (letter) {
-      this.map.leaButton?.setAttribute('data-coach', 'lea');
-      await this.coach.show('lea', s.round, this.root);
-    }
-    if (s.round >= 2) await this.coach.show('zones', s.round, this.root);
+    // the tutorial: at most four tips before the first decision (the race, the world, where it is heading, then
+    // Influence on the decision view); later, only what does not explain itself, the first time it appears.
+    // A tip whose part of the screen is not visible waits (it is tried again next round).
+    for (const id of ['race', 'world', 'outlook'] as const) await this.coach.show(id, s.round, this.root);
     if (s.round >= 3 || s.europeAi === 'open' || this.e.heading(s).plateau) await this.coach.show('badge', s.round, this.root);
 
     this.beginClock();
@@ -188,7 +184,6 @@ export class App {
         onPreview: (pv) => this.setPreview(pv),
         onOpen: async () => {
           await this.coach.show('influence', this.s.round, this.root);
-          await this.coach.show('firstCard', this.s.round, this.root);
         },
       });
       game?.classList.remove('deciding');
@@ -379,7 +374,6 @@ export class App {
     this.prevThreats = this.e.threats(this.s);
     this.map.setThreats(this.prevThreats);
     this.renderAll(true);
-    await this.coach.show('breaking', this.s.round, this.root);
     this.follow = 'clock';
     this.from = { ...this.to };
     this.setPhase('Clock running');

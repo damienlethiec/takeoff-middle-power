@@ -92,23 +92,17 @@ export const INTRO: IntroScreen[] = [
 export const CREDITS =
   'Built on the AI 2027 scenario and CFG’s Advanced AI: Possible Futures. OpenBrain, DeepCent and every event after today are fiction.';
 
-/** Coach marks: each shown once, the first time its part of the screen appears, pointing at `anchor` (a data-coach
- *  value). Round 1 is guided in this order: the gauges, the outlook, the map, the news, Léa, the first request,
- *  then Influence and the cards. Later ones come the first time they appear. All stay readable in Help. */
+/** Coach marks: each shown once, pointing at `anchor` (a data-coach value), only when it is on screen.
+ *  At most four before the first decision (the race, the world, where it is heading, Influence); after that,
+ *  only what does not explain itself, the first time it appears. All are listed in Help. */
 export const TIPS = {
-  clock: { anchor: 'clock', title: 'AI capabilities: the clock', text: 'AI capabilities rise every round. At 80, AI can improve itself: the tipping point, and the game ends. The world you have shaped by then decides the ending.' },
-  safety: { anchor: 'confidence', title: 'AI safety: the race against the clock', text: 'Does AI do what we intend? The number is what the labs report; the truth is never higher and could be as low as the bottom of the band. Safety must keep up with capabilities.' },
-  heading: { anchor: 'heading', title: 'If AI tipped now', text: 'Where the world would land if AI tipped today, and what decides whether it ends well: one gauge must reach its goal, another must stay above its floor.' },
-  map: { anchor: 'map', title: 'The world map', text: 'Six months play out here: headlines pop up where they happen, people speak up, threats grow as icons. Space pauses the clock.' },
-  feed: { anchor: 'feed', title: 'The news', text: 'Everything that happens appears here as it happens. Click an item to see it on the map. At the end of the six months, what changed sits on top.' },
-  lea: { anchor: 'lea', title: 'A letter from Léa', text: 'Léa wrote to you from Lyon. Open her portrait on the map to read it: she tells you what the world’s choices do to people like her.' },
-  request: { anchor: 'request', title: 'A request', text: 'Someone needs an answer from you. Answering is free of Influence: the cost is in the answer. Click an answer, swipe the card, or press ← → (once to look, twice to answer).' },
-  influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round (the counter at the top shows how much next round, and why) and spend it on policies. Play as many cards as it covers, or save it.' },
-  firstCard: { anchor: 'hand', title: 'Your cards', text: 'Every card helps something and costs something: green chips go up, red chips go down. Click cards to select them: the bar at the bottom shows their combined effect. Details tells you more.' },
-  zones: { anchor: 'cooperation', title: 'US–China cooperation', text: 'Pause 60+, Race 30–59, Rupture below 30. The calmer the zone at the tipping point, the lower the bar for a good ending.' },
-  threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages where they would strike. Open one to see which card protects against it.' },
-  breaking: { anchor: 'map', title: 'Breaking news', text: 'When a threat strikes, it hits your gauges. Being prepared makes the difference.' },
-  leak: { anchor: 'map', title: 'A leak', text: 'Leaks show the gap between what labs say and the truth. Oversight (AI Office, inspections, audits) lets you read them.' },
+  race: { anchor: 'clock', title: 'The race', text: 'AI capabilities rise every round; at 80, AI improves itself and the game ends. AI safety is how sure we are that AI does what we intend: the labs report a number, and it could be as low as the bottom of the band. Keep safety ahead.' },
+  world: { anchor: 'cooperation', title: 'The superpowers and Europe', text: 'US–China cooperation sets the kind of world: Pause 60+, Race 30–59, Rupture below 30. Social cohesion is whether Europe holds together: jobs, trust, safety from misuse.' },
+  outlook: { anchor: 'heading', title: 'Where the world is heading', text: 'If AI tipped now, this is the world you would get and what it needs to end well. Each round is six months from 2027; the game ends at the tipping point, or after 12 rounds.' },
+  influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.' },
+  request: { anchor: 'request', title: 'A request', text: 'Someone needs an answer. Look at an answer first (click it, or press ← → once), then answer (again). It is free of Influence: the cost is in the answer.' },
+  threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages before they strike. Prepare with cards marked “Protects against”, or with some answers to requests. Open an icon to see what protects Europe.' },
+  leak: { anchor: 'map', title: 'A leak', text: 'Leaks from inside the labs show that their reports can be wrong. Oversight (the AI Office, inspections, audits) lets you read them.' },
   badge: { anchor: 'badge', title: 'Europe’s AI', text: 'Open or Dependent: does Europe run its own models? If AI never reaches the tipping point, this badge decides the kind of world.' },
 } as const;
 export type TipId = keyof typeof TIPS;
