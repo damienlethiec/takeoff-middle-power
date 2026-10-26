@@ -1,28 +1,31 @@
-// The engine's public API (v3). Pure functions: no DOM, no Math.random (the seeded RNG lives in state.rng).
-// Every function returns a NEW state or a read-only view; none mutates its input.
+// The engine's public API (v4, on v3's model). Pure functions: no DOM, no Math.random (the seeded RNG lives in
+// state.rng). Every function returns a NEW state or a read-only view; none mutates its input.
 //
 // One round (six months), as the UI drives it:
-//   s = startRound(s)        Influence arrives; AI power rises at the hidden pace; Cooperation and Cohesion drift;
-//                            the labs push the Confidence estimate up; AI 2027 milestones are reached in order;
-//                            threats grow (public values only); maybe one event (s.event); headlines, voices,
-//                            a leak every two or three rounds, Léa's letter at rounds 1, 4 and 8; cards arrive.
-//   The UI plays the six months on the map (about 8 s): s.headlines, s.voices and s.leak appear at their `at`.
+//   s = startRound(s)        Influence arrives; AI capabilities rise at the hidden pace; cooperation and cohesion
+//                            drift; the labs' reports raise what they claim about AI safety (what is verified does
+//                            not move); AI 2027 milestones are reached in order; threats grow (public values only);
+//                            maybe one event (s.event); headlines, voices, a leak every two or three rounds, Léa's
+//                            letter at rounds 1, 4 and 8; cards arrive.
+//   The UI plays the six months (about 8 s): feed(s) gives the round's items with their `at`; they appear in the
+//   news feed and on the map as the clock passes them.
 //   if s.event: the clock stops at event.at for its Breaking news screen →
 //   s = resolveEvent(s, choice?)   (choice required when event.options is non-empty: silicon blackmail)
-//   while request(s) (v4): a character arrives at its `at`, the clock stops →
+//   while request(s): a character arrives at its `at`, the clock stops →
 //   { state: s } = answerRequest(s, 'left' | 'right')   (free of Influence; the cost is in the answer)
-//   The clock stops; the player asks for:
-//     report(s)              "See what changed": heading line, up to three changes with their cause, threats that moved
-//     hand(s), advisor(s)    "Make my decisions": the hand and the chief of staff's one recommendation
-//     preview(s, picks)      before → after for the selected cards, in public values only (nothing committed)
-//   s = playCard(s, pick)    as many cards as Influence allows, each at most once a round
+//   The clock stops ("What changed" tops the feed); when the player asks for the decisions:
+//     hand(s), advisor(s)    the hand and the chief of staff's one recommendation
+//     preview(s, picks)      the selection's effect, in public values only (nothing committed), with
+//                            outlookAfter: where the world would head
+//   s = playCard(s, pick)    as many cards as Influence covers, each at most once a round
 //   { state, outcome } = endRound(s)
-//     'next'  → startRound again
+//     'next'  → startRound again (no stop between rounds)
 //     'ended' → the tipping point was reached this round, or round 12 is over; s.phase === 'ended'
 //   ending(s)                the ending, its one-sentence explanation, the reveal and the debrief
 //
-// Always available: gauges(s), heading(s), threats(s), nextIncome(s), letters(s), feed(s), dateLabel(round).
-// Hidden values (the true Confidence, the AI pace) appear only in ending(s), and in gauges(s) while an
+// Always available: gauges(s), heading(s), threats(s), nextIncome(s), letters(s), feed(s), report(s) (this round's
+// biggest changes), trends(s), dateLabel(round).
+// Hidden values (the true AI safety, the AI pace) appear only in ending(s), and in gauges(s) while an
 // independent audit runs (by the player's choice).
 
 import type {
