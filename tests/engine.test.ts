@@ -556,7 +556,7 @@ describe('endings', () => {
   it('decides on the true Confidence, and says so in one sentence', () => {
     const s = ended({ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 62, estimate: 70, margin: 15 } });
     const v = ending(s);
-    expect(v.sentence).toBe('The superpowers raced. AI safety was 62 (55 verified, the labs claimed 70), below the 75 a race needs: loss of control.');
+    expect(v.sentence).toBe('The superpowers raced. AI safety was 62 (55 verified, the labs claimed 70), below the 75 a race needs: control of AI is lost.');
     expect(v.reveal.truth).toBe(62);
     expect(v.counterfactuals[0]).toMatch(/^With US–China cooperation at 60 or more at the tipping point/);
   });
@@ -570,7 +570,7 @@ describe('endings', () => {
 
   it('a safety net that fails is named', () => {
     const v = ending(ended({ ...tip, cooperation: 75, cohesion: 30, confidence: { truth: 70, estimate: 70, margin: 5 } }));
-    expect(v.sentence).toMatch(/^The superpowers paused and AI safety reached 70, but Social cohesion fell to 30, below the 45 a pause needs: unstable pause\.$/);
+    expect(v.sentence).toMatch(/^The superpowers paused and AI safety reached 70, but Social cohesion fell to 30, below the 45 a pause needs: the pause breaks down\.$/);
   });
 
   it('the suspense at the tipping point is never more than a few points', () => {
