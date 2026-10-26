@@ -389,7 +389,7 @@ export interface GameState {
   jobShocks: number;
   /** This round's event, until resolved. */
   event: PendingEvent | null;
-  /** This round's event once resolved (for the feed). */
+  /** This round's event once resolved (for the journal). */
   roundEvent: RoundRecord['event'];
   /** This round's map content and leak. */
   headlines: MapItem[];
@@ -607,6 +607,18 @@ export interface EndingView {
   lea: LetterView;
   basis: Basis;
   source: Source;
+}
+
+export interface JournalRound {
+  round: number;
+  date: string;
+  headlines: string[];
+  voices: string[];
+  event: string | null;
+  leak: string | null;
+  changes: string[];
+  decisions: string[];
+  letter: string | null;
 }
 
 /** One item of the live feed beside the map. `at` (0–1) is when it appears while the six months play out;
