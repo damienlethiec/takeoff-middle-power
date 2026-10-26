@@ -149,6 +149,7 @@ const KIND_WORD: Record<string, string> = {
   leak: 'leak',
   event: 'breaking story',
   request: 'request',
+  's-jobs': 'job loss',
   's-strike': 'strike',
   's-protest': 'protest',
   's-scandal': 'scandal',
@@ -159,6 +160,7 @@ const plural = (k: string, n: number) => (n === 1 ? KIND_WORD[k] : k === 's-brea
 const groupOf = (x: MapEntry) => (x.kind === 'milestone' ? 'headline' : x.kind === 'social' && x.social ? `s-${x.social}` : x.kind);
 const ICONS: Record<string, string> = {
   ...KIND_ICON,
+  's-jobs': SOCIAL_ICON.jobs,
   's-strike': SOCIAL_ICON.strike,
   's-protest': SOCIAL_ICON.protest,
   's-scandal': SOCIAL_ICON.scandal,

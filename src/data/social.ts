@@ -45,7 +45,7 @@ const down = (size: SocialSize, gauge: SocialEffect['gauge'] = 'cohesion'): Soci
 const up = (size: SocialSize, gauge: SocialEffect['gauge'] = 'cohesion'): SocialEffect => ({ gauge, dir: 1, size });
 
 export const SOCIAL_EVENTS: SocialEventDef[] = [
-  // ------------------------------------------------------------ strikes and layoffs (jobs)
+  // ------------------------------------------------------------ layoffs and strikes (jobs)
   {
     id: 'se_writers_strike',
     kind: 'strike',
@@ -76,7 +76,7 @@ export const SOCIAL_EVENTS: SocialEventDef[] = [
   },
   {
     id: 'se_bank_layoffs',
-    kind: 'strike',
+    kind: 'jobs',
     city: 'Frankfurt',
     country: 'Germany',
     lon: 8.68,
@@ -91,7 +91,7 @@ export const SOCIAL_EVENTS: SocialEventDef[] = [
   },
   {
     id: 'se_call_centres',
-    kind: 'strike',
+    kind: 'jobs',
     city: 'Lisbon',
     country: 'Portugal',
     lon: -9.14,
@@ -393,4 +393,10 @@ export const WORKER_ANSWERS: { id: string; side: 'left' | 'right' }[] = [
 ];
 
 /** The kind of a social event in words (the feed's label, the map's list). */
-export const SOCIAL_WORD: Record<SocialKind, string> = { strike: 'Strike', protest: 'Protest', scandal: 'Scandal', breakthrough: 'Good news' };
+export const SOCIAL_WORD: Record<SocialKind, string> = { jobs: 'Jobs', strike: 'Strike', protest: 'Protest', scandal: 'Scandal', breakthrough: 'Good news' };
+
+/** The two job shocks (Breaking news) also show where they hit, like the social events: a city, the jobs icon. */
+export const JOB_SHOCK_PLACE: Record<'job_shock_1' | 'job_shock_2', { city: string; country: string; lon: number; lat: number; why: string }> = {
+  job_shock_1: { city: 'Rotterdam', country: 'Netherlands', lon: 4.48, lat: 51.92, why: 'In AI 2027, cheaper AI agents throw junior office jobs into turmoil first.' },
+  job_shock_2: { city: 'Warsaw', country: 'Poland', lon: 21.0, lat: 52.23, why: 'In AI 2027, a cheap AI remote worker spreads job losses across the whole economy.' },
+};

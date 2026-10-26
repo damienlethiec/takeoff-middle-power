@@ -44,7 +44,7 @@ describe('social events: content', () => {
 
   it('there is good news as well as bad, and every kind appears', () => {
     const kinds = new Set(SOCIAL_EVENTS.map((e) => e.kind));
-    expect([...kinds].sort()).toEqual(['breakthrough', 'protest', 'scandal', 'strike']);
+    expect([...kinds].sort()).toEqual(['breakthrough', 'jobs', 'protest', 'scandal', 'strike']);
     expect(SOCIAL_EVENTS.filter((e) => e.effects.every((x) => x.dir > 0)).length).toBeGreaterThanOrEqual(8);
   });
 
@@ -61,7 +61,11 @@ describe('social events: in a game', () => {
       expect(new Set(ids).size).toBe(ids.length);
       for (const r of g.history) expect((r.social ?? []).length).toBeLessThanOrEqual(2);
       const items = feed(g).flatMap((r) => r.items.filter((x) => x.kind === 'social'));
-      expect(items.length).toBe(ids.length);
+      // the job shocks show at their city too, with the jobs icon
+      const shocks = g.history.filter((r) => r.event?.id === 'job_shock_1' || r.event?.id === 'job_shock_2').length;
+      expect(items.filter((x) => /_s_job_shock_/.test(x.id)).length).toBe(shocks);
+      expect(items.filter((x) => /_s_job_shock_/.test(x.id)).every((x) => x.social?.kind === 'jobs')).toBe(true);
+      expect(items.length).toBe(ids.length + shocks);
       for (const it of items) {
         expect(it.label).toMatch(/in this story/);
         expect(it.social?.city).toBeTruthy();

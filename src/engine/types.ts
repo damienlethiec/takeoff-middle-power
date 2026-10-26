@@ -246,7 +246,7 @@ export interface ThreatState {
 }
 
 /** v4 social events: what kind of thing happens in a European city (the map's icon). */
-export type SocialKind = 'strike' | 'protest' | 'scandal' | 'breakthrough';
+export type SocialKind = 'jobs' | 'strike' | 'protest' | 'scandal' | 'breakthrough';
 
 /** A social event of one round: when it shows (0–1) and what it changed, in public values only
  *  (after − before: Social cohesion, US–China cooperation, AI safety's claim and uncertainty). */

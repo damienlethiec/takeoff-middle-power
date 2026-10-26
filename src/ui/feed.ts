@@ -27,8 +27,9 @@ export const KIND_ICON: Record<FeedItem['kind'], string> = {
   social: I('<path d="M10 2.2l1.9 5.9 5.9 1.9-5.9 1.9L10 17.8l-1.9-5.9L2.2 10l5.9-1.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>'),
 };
 
-/** Social events (v4) by kind: a picket sign, a megaphone, an alarm, a spark of good news. */
+/** Social events (v4) by kind: a briefcase for jobs, a picket sign, a megaphone, an alarm, a spark of good news. */
 export const SOCIAL_ICON: Record<SocialKind, string> = {
+  jobs: I('<rect x="2.5" y="6" width="15" height="10.5" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7.2 6V4.4c0-.6.5-1 1-1h3.6c.5 0 1 .4 1 1V6M2.8 10.6h14.4" fill="none" stroke="currentColor" stroke-width="1.6"/>'),
   strike: I('<rect x="3.5" y="2.5" width="13" height="8.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 11v7M7 6.8h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>'),
   protest: I('<path d="M3 8v4h2.6L13 16V4L5.6 8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M15.6 7.4a3.6 3.6 0 0 1 0 5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'),
   scandal: I('<circle cx="10" cy="10" r="7.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 5.6v5.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14" r="1.15" fill="currentColor"/>'),

@@ -741,7 +741,7 @@ body.ended { overflow: auto; }
 
 /* =================================================================== LIVING WORLD (v4): social events, gauges that move */
 /* social events in the feed and on the map, by kind (the label and the icon say the kind too) */
-.k-social, .k-s-strike, .k-s-protest { --c: var(--concern); }
+.k-social, .k-s-jobs, .k-s-strike, .k-s-protest { --c: var(--concern); }
 .k-social.s-scandal, .k-s-scandal { --c: var(--crit-text); }
 .k-social.s-breakthrough, .k-s-breakthrough { --c: var(--good); }
 /* at their city: hotspots pulse gently (steady with reduced motion); good news glows */

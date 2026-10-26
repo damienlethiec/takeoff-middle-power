@@ -12,7 +12,7 @@ import { LEAK_REDACTED_ADVICE, LEAKS } from '../data/leaks';
 import { VOICES, WORLD_HEADLINES, type MapLine, type PublicWorld } from '../data/mapcontent';
 import { MILESTONES, MILESTONE_BY_ID } from '../data/milestones';
 import { EVENTS, THREAT_BY_ID, THREATS } from '../data/threats';
-import { SOCIAL_BY_ID, SOCIAL_EVENTS, SOCIAL_WORD, WORKER_ANSWERS, type SocialEventDef } from '../data/social';
+import { JOB_SHOCK_PLACE, SOCIAL_BY_ID, SOCIAL_EVENTS, SOCIAL_WORD, WORKER_ANSWERS, type SocialEventDef } from '../data/social';
 import { TUNING as T } from '../data/tuning';
 import type { EngineApi } from './api';
 import { pick, random, randomInt, seedToRng, shuffle, weightedPick, type RngHolder } from './rng';
@@ -1688,6 +1688,22 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
       threat: ev.id in s.threats ? (ev.id as ThreatId) : null,
       tone: ev.prepared ? 1 : -1,
     });
+    // a job shock also shows where it hits, like the social events (v4)
+    if (ev.id === 'job_shock_1' || ev.id === 'job_shock_2') {
+      const pl = JOB_SHOCK_PLACE[ev.id];
+      out.push({
+        ...base,
+        id: `s_${ev.id}`,
+        at: ev.at + 0.005,
+        kind: 'social',
+        label: `${SOCIAL_WORD.jobs} · ${pl.city}, ${pl.country} · in this story`,
+        text: EVENTS[ev.id].headline.replace(/^BREAKING: /, ''),
+        detail: `${pl.why}${detail.length ? ` ${detail.join(', ')}.` : ''}`,
+        region: 'eu',
+        tone: -1,
+        social: { kind: 'jobs', city: pl.city, lon: pl.lon, lat: pl.lat },
+      });
+    }
   }
   for (const q of r.requests ?? []) {
     const card = REQUEST_BY_ID[q.id];
