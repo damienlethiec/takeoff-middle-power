@@ -64,5 +64,7 @@ export const BADGE_HINT = 'Decides the world if AI never tips';
 export function badgeHtml(ai: 'open' | 'dependent', from?: 'open' | 'dependent', plateau = false): string {
   const word = (x: string) => (x === 'open' ? 'Open' : 'Dependent');
   const moved = from && from !== ai ? `<span class="badge-was">${word(from)} →</span> ` : '';
-  return `<span class="hl-sep" aria-hidden="true">·</span> <span class="hl-stall">${plateau ? 'decided by' : 'If AI stalls:'}</span> <button type="button" class="badge-btn ${ai}" data-badge data-coach="badge" title="${BADGE_HINT}"><span class="badge-k">Europe’s AI:</span> ${moved}<b>${word(ai)}</b>${moved ? '<span class="sr-only"> if you confirm</span>' : ''}<span class="sr-only">. ${BADGE_HINT}: what this means</span></button>`;
+  // the name starts with the visible text (WCAG 2.5.3), in one string so no stray space splits it
+  const name = `Europe’s AI: ${from && from !== ai ? `${word(from)} → ${word(ai)} if you confirm` : word(ai)}. ${BADGE_HINT}: what this means`;
+  return `<span class="hl-sep" aria-hidden="true">·</span> <span class="hl-stall">${plateau ? 'decided by' : 'If AI stalls:'}</span> <button type="button" class="badge-btn ${ai}" data-badge data-coach="badge" title="${BADGE_HINT}" aria-label="${name}"><span class="badge-k">Europe’s AI:</span> ${moved}<b>${word(ai)}</b></button>`;
 }
