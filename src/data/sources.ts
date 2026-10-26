@@ -59,7 +59,7 @@ export const SOURCES = {
   metaEu: { label: 'Axios, Meta won’t offer future multimodal AI models in EU (Jul 2024)', url: 'https://www.axios.com/2024/07/17/meta-future-multimodal-ai-models-eu' },
   // social events (v4): the real precedents of the strikes, protests, scandals and good news in European cities
   wga2023: { label: 'WGA, Summary of the 2023 WGA MBA (AI provisions)', url: 'https://www.wgacontract2023.org/the-campaign/summary-of-the-2023-wga-mba' },
-  sagaftraGames: { label: 'SAG-AFTRA, SAG-AFTRA Strikes Video Games Over A.I. (Aug 2024)', url: 'https://www.sagaftra.org/sag-aftra-strikes-video-games-over-ai' },
+  sagaftraGames: { label: 'SAG-AFTRA, SAG-AFTRA Strikes Video Games Over A.I. (Jul 2024)', url: 'https://www.sagaftra.org/sag-aftra-strikes-video-games-over-ai' },
   klarnaAssistant: {
     label: 'Klarna, AI assistant handles two-thirds of customer service chats in its first month (Feb 2024)',
     url: 'https://www.klarna.com/international/press/klarna-ai-assistant-handles-two-thirds-of-customer-service-chats-in-its-first-month/',

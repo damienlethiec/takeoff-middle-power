@@ -140,8 +140,8 @@ const CLUSTER_SPOT: Record<RegionId, { lon: number; lat: number }> = {
   eu: { lon: 22, lat: 60 },
   cn: { lon: 92, lat: 46 },
 };
-const REGION_NAME: Record<RegionId, string> = { us: 'the US', eu: 'Europe', cn: 'China' };
-const REGION_TITLE: Record<RegionId, string> = { us: 'The US', eu: 'Europe', cn: 'China' };
+const REGION_NAME: Record<RegionId, string> = { us: 'the US', eu: 'Europe', cn: 'China and Asia' };
+const REGION_TITLE: Record<RegionId, string> = { us: 'The US', eu: 'Europe', cn: 'China and Asia' };
 const KIND_WORD: Record<string, string> = {
   headline: 'headline',
   voice: 'voice',
