@@ -527,7 +527,8 @@ test.describe('key interactions', () => {
       await advance(page, 200, false);
     }
     await expect(page.locator('#date')).toHaveText('H1 2028');
-    expect(seen.requests).toBeGreaterThanOrEqual(2);
+    // with ten rounds (26 Oct) seed 4's first request comes in round 2, with the leak: one request by H1 2028
+    expect(seen.requests).toBeGreaterThanOrEqual(1);
     expect(seen.leaks).toBe(1);
     expect(s.errors).toEqual([]);
   });
