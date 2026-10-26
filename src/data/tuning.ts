@@ -87,6 +87,11 @@ export const TUNING = {
     effect: { china_wakes_up: -2, ai_takes_jobs: -2, agent2_internal: 2, alignment_inconclusive: 4, national_security: 2, geopolitics: -4 },
   },
 
+  /** Effects in words before deciding (playtests of 26 Oct: players computed from exact numbers). A move of at most
+   *  `little` reads "a little", at most `some` reads "some", more reads "a lot" (src/data/effects.ts). Numbers show
+   *  after the decision. Presentation only: no rule reads these. */
+  effectWords: { little: 3, some: 7 },
+
   /** Card effects. Costs per level for cards with levels. */
   cards: {
     talks: { cost: 1, cooperation: 6, cohesion: -2, uses: 3, rest: 1 },

@@ -9,6 +9,7 @@
 import type { EngineApi } from '../../engine/api';
 import type { CardView, GameState, Pick, PreviewView, ThreatView } from '../../engine/types';
 import { FAMILIES } from '../../data/cards';
+import { impactWords } from '../../data/effects';
 import { announce } from '../a11y';
 import { ICON, chips, esc, factBox, provTag } from '../format';
 import { modalOpen, openModal } from '../modal';
@@ -195,7 +196,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     picks.push({ id: c.id as Pick['id'], ...(c.options.length ? { option: c.options[0].id } : {}) });
     const pv = e.preview(s, picks);
     announce(
-      `Selected ${c.title}. ${pv.impacts.map((x) => `${x.label} ${x.before} to ${x.after}`).join(', ')}.${pv.worldAfter !== pv.worldBefore ? ` The world would turn from ${pv.worldBefore} to ${pv.worldAfter}.` : ''} ${pv.influenceAfter > 0 ? 'You can add another card, or' : ''} Tab to Confirm.`,
+      `Selected ${c.title}. ${pv.impacts.map(impactWords).join(', ')}.${pv.worldAfter !== pv.worldBefore ? ` The world would turn from ${pv.worldBefore} to ${pv.worldAfter}.` : ''} ${pv.influenceAfter > 0 ? 'You can add another card, or' : ''} Tab to Confirm.`,
     );
     return true;
   };

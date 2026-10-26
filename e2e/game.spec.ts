@@ -301,15 +301,18 @@ test.describe('key interactions', () => {
     // focus lands on a card; nothing is selected yet
     await expect(dk.locator('.pcard:focus')).toHaveCount(1);
     await expect(dk.getByRole('button', { name: 'Pick a card first' })).toBeDisabled();
-    // gauges are found by their names only (their markup may change): a preview shows as "→ 55"
+    // gauges are found by their names only (their markup may change): a preview says the move in words ("up some")
     const gauges = page.getByRole('region', { name: 'Gauges' });
-    await expect(gauges).not.toContainText(/→ \d+/);
+    await expect(gauges).not.toContainText(/(up|down) (a little|some|a lot)/);
 
     const talks = dk.getByRole('button', { name: /^Diplomatic talks/ });
     await talks.click();
     await expect(talks).toHaveAttribute('aria-pressed', 'true');
-    // the preview is on the gauges themselves: "→ 55" next to the value, a ghost mark on the bar
-    await expect(gauges.getByRole('region', { name: GAUGE_LABEL.cooperation })).toContainText(/→ \d+/);
+    // the preview is on the gauges themselves: "up some" next to the value (words before deciding, never the number
+    // it would reach), a ghost mark on the bar; the card says it in words too
+    await expect(gauges.getByRole('region', { name: GAUGE_LABEL.cooperation })).toContainText(/up (a little|some|a lot)/);
+    await expect(gauges).not.toContainText(/→ \d+/);
+    await expect(talks).toContainText(/US–China cooperation: up (a little|some|a lot)/);
     // the line under the gauges and Europe's AI stay in view
     await expect(page.locator('#hl-text')).toContainText('Heading for');
     await expect(page.getByRole('button', { name: /^Europe’s AI: (Open|Dependent)/ })).toBeVisible();
@@ -331,7 +334,7 @@ test.describe('key interactions', () => {
     await page.keyboard.press('Escape');
     await expect(decisions(page)).toHaveCount(0);
     await expect(page.locator('#mapwrap')).toBeVisible();
-    await expect(gauges).not.toContainText(/→ \d+/);
+    await expect(gauges).not.toContainText(/(up|down) (a little|some|a lot)/);
     await dockButton(page, /^Make my decisions/).click();
     await dk.getByRole('button', { name: /^Diplomatic talks/ }).click();
     await dk.getByRole('button', { name: /^AI Office capacity/ }).click();

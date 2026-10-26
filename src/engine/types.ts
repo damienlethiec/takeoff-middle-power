@@ -102,6 +102,9 @@ export interface Fact {
 export interface Chip {
   text: string;
   tone: 'up' | 'down';
+  /** A request answer's chip before the player answers: its text is in words ("up a lot"), and this keeps the public
+   *  move it stands for (`margin`: the verified part of AI safety) for the simulation's players. Never shown. */
+  move?: { key: GaugeKey | 'margin'; delta: number };
 }
 
 // ---------------------------------------------------------------- requests (v4, from the hybrid)

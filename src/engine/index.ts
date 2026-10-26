@@ -7,6 +7,7 @@ import { CARD_BY_ID, CARDS, cardCost, cardUses, type CardDef } from '../data/car
 import { CHARACTERS } from '../data/characters';
 import { REQUEST_BY_ID, REQUESTS } from '../data/requests';
 import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, lowText, marginText, verifiedWord } from '../data/copy';
+import { moveText, verifiedMoveText } from '../data/effects';
 import { ENDING_BY_ID, WORLDS } from '../data/endings';
 import { FRIEND_IDS, FRIENDS, letterLabel } from '../data/friends';
 import { EPILOGUE_BASIS, EPILOGUES, EPILOGUES_GAVE_IN, LEA_FIRST, LEA_LATER, LEA_WORK, LETTER_BY_ID, MALIK_FIRST, MALIK_LATER, MOTHER_FIRST, MOTHER_LATER, type LetterDef } from '../data/letters';
@@ -1012,18 +1013,21 @@ function applyAnswer(s: GameState, a: Answer) {
 
 const answerCause = (r: RequestCard, a: Answer) => `${CHARACTERS[r.character].name}: “${a.label}”`;
 
-/** Chips for what an answer changes, in public values only, plus what it does beyond the gauges. */
-function answerChips(before: GameState, after: GameState, a: Answer): Chip[] {
+/** Chips for what an answer changes, in public values only, plus what it does beyond the gauges. Before the player
+ *  answers (`words`), the gauge moves read in words ("Social cohesion: down a little"); after, as numbers. */
+function answerChips(before: GameState, after: GameState, a: Answer, words = false): Chip[] {
   const out: Chip[] = [];
   for (const i of impacts(snap(before), snap(after))) {
     if (i.key === 'influence') continue;
     const d = Number(i.after) - Number(i.before);
     if (i.key === 'margin') {
-      out.push({ text: marginText(i.before, i.after), tone: d >= 0 ? 'up' : 'down' });
+      out.push(words ? { text: verifiedMoveText(d), tone: d >= 0 ? 'up' : 'down', move: { key: 'margin', delta: d } } : { text: marginText(i.before, i.after), tone: d >= 0 ? 'up' : 'down' });
     }
     else if (i.key === 'europeAi') out.push({ text: `Europe’s AI → ${i.after}`, tone: i.tone > 0 ? 'up' : 'down' });
-    else if (i.key === 'aiPower') out.push({ text: `${i.label} ${signed(d)}`, tone: d > 0 ? 'down' : 'up' });
-    else out.push({ text: `${i.label} ${signed(d)}`, tone: d > 0 ? 'up' : 'down' });
+    else {
+      const tone = (i.key === 'aiPower' ? d < 0 : d > 0) ? 'up' : 'down';
+      out.push(words ? { text: moveText(i.label, d), tone, move: { key: i.key, delta: d } } : { text: `${i.label} ${signed(d)}`, tone });
+    }
   }
   if ((a.effects.truth ?? 0) > 0) out.push({ text: 'Real safety up (not shown)', tone: 'up' });
   if (a.coalition && after.coalition > before.coalition) out.push({ text: 'A partner joins the coalition', tone: 'up' });
@@ -1031,7 +1035,8 @@ function answerChips(before: GameState, after: GameState, a: Answer): Chip[] {
   for (const t of a.grow ?? []) if (!before.threats[t].struck && before.threats[t].stage < 3) out.push({ text: `${THREAT_BY_ID[t].name} grows`, tone: 'down' });
   if (a.later) {
     const e = a.later.effects;
-    const parts = [e.cohesion ? `${GAUGE_LABEL.cohesion} ${signed(e.cohesion)}` : '', e.coop ? `${GAUGE_LABEL.cooperation} ${signed(e.coop)}` : '', e.ai ? `${GAUGE_LABEL.aiPower} ${signed(e.ai)}` : '', e.margin ? `${GAUGE_LABEL.confidence}: ${e.margin > 0 ? 'less' : 'more'} verified` : '', e.conf ? `${GAUGE_LABEL.confidence} ${signed(e.conf)}` : ''].filter(Boolean);
+    const mv = (label: string, x: number) => (words ? moveText(label, x) : `${label} ${signed(x)}`);
+    const parts = [e.cohesion ? mv(GAUGE_LABEL.cohesion, e.cohesion) : '', e.coop ? mv(GAUGE_LABEL.cooperation, e.coop) : '', e.ai ? mv(GAUGE_LABEL.aiPower, e.ai) : '', e.margin ? `${GAUGE_LABEL.confidence}: ${e.margin > 0 ? 'less' : 'more'} verified` : '', e.conf ? mv(GAUGE_LABEL.confidence, e.conf) : ''].filter(Boolean);
     const bad = (e.cohesion ?? 0) < 0 || (e.coop ?? 0) < 0 || (e.margin ?? 0) > 0 || (e.ai ?? 0) > 0 || (e.conf ?? 0) < 0;
     if (parts.length) out.push({ text: `Later: ${parts.join(', ')}`, tone: bad ? 'down' : 'up' });
   }
@@ -1043,7 +1048,7 @@ function answerView(s: GameState, r: RequestCard, side: Side): AnswerView {
   const pub = publicCopy(s);
   const after = clone(pub);
   applyAnswer(after, a);
-  const chips = answerChips(pub, after, a);
+  const chips = answerChips(pub, after, a, true);
   const w0 = heading(pub).name;
   const w1 = heading(after).name;
   return {

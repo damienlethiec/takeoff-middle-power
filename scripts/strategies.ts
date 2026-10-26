@@ -2,7 +2,6 @@
 // A strategy only reads what the UI shows: the hand, the gauges (estimate ± margin), the heading line,
 // the threats and the advisor. Never the hidden truth or the pace.
 
-import { GAUGE_LABEL } from '../src/data/copy';
 import { TUNING } from '../src/data/tuning';
 import { advisor, answerRequest, createInitialState, endRound, gauges, hand, heading, playCard, preview, request, resolveEvent, startRound, threats } from '../src/engine/index';
 import { pick, randomInt, seedToRng, type RngHolder } from '../src/engine/rng';
@@ -83,27 +82,26 @@ export function playGame(seed: number, strat: Strategy, recent?: string[]): Play
   return { final: s, plays, shortages, requests };
 }
 
-/** What a request's answer would move, read from its chips (what the player sees). AI safety counts by its
- *  verified part: the "more / less verified (a → b)" chip when there is one, else the claim moves it. */
+/** What a request's answer would move, read from its chips (what the player sees, in words; the simulation weighs the
+ *  move behind each). AI safety counts by its verified part when an answer moves it, else the claim moves it. */
 function chipValue(v: RequestView, side: Side, w: { coop: number; conf: number; coh: number; ai?: number }): number {
   let x = 0;
   const chips = v[side].chips;
-  const verifiedChip = chips.some((c) => /verified \(\d+ → \d+\)$/.test(c.text));
+  // the answer card says each gauge move in words; the player weighs it by the move it stands for (chip.move)
+  const verifiedChip = chips.some((c) => c.move?.key === 'margin');
   for (const c of chips) {
-    const vm = /verified \((\d+) → (\d+)\)$/.exec(c.text);
-    if (vm) {
-      x += (Number(vm[2]) - Number(vm[1])) * w.conf;
+    if (c.move) {
+      const d = c.move.delta;
+      if (c.move.key === 'margin') x += d * w.conf;
+      else if (c.move.key === 'cooperation') x += d * w.coop;
+      else if (c.move.key === 'confidence') x += verifiedChip ? 0 : d * w.conf;
+      else if (c.move.key === 'cohesion') x += d * w.coh;
+      else if (c.move.key === 'aiPower') x -= d * (w.ai ?? 0.3);
       continue;
     }
-    const m = /^(.+?) ([+−])(\d+)$/.exec(c.text);
-    if (m) {
-      const d = (m[2] === '−' ? -1 : 1) * Number(m[3]);
-      if (m[1] === GAUGE_LABEL.cooperation) x += d * w.coop;
-      else if (m[1] === GAUGE_LABEL.confidence) x += verifiedChip ? 0 : d * w.conf;
-      else if (m[1] === GAUGE_LABEL.cohesion) x += d * w.coh;
-      else if (m[1] === GAUGE_LABEL.aiPower) x -= d * (w.ai ?? 0.3);
-      continue;
-    }
+    // kept from the numeric chips (byte-identical simulation): a delayed effect whose text ended on a number
+    // ("Later: Social cohesion −3") matched no rule and counted for nothing; now it ends on a size word
+    if (/^Later.*(a little|some|a lot)$/.test(c.text)) continue;
     const sign = c.tone === 'up' ? 1 : -1;
     if (/Real safety/.test(c.text)) x += 4 * w.conf;
     else if (/grows/.test(c.text)) x -= 3;

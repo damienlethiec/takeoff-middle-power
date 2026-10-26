@@ -7,6 +7,8 @@
 
 import type { Basis, CardFamily, CardId, Chip, Fact, MilestoneId, ThreatId } from '../engine/types';
 import { ai2027, cfg, game, real } from './basis';
+import { GAUGE_LABEL } from './copy';
+import { moveText, moveWord, sizeWord } from './effects';
 import { SOURCES } from './sources';
 import { TUNING } from './tuning';
 
@@ -14,6 +16,9 @@ const C = TUNING.cards;
 const up = (text: string): Chip => ({ text, tone: 'up' });
 const down = (text: string): Chip => ({ text, tone: 'down' });
 const n = (x: number) => (x > 0 ? `+${x}` : `−${Math.abs(x)}`);
+// gauge moves in words on the card (numbers show once the card is played: src/data/effects.ts); Influence stays a number
+const COOP = (x: number) => moveText(GAUGE_LABEL.cooperation, x);
+const COH = (x: number) => moveText(GAUGE_LABEL.cohesion, x);
 
 /** When a card first enters the hand. */
 export type Arrival =
@@ -65,8 +70,8 @@ export const CARDS: CardDef[] = [
       text: 'In November 2024, Presidents Biden and Xi agreed on “the need to maintain human control over the decision to use nuclear weapons”.',
       source: SOURCES.bidenXi,
     },
-    ups: [up(`US–China cooperation ${n(C.talks.cooperation)}`)],
-    downs: [down(`Social cohesion ${n(C.talks.cohesion)}`)],
+    ups: [up(COOP(C.talks.cooperation))],
+    downs: [down(COH(C.talks.cohesion))],
     arrives: { round: TUNING.arrive.talks },
     basis: cfg('Arms race, Ending B (Multipolar world): the EU and neutral states mediate between the superpowers'),
   },
@@ -82,7 +87,7 @@ export const CARDS: CardDef[] = [
       text: 'The IAEA, which checks nuclear programmes worldwide, spends about €171 million a year on verification (2025).',
       source: SOURCES.iaeaBudget2025,
     },
-    ups: [up('AI safety: more verified'), up(`Accord: US–China cooperation ${n(C.inspections.cooperation[1])}`), up('Accord: real safety up (not shown)')],
+    ups: [up('AI safety: more verified'), up(`Accord: ${COOP(C.inspections.cooperation[1])}`), up('Accord: real safety up (not shown)')],
     downs: [down('Accord: only after a crisis or in a pause'), down(`Accord: Influence ${n(C.inspections.influence)} next round`)],
     protects: 'incident',
     arrives: { round: TUNING.arrive.inspections },
@@ -100,7 +105,7 @@ export const CARDS: CardDef[] = [
       source: SOURCES.aiOffice,
     },
     ups: [up('AI safety: much more verified'), up('Inspections sharper')],
-    downs: [down(`Social cohesion ${n(C.ai_office.cohesion)}`)],
+    downs: [down(COH(C.ai_office.cohesion))],
     protects: 'opaque',
     arrives: { round: TUNING.arrive.ai_office },
     basis: real('aiOffice: the AI Office’s evaluation powers (with AI 2027, March 2027: neuralese makes reasoning unreadable)'),
@@ -113,8 +118,8 @@ export const CARDS: CardDef[] = [
     proposal:
       'Europe funds independent teams in universities working on alignment: making AI reliably do what we intend. Their papers are public, but the big labs use little of them on their own. Once an inspection accord opens the labs to European teams, their work counts for far more. Most of it never shows in the labs’ reports. Other budgets pay.',
     costLine: { text: 'In July 2025, the UK’s AI Security Institute launched a fund of over £15 million for alignment research.', source: SOURCES.aisiAlignment },
-    ups: [up(`AI safety ${n(C.alignment.estimate)} shown`), up('Real safety up (not shown), more with an accord')],
-    downs: [down(`Social cohesion ${n(C.alignment.cohesion)}`)],
+    ups: [up(`${GAUGE_LABEL.confidence} shown: ${moveWord(C.alignment.estimate)}`), up('Real safety up (not shown), more with an accord')],
+    downs: [down(COH(C.alignment.cohesion))],
     arrives: { round: TUNING.arrive.alignment },
     basis: ai2027('Slowdown ending: “several dozen” outside alignment researchers are let into the lab, and build Safer-1'),
   },
@@ -130,8 +135,8 @@ export const CARDS: CardDef[] = [
       text: 'The Europe 2031 report recommends to “build a small, nimble coalition with countries like Norway, the UK, Canada, Japan and South Korea”.',
       source: SOURCES.europe2031,
     },
-    ups: [up(`US–China cooperation ${n(C.coalition.cooperation)}`), up('Level 2: Influence +1 a round')],
-    downs: [down(`Social cohesion ${n(C.coalition.cohesion)}`), down('Washington may lure partners away')],
+    ups: [up(COOP(C.coalition.cooperation)), up('Level 2: Influence +1 a round')],
+    downs: [down(COH(C.coalition.cohesion)), down('Washington may lure partners away')],
     protects: 'incident',
     arrives: { round: TUNING.arrive.coalition },
     basis: real('europe2031: Europe 2031, recommendation 2 (coalition of middle powers); with CFG, Arms race, Ending B'),
@@ -163,11 +168,11 @@ export const CARDS: CardDef[] = [
       text: 'The Europe 2031 report: “The only card Europe still holds is ASML - the one bottleneck the entire AI race runs through.”',
       source: SOURCES.europe2031,
     },
-    ups: [up('AI safety: more verified, or Social cohesion ' + n(C.asml.access.cohesion))],
-    downs: [down(`US–China cooperation ${n(C.asml.cooperation)}`), down('Washington retaliates: a chip-tool ban')],
+    ups: [up(`AI safety: more verified, or cohesion ${moveWord(C.asml.access.cohesion)}`)],
+    downs: [down(COOP(C.asml.cooperation)), down('Washington retaliates: a chip-tool ban')],
     options: [
       { id: 'safety', label: 'Labs open their models to EU testers', ups: [up('AI safety: more verified')] },
-      { id: 'access', label: 'Model access for European firms', ups: [up(`Social cohesion ${n(C.asml.access.cohesion)}`)] },
+      { id: 'access', label: 'Model access for European firms', ups: [up(COH(C.asml.access.cohesion))] },
     ],
     arrives: { aiPower: C.asml.arrivesAt },
     basis: cfg('Arms race: “Control over chips becomes a geopolitical weapon”; the US invokes the Foreign Direct Product Rule against European toolmakers'),
@@ -188,7 +193,7 @@ export const CARDS: CardDef[] = [
       source: SOURCES.rand,
     },
     ups: [up('Model theft: cut short, partly')],
-    downs: [down('Europe’s AI → Dependent, unless it funds its own'), down(`Social cohesion ${n(C.weight_security.cohesion)}`)],
+    downs: [down('Europe’s AI → Dependent, unless it funds its own'), down(COH(C.weight_security.cohesion))],
     protects: 'theft',
     arrives: { threatSeen: 'theft' },
     basis: ai2027('February 2027: China Steals Agent-2 (with AI Act Article 55(1)(d): cybersecurity of models with systemic risk)'),
@@ -201,7 +206,7 @@ export const CARDS: CardDef[] = [
     proposal:
       'Europe funds open models that run on European computers, in every European language, for firms and public services, and asks that models paid for with public money be published for anyone to use. Fewer companies hold the keys to Europe’s AI. But criminals get the same tools, and nobody can recall a model once it is out.',
     costLine: { text: 'OpenEuroLLM, an EU project to build open models for all EU languages, has a budget of €37.4 million (2025).', source: SOURCES.openEuroLlm },
-    ups: [up('Europe’s AI → Open'), up(`Social cohesion ${n(C.open_models.cohesion)}`)],
+    ups: [up('Europe’s AI → Open'), up(COH(C.open_models.cohesion))],
     downs: [down('Ransomware threat grows')],
     arrives: { round: C.open_models.arrivesRound },
     basis: cfg('Big AI, Ending A: “any AI models developed with public funding must be open-weight”; Plateau: miniaturisation and openness'),
@@ -217,7 +222,7 @@ export const CARDS: CardDef[] = [
       text: 'The Europe 2031 report: “A flexicurity model, like the Danish example, allows firms to adopt AI more deeply.”',
       source: SOURCES.europe2031,
     },
-    ups: [up(`Social cohesion ${n(C.flexicurity.cohesion)}`), up('Softens job shocks')],
+    ups: [up(COH(C.flexicurity.cohesion)), up('Softens job shocks')],
     downs: [down(`Influence ${n(C.flexicurity.influence)} for ${C.flexicurity.rounds} rounds`)],
     protects: undefined,
     arrives: { milestone: 'ai_takes_jobs' },
@@ -234,7 +239,7 @@ export const CARDS: CardDef[] = [
       text: 'In June 2025, the EU set aside €30 million to protect hospitals and healthcare providers from cyberattacks, ransomware first.',
       source: SOURCES.euCyberHealth,
     },
-    ups: [up('Protects against ransomware'), up(`Social cohesion ${n(C.cyber_shield.cohesion)}`)],
+    ups: [up('Protects against ransomware'), up(COH(C.cyber_shield.cohesion))],
     downs: [down(`Influence ${n(C.cyber_shield.influence)} for ${C.cyber_shield.rounds} rounds`)],
     protects: 'ransomware',
     arrives: { threatSeen: 'ransomware' },
@@ -255,7 +260,7 @@ export const CARDS: CardDef[] = [
       text: 'In July 2024, Meta said it would release a multimodal Llama model “but not in the EU due to the unpredictable nature of the European regulatory environment”.',
       source: SOURCES.metaEu,
     },
-    ups: [up(`Social cohesion ${n(C.oversight_mandate.cohesion)}`)],
+    ups: [up(COH(C.oversight_mandate.cohesion))],
     downs: [down('Models withheld: Europe’s AI → Dependent'), down('Silicon blackmail threat if Dependent')],
     arrives: { round: C.oversight_mandate.arrivesRound },
     basis: cfg('Big AI, Ending B (Silicon blackmail): US firms threaten to withdraw from the EU over its rules'),
@@ -272,7 +277,7 @@ export const CARDS: CardDef[] = [
       source: SOURCES.investAi,
     },
     ups: [up('AI safety: more verified')],
-    downs: [down(`Social cohesion ${n(C.cern_ai.cohesion)}`)],
+    downs: [down(COH(C.cern_ai.cohesion))],
     arrives: { round: C.cern_ai.arrivesRound },
     basis: cfg('Diplomacy: the Commission pledges “35% of the Gigafactories’ compute capacity for AI safety and security research”, overseen by a “CERN for AI”'),
   },
@@ -283,7 +288,7 @@ export const CARDS: CardDef[] = [
     text: 'Fund hardware that lets AI chips prove where they run. A pause becomes checkable; both capitals distrust the idea at first.',
     proposal:
       'Europe’s toolmakers and chip researchers develop features, hard to fake, that let a chip report where it runs and what it trains. Without them, any pause is a promise nobody can check. Washington and Beijing both suspect the other would cheat, and both suspect Europe’s motives at first: it costs goodwill.',
-    ups: [up(`US–China cooperation ${n(C.chip_verification.cooperation)}`), up('AI safety: more verified')],
+    ups: [up(COOP(C.chip_verification.cooperation)), up('AI safety: more verified')],
     downs: [down(`Influence ${n(C.chip_verification.influence)} next round`)],
     arrives: { aiPower: C.chip_verification.arrivesAt },
     basis: cfg('Diplomacy, Ending B: hardware-enabled verification, such as tamper-resistant chips, discussed but uncertain (with AI 2027, slowdown, December 2027: chips fitted with location tracking)'),
@@ -295,8 +300,8 @@ export const CARDS: CardDef[] = [
     text: 'In a pause, draft a treaty: the strongest AI only under licence, checked like nuclear power is. Labs lobby hard; prices rise at home.',
     proposal:
       'With the superpowers ready to slow down, Europe drafts the treaty that makes it last: the most powerful AI may only be trained and run under licence, checked by an expanded IAEA, the UN’s nuclear watchdog, and taxed. The labs lobby hard, and AI gets dearer at home. It only works while Washington and Beijing both want a pause.',
-    ups: [up('AI safety: more verified'), up('Real safety up (not shown)'), up(`US–China cooperation ${n(C.licensing_treaty.cooperation)}`)],
-    downs: [down(`Social cohesion ${n(C.licensing_treaty.cohesion)}`), down('Only in a pause')],
+    ups: [up('AI safety: more verified'), up('Real safety up (not shown)'), up(COOP(C.licensing_treaty.cooperation))],
+    downs: [down(COH(C.licensing_treaty.cohesion)), down('Only in a pause')],
     arrives: { pauseDeal: true },
     basis: cfg('Diplomacy, Ending A (Licensed utopia): “a licensing regime for advanced AI systems”, the IAEA expands to enforce it'),
   },
@@ -307,8 +312,8 @@ export const CARDS: CardDef[] = [
     text: 'Rally Washington, Beijing and others to screen DNA orders and test AI for bioweapon help. A rare shared cause; labs grumble.',
     proposal:
       'New AI can coach an amateur through making a deadly germ. Europe leads a worldwide effort: orders for lab-made DNA checked everywhere, new AI models tested for bioweapon help before release, a shared alert network. Washington and Beijing both fear this one, so it brings them closer. The labs grumble about delays.',
-    ups: [up('Protects against AI help with bioweapons'), up(`US–China cooperation ${n(C.biosecurity.cooperation)}`)],
-    downs: [down(`Social cohesion ${n(C.biosecurity.cohesion)}`)],
+    ups: [up('Protects against AI help with bioweapons'), up(COOP(C.biosecurity.cooperation))],
+    downs: [down(COH(C.biosecurity.cohesion))],
     protects: 'bio',
     arrives: { threatSeen: 'bio' },
     basis: cfg('Take-off: a bioterror plot with an open model; “Europe leads a new international initiative to establish a global biosecurity framework”'),
@@ -320,7 +325,7 @@ export const CARDS: CardDef[] = [
     text: 'After the incident, everyone is listening. Push for shared incident reports and inspections when the biggest AIs are trained.',
     proposal:
       'The AI incident frightened Washington and Beijing alike, and a security summit meets. Europe pushes for shared incident reports and inspections when the biggest AIs are trained. If Europe’s testers and coalition were ready, it leads the talks; otherwise it follows. The window closes in two rounds.',
-    ups: [up(`US–China cooperation +${C.summit.cooperationFollow} to +${C.summit.cooperation}`), up('AI safety: more verified'), up('Real safety up (not shown)')],
+    ups: [up(sizeWord(C.summit.cooperationFollow) === sizeWord(C.summit.cooperation) ? COOP(C.summit.cooperation) : `${COOP(C.summit.cooperationFollow)} to ${sizeWord(C.summit.cooperation)}`), up('AI safety: more verified'), up('Real safety up (not shown)')],
     downs: [down('Only for two rounds')],
     arrives: { opportunity: true },
     opportunity: true,
@@ -337,7 +342,7 @@ export const CARDS: CardDef[] = [
       text: 'In July 2021, the EU said malicious cyber activity, including the Microsoft Exchange hack, was “undertaken from the territory of China”.',
       source: SOURCES.euAttribution2021,
     },
-    ups: [up(`US–China cooperation ${n(C.attribution.cooperation)}`), up('Less US escalation')],
+    ups: [up(COOP(C.attribution.cooperation)), up('Less US escalation')],
     downs: [down('Only for two rounds')],
     arrives: { opportunity: true },
     opportunity: true,
@@ -350,7 +355,7 @@ export const CARDS: CardDef[] = [
     text: 'The memo is out. Demand a pause with India and others; Beijing joins, Washington cries betrayal. It sways Washington’s new AI committee toward slowing down.',
     proposal:
       'Europe’s leaders accuse Washington of building an AI it cannot control and host a summit demanding a pause. India and others join; Beijing says yes. Washington’s new oversight committee will vote at the tipping point: race on, or slow down. Your call adds one vote for slowing down. Washington will make you pay for it.',
-    ups: [up(`US–China cooperation ${n(C.pause_call.cooperation)}`), up('One more vote to slow down')],
+    ups: [up(COOP(C.pause_call.cooperation)), up('One more vote to slow down')],
     downs: [down(`Influence ${n(C.pause_call.influence)} next round`)],
     arrives: { opportunity: true },
     opportunity: true,

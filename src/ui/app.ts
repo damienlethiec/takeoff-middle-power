@@ -8,6 +8,7 @@ import type { EngineApi } from '../engine/api';
 import type { FeedItem, GameState, GaugeKey, MapItem, Pick, PreviewView, RequestView, ThreatView } from '../engine/types';
 import { CARD_BY_ID } from '../data/cards';
 import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, TIPS, marginText } from '../data/copy';
+import { moveWord } from '../data/effects';
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
 import { Coach } from './coach';
 import { $, ICON, esc, signed } from './format';
@@ -1126,10 +1127,12 @@ export class App {
           const c = this.safety();
           const a = this.safetyAfter() ?? c;
           const plain = (x: string) => x.replace(/<[^>]+>/g, '');
+          // a selection's effect in words before deciding ("Verified 41 up some"): numbers come after Confirm
+          const would = (x: number, y: number) => (x === y ? `${x}` : `${x} <b class="pv">${moveWord(y - x)}</b>`);
           if (c.audited) setCap(both(`Audited: the true value${tgt ? ` · ${tgt}` : ''}`, `audited${tgt ? ` · ${tgt}` : ''}`));
           else {
-            const long = `Verified ${arrow(c.low, a.low)} · labs claim ${arrow(c.claim, a.claim)}`;
-            const short = `${arrow(c.low, a.low)} verified`;
+            const long = `Verified ${would(c.low, a.low)} · labs claim ${would(c.claim, a.claim)}`;
+            const short = `${would(c.low, a.low)} verified`;
             // the target joins the line when it fits on one line (it is always drawn on the bar)
             setCap(both(plain(long + tgt).length <= 48 && tgt ? `${long} · ${tgt}` : long, plain(short + tgt).length <= 28 && tgt ? `${short} · ${tgt}` : short));
           }
@@ -1154,7 +1157,8 @@ export class App {
     this.renderHeading();
   }
 
-  /** Each gauge the selection moves shows where it would go: "→ 55" by its value (AI safety: "→ 52–60") and ghost marks on its bar. */
+  /** Each gauge the selection moves says how in words by its value ("up a lot"; AI safety: "verified up some", or
+   *  "claim up a little" when only the claim moves) and shows ghost marks on its bar. Numbers come after Confirm. */
   private renderGaugePreview() {
     const imp = this.pv?.ok ? this.pv.impacts : [];
     const tone = (t: number) => (t > 0 ? 'good' : t < 0 ? 'bad' : 'flat');
@@ -1169,12 +1173,12 @@ export class App {
       let atLow = NaN;
       if (sa) {
         const c = this.safety();
-        text = `→ ${sa.low === sa.claim ? sa.claim : `${sa.low}–${sa.claim}`}`;
+        text = sa.low !== c.low ? `verified ${moveWord(sa.low - c.low)}` : `claim ${moveWord(sa.claim - c.claim)}`;
         t = sa.tone;
         if (sa.claim !== c.claim) at = sa.claim;
         if (sa.low !== c.low) atLow = sa.low;
       } else if (i) {
-        text = `→ ${i.after}`;
+        text = moveWord(Number(i.after) - Number(i.before));
         t = i.tone;
         at = Number.parseFloat(i.after);
       }
