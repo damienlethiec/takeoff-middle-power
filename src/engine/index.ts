@@ -166,7 +166,7 @@ const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 function recordChanges(s: GameState, a: Snapshot, b: Snapshot, cause: string) {
   for (const i of impacts(a, b)) {
     if (i.key === 'influence') continue;
-    const text = i.key === 'margin' ? `Confidence margin ±${i.before} → ±${i.after}` : `${i.label} ${i.before} → ${i.after}`;
+    const text = i.key === 'margin' ? `Confidence: ${Number(i.after) > Number(i.before) ? 'less' : 'more'} certain (±${i.before} → ±${i.after})` : `${i.label} ${i.before} → ${i.after}`;
     s.changes.push({ round: s.round, key: i.key, text, cause, tone: i.tone });
   }
 }

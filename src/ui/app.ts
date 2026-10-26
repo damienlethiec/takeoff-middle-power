@@ -227,7 +227,7 @@ export class App {
     line('AI power', a.aiPower, b.aiPower);
     line('Cooperation', a.cooperation, b.cooperation);
     line('Confidence', a.confidence, b.confidence);
-    line('margin', a.margin, b.margin, '±');
+    if (a.margin !== b.margin) moved.push(`Confidence ${b.margin > a.margin ? 'less' : 'more'} certain (±${a.margin} → ±${b.margin})`);
     line('Cohesion', a.cohesion, b.cohesion);
     if (before.europeAi !== this.s.europeAi) moved.push(`Europe’s AI → ${this.s.europeAi === 'open' ? 'Open' : 'Dependent'}`);
     this.headingWhy = played.length ? `${played.join(' and ')}: ${moved.join(', ') || 'no gauge moved yet'}.` : '';

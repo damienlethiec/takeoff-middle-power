@@ -30,7 +30,8 @@ export function impactLine(i: Impact): string {
   const tone = i.tone > 0 ? 'good' : i.tone < 0 ? 'bad' : 'flat';
   const word = i.tone > 0 ? 'better' : i.tone < 0 ? 'worse' : '';
   const v = (x: string) => (i.key === 'margin' ? `±${x}` : x);
-  return `<li class="imp ${tone}"><span class="imp-l">${esc(i.label)}</span> <span class="imp-v num">${esc(v(i.before))} → <b>${esc(v(i.after))}</b></span>${word ? `<span class="imp-w">${word}</span>` : ''}</li>`;
+  const label = i.key === 'margin' ? `Confidence: ${Number(i.after) > Number(i.before) ? 'less' : 'more'} certain` : i.label;
+  return `<li class="imp ${tone}"><span class="imp-l">${esc(label)}</span> <span class="imp-v num">${esc(v(i.before))} → <b>${esc(v(i.after))}</b></span>${word ? `<span class="imp-w">${word}</span>` : ''}</li>`;
 }
 
 export const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
