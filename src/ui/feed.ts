@@ -7,6 +7,10 @@
 // On phones the feed sits under the map with all of this round's items; tablets and desktops keep it beside the map.
 // Announcements stay with the app (it already announces each item once, politely).
 // Each item carries a provenance tag in words (Real / From AI 2027 / From CFG / Invented), never colour alone.
+// Focus (26 Oct): what bears on a gauge or the next decision (Breaking news, threats, milestones, leaks, requests,
+// letters, social events, decisions) stays prominent; flavour (headlines and voices that change nothing) is drawn
+// lighter, and beyond the latest one of a round (when two or more are left) it folds into "+5 more headlines", a real disclosure button. Folded
+// items stay in the page (a map pin opens their group) and are still announced as they arrive.
 
 import type { Change, FeedItem, FeedRound, SocialKind } from '../engine/types';
 import { esc, provTag } from './format';
@@ -39,6 +43,11 @@ export const SOCIAL_ICON: Record<SocialKind, string> = {
 /** The icon of a feed item (a social event's says what kind it is). */
 export const itemIcon = (x: { kind: FeedItem['kind']; social?: { kind: SocialKind } }) => (x.kind === 'social' && x.social ? SOCIAL_ICON[x.social.kind] : KIND_ICON[x.kind]);
 
+/** Flavour: a headline or a voice that moves nothing. */
+export const isFlavour = (x: FeedItem) => (x.kind === 'headline' || x.kind === 'voice') && !x.detail && x.tone === 0;
+/** How many of a round's flavour items stay in view before the rest fold. */
+const FLAVOUR_SHOWN = 1;
+
 export interface FeedHandlers {
   onSelect(item: FeedItem): void;
 }
@@ -54,6 +63,8 @@ export class Feed {
   private selected: string | null = null;
   private lastT = 0;
   private lastDone = false;
+  /** The rounds whose folded headlines the player opened ("now-3", "past-2"). */
+  private open = new Set<string>();
 
   constructor(
     host: HTMLElement,
@@ -84,6 +95,8 @@ export class Feed {
       });
     });
     host.addEventListener('click', (ev) => {
+      const more = (ev.target as HTMLElement).closest<HTMLButtonElement>('.fd-more-btn');
+      if (more) return this.fold(more, more.getAttribute('aria-expanded') !== 'true');
       const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('.fd-item');
       if (!b) return;
       const item = this.find(b.dataset.id!);
@@ -131,7 +144,7 @@ export class Feed {
       const summary = done && cur ? this.summary(cur.summary, 'h3') : '';
       const list = [...items].reverse();
       this.now.innerHTML = `${summary}<h3 class="feed-date">${cur ? esc(cur.date) : 'Before the first round'}</h3>${
-        list.length ? `<ul class="fd-list">${list.map((x) => this.item(x)).join('')}</ul>` : '<p class="muted small">Nothing yet: news appears here as the six months play out.</p>'
+        list.length ? this.list(list, `now-${cur?.round ?? 0}`) : '<p class="muted small">Nothing yet: news appears here as the six months play out.</p>'
       }`;
     }
     const earlier = rounds.slice(0, -1).reverse();
@@ -143,13 +156,13 @@ export class Feed {
             .map(
               (r) => `<section class="feed-round" aria-labelledby="fr-${r.round}"><h3 class="feed-date" id="fr-${r.round}">${esc(r.date)} · round ${r.round}</h3>
                 ${this.summary(r.summary)}
-                <ul class="fd-list">${[...r.items].reverse().map((x) => this.item(x)).join('')}</ul></section>`,
+                ${this.list([...r.items].reverse(), `past-${r.round}`)}</section>`,
             )
             .join('')
         : '<p class="muted small">Earlier rounds appear here.</p>';
     }
     // re-rendering never takes focus away from the item the player is on
-    if (keep && document.activeElement === document.body) this.el.querySelector<HTMLElement>(`.fd-item[data-id="${CSS.escape(keep)}"]`)?.focus({ preventScroll: true });
+    if (keep && document.activeElement === document.body) this.el.querySelector<HTMLElement>(`[data-id="${CSS.escape(keep)}"]`)?.focus({ preventScroll: true });
   }
 
   private focusedId(): string | null {
@@ -164,9 +177,35 @@ export class Feed {
       .join('')}</ul></section>`;
   }
 
+  /** A round's items, newest first: what matters in full, flavour lighter, and flavour beyond the latest one folded. */
+  private list(items: FeedItem[], key: string): string {
+    const flavour = items.filter(isFlavour);
+    // folding a single line would save nothing: fold only from two
+    const folded = new Set(flavour.length > FLAVOUR_SHOWN + 1 ? flavour.slice(FLAVOUR_SHOWN).map((x) => x.id) : []);
+    const shown = items.filter((x) => !folded.has(x.id));
+    const rest = items.filter((x) => folded.has(x.id));
+    const open = this.open.has(key) || rest.some((x) => x.id === this.selected);
+    const more = rest.length
+      ? `<li class="fd-more"><button type="button" class="fd-more-btn" data-id="more-${esc(key)}" data-key="${esc(key)}" data-n="${rest.length}" data-what="${esc(foldWord(rest))}" aria-expanded="${open}" aria-controls="fdm-${esc(key)}">${esc(foldLabel(rest.length, foldWord(rest), open))}</button>
+        <ul class="fd-list fd-more-list" id="fdm-${esc(key)}"${open ? '' : ' hidden'}>${rest.map((x) => this.item(x)).join('')}</ul></li>`
+      : '';
+    return `<ul class="fd-list">${shown.map((x) => this.item(x)).join('')}${more}</ul>`;
+  }
+
+  /** Open or close a round's folded headlines (kept across re-renders). */
+  private fold(b: HTMLButtonElement, open: boolean) {
+    const key = b.dataset.key!;
+    if (open) this.open.add(key);
+    else this.open.delete(key);
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = foldLabel(Number(b.dataset.n), b.dataset.what!, open);
+    const list = this.el.querySelector<HTMLElement>(`#fdm-${CSS.escape(key)}`);
+    if (list) list.hidden = !open;
+  }
+
   private item(x: FeedItem): string {
     const tone = x.tone > 0 ? ' good' : x.tone < 0 ? ' bad' : '';
-    return `<li><button type="button" class="fd-item k-${x.kind}${x.social ? ` s-${x.social.kind}` : ''}${tone}${this.selected === x.id ? ' on' : ''}" data-id="${esc(x.id)}" aria-pressed="${this.selected === x.id}">
+    return `<li><button type="button" class="fd-item k-${x.kind}${x.social ? ` s-${x.social.kind}` : ''}${tone}${isFlavour(x) ? ' light' : ''}${this.selected === x.id ? ' on' : ''}" data-id="${esc(x.id)}" aria-pressed="${this.selected === x.id}">
       <span class="fd-ico">${x.kind === 'lea' && x.mood ? friendPortrait(x.friend ?? 'lea', x.mood) : itemIcon(x)}</span>
       <span class="fd-body"><span class="fd-kl"><span class="fd-k">${esc(x.label)}</span>${x.prov ? ` ${provTag(x.prov)}` : ''}</span><span class="fd-t">${esc(x.text)}</span>${x.detail ? `<span class="fd-d">${esc(x.detail)}</span>` : ''}</span>
       <span class="sr-only">: show on the map</span>
@@ -184,6 +223,10 @@ export class Feed {
     });
     this.select(inNow ? 0 : 1);
     const b = this.el.querySelector<HTMLElement>(`.fd-item[data-id="${CSS.escape(id)}"]`);
+    // an item folded under "+5 more headlines": open its group first
+    const group = b?.closest<HTMLElement>('.fd-more');
+    const toggle = group?.querySelector<HTMLButtonElement>('.fd-more-btn');
+    if (toggle && toggle.getAttribute('aria-expanded') !== 'true') this.fold(toggle, true);
     b?.scrollIntoView({ block: 'nearest' });
   }
 
@@ -204,3 +247,12 @@ export class Feed {
     });
   }
 }
+
+/** "headlines", "voices" or "headlines and voices", for what a fold holds. */
+function foldWord(items: FeedItem[]): string {
+  const h = items.some((x) => x.kind === 'headline');
+  const v = items.some((x) => x.kind === 'voice');
+  return h && v ? 'headlines and voices' : h ? (items.length > 1 ? 'headlines' : 'headline') : items.length > 1 ? 'voices' : 'voice';
+}
+/** "+5 more headlines" when folded, "Hide 5 headlines" when open. */
+const foldLabel = (n: number, what: string, open: boolean) => (open ? `Hide ${n} ${what}` : `+${n} more ${what}`);

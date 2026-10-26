@@ -163,6 +163,15 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .k-leak { --c: var(--warn); } .k-event { --c: var(--crit-text); } .k-lea { --c: var(--paper-margin); } .k-decision { --c: var(--align); } .k-request { --c: var(--concern); }
 .k-event.good { --c: var(--good); }
 .k-voice .fd-t { font-family: var(--f-diary); font-style: italic; font-size: 14px; }
+/* flavour (headlines and voices that change nothing) is lighter, so what matters stands out (src/ui/feed.ts) */
+.fd-item.light { padding-top: 3px; padding-bottom: 3px; border-left-color: color-mix(in srgb, var(--rule) 70%, transparent); }
+.fd-item.light .fd-t { font-size: 12.5px; color: var(--mute); }
+.fd-item.light.k-voice .fd-t { font-size: 13px; }
+.fd-item.light .fd-ico { opacity: .75; }
+.fd-more { display: grid; gap: 3px; }
+.fd-more-btn { justify-self: start; background: transparent; border: 1px dashed var(--rule); border-radius: 6px; padding: 4px 10px; min-height: 30px; font-size: 12.5px; color: var(--mute); }
+.fd-more-btn:hover { color: var(--ink); border-color: var(--mute); }
+.fd-more-list[hidden] { display: none; }
 .fd-sum { background: var(--deck-2); border: 1px solid var(--align); border-radius: 8px; padding: 6px 9px; margin: 4px 0 6px; }
 .fd-sum .fd-sum-h { margin: 0 0 3px; font-family: var(--f-data); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--align); }
 .fd-sum ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 3px; }
