@@ -581,6 +581,6 @@ export const SOCIAL_WORD: Record<SocialKind, string> = { jobs: 'Jobs', strike: '
 
 /** The two job shocks (Breaking news) also show where they hit, like the social events: a city, the jobs icon. */
 export const JOB_SHOCK_PLACE: Record<'job_shock_1' | 'job_shock_2', { city: string; country: string; lon: number; lat: number; why: string }> = {
-  job_shock_1: { city: 'Rotterdam', country: 'Netherlands', lon: 4.48, lat: 51.92, why: 'In AI 2027, cheaper AI agents throw junior office jobs into turmoil first.' },
-  job_shock_2: { city: 'Warsaw', country: 'Poland', lon: 21.0, lat: 52.23, why: 'In AI 2027, a cheap AI remote worker spreads job losses across the whole economy.' },
+  job_shock_1: { city: 'Rotterdam', country: 'Netherlands', lon: 4.48, lat: 51.92, why: 'In AI 2027, cheaper AI agents throw junior software jobs into turmoil first.' },
+  job_shock_2: { city: 'Warsaw', country: 'Poland', lon: 21.0, lat: 52.23, why: 'In AI 2027, a cheap AI remote worker spreads job losses beyond programmers.' },
 };

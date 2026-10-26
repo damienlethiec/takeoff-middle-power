@@ -251,9 +251,9 @@ export const EVENTS: Record<EventId, EventDef> = {
     headline: 'BREAKING: Big labs threaten to leave Europe',
     scene: {
       unprepared:
-        'The three biggest US labs announce they will pull their services from Europe unless the oversight mandate goes. Hospitals, banks and ministries all run on them.',
+        'The three biggest US labs announce they will pull their services from Europe unless it drops its rules. Hospitals, banks and ministries all run on them.',
       prepared:
-        'The three biggest US labs threaten to pull their services unless the oversight mandate goes. Brussels shrugs: hospitals and ministries already run on European open models.',
+        'The three biggest US labs threaten to pull their services unless Europe drops its rules. Brussels shrugs: hospitals and ministries already run on European open models.',
     },
     preparedText: 'Europe’s open models let it stand firm at no cost.',
     unpreparedText: 'Europe depends on the labs: you must choose.',
