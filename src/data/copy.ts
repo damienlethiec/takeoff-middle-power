@@ -107,7 +107,6 @@ export const TIPS = {
   influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.' },
   request: { anchor: 'request', title: 'A request', text: 'Someone needs an answer. Look at an answer first (click it, or press ← → once), then answer (again). It is free of Influence: the cost is in the answer.' },
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages before they strike. Prepare with cards marked “Protects against”, or with some answers to requests. Open an icon to see what protects Europe.' },
-  leak: { anchor: 'map', title: 'A leak', text: 'Leaks from inside the labs show that their reports can be wrong. Oversight (the AI Office, inspections, audits) lets you read them.' },
   badge: { anchor: 'badge', title: 'Europe’s AI', text: 'Open or Dependent: does Europe run its own models? If AI never reaches the tipping point, this badge decides the kind of world.' },
 } as const;
 export type TipId = keyof typeof TIPS;

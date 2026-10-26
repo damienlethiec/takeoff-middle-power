@@ -51,7 +51,7 @@ export async function showLeak(l: Leak, date: string): Promise<void> {
      <h2>${l.readable ? 'A leak from inside the labs' : 'A redacted leak'}</h2>
      ${
        l.readable
-         ? `<blockquote class="leak-text">${esc(l.text)}</blockquote><p class="muted">Leaks hint at the gap between what labs say and the truth. Fiction.</p>`
+         ? `<blockquote class="leak-text">${esc(l.text)}</blockquote><p class="leak-do"><b>What to do:</b> ${esc(l.advice)}</p><p class="muted">Leaks hint at the gap between what labs say and the truth. Fiction.</p>`
          : `<p class="redacted-body" aria-hidden="true"><span></span><span></span><span class="short"></span></p><p class="why">You lack the oversight to read this one. AI Office testers, inspections and audits let you read leaks. All leaks are revealed at the end.</p>`
      }
      ${close}`,

@@ -285,7 +285,6 @@ export class App {
     if (s.leak && !this.leakShown && this.t >= s.leak.at) {
       this.leakShown = true;
       announce(s.leak.readable ? 'A leak from inside the labs: it is in the news, and with the US items on the map.' : 'A leak from inside the labs, but you cannot read it: it is redacted.');
-      void this.tipWhilePaused('leak');
     }
     // a tip just paused the clock: a request or an event due now waits until it is closed (two dialogs at once
     // would replace each other, and the tip's promise would never settle, leaving the clock stopped for good)
@@ -329,7 +328,7 @@ export class App {
   }
 
   /** A tip during the clock: pause, show it, resume. */
-  private async tipWhilePaused(id: 'leak' | 'threat') {
+  private async tipWhilePaused(id: 'threat') {
     if (modalOpen() || this.eventBusy || this.tipBusy) return;
     const was = this.running;
     this.tipBusy = true;
@@ -510,7 +509,7 @@ export class App {
       cur && cur.round === this.s.round
         ? cur.items
             .filter((x) => onMap.has(x.kind) && x.region && (x.at <= t || (this.feedDone && x.at <= 1)))
-            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: x.label, text: x.kind === 'lea' ? firstSentence(x.text) : x.text }))
+            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: x.label, text: x.kind === 'lea' ? firstSentence(x.text) : x.kind === 'leak' && x.detail ? `${x.text} ${x.detail}` : x.text }))
         : [],
     );
   }
