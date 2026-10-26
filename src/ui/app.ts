@@ -11,7 +11,7 @@ import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, TIPS, marginText } from '../data/
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
 import { Coach } from './coach';
 import { $, ICON, esc, signed } from './format';
-import { WorldMap } from './map';
+import { WorldMap, type MapEntry } from './map';
 import { modalOpen, setFocusFallback, wait } from './modal';
 import { showBreaking } from './screens/breaking';
 import { showDecision } from './screens/decide';
@@ -59,6 +59,8 @@ export class App {
   private prevThreats: ThreatView[] = [];
   private dockResolve: (() => void) | null = null;
   private unreadLetter = false;
+  /** Léa wrote this round: she is on the map until the round ends. */
+  private leaThisRound = false;
   private headingWhy = '';
 
   constructor(
@@ -137,14 +139,12 @@ export class App {
     this.leakShown = false;
     this.feedDone = false;
     this.feed.clearMark();
-    this.map.setLeak(null);
-    this.map.clearItems();
     this.map.setThreats(this.prevThreats);
     const letter = this.e.letters(s).find((l) => l.round === s.round && l.slot !== 'end');
-    if (letter) {
-      this.unreadLetter = true;
-      this.map.setLea(letter.mood, true);
-    }
+    // Léa is on the map only in a round when she has written (an envelope until it is read)
+    this.leaThisRound = !!letter;
+    this.unreadLetter = !!letter;
+    this.map.setLea(letter?.mood ?? this.leaMood(), !!letter, !!letter);
     this.renderAll();
     const inc = s.influence - before.influence;
     announce(
@@ -159,7 +159,6 @@ export class App {
     this.beginClock();
     await new Promise<void>((r) => (this.clockDone = r));
     this.clockActive = false;
-    this.items.forEach((x) => x.state !== 'gone' && this.map.hideItem(x.item.id));
     this.prevThreats = this.e.threats(this.s);
     this.map.setThreats(this.prevThreats);
     this.feedDone = true;
@@ -272,19 +271,16 @@ export class App {
     for (const x of this.items) {
       if (x.state === 'wait' && this.t >= x.item.at) {
         x.state = 'live';
-        this.map.showItem(x.item.id, x.item.region, x.item.text, x.kind);
+        // only the newest headline shows as a banner, briefly; then its icon stays in the region's cluster
+        if (x.kind === 'headline') this.map.flashBanner(x.item.region, x.item.text, 'headline');
         announce(`${x.kind === 'voice' ? 'Heard in ' + (x.item.region === 'eu' ? 'Europe' : x.item.region === 'us' ? 'the US' : 'China') : 'Headline'}: ${x.item.text}`);
         if (x.item.id.startsWith('t_')) this.revealThreats();
-      } else if (x.state === 'live' && this.t >= x.until) {
-        x.state = 'gone';
-        this.map.hideItem(x.item.id);
       }
     }
     if (this.t >= 0.5) this.revealThreats();
     if (s.leak && !this.leakShown && this.t >= s.leak.at) {
       this.leakShown = true;
-      this.map.setLeak(s.leak);
-      announce(s.leak.readable ? 'A leak from inside the labs: find the envelope on the map to read it.' : 'A leak from inside the labs, but you cannot read it: it is redacted.');
+      announce(s.leak.readable ? 'A leak from inside the labs: it is in the news, and with the US items on the map.' : 'A leak from inside the labs, but you cannot read it: it is redacted.');
       void this.tipWhilePaused('leak');
     }
     // a tip just paused the clock: a request or an event due now waits until it is closed (two dialogs at once
@@ -350,7 +346,7 @@ export class App {
     const date = this.e.dateLabel(this.s.round);
     this.setPhase('Breaking news');
     this.map.burst(ev.region);
-    this.map.showItem(`ev_${ev.id}`, ev.region, ev.headline.replace(/^BREAKING: /, ''), 'breaking');
+    this.map.flashBanner(ev.region, ev.headline.replace(/^BREAKING: /, ''), 'breaking', 5000);
     // the gauges catch up with the six months so far, so "before" on the screen is what the map shows
     this.shown = { ...this.to };
     this.renderGauges();
@@ -390,8 +386,8 @@ export class App {
     this.setPhase('A request');
     this.shown = { ...this.to };
     this.renderGauges();
-    const pin = `rq_${v.id}`;
-    this.map.showItem(pin, v.character.region, `${v.character.name} has a request`, 'headline');
+    // the character's region calls for attention while the request is open; its icon stays for the round
+    this.map.setCalling(v.character.region);
     this.renderClock();
     await showRequest(v, date, (side) => {
       const r = this.e.answerRequest(this.s, side);
@@ -404,7 +400,7 @@ export class App {
       this.renderAll(true);
       return r.outcome;
     }, () => this.coach.show('request', this.s.round, this.root)); // the tip waits until the card is on screen
-    this.map.hideItem(pin);
+    this.map.setCalling(null);
     this.renderAll();
     this.follow = 'clock';
     this.from = { ...this.to };
@@ -483,14 +479,10 @@ export class App {
       return true;
     };
     if (it.threat && glow(this.map.threatButton(it.threat))) return;
-    if (it.kind === 'lea' && glow(this.map.leaButton)) return;
-    if (it.kind === 'leak' && this.map.leakButton && !this.map.leakButton.hidden && glow(this.map.leakButton)) return;
-    if (!it.region) return;
-    this.map.burst(it.region, true);
-    const id = `re_${it.id}`;
-    this.map.hideItem(id);
-    this.map.showItem(id, it.region, it.text, it.kind === 'voice' ? 'voice' : it.kind === 'event' ? 'breaking' : 'headline');
-    setTimeout(() => this.map.hideItem(id), 4000);
+    if (it.kind === 'lea' && this.map.leaButton && !this.map.leaButton.hidden && glow(this.map.leaButton)) return;
+    // this round's items: their region's list opens with the item highlighted
+    if (this.map.showEntry(it.id)) return;
+    if (it.region) this.map.burst(it.region, true);
   }
 
   private markFeed(pred: (x: FeedItem) => boolean) {
@@ -506,7 +498,18 @@ export class App {
       this.feedOf = this.s;
       this.feedCache = this.e.feed(this.s);
     }
-    this.feed.render(this.feedCache, this.clockActive ? this.t : 2, this.feedDone);
+    const t = this.clockActive ? this.t : 2;
+    this.feed.render(this.feedCache, t, this.feedDone);
+    // the round's items, as icons clustered per region on the map (they leave with the round)
+    const cur = this.feedCache.at(-1);
+    const onMap = new Set(['headline', 'milestone', 'voice', 'leak', 'event', 'request']);
+    this.map.setItems(
+      cur && cur.round === this.s.round
+        ? cur.items
+            .filter((x) => onMap.has(x.kind) && x.region && (x.at <= t || (this.feedDone && x.at <= 1)))
+            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: x.label, text: x.text }))
+        : [],
+    );
   }
   private openLea() {
     this.openFromMap(async () => {
@@ -515,7 +518,7 @@ export class App {
         (r) => this.e.dateLabel(r),
       );
       this.unreadLetter = false;
-      this.map.setLea(this.leaMood(), false);
+      this.map.setLea(this.leaMood(), false, this.leaThisRound);
     });
   }
 
@@ -612,9 +615,9 @@ export class App {
       this.markFeed((x) => x.kind === 'lea');
       this.openLea();
     };
-    this.map.onLeak = () => {
-      this.markFeed((x) => x.kind === 'leak');
-      if (this.s.leak) this.openFromMap(() => showLeak(this.s.leak!, this.e.dateLabel(this.s.round)));
+    this.map.onItem = (entry) => {
+      this.feed.mark(entry.id);
+      if (entry.kind === 'leak' && this.s.leak) this.openFromMap(() => showLeak(this.s.leak!, this.e.dateLabel(this.s.round)));
     };
     this.map.onThreat = (id) => {
       this.markFeed((x) => x.threat === id);
@@ -654,7 +657,7 @@ export class App {
     this.renderGauges(flash);
     this.renderHeading();
     this.map.update({ aiPower: this.shown.aiPower, cooperation: this.shown.cooperation, coalition: this.s.coalition, europeAi: this.s.europeAi });
-    if (!this.unreadLetter) this.map.setLea(this.leaMood(), false);
+    if (!this.unreadLetter) this.map.setLea(this.leaMood(), false, this.leaThisRound);
     this.map.setUnrest(this.s.cohesion < 40 ? 2 : this.s.cohesion < 52 ? 1 : 0);
     this.renderSparks();
   }

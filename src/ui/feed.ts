@@ -10,7 +10,7 @@ import type { Change, FeedItem, FeedRound } from '../engine/types';
 import { esc } from './format';
 
 const I = (d: string) => `<svg class="ico" viewBox="0 0 20 20" aria-hidden="true">${d}</svg>`;
-const ICONS: Record<FeedItem['kind'], string> = {
+export const KIND_ICON: Record<FeedItem['kind'], string> = {
   headline: I('<rect x="3" y="4" width="14" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M6 8h8M6 11h8M6 14h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'),
   milestone: I('<path d="M5 17V3M5 4h10l-2.5 3.5L15 11H5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'),
   threat: I('<path d="M10 2.5l8 14.5H2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14.4" r="1.1" fill="currentColor"/>'),
@@ -158,7 +158,7 @@ export class Feed {
   private item(x: FeedItem): string {
     const tone = x.tone > 0 ? ' good' : x.tone < 0 ? ' bad' : '';
     return `<li><button type="button" class="fd-item k-${x.kind}${tone}${this.selected === x.id ? ' on' : ''}" data-id="${esc(x.id)}" aria-pressed="${this.selected === x.id}">
-      <span class="fd-ico">${ICONS[x.kind]}</span>
+      <span class="fd-ico">${KIND_ICON[x.kind]}</span>
       <span class="fd-body"><span class="fd-k">${esc(x.label)}</span><span class="fd-t">${esc(x.text)}</span>${x.detail ? `<span class="fd-d">${esc(x.detail)}</span>` : ''}</span>
       <span class="sr-only">: show on the map</span>
     </button></li>`;

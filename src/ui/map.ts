@@ -1,12 +1,16 @@
 // The wall screen: a dot-matrix world (data from the first prototype) drawn in SVG, with Europe, the US and
 // China lit, coalition partners that join around Europe and pulsing labs (v4: no US–China arc; the cooperation
 // gauge says it). Everything the player can act on sits on top as real
-// HTML buttons placed over their spot: threat icons that grow in three stages, Europe's AI badge, Léa over
-// Lyon and the round's leak. Headlines and public voices appear as banners where they happen.
+// HTML buttons placed over their spot: threat icons that grow in three stages and Léa over Lyon when she
+// has written. The round's items (headlines, voices, the leak, requests, breaking news) are small icons by
+// type, clustered per region with a count; their text is in the news feed and in the cluster's list (hover
+// or click). Only the newest headline shows briefly as a banner. Nothing on the map overlaps: each pin is
+// nudged off the ones placed before it.
 
 import type { EuropeAi, LeaMood, RegionId, ThreatView } from '../engine/types';
 import { THREAT_BY_ID } from '../data/threats';
 import { esc, ICON } from './format';
+import { KIND_ICON } from './feed';
 import { leaPortrait } from './lea';
 import { MAPDATA } from './mapdata';
 
@@ -121,32 +125,23 @@ const PROTESTS = [
   { lon: 21.0, lat: 52.23 }, // Warsaw
   { lon: 4.9, lat: 52.37 }, // Amsterdam
 ];
-/** Where public voices are heard, per region. */
-const VOICE_SPOTS: Record<RegionId, { lon: number; lat: number }[]> = {
-  eu: [
-    { lon: 4.9, lat: 52.4 },
-    { lon: 13.4, lat: 52.5 },
-    { lon: -3.7, lat: 40.4 },
-    { lon: 21, lat: 52.2 },
-    { lon: 12.5, lat: 41.9 },
-    { lon: 18, lat: 59.3 },
-  ],
-  us: [
-    { lon: -122.3, lat: 47.6 },
-    { lon: -77, lat: 38.9 },
-  ],
-  cn: [
-    { lon: 114.1, lat: 22.6 },
-    { lon: 119.4, lat: 34.6 },
-  ],
+/** Where each region's cluster of this round's items sits (nudged off the pins when needed). */
+const CLUSTER_SPOT: Record<RegionId, { lon: number; lat: number }> = {
+  us: { lon: -104, lat: 52 },
+  eu: { lon: 22, lat: 60 },
+  cn: { lon: 92, lat: 46 },
 };
-/** Where headline banners stack, per region (the top of the map above each). */
-const BANNER_SPOT: Record<RegionId, { lon: number; lat: number }> = {
-  us: { lon: -100, lat: 64 },
-  eu: { lon: 14, lat: 70 },
-  cn: { lon: 108, lat: 60 },
-};
-const LEAK_SPOT = { lon: -82, lat: 29 };
+const REGION_NAME: Record<RegionId, string> = { us: 'the US', eu: 'Europe', cn: 'China' };
+const KIND_WORD: Record<string, string> = { headline: 'headline', voice: 'voice', leak: 'leak', event: 'breaking story', request: 'request' };
+
+/** One item of the current round on the map (from the news feed). */
+export interface MapEntry {
+  id: string;
+  kind: 'headline' | 'milestone' | 'voice' | 'leak' | 'event' | 'request';
+  region: RegionId;
+  label: string;
+  text: string;
+}
 
 function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}, parent?: Element): SVGElementTagNameMap[K] {
   const e = document.createElementNS(NS, tag);
@@ -163,8 +158,7 @@ export interface MapView {
 }
 
 const STAGE_SIZE = ['', 'st1', 'st2', 'st3'];
-/** Banner stacks and public voices: they make way for the pins. */
-const isNews = (e: HTMLElement) => e.classList.contains('banners') || e.classList.contains('voice');
+const REGIONS: RegionId[] = ['us', 'eu', 'cn'];
 let mapIds = 0;
 
 export class WorldMap {
@@ -176,15 +170,21 @@ export class WorldMap {
   private overlay: HTMLElement;
   private placed = new Map<HTMLElement, { lon: number; lat: number }>();
   private threatBtns = new Map<string, HTMLButtonElement>();
-  private banners: Record<RegionId, HTMLElement>;
   leaButton: HTMLButtonElement | null = null;
-  badgeButton: HTMLButtonElement | null = null;
-  leakButton: HTMLButtonElement | null = null;
+  private clusters = {} as Record<RegionId, HTMLButtonElement>;
+  private pop: HTMLElement | null = null;
+  private popRegion: RegionId | null = null;
+  private popPinned = false;
+  private banner: HTMLElement | null = null;
+  private bannerTimer = 0;
+  private entries: MapEntry[] = [];
+  private entriesSig = '';
+  private calling: RegionId | null = null;
   private summary: HTMLElement | null = null;
-  private summaryParts = { state: '', threats: '', unrest: '' };
+  private summaryParts = { state: '', threats: '', unrest: '', items: '' };
   onLea?: () => void;
-  onBadge?: () => void;
-  onLeak?: () => void;
+  /** An item of the cluster list was chosen (the app shows it in the feed, or opens the leak). */
+  onItem?: (entry: MapEntry) => void;
   onThreat?: (id: ThreatView['id'], btn: HTMLButtonElement) => void;
 
   constructor(container: HTMLElement, opts: { decorative?: boolean } = {}) {
@@ -235,27 +235,43 @@ export class WorldMap {
     this.overlay = document.createElement('div');
     this.overlay.className = 'm-over';
     container.appendChild(this.overlay);
-    this.banners = { us: this.mk('div', 'banners b-us'), eu: this.mk('div', 'banners b-eu'), cn: this.mk('div', 'banners b-cn') };
-    for (const r of ['us', 'eu', 'cn'] as RegionId[]) {
-      this.banners[r].setAttribute('aria-hidden', 'true');
-      this.place(this.banners[r], BANNER_SPOT[r]);
-    }
     if (!opts.decorative) {
       this.summary = document.createElement('p');
       this.summary.className = 'sr-only map-summary';
       this.summary.id = `map-summary-${++mapIds}`;
       container.appendChild(this.summary);
-      // Léa and the leak: real buttons laid over the map (v4: Europe's AI badge is in the outlook column)
+      // Léa (only when she has written this round): a real button laid over Lyon
       this.leaButton = this.mk('button', 'lea-btn') as HTMLButtonElement;
       this.leaButton.type = 'button';
+      this.leaButton.hidden = true;
       this.leaButton.addEventListener('click', () => this.onLea?.());
       this.place(this.leaButton, LYON);
-      this.setLea('hopeful', false);
-      this.leakButton = this.mk('button', 'leak-btn') as HTMLButtonElement;
-      this.leakButton.type = 'button';
-      this.leakButton.hidden = true;
-      this.leakButton.addEventListener('click', () => this.onLeak?.());
-      this.place(this.leakButton, LEAK_SPOT);
+      this.setLea('hopeful', false, false);
+      // one cluster per region for the round's items, with the list it opens
+      for (const r of REGIONS) {
+        const b = this.mk('button', `m-cluster c-${r}`) as HTMLButtonElement;
+        b.type = 'button';
+        b.hidden = true;
+        b.dataset.region = r;
+        b.setAttribute('aria-expanded', 'false');
+        b.addEventListener('click', () => this.togglePop(r, true));
+        b.addEventListener('mouseenter', () => !this.popPinned && this.openPop(r, false));
+        b.addEventListener('mouseleave', () => !this.popPinned && this.closePop(false));
+        this.clusters[r] = b;
+        this.place(b, CLUSTER_SPOT[r]);
+      }
+      this.overlay.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape' && this.pop) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const r = this.popRegion;
+          this.closePop(true);
+          if (r) this.clusters[r].focus();
+        }
+      });
+      document.addEventListener('pointerdown', (ev) => {
+        if (this.pop && this.popPinned && !this.pop.contains(ev.target as Node) && !(ev.target as HTMLElement).closest?.('.m-cluster')) this.closePop(true);
+      });
     }
     const fit = () => {
       const w = container.clientWidth;
@@ -298,124 +314,75 @@ export class WorldMap {
 
   private place(e: HTMLElement, at: { lon: number; lat: number }) {
     this.placed.set(e, at);
-    this.position(e, at);
-  }
-  private position(e: HTMLElement, at: { lon: number; lat: number }) {
-    const p = this.toPx(geo(at.lon, at.lat));
-    const w = this.container.clientWidth;
-    const h = this.container.clientHeight;
-    // every overlay is centred on its spot: keep it whole inside the map
-    const hw = Math.min(w / 2, (e.offsetWidth || 0) / 2 + 4);
-    const isVoice = e.classList.contains('voice');
-    const hh = (e.offsetHeight || 0) / (isVoice || e.classList.contains('banners') ? 1 : 2) + 4;
-    const top = isVoice ? Math.max(hh + 6, Math.min(h - 4, p.y)) : e.classList.contains('banners') ? Math.max(6, Math.min(h - hh, p.y)) : Math.max(hh, Math.min(h - hh, p.y));
-    e.style.left = `${Math.max(hw, Math.min(w - hw, p.x)).toFixed(1)}px`;
-    e.style.top = `${top.toFixed(1)}px`;
-    if (isNews(e)) this.avoidPins(e);
-  }
-  private layout() {
-    // pins first, then the news, which moves out of their way
-    for (const news of [false, true])
-      for (const [e, at] of this.placed) {
-        if (!e.isConnected) this.placed.delete(e);
-        else if (isNews(e) === news) this.position(e, at);
-      }
-  }
-  /** Banners and voices go back to their spot, then step aside from the pins (and other news) they would cover. */
-  private relayoutNews() {
-    for (const [e, at] of this.placed) if (e.isConnected && isNews(e)) this.position(e, at);
+    this.layout();
   }
 
   /**
-   * Shift a banner stack or a voice to the nearest place where it covers no pin (threat, Léa, badge, leak) and no
-   * other news, staying inside the map. When nothing is free (a small phone map), the least covered place wins.
+   * Put every pin on its spot, then nudge it off the pins placed before it (threats first, then Léa, the
+   * clusters and the banner), staying inside the map. When nothing is free (a small phone map), the least
+   * covered place wins. Boxes come from the spot and the element's size (every pin is centred on its spot),
+   * not from the layout, so entry animations do not skew them.
    */
-  private avoidPins(e: HTMLElement) {
-    if (!e.offsetWidth || !e.offsetHeight) return;
-    // boxes from the placed spot and each kind's CSS anchor, not from the layout: entry animations and transitions
-    // (even the reduced-motion ones) would report where it was a moment ago
-    const rel = (x: HTMLElement, pad = 0) => {
-      const w = x.offsetWidth;
-      const h = x.offsetHeight;
-      const l = parseFloat(x.style.left) - w / 2;
-      const y = parseFloat(x.style.top);
-      const t = x.classList.contains('voice') ? y - h - 6 : x.classList.contains('banners') ? y : y - h / 2;
-      return { l: l - pad, t: t - pad, r: l + w + pad, b: t + h + pad };
-    };
-    const obstacles = [...this.overlay.children]
-      .filter(
-        (o): o is HTMLElement =>
-          o !== e &&
-          o instanceof HTMLElement &&
-          o.offsetWidth > 0 &&
-          !!o.style.left &&
-          !o.hidden &&
-          !o.classList.contains('out') &&
-          (o.matches('.threat-btn, .lea-btn, .badge-btn, .leak-btn, .voice') || (o.classList.contains('banners') && o.childElementCount > 0)),
-      )
-      .map((o) => rel(o, 4));
-    if (!obstacles.length) return;
-    const box = rel(e);
+  private layout() {
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
-    const cover = (dx: number, dy: number) => {
-      let a = 0;
-      for (const o of obstacles) {
-        const x = Math.min(box.r + dx, o.r) - Math.max(box.l + dx, o.l);
-        const y = Math.min(box.b + dy, o.b) - Math.max(box.t + dy, o.t);
-        if (x > 0 && y > 0) a += x * y;
+    if (!w || !h) return;
+    for (const e of this.placed.keys()) if (!e.isConnected) this.placed.delete(e);
+    const rank = (e: HTMLElement) => (e.classList.contains('threat-btn') ? 0 : e.classList.contains('lea-btn') ? 1 : e.classList.contains('m-cluster') ? 2 : 3);
+    const order = [...this.placed.keys()].sort((a, b) => rank(a) - rank(b));
+    type Box = { l: number; t: number; r: number; b: number };
+    const done: Box[] = [];
+    const pad = 4;
+    for (const e of order) {
+      if (e.hidden) continue;
+      const at = this.placed.get(e)!;
+      const p = this.toPx(geo(at.lon, at.lat));
+      const ew = e.offsetWidth;
+      const eh = e.offsetHeight;
+      const clampX = (x: number) => Math.max(ew / 2 + 2, Math.min(w - ew / 2 - 2, x));
+      const clampY = (y: number) => Math.max(eh / 2 + 2, Math.min(h - eh / 2 - 2, y));
+      let x = clampX(p.x);
+      let y = clampY(p.y);
+      const box = (cx: number, cy: number): Box => ({ l: cx - ew / 2 - pad, t: cy - eh / 2 - pad, r: cx + ew / 2 + pad, b: cy + eh / 2 + pad });
+      const cover = (bx: Box) => done.reduce((a, o) => a + Math.max(0, Math.min(bx.r, o.r) - Math.max(bx.l, o.l)) * Math.max(0, Math.min(bx.b, o.b) - Math.max(bx.t, o.t)), 0);
+      if (ew && eh && cover(box(x, y)) > 0) {
+        let best = { x, y, a: cover(box(x, y)) };
+        const moves: { dx: number; dy: number }[] = [];
+        for (let i = -14; i <= 14; i++) for (let j = -12; j <= 12; j++) moves.push({ dx: j * 16, dy: i * 10 });
+        moves.sort((m, n) => Math.hypot(m.dx, m.dy * 1.4) - Math.hypot(n.dx, n.dy * 1.4));
+        for (const m of moves) {
+          const nx = clampX(x + m.dx);
+          const ny = clampY(y + m.dy);
+          const a = cover(box(nx, ny));
+          if (a < best.a) best = { x: nx, y: ny, a };
+          if (a === 0) break;
+        }
+        x = best.x;
+        y = best.y;
       }
-      return a;
-    };
-    let best = { dx: 0, dy: 0, a: cover(0, 0) };
-    if (best.a === 0) return;
-    const moves: { dx: number; dy: number }[] = [];
-    for (let i = -16; i <= 16; i++) for (let j = -8; j <= 8; j++) moves.push({ dx: j * 30, dy: i * 14 });
-    moves.sort((m, n) => Math.hypot(m.dx, m.dy * 1.5) - Math.hypot(n.dx, n.dy * 1.5));
-    for (const m of moves) {
-      if (box.l + m.dx < 2 || box.r + m.dx > w - 2 || box.t + m.dy < 2 || box.b + m.dy > h - 2) continue;
-      const a = cover(m.dx, m.dy);
-      if (a < best.a) best = { ...m, a };
-      if (a === 0) break;
+      e.style.left = `${x.toFixed(1)}px`;
+      e.style.top = `${y.toFixed(1)}px`;
+      if (ew && eh) done.push(box(x, y));
     }
-    if (!best.dx && !best.dy) return;
-    e.style.left = `${(parseFloat(e.style.left) + best.dx).toFixed(1)}px`;
-    e.style.top = `${(parseFloat(e.style.top) + best.dy).toFixed(1)}px`;
+    if (this.pop && this.popRegion) this.placePop();
   }
 
-  /** Léa's portrait over Lyon, with her mood and a "new" tag (in words, not only a glow). */
-  setLea(mood: LeaMood, unread: boolean) {
+  /** Léa over Lyon, only when she has written this round (an envelope until her letter is read); her mood shows. */
+  setLea(mood: LeaMood, unread: boolean, visible = unread) {
     const b = this.leaButton;
     if (!b) return;
     // the name is the visible text plus words for screen readers (WCAG 2.5.3: label in name)
-    b.innerHTML = `${leaPortrait(mood)}<span class="lea-tag">Léa${unread ? ' <i class="lea-new">new<span class="sr-only"> letter</span></i>' : ''}<span class="sr-only">, in Lyon: read her letters</span></span>`;
+    b.innerHTML = `${leaPortrait(mood)}${unread ? `<span class="lea-env" aria-hidden="true">${ICON.leak}</span>` : ''}<span class="lea-tag">Léa${unread ? ' <i class="lea-new">new<span class="sr-only"> letter</span></i>' : ''}<span class="sr-only">, in Lyon: read her letters</span></span>`;
     b.classList.toggle('unread', unread);
-    this.relayoutNews();
-  }
-
-  setBadge(ai: EuropeAi) {
-    const b = this.badgeButton;
-    if (!b) return;
-    const word = ai === 'open' ? 'Open' : 'Dependent';
-    if (b.dataset.v === ai) return;
-    b.dataset.v = ai;
-    b.className = `badge-btn ${ai}`;
-    b.innerHTML = `<span class="badge-k">Europe’s AI</span> <b>${word}</b><span class="sr-only">: what this means</span>`;
-  }
-
-  /** The round's leak: an envelope over the US labs, readable or redacted. */
-  setLeak(leak: { readable: boolean } | null) {
-    const b = this.leakButton;
-    if (!b) return;
-    b.hidden = !leak;
-    if (!leak) return;
-    b.innerHTML = `${ICON.leak}<span>${leak.readable ? 'Leak' : 'Leak · redacted'}</span><span class="sr-only">${leak.readable ? ' from inside the labs: read it' : ' from inside the labs: what it means'}</span>`;
-    this.layout();
+    const was = b.hidden;
+    b.hidden = !visible;
+    if (was !== b.hidden) this.layout();
   }
 
   /** Threat icons where they would strike: bigger at each stage, green with a check once prepared. */
   setThreats(views: ThreatView[]) {
     const live = new Set<string>();
+    let changed = false;
     for (const t of views.filter((x) => !x.struck && x.stage > 0)) {
       live.add(t.id);
       let b = this.threatBtns.get(t.id);
@@ -426,7 +393,8 @@ export class WorldMap {
         b.addEventListener('click', () => this.onThreat?.(t.id, b!));
         this.threatBtns.set(t.id, b);
         const w = THREAT_BY_ID[t.id].where;
-        this.place(b, { lon: w.lon, lat: w.lat });
+        this.placed.set(b, { lon: w.lon, lat: w.lat });
+        changed = true;
       }
       const sig = `${t.stage}:${t.prepared}`;
       if (b.dataset.sig === sig) continue;
@@ -434,12 +402,14 @@ export class WorldMap {
       b.dataset.sig = sig;
       b.className = `threat-btn ${STAGE_SIZE[t.stage]} ${t.prepared ? 'prepared' : ''} ${grew ? 'grew' : ''}`;
       b.innerHTML = `<span class="sr-only">Threat: </span><span class="tb-ico">${t.prepared ? ICON.check : ICON.alert}</span><span class="tb-txt"><b>${esc(t.name)}</b> <small>${esc(t.stageWord)}${t.certainty === 'possible' ? ' · possible' : ''}${t.prepared ? ' · prepared' : ' · not prepared'}</small></span><span class="sr-only">: what it is and what protects against it</span>`;
+      changed = true;
     }
     for (const [id, b] of this.threatBtns) {
       if (live.has(id)) continue;
       if (b.contains(document.activeElement)) this.container.closest('.game')?.querySelector<HTMLElement>('#map-h')?.focus();
       b.remove();
       this.threatBtns.delete(id);
+      changed = true;
     }
     this.summaryParts.threats = views.filter((x) => !x.struck && x.stage > 0).length
       ? ` Threats on the map: ${views
@@ -448,45 +418,159 @@ export class WorldMap {
           .join('; ')}.`
       : ' No threat on the map yet.';
     this.writeSummary();
-    this.relayoutNews();
+    if (changed) this.layout();
   }
 
   threatButton(id: string) {
     return this.threatBtns.get(id) ?? null;
   }
 
-  /** A headline banner or a public voice where it happens (decorative: the live region reads it). */
-  showItem(id: string, region: RegionId, text: string, kind: 'headline' | 'voice' | 'breaking') {
-    if (kind === 'voice') {
-      const spots = VOICE_SPOTS[region];
-      const h = [...id].reduce((a, c) => a + c.charCodeAt(0), 0);
-      const v = this.mk('div', 'voice');
-      v.dataset.item = id;
-      v.setAttribute('aria-hidden', 'true');
-      v.textContent = text;
-      this.place(v, spots[h % spots.length]);
-      requestAnimationFrame(() => this.position(v, spots[h % spots.length]));
-      return;
+  /** This round's items, as icons clustered per region (the feed gives them; they leave with the round). */
+  setItems(list: MapEntry[]) {
+    if (!this.summary) return;
+    const sig = list.map((x) => x.id).join('|');
+    if (sig === this.entriesSig) return;
+    this.entriesSig = sig;
+    this.entries = list;
+    for (const r of REGIONS) {
+      const b = this.clusters[r];
+      const mine = list.filter((x) => x.region === r);
+      b.hidden = !mine.length;
+      if (!mine.length) continue;
+      const kinds = [...new Set(mine.map((x) => (x.kind === 'milestone' ? 'headline' : x.kind)))];
+      const counts = kinds.map((k) => `${mine.filter((x) => (x.kind === 'milestone' ? 'headline' : x.kind) === k).length} ${KIND_WORD[k]}${mine.filter((x) => (x.kind === 'milestone' ? 'headline' : x.kind) === k).length > 1 ? 's' : ''}`);
+      b.innerHTML = `<span class="mc-icons" aria-hidden="true">${kinds
+        .slice(0, 3)
+        .map((k) => `<span class="mc-i k-${k}">${KIND_ICON[k]}</span>`)
+        .join('')}</span>${mine.length > 1 ? `<span class="mc-n" aria-hidden="true">${mine.length}</span>` : ''}<span class="sr-only">${esc(REGION_NAME[r])} this round: ${counts.join(', ')}. Show them</span>`;
+      b.classList.toggle('new', true);
+      setTimeout(() => b.classList.remove('new'), 900);
     }
-    const b = document.createElement('div');
-    b.className = `banner ${kind}`;
-    b.dataset.item = id;
+    if (this.popRegion) {
+      if (this.clusters[this.popRegion].hidden) this.closePop(false);
+      else this.renderPop();
+    }
+    this.summaryParts.items = list.length ? ` This round: ${REGIONS.filter((r) => list.some((x) => x.region === r)).map((r) => `${list.filter((x) => x.region === r).length} in ${REGION_NAME[r]}`).join(', ')}; their text is in the news.` : '';
+    this.writeSummary();
+    this.layout();
+  }
+
+  /** A character's request is open: their region's cluster calls for attention (null: none). */
+  setCalling(region: RegionId | null) {
+    if (this.calling) this.clusters[this.calling]?.classList.remove('calling');
+    this.calling = region;
+    if (region) this.clusters[region]?.classList.add('calling');
+  }
+
+  /** The newest headline (or breaking news), briefly as a banner by its region's cluster; then only its icon stays. */
+  flashBanner(region: RegionId, text: string, kind: 'headline' | 'breaking', ms = 3600) {
+    if (!this.summary) return;
+    this.banner?.remove();
+    clearTimeout(this.bannerTimer);
+    const b = this.mk('div', `m-banner ${kind} b-${region}`);
+    b.setAttribute('aria-hidden', 'true');
     b.innerHTML = `<span class="bn-k">${kind === 'breaking' ? 'Breaking' : 'Headline'}</span>${esc(text)}`;
-    const box = this.banners[region];
-    box.prepend(b);
-    while (box.childElementCount > 2) box.lastElementChild!.remove();
-    this.position(box, BANNER_SPOT[region]);
+    this.banner = b;
+    const c = CLUSTER_SPOT[region];
+    this.placed.set(b, { lon: c.lon, lat: c.lat + 8 });
+    this.layout();
+    this.bannerTimer = window.setTimeout(() => {
+      b.classList.add('out');
+      setTimeout(() => {
+        b.remove();
+        if (this.banner === b) this.banner = null;
+        this.layout();
+      }, 350);
+    }, ms);
   }
 
-  hideItem(id: string) {
-    this.overlay.querySelectorAll<HTMLElement>(`.banner[data-item="${CSS.escape(id)}"], .voice[data-item="${CSS.escape(id)}"]`).forEach((e) => {
-      e.classList.add('out');
-      setTimeout(() => e.remove(), 400);
-    });
+  /** Open a region's list with one item highlighted (from the feed). Returns false when it is not on the map. */
+  showEntry(id: string): boolean {
+    const e = this.entries.find((x) => x.id === id);
+    if (!e) return false;
+    this.openPop(e.region, true);
+    const li = this.pop?.querySelector<HTMLElement>(`[data-item="${CSS.escape(id)}"]`);
+    if (li) {
+      li.classList.add('hl');
+      setTimeout(() => li.classList.remove('hl'), 2600);
+    }
+    return true;
   }
 
-  clearItems() {
-    this.overlay.querySelectorAll('.banner, .voice').forEach((e) => e.remove());
+  private togglePop(r: RegionId, pin: boolean) {
+    if (this.popRegion === r && this.popPinned) this.closePop(true);
+    else this.openPop(r, pin);
+  }
+
+  private openPop(r: RegionId, pin: boolean) {
+    if (this.clusters[r].hidden) return;
+    clearTimeout(this.popTimer);
+    if (this.popRegion !== r) this.closePop(true);
+    this.popRegion = r;
+    this.popPinned = this.popPinned || pin;
+    if (!this.pop) {
+      this.pop = document.createElement('div');
+      this.pop.className = 'm-pop';
+      this.pop.addEventListener('mouseenter', () => clearTimeout(this.popTimer));
+      this.pop.addEventListener('mouseleave', () => !this.popPinned && this.closePop(false));
+      this.pop.addEventListener('click', (ev) => {
+        const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('[data-item]');
+        const e = b && this.entries.find((x) => x.id === b.dataset.item);
+        if (e) this.onItem?.(e);
+      });
+    }
+    // right after its cluster, so Tab goes from the cluster into its list
+    this.clusters[r].after(this.pop);
+    this.clusters[r].setAttribute('aria-expanded', 'true');
+    this.renderPop();
+  }
+
+  private popTimer = 0;
+  private closePop(now: boolean) {
+    const go = () => {
+      if (this.popRegion) this.clusters[this.popRegion]?.setAttribute('aria-expanded', 'false');
+      this.pop?.remove();
+      this.pop = null;
+      this.popRegion = null;
+      this.popPinned = false;
+    };
+    clearTimeout(this.popTimer);
+    if (now) go();
+    else this.popTimer = window.setTimeout(go, 220);
+  }
+
+  private renderPop() {
+    const r = this.popRegion;
+    if (!r || !this.pop) return;
+    const mine = this.entries.filter((x) => x.region === r);
+    this.pop.setAttribute('role', 'group');
+    this.pop.setAttribute('aria-label', `${REGION_NAME[r]} this round`);
+    this.pop.className = `m-pop p-${r}`;
+    this.pop.innerHTML = `<p class="mp-h">${esc(REGION_NAME[r].replace(/^the /, 'The '))} · this round</p><ul>${mine
+      .map(
+        (x) =>
+          `<li><button type="button" class="mp-item k-${x.kind === 'milestone' ? 'headline' : x.kind}" data-item="${esc(x.id)}"><span class="mp-ico" aria-hidden="true">${KIND_ICON[x.kind === 'milestone' ? 'headline' : x.kind]}</span><span class="mp-b"><span class="mp-k">${esc(x.label)}</span><span class="mp-t">${esc(x.text)}</span></span><span class="sr-only">${x.kind === 'leak' ? ': read it' : ': show in the news'}</span></button></li>`,
+      )
+      .join('')}</ul>`;
+    this.placePop();
+  }
+
+  /** The list opens under its cluster (or above it near the bottom), kept inside the map. */
+  private placePop() {
+    const r = this.popRegion;
+    if (!r || !this.pop) return;
+    const c = this.clusters[r];
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    const pw = Math.min(300, w - 12);
+    this.pop.style.width = `${pw}px`;
+    const cx = parseFloat(c.style.left) || 0;
+    const cy = parseFloat(c.style.top) || 0;
+    const ph = this.pop.offsetHeight;
+    const below = cy + c.offsetHeight / 2 + 6;
+    const top = below + ph <= h - 4 ? below : Math.max(4, cy - c.offsetHeight / 2 - 6 - ph);
+    this.pop.style.left = `${Math.max(6, Math.min(w - pw - 6, cx - pw / 2)).toFixed(1)}px`;
+    this.pop.style.top = `${top.toFixed(1)}px`;
   }
 
   /** An event bursts where it happens (a short ring; without motion, a steady highlight that fades). */
@@ -525,7 +609,7 @@ export class WorldMap {
       this.zonePaths[p.zone].classList.toggle('joined', on);
       this.layers.labels.querySelector(`.l-${p.zone}`)?.classList.toggle('joined', on);
     });
-    this.setBadge(v.europeAi);
+
     if (this.summary) {
       const joined = PARTNERS.filter((p) => v.coalition >= p.level).map((p) => p.name);
       const zone = v.cooperation >= 60 ? 'cooperating (Pause)' : v.cooperation >= 30 ? 'racing (Race)' : 'breaking apart (Rupture)';
@@ -539,7 +623,7 @@ export class WorldMap {
 
   private writeSummary() {
     if (!this.summary) return;
-    const text = `${this.summaryParts.state}${this.summaryParts.threats}${this.summaryParts.unrest}`;
+    const text = `${this.summaryParts.state}${this.summaryParts.threats}${this.summaryParts.items}${this.summaryParts.unrest}`;
     if (this.summary.textContent !== text) this.summary.textContent = text;
   }
 
