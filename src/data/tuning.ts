@@ -33,9 +33,9 @@ export const TUNING = {
     /** Cohesion erodes only once AI does whole jobs. */
     cohesionHighPower: 60,
     /** In the Rupture zone the arms race hits Europe too (sanctions, energy, cyberattacks): Cohesion lost each round. */
-    cohesionRupture: -1,
+    cohesionRupture: -3,
     /** Harder to align as AI grows: true Confidence lost each round past `truthHighPower` (the low end drops with it). */
-    truth: -1,
+    truth: -2,
     truthHighPower: 60,
     /** The labs' reports push the reported value up each round; the uncertainty widens by as much (the low end stays). */
     labReports: 1,
@@ -66,7 +66,7 @@ export const TUNING = {
 
   /** Deciding gauge and safety net of each world. */
   worlds: {
-    pause: { decides: 'confidence', target: 65, net: 'cohesion', floor: 45 },
+    pause: { decides: 'confidence', target: 68, net: 'cohesion', floor: 45 },
     race: { decides: 'confidence', target: 75, net: 'cohesion', floor: 55 },
     rupture: { decides: 'cohesion', target: 82, net: 'confidence', floor: 65 },
     plateau_open: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },

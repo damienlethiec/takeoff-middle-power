@@ -5,7 +5,7 @@
 import { CARD_BY_ID, CARDS, cardCost, cardUses, type CardDef } from '../data/cards';
 import { CHARACTERS } from '../data/characters';
 import { REQUEST_BY_ID, REQUESTS } from '../data/requests';
-import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, lowText, marginText } from '../data/copy';
+import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, lowText, marginText, verifiedWord } from '../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../data/endings';
 import { LEA_END, LEA_END_BASIS, LEA_END_MOOD, LEA_R1, LEA_R4, LEA_R8, type LetterDef } from '../data/lea';
 import { LEAK_REDACTED_ADVICE, LEAKS } from '../data/leaks';
@@ -190,10 +190,10 @@ function impacts(a: Snapshot, b: Snapshot): Impact[] {
   if (a.margin !== b.margin)
     out.push({
       key: 'margin',
-      label: `${GAUGE_LABEL.confidence}: ${b.margin > a.margin ? 'less' : 'more'} certain, verified`,
+      label: `${GAUGE_LABEL.confidence}: ${verifiedWord(lowEnd(a), lowEnd(b))}`,
       before: String(lowEnd(a)),
       after: String(lowEnd(b)),
-      tone: b.margin < a.margin ? 1 : -1,
+      tone: lowEnd(b) > lowEnd(a) ? 1 : lowEnd(b) < lowEnd(a) ? -1 : 0,
     });
   line('cohesion', GAUGE_LABEL.cohesion, a.cohesion, b.cohesion, 1);
   if (a.europeAi !== b.europeAi)
@@ -738,8 +738,7 @@ function answerChips(before: GameState, after: GameState, a: Answer): Chip[] {
     if (i.key === 'influence') continue;
     const d = Number(i.after) - Number(i.before);
     if (i.key === 'margin') {
-      const m = after.confidence.margin - before.confidence.margin;
-      out.push({ text: marginText(i.before, i.after, 0, m), tone: m > 0 ? 'down' : 'up' });
+      out.push({ text: marginText(i.before, i.after), tone: d >= 0 ? 'up' : 'down' });
     }
     else if (i.key === 'europeAi') out.push({ text: `Europe’s AI → ${i.after}`, tone: i.tone > 0 ? 'up' : 'down' });
     else if (i.key === 'aiPower') out.push({ text: `${i.label} ${signed(d)}`, tone: d > 0 ? 'down' : 'up' });
@@ -751,7 +750,7 @@ function answerChips(before: GameState, after: GameState, a: Answer): Chip[] {
   for (const t of a.grow ?? []) if (!before.threats[t].struck && before.threats[t].stage < 3) out.push({ text: `${THREAT_BY_ID[t].name} grows`, tone: 'down' });
   if (a.later) {
     const e = a.later.effects;
-    const parts = [e.cohesion ? `${GAUGE_LABEL.cohesion} ${signed(e.cohesion)}` : '', e.coop ? `${GAUGE_LABEL.cooperation} ${signed(e.coop)}` : '', e.ai ? `${GAUGE_LABEL.aiPower} ${signed(e.ai)}` : '', e.margin ? `${GAUGE_LABEL.confidence}: ${e.margin > 0 ? 'less' : 'more'} certain` : '', e.conf ? `${GAUGE_LABEL.confidence} ${signed(e.conf)}` : ''].filter(Boolean);
+    const parts = [e.cohesion ? `${GAUGE_LABEL.cohesion} ${signed(e.cohesion)}` : '', e.coop ? `${GAUGE_LABEL.cooperation} ${signed(e.coop)}` : '', e.ai ? `${GAUGE_LABEL.aiPower} ${signed(e.ai)}` : '', e.margin ? `${GAUGE_LABEL.confidence}: ${e.margin > 0 ? 'less' : 'more'} verified` : '', e.conf ? `${GAUGE_LABEL.confidence} ${signed(e.conf)}` : ''].filter(Boolean);
     const bad = (e.cohesion ?? 0) < 0 || (e.coop ?? 0) < 0 || (e.margin ?? 0) > 0 || (e.ai ?? 0) > 0 || (e.conf ?? 0) < 0;
     if (parts.length) out.push({ text: `Later: ${parts.join(', ')}`, tone: bad ? 'down' : 'up' });
   }
@@ -1350,11 +1349,13 @@ export function advisor(s: GameState): AdvisorView {
       const pv = preview(s, [{ id: cv.id, ...(option ? { option } : {}) }]);
       const parts: Record<Why, number> = { threat: 0, opportunity: 0, coop: 0, conf: 0, coh: 0 };
       let threat: ThreatView | null = null;
+      // AI safety counts by its verified part: the margin line carries it (before → after); without one, it moves with the claim
+      const verifiedLine = pv.impacts.some((i) => i.key === 'margin');
       for (const i of pv.impacts) {
         const d = Number(i.after) - Number(i.before);
         if (i.key === 'cooperation') parts.coop += d * w.coop;
-        else if (i.key === 'confidence') parts.conf += d * w.conf;
-        else if (i.key === 'margin') parts.conf -= d * w.conf;
+        else if (i.key === 'confidence') parts.conf += verifiedLine ? 0 : d * w.conf;
+        else if (i.key === 'margin') parts.conf += d * w.conf;
         else if (i.key === 'cohesion') parts.coh += d * w.coh;
         else if (i.key === 'europeAi') parts.coh += (i.after === 'Open' ? 1 : -1) * (plateau ? 4 : 0.5);
       }
@@ -1540,7 +1541,7 @@ function widenedBy(s: GameState): string[] {
   const out: { text: string; by: number }[] = [];
   for (const ch of all) {
     if (ch.key !== 'margin') continue;
-    const m = /less certain \(verified (\d+) → (\d+)\)/.exec(ch.text);
+    const m = /less verified \((\d+) → (\d+)\)/.exec(ch.text);
     if (!m) continue;
     const a = Number(m[1]);
     const b = Number(m[2]);

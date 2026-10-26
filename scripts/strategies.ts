@@ -29,6 +29,10 @@ export interface PlayedGame {
 
 const playableIds = (s: GameState) => hand(s).filter((c) => c.playable).map((c) => c.id);
 
+/** The state without its past rounds, for read-only views (previews, the advisor, request cards): they never read
+ *  the history, and the engine clones the whole state on every call, so this keeps the simulation fast. */
+const lite = (s: GameState): GameState => ({ ...s, history: [] });
+
 export function playGame(seed: number, strat: Strategy): PlayedGame {
   const r: RngHolder = { rng: seedToRng(seed * 7919 + 13) };
   let s = createInitialState(seed);
@@ -39,7 +43,7 @@ export function playGame(seed: number, strat: Strategy): PlayedGame {
     s = startRound(s);
     // the six months in order: requests and the event come at their time
     for (;;) {
-      const q = request(s);
+      const q = request(lite(s));
       const evFirst = s.event && (!q || s.event.at <= q.at);
       if (evFirst) s = resolveEvent(s, s.event!.options.length ? strat.blackmail(s, r) : undefined);
       else if (q) {
@@ -65,22 +69,29 @@ export function playGame(seed: number, strat: Strategy): PlayedGame {
   return { final: s, plays, shortages, requests };
 }
 
-/** What a request's answer would move, read from its chips (what the player sees). */
+/** What a request's answer would move, read from its chips (what the player sees). AI safety counts by its
+ *  verified part: the "more / less verified (a → b)" chip when there is one, else the claim moves it. */
 function chipValue(v: RequestView, side: Side, w: { coop: number; conf: number; coh: number; ai?: number }): number {
   let x = 0;
-  for (const c of v[side].chips) {
+  const chips = v[side].chips;
+  const verifiedChip = chips.some((c) => /verified \(\d+ → \d+\)$/.test(c.text));
+  for (const c of chips) {
+    const vm = /verified \((\d+) → (\d+)\)$/.exec(c.text);
+    if (vm) {
+      x += (Number(vm[2]) - Number(vm[1])) * w.conf;
+      continue;
+    }
     const m = /^(.+?) ([+−])(\d+)$/.exec(c.text);
     if (m) {
       const d = (m[2] === '−' ? -1 : 1) * Number(m[3]);
       if (m[1] === GAUGE_LABEL.cooperation) x += d * w.coop;
-      else if (m[1] === GAUGE_LABEL.confidence) x += d * w.conf;
+      else if (m[1] === GAUGE_LABEL.confidence) x += verifiedChip ? 0 : d * w.conf;
       else if (m[1] === GAUGE_LABEL.cohesion) x += d * w.coh;
       else if (m[1] === GAUGE_LABEL.aiPower) x -= d * (w.ai ?? 0.3);
       continue;
     }
     const sign = c.tone === 'up' ? 1 : -1;
-    if (/certain/.test(c.text)) x += sign * 4 * w.conf;
-    else if (/Real safety/.test(c.text)) x += 4 * w.conf;
+    if (/Real safety/.test(c.text)) x += 4 * w.conf;
     else if (/grows/.test(c.text)) x -= 3;
     else if (/^Later/.test(c.text)) x += sign * 2;
     else if (/Europe’s AI/.test(c.text)) x += sign * 0.5;
@@ -155,15 +166,18 @@ export const thoughtful: Strategy = {
     const cards = hand(s).filter((c) => c.playable);
     const { w, conf, plateau } = thoughtfulWeights(s);
     const seen = threats(s).filter((t) => !t.struck && !t.prepared && t.stage >= 1);
+    const ls = lite(s);
     const score = (id: CardId, option?: string) => {
-      const pv = preview(s, [{ id, ...(option ? { option } : {}) }]);
+      const pv = preview(ls, [{ id, ...(option ? { option } : {}) }]);
       if (!pv.ok) return -99;
       let v = 0;
+      // AI safety counts by its verified part: the margin line carries it; without one, it moves with the claim
+      const verifiedLine = pv.impacts.some((i) => i.key === 'margin');
       for (const i of pv.impacts) {
         const d = Number(i.after) - Number(i.before);
         if (i.key === 'cooperation') v += d * w.coop;
-        else if (i.key === 'confidence') v += d * w.conf;
-        else if (i.key === 'margin') v -= d * w.conf;
+        else if (i.key === 'confidence') v += verifiedLine ? 0 : d * w.conf;
+        else if (i.key === 'margin') v += d * w.conf;
         else if (i.key === 'cohesion') v += d * w.coh;
         else if (i.key === 'europeAi') v += (i.after === 'Open' ? 1 : -1) * (plateau ? 4 : 0.5);
       }
@@ -221,7 +235,7 @@ export const cooperationOnly: Strategy = {
 export const advised: Strategy = {
   name: 'advised',
   decide: (s) => {
-    const a = advisor(s);
+    const a = advisor(lite(s));
     return a.recommend ? [{ id: a.recommend, ...(a.option ? { option: a.option } : {}) }] : [];
   },
   blackmail: () => 'hold_firm',

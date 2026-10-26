@@ -1,5 +1,7 @@
 // Simulate thousands of seeded games per strategy and print the ending distribution, checked against the
 // targets of docs/V3_SPEC.md ("Validation"). Run with: npm run sim   (npm run sim -- 5000 for more games)
+// Quick mode: npm run sim -- 200 thoughtful,home-first   (N games, only these strategies; the targets that need
+// a missing strategy are skipped). Same seeds, so a strategy's numbers match the full run's first N games.
 
 import { ENDINGS, ENDING_BY_ID } from '../src/data/endings';
 import { TUNING } from '../src/data/tuning';
@@ -7,13 +9,15 @@ import type { CardId, EndingId, Pace } from '../src/engine/types';
 import { STRATEGIES, playGame, type PlayedGame } from './strategies';
 
 const N = Number(process.argv[2]) || 2000;
+const ONLY = process.argv[3]?.split(',').filter(Boolean);
+const RUN = ONLY ? STRATEGIES.filter((st) => ONLY.includes(st.name)) : STRATEGIES;
 const pct = (x: number, n: number) => `${((100 * x) / Math.max(1, n)).toFixed(1)}%`;
 const isGood = (g: PlayedGame) => ENDING_BY_ID[g.final.ending!].good;
 const best = new Map<EndingId, number>();
 const share = new Map<string, number>();
 const all = new Map<string, PlayedGame[]>();
 
-for (const strat of STRATEGIES) {
+for (const strat of RUN) {
   const res: PlayedGame[] = [];
   for (let i = 0; i < N; i++) res.push(playGame(1000 + i, strat));
   all.set(strat.name, res);
@@ -58,28 +62,30 @@ for (const strat of STRATEGIES) {
 console.log('\n=== reachability (best share across strategies) ===');
 for (const e of ENDINGS) console.log(`  ${e.title.padEnd(26)} ${pct(best.get(e.id) ?? 0, 1)}`);
 
-const th = all.get('thoughtful')!;
+const th = all.get('thoughtful') ?? [];
 const plays = new Map<string, number>();
 for (const x of th) for (const p of x.plays) plays.set(p, (plays.get(p) ?? 0) + 1);
 const total = [...plays.values()].reduce((a, b) => a + b, 0);
-const [topCard, topN] = [...plays].sort((a, b) => b[1] - a[1])[0];
-const earliest = Math.min(...STRATEGIES.flatMap((st) => all.get(st.name)!.filter((x) => x.final.tipping).map((x) => x.final.tipping!.round)));
-const g = (n: string) => share.get(n)!;
-const reqCounts = STRATEGIES.flatMap((st) => all.get(st.name)!.map((x) => x.requests));
+const [topCard, topN] = [...plays].sort((a, b) => b[1] - a[1])[0] ?? ['-', 0];
+const earliest = Math.min(...RUN.flatMap((st) => all.get(st.name)!.filter((x) => x.final.tipping).map((x) => x.final.tipping!.round)));
+const g = (n: string) => share.get(n) ?? NaN;
+const reqCounts = RUN.flatMap((st) => all.get(st.name)!.map((x) => x.requests));
 const thMargins = th.map((x) => x.final.confidence.margin).sort((a, b) => a - b);
 const thMedianMargin = thMargins[Math.floor((thMargins.length - 1) / 2)];
-const checks: [string, boolean, string][] = [
-  ['passive good endings < 15%', g('passive') < 0.15, pct(g('passive'), 1)],
-  ['random good endings 15–30%', g('random') >= 0.15 && g('random') <= 0.3, pct(g('random'), 1)],
-  ['thoughtful good endings 55–80%', g('thoughtful') >= 0.55 && g('thoughtful') <= 0.8, pct(g('thoughtful'), 1)],
-  ['every ending ≥ 2% for some strategy', ENDINGS.every((e) => (best.get(e.id) ?? 0) >= 0.02), ENDINGS.filter((e) => (best.get(e.id) ?? 0) < 0.02).map((e) => e.id).join(', ') || 'all'],
-  ['cooperation-only clearly worse than thoughtful (−20 pts)', g('thoughtful') - g('cooperation-only') >= 0.2, `${pct(g('cooperation-only'), 1)} vs ${pct(g('thoughtful'), 1)}`],
-  ['home-first (no diplomacy) clearly worse than thoughtful (−15 pts)', g('thoughtful') - g('home-first') >= 0.15, `${pct(g('home-first'), 1)} vs ${pct(g('thoughtful'), 1)}`],
-  ['thoughtful: no card above 20% of its plays', topN / total <= 0.2, `${topCard} ${pct(topN, total)}`],
-  ['saving Influence for a burst no better than thoughtful', g('saver') <= g('thoughtful'), `${pct(g('saver'), 1)} vs ${pct(g('thoughtful'), 1)}`],
-  ['6–10 requests a game (≥ 99.5% of games)', reqCounts.filter((n) => n >= 6 && n <= 10).length >= 0.995 * reqCounts.length, `${pct(reqCounts.filter((n) => n >= 6 && n <= 10).length, reqCounts.length)} (${Math.min(...reqCounts)}–${Math.max(...reqCounts)})`],
-  ['thoughtful: AI safety uncertainty at the end ≤ 30 (median)', thMedianMargin <= 30, `±${thMedianMargin}`],
-  [`tipping point never before round ${TUNING.earliestTipping}`, earliest >= TUNING.earliestTipping, `earliest round ${earliest}`],
+/** [target, passed, value, strategies it needs] */
+const allChecks: [string, boolean, string, string[]][] = [
+  ['passive good endings < 15%', g('passive') < 0.15, pct(g('passive'), 1), ['passive']],
+  ['random good endings 15–30%', g('random') >= 0.15 && g('random') <= 0.3, pct(g('random'), 1), ['random']],
+  ['thoughtful good endings 55–80%', g('thoughtful') >= 0.55 && g('thoughtful') <= 0.8, pct(g('thoughtful'), 1), ['thoughtful']],
+  ['every ending ≥ 2% for some strategy', ENDINGS.every((e) => (best.get(e.id) ?? 0) >= 0.02), ENDINGS.filter((e) => (best.get(e.id) ?? 0) < 0.02).map((e) => e.id).join(', ') || 'all', ['*']],
+  ['cooperation-only clearly worse than thoughtful (−20 pts)', g('thoughtful') - g('cooperation-only') >= 0.2, `${pct(g('cooperation-only'), 1)} vs ${pct(g('thoughtful'), 1)}`, ['cooperation-only', 'thoughtful']],
+  ['home-first (no diplomacy) clearly worse than thoughtful (−15 pts)', g('thoughtful') - g('home-first') >= 0.15, `${pct(g('home-first'), 1)} vs ${pct(g('thoughtful'), 1)}`, ['home-first', 'thoughtful']],
+  ['thoughtful: no card above 20% of its plays', topN / total <= 0.2, `${topCard} ${pct(topN, total)}`, ['thoughtful']],
+  ['saver (Influence kept for bursts) clearly worse than thoughtful (−10 pts)', g('thoughtful') - g('saver') >= 0.1, `${pct(g('saver'), 1)} vs ${pct(g('thoughtful'), 1)}`, ['saver', 'thoughtful']],
+  ['6–10 requests a game (≥ 99.5% of games)', reqCounts.filter((n) => n >= 6 && n <= 10).length >= 0.995 * reqCounts.length, `${pct(reqCounts.filter((n) => n >= 6 && n <= 10).length, reqCounts.length)} (${Math.min(...reqCounts)}–${Math.max(...reqCounts)})`, []],
+  ['thoughtful: AI safety uncertainty at the end ≤ 30 (median)', thMedianMargin <= 30, `±${thMedianMargin}`, ['thoughtful']],
+  [`tipping point never before round ${TUNING.earliestTipping}`, earliest >= TUNING.earliestTipping, `earliest round ${earliest}`, []],
 ];
-console.log('\n=== targets ===');
+const checks = allChecks.filter(([, , , need]) => need.every((n) => (n === '*' ? !ONLY : share.has(n))));
+console.log(`\n=== targets ===${ONLY ? ` (quick run, ${allChecks.length - checks.length} skipped)` : ''}`);
 for (const [name, ok, v] of checks) console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${name.padEnd(58)} ${v}`);

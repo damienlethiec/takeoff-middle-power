@@ -418,7 +418,7 @@ describe('hidden values never leak', () => {
           const pv = preview(s, [{ id: c.id, ...(option ? { option } : {}) }]);
           if (!pv.ok) continue;
           const m = pv.impacts.find((i) => i.key === 'margin');
-          if (m) expect(m.label, c.id).toMatch(/more certain/);
+          if (m) expect(m.label, c.id).toMatch(/more verified/);
           // played for real, with any truth: the low end never drops below where it was
           for (const truth of [45, 50, 60]) {
             const after = playCard({ ...s, confidence: { truth, estimate: 60, margin: 15 } }, { id: c.id, ...(option ? { option } : {}) });
@@ -466,7 +466,7 @@ describe('heading, report, letters', () => {
   it('offers another course only when it is within reach and would help', () => {
     const s = fresh(1, { round: 4, aiPower: 50, lastRise: 8, cooperation: 52, cohesion: 58, confidence: { truth: 60, estimate: 62, margin: 15 } });
     expect(heading(s).alt).toMatchObject({ world: 'pause' });
-    expect(heading(s).alt!.text).toBe('Push US–China cooperation to 60 or more (you: 52) to reach a Pause, where AI safety 65 is enough.');
+    expect(heading(s).alt!.text).toBe('Push US–China cooperation to 60 or more (you: 52) to reach a Pause, where AI safety 68 is enough.');
     expect(heading({ ...s, cooperation: 40 }).alt).toBeNull();
     expect(heading({ ...s, confidence: { truth: 90, estimate: 90, margin: 5 } }).alt).toBeNull();
     expect(heading({ ...s, cooperation: 25, cohesion: 60 }).alt).toMatchObject({ world: 'race' });
@@ -562,7 +562,7 @@ describe('endings', () => {
   });
 
   it('the reveal gives the band the player saw and names what widened it', () => {
-    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, requests: [], values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less certain (verified 56 → 41)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
+    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, requests: [], values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less verified (56 → 41)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
     const v = ending(ended({ ...tip, history, cooperation: 45, cohesion: 60, confidence: { truth: 48, estimate: 71, margin: 30 } }));
     expect(v.reveal).toMatchObject({ low: 41, high: 71, truth: 48, audited: false });
     expect(v.reveal.widened[0]).toBe('Opaque reasoning: verified AI safety 56 → 41.');

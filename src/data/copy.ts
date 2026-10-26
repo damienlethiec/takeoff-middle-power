@@ -26,10 +26,14 @@ export const TIPPING_LINE = (at: number) => `Tipping point at ${at}: your choice
 /** "41 verified, 71 claimed": what has been verified (the truth is never lower) and what the labs claim (never higher). */
 export const lowText = (reported: number, low: number) => `${low} verified, ${reported} claimed`;
 
-/** "AI safety: more certain (verified 41 → 56)": the verified part grows or shrinks. The truth is never above the
- *  labs' claim, never below what is verified. (The simulation's request scoring reads "certain" in these chips.) */
-export const marginText = (lowBefore: number | string, lowAfter: number | string, uBefore: number, uAfter: number) =>
-  `${GAUGE_LABEL.confidence}: ${uAfter > uBefore ? 'less' : 'more'} certain (verified ${lowBefore} → ${lowAfter})`;
+/** "AI safety: more verified (41 → 56)": the word follows the verified part, the part that counts (a wider
+ *  uncertainty can still verify more when the claim rises further). The truth is never above the labs' claim, never
+ *  below what is verified. The last two arguments are unused and kept for the callers. (The simulation's request
+ *  scoring reads the two numbers in these chips.) */
+export const verifiedWord = (lowBefore: number | string, lowAfter: number | string) =>
+  Number(lowAfter) > Number(lowBefore) ? 'more verified' : Number(lowAfter) < Number(lowBefore) ? 'less verified' : 'no more verified';
+export const marginText = (lowBefore: number | string, lowAfter: number | string, _uBefore?: number, _uAfter?: number) =>
+  `${GAUGE_LABEL.confidence}: ${verifiedWord(lowBefore, lowAfter)} (${lowBefore} → ${lowAfter})`;
 
 export const GAUGE_HELP: Record<GaugeKey, string> = {
   aiPower:
