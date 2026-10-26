@@ -99,7 +99,7 @@ export function writeSave(state: GameState, stage: SaveStage, tips: string[] = [
 export function readSave(fresh: GameState, s?: Store): SaveEnvelope | null {
   const st = store(s);
   if (!st) return null;
-  let raw: string | null = null;
+  let raw: string | null;
   try {
     raw = st.getItem(SAVE_KEY);
   } catch {
