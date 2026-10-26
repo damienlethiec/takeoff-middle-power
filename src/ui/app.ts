@@ -143,7 +143,8 @@ export class App {
   /**
    * Resume a saved game: the state exactly as saved. Mid-round ('round'), the six months replay from their start:
    * headlines and voices show again, but the event and requests already resolved are not asked again, and nothing
-   * is applied twice. The feed's earlier rounds, the map, Léa's letters and the threats rebuild from the state.
+   * is applied twice. The feed's earlier rounds, the map, the friends' letters and the threats rebuild from the state.
+   * A postcard already read this round is not shown again (the save remembers it).
    * Not restored: the gauges' travel since the round began (they show where they are), the "why" line under the
    * heading, and the Help's log of tips (the tips themselves are not shown again).
    */

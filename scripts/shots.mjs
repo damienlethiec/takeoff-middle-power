@@ -1,6 +1,7 @@
 // Screenshots of every v4 screen at 1280×800 and 390×844, for review and for docs/screenshots/v4.
 //   node scripts/shots.mjs [outDir]   (builds the game and serves it on port 5177, or SHOTS_PORT; A11Y_URL reuses a server)
-// Seed 9: a fast game (tipping point), with Léa's letter in round 1, requests, threats, a leak and Breaking news.
+// Seed 9: a fast game (tipping point), with the friends' postcards (Léa in round 1, Malik in round 2), requests,
+// threats, a leak and Breaking news.
 // The intro and the tutorial are on, so the first tips are captured too.
 
 import fs from 'node:fs';
@@ -70,6 +71,12 @@ try {
           if (!taken.has('request-outcome')) await shot('request-outcome');
         }
         await page.keyboard.press('Enter');
+      } else if (c.includes('postcard')) {
+        // a friend's letter opens the round: the first one, and Malik's
+        const h = await page.evaluate((m) => document.querySelector(`${m} h2`)?.textContent ?? '', modal);
+        if (!taken.has('postcard')) await shot('postcard');
+        else if (!taken.has('postcard-malik') && /Malik/.test(h)) await shot('postcard-malik');
+        await page.keyboard.press('Enter');
       } else if (c) {
         await escape();
       } else if (await has('#decide:not([hidden])')) {
@@ -114,7 +121,7 @@ try {
         if (!taken.has('last-round')) await shot('last-round');
         await page.click('.dock [data-go="next"]');
       } else {
-        // the clock runs: the map with its groups, Léa's letter, threats and the leak, once each
+        // the clock runs: the map with its groups, a friend's letter, threats and the leak, once each
         if (!taken.has('main') && (await page.$$('#feed-now .fd-item')).length >= 3) {
           await shot('main');
           if (size.name === 'mobile') await shot('main-full', true);

@@ -649,9 +649,11 @@ body.ended { overflow: auto; }
 .ending-page h2 { font-family: var(--f-display); font-weight: 800; font-size: 28px; margin: 36px 0 10px; letter-spacing: .02em; }
 .ending-page h3 { margin: 18px 0 8px; }
 .end-story > p { font-size: 17px; }
-.end-lea { display: flex; gap: 14px; align-items: flex-start; margin-top: 14px; }
-.end-lea .friend-face { width: 64px; height: 64px; flex: none; }
-.end-lea .paper { margin: 0; flex: 1; }
+/* Back home, 2032: the three friends' last words, a face and a letter each */
+.end-friends ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.end-friend { display: flex; gap: 14px; align-items: flex-start; }
+.end-friend .friend-face { width: 64px; height: 64px; flex: none; }
+.end-friend .paper { margin: 0; flex: 1; }
 .end-gauges { list-style: none; padding: 0; display: grid; gap: 22px; margin: 0; }
 .eg { display: grid; gap: 6px; }
 .eg-name { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
@@ -828,7 +830,8 @@ body.ended { overflow: auto; }
   .dec-btns { justify-content: stretch; }
   .dec-btns .btn-quiet { flex: 1; justify-content: center; padding: 8px 10px; }
   .deb-list li { grid-template-columns: 1fr; }
-  .end-lea { flex-direction: column; }
+  .end-friend { gap: 10px; }
+  .end-friend .friend-face { width: 48px; height: 48px; }
 }
 
 /* the narrowest phones: the badge alone says what it is (its name and Why? explain it) */

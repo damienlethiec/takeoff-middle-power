@@ -1,6 +1,6 @@
 // End-to-end: plays whole games of the production build in Chromium through the real UI, and checks the
 // key interactions of v4: decisions in place of the map with their preview on the gauges, requests answered by
-// click and by ← →, the news feed (This round / Earlier), the map's icon groups, Léa's letter, the Why? dialog,
+// click and by ← →, the news feed (This round / Earlier), the map's icon groups, the friends' letters, the Why? dialog,
 // Europe's AI badge, and a clock that always resumes. The page clock is faked, so the 8-second rounds run as
 // fast as the test advances them. Selectors use roles and accessible names wherever the markup offers them.
 
@@ -153,7 +153,9 @@ async function checkEnding(page: Page, s: Session) {
   await expect(end.locator('.end-why')).toContainText(/: [a-z].+\.$/);
   for (const h of ['The world in 2032', 'The four gauges at the end', 'The reveal', 'What would have changed it', 'Your decisions, in order'])
     await expect(end.getByRole('heading', { level: 2, name: h })).toBeVisible();
-  await expect(end.getByText('Léa, one last time')).toBeVisible();
+  await expect(end.getByRole('heading', { level: 2, name: 'Back home, 2032' })).toBeVisible();
+  await expect(end.locator('.end-friend')).toHaveCount(3);
+  for (const name of [/^Léa, /, /^Your mother, /, /^Malik, /]) await expect(end.getByRole('img', { name })).toBeVisible();
   await expect(end.locator('.reveal-big')).toContainText(/(It was|AI safety was) \d+\./);
   await checkText(page, s);
 }
@@ -383,7 +385,7 @@ test.describe('key interactions', () => {
     await advance(page, 800, false);
     await page.keyboard.press(' '); // pause: nothing comes due while we look
     await expect(page.locator('#phase')).toHaveText('Paused');
-    // Léa wrote in round 1: an envelope in Europe's group, her full letter in the news with her portrait
+    // Léa wrote in round 1 (a postcard, then): an envelope with her face in Europe's group, her full letter in the news with her portrait
     const eu = page.getByRole('button', { name: /^Europe this round: .*letter from Léa, your friend in Lyon/ });
     await expect(eu).toBeVisible();
     await expect(eu).toHaveAttribute('aria-expanded', 'false');

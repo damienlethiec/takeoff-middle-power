@@ -1,10 +1,12 @@
 // The end screen: the ending and its story, why in one sentence, the four gauges with the world's target and
 // floor, the reveal (true AI safety and the uncertainty around it, AI pace, unread leaks), what would have changed it, your decisions in
-// order with their plus and minus, the threats you were or were not ready for, and Play again.
+// order with their plus and minus, the threats you were or were not ready for, and Play again. After the world's story,
+// "Back home, 2032": a last word from each of the three friends (Léa, your mother, Malik).
 
 import type { EndingView } from '../../engine/types';
 import { ICON, chips, esc, link } from '../format';
-import { MOOD_WORD, leaPortrait } from '../friends';
+import { MOOD_WORD, friendPortrait } from '../friends';
+import { FRIENDS } from '../../data/friends';
 import { ENDING_BY_ID } from '../../data/endings';
 
 function gaugeRow(g: EndingView['gauges'][number]): string {
@@ -55,9 +57,21 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
     <section class="end-story" aria-labelledby="st-h">
       <h2 id="st-h">The world in 2032</h2>
       <p>${esc(v.story)}</p>
-      <div class="end-lea">${leaPortrait(v.lea.mood, `Léa, ${MOOD_WORD[v.lea.mood]}`)}<div class="paper"><p class="dateline">Léa, one last time</p><p>${esc(v.lea.text)}</p></div></div>
       <p class="muted small">Scenario: ${link(v.source)}. Basis: ${esc(v.basis.ref)}.</p>
     </section>
+    ${
+      v.friends.length
+        ? `<section class="end-friends" aria-labelledby="bh-h">
+      <h2 id="bh-h">Back home, 2032</h2>
+      <ul>${v.friends
+        .map((f) => {
+          const who = FRIENDS[f.friend];
+          return `<li class="end-friend">${friendPortrait(f.friend, f.mood, `${who.name}, ${MOOD_WORD[f.mood]}`)}<div class="paper"><p class="dateline">${esc(who.name)} · ${esc(who.city)}</p><p>${esc(f.text)}</p></div></li>`;
+        })
+        .join('')}</ul>
+    </section>`
+        : ''
+    }
     <section aria-labelledby="g-h">
       <h2 id="g-h">The four gauges at the end</h2>
       <ul class="end-gauges">${v.gauges.map(gaugeRow).join('')}</ul>
