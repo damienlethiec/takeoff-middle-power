@@ -88,7 +88,7 @@ export function oversight(s: GameState): number {
 
 /**
  * Keep AI safety consistent (v4: the uncertainty only goes downward). The estimate is what the labs and testers
- * report; the truth is never above it and never below estimate − margin ("could be as low as").
+ * report (what the labs claim); the truth is never above it and never below estimate − margin (what is verified).
  * - A hidden gain that would lift the truth above the report is capped at the report (no visible trace).
  * - A hidden loss stops at the low end (see applyFx): nothing visible moves.
  * - When oversight narrows the band past the truth, the narrowing stops short, a hidden 0–2 points below
@@ -107,7 +107,7 @@ function settleConfidence(s: GameState, before?: { estimate: number; margin: num
   }
 }
 
-/** The low end of the AI safety band: how low the truth could be. */
+/** The low end of the AI safety band: what is verified (the truth is never lower). */
 export const lowEnd = (c: { estimate: number; margin: number }) => Math.max(0, c.estimate - c.margin);
 
 // ---------------------------------------------------------------- effects
@@ -187,11 +187,11 @@ function impacts(a: Snapshot, b: Snapshot): Impact[] {
   line('aiPower', GAUGE_LABEL.aiPower, a.aiPower, b.aiPower, 0);
   line('cooperation', GAUGE_LABEL.cooperation, a.cooperation, b.cooperation, 1);
   line('confidence', GAUGE_LABEL.confidence, a.estimate, b.estimate, 1);
-  // the uncertainty, told by how low AI safety could be (only when the uncertainty itself changes)
+  // the uncertainty, told by what is verified (only when the uncertainty itself changes)
   if (a.margin !== b.margin)
     out.push({
       key: 'margin',
-      label: `${GAUGE_LABEL.confidence}: ${b.margin > a.margin ? 'less' : 'more'} certain, could be as low as`,
+      label: `${GAUGE_LABEL.confidence}: ${b.margin > a.margin ? 'less' : 'more'} certain, verified`,
       before: String(lowEnd(a)),
       after: String(lowEnd(b)),
       tone: b.margin < a.margin ? 1 : -1,
@@ -1441,7 +1441,7 @@ export function ending(s: GameState): EndingView {
   const wd = WORLDS[world];
   const w = T.worlds[world];
   const c = s.confidence;
-  const seen = `they reported ${c.estimate}, could be as low as ${lowEnd(c)}`;
+  const seen = `${lowEnd(c)} verified, the labs claimed ${c.estimate}`;
   const val = (k: GaugeKey) => gaugeValueTrue(s, k);
   const label = (k: GaugeKey) => GAUGE_LABEL[k];
   const withSeen = (k: GaugeKey) => (k === 'confidence' && (c.estimate !== c.truth || c.margin > 0) ? ` (${seen})` : '');
@@ -1540,13 +1540,13 @@ function widenedBy(s: GameState): string[] {
   const out: { text: string; by: number }[] = [];
   for (const ch of all) {
     if (ch.key !== 'margin') continue;
-    const m = /less certain \(could be as low as (\d+) → (\d+)\)/.exec(ch.text);
+    const m = /less certain \(verified (\d+) → (\d+)\)/.exec(ch.text);
     if (!m) continue;
     const a = Number(m[1]);
     const b = Number(m[2]);
     if (b >= a) continue;
-    const what = `AI safety could be as low as ${b}, not ${a}`;
-    const text = ch.cause === EVENTS.opaque.title ? `${THREAT_BY_ID.opaque.name} made you less certain: ${what}.` : `${ch.cause}: ${what}.`;
+    const what = `verified AI safety ${a} → ${b}`;
+    const text = ch.cause === EVENTS.opaque.title ? `${THREAT_BY_ID.opaque.name}: ${what}.` : `${ch.cause}: ${what}.`;
     out.push({ text, by: a - b });
   }
   return out.sort((x, y) => y.by - x.by).slice(0, 3).map((x) => x.text);

@@ -31,6 +31,9 @@ const firstSentence = (t: string) => {
   return m && m[0].length < t.length ? `${m[0]} …` : t;
 };
 const KEYS: GaugeKey[] = ['aiPower', 'cooperation', 'confidence', 'cohesion'];
+/** US–China cooperation's zone (Pause 60+, Race 30–59, Rupture below 30). */
+const zoneOf = (v: number) =>
+  v >= 60 ? { id: 'p', name: 'Pause', range: '60+' } : v >= 30 ? { id: 'a', name: 'Race', range: '30–59' } : { id: 'r', name: 'Rupture', range: 'under 30' };
 type Vals = { aiPower: number; cooperation: number; confidence: number; margin: number; cohesion: number };
 type Live = { item: MapItem; kind: 'headline' | 'voice'; state: 'wait' | 'live' | 'gone'; until: number };
 
@@ -224,7 +227,8 @@ export class App {
     const line = (label: string, x: number, y: number, pre = '') => x !== y && moved.push(`${label} ${pre}${x} → ${pre}${y}`);
     line(GAUGE_LABEL.aiPower, a.aiPower, b.aiPower);
     line(GAUGE_LABEL.cooperation, a.cooperation, b.cooperation);
-    line(GAUGE_LABEL.confidence, a.confidence, b.confidence);
+    // AI safety: what the labs claim, then what is verified
+    line(this.safety().audited ? GAUGE_LABEL.confidence : `${GAUGE_LABEL.confidence} claimed`, a.confidence, b.confidence);
     const low = (x: Vals) => Math.max(0, Math.round(x.confidence - x.margin));
     if (a.margin !== b.margin) moved.push(marginText(low(a), low(b), a.margin, b.margin));
     line(GAUGE_LABEL.cohesion, a.cohesion, b.cohesion);
@@ -543,15 +547,15 @@ export class App {
 
   private buildShell() {
     const tip = this.e.gauges(this.s).find((g) => g.key === 'aiPower')?.target ?? 80;
+    // every gauge has the same four rows, aligned across the cards: name and "?"; the value, its change and a
+    // status chip; the bar with its marks; one caption. The subtitle is behind "?" (and in the description).
     const gauge = (k: GaugeKey, coach: string) => `
       <section class="gauge g-${k}" data-key="${k}" data-coach="${coach}" aria-labelledby="gn-${k}">
-        <div class="g-top"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-val num" aria-hidden="true"></span>${k === 'cooperation' ? '<span class="g-zone" aria-hidden="true"></span>' : ''}<span class="g-after num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
-          <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(GAUGE_LABEL[k])}" aria-describedby="gd-${k}">?</button></div>
-        <div class="g-subrow" aria-hidden="true"><p class="g-sub">${esc(GAUGE_SUB[k])}</p><svg class="spark" viewBox="0 0 48 16" preserveAspectRatio="none"><title>History since 2027</title><polyline points=""/></svg></div>
-        <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? `<i class="g-tipzone"></i><span class="g-tick" style="left:${tip}%">${tip}</span>` : ''}<i class="g-band"></i><i class="g-fill"></i><i class="g-ghost" hidden></i><i class="g-target"></i><span class="g-target-l"></span></div>
-        ${k === 'cooperation' ? '<div class="g-zones" aria-hidden="true"><span>Rupture</span><span>Race</span><span>Pause</span></div>' : ''}
-        ${k === 'aiPower' ? `<p class="g-tipline" aria-hidden="true"><span class="long">${esc(TIPPING_LINE(tip))}</span><span class="short">${tip} = the tipping point</span></p><p class="g-eta" aria-hidden="true"></p>` : ''}
-        <ul class="g-markers"></ul>
+        <div class="g-head"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-alerts" aria-hidden="true"></span>
+          <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(GAUGE_LABEL[k])}" aria-describedby="gd-${k}" title="${esc(GAUGE_SUB[k])}">?</button></div>
+        <div class="g-line" aria-hidden="true"><span class="g-val num"></span><span class="g-delta"></span><span class="g-after num"></span><span class="g-chip"></span></div>
+        <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? '<i class="g-tipzone"></i>' : ''}<i class="g-fill"></i><i class="g-band"></i><i class="g-ghost g-ghost-low" hidden></i><i class="g-ghost" hidden></i><i class="g-target"></i></div>
+        <p class="g-cap" aria-hidden="true">${k === 'aiPower' ? `<span class="long">${esc(TIPPING_LINE(tip))}</span><span class="short">${tip} = the tipping point</span>` : ''}</p>
         <p class="sr-only" id="gd-${k}"></p>
       </section>`;
     this.root.innerHTML = `
@@ -636,18 +640,6 @@ export class App {
     this.renderHeading();
     this.map.update({ aiPower: this.shown.aiPower, cooperation: this.shown.cooperation, coalition: this.s.coalition, europeAi: this.s.europeAi });
     this.map.setUnrest(this.s.cohesion < 40 ? 2 : this.s.cohesion < 52 ? 1 : 0);
-    this.renderSparks();
-  }
-
-  /** Each gauge's history since 2027, as a small line (public values only). */
-  private renderSparks() {
-    const tr = this.e.trends(this.s);
-    for (const k of KEYS) {
-      const pl = this.root.querySelector<SVGPolylineElement>(`.gauge[data-key="${k}"] .spark polyline`);
-      if (!pl) continue;
-      const pts = tr[k].map((v, i) => `${((i * 48) / 12).toFixed(1)},${(15 - (Math.max(0, Math.min(100, v)) * 14) / 100).toFixed(1)}`).join(' ');
-      if (pl.getAttribute('points') !== pts) pl.setAttribute('points', pts);
-    }
   }
 
   private setPhase(text: string) {
@@ -706,11 +698,34 @@ export class App {
     if (changed) this.renderGauges();
   }
 
+  /** AI safety as drawn: what is verified (the low end; the truth is never lower) and what the labs claim. */
+  private safety(): { low: number; claim: number; audited: boolean } {
+    const audited = this.e.gauges(this.s).find((x) => x.key === 'confidence')!.audited;
+    const claim = Math.round(this.shown.confidence);
+    return { low: audited ? claim : Math.max(0, Math.round(this.shown.confidence - this.shown.margin)), claim, audited };
+  }
+
+  /** AI safety's two parts if the selected cards were confirmed (public values only); null without a change or once audited. */
+  private safetyAfter(): { low: number; claim: number; tone: number } | null {
+    const imp = this.pv?.ok ? this.pv.impacts : [];
+    const i = imp.find((x) => x.key === 'confidence');
+    const m = imp.find((x) => x.key === 'margin');
+    const c = this.safety();
+    if ((!i && !m) || c.audited) return null;
+    const claim = i ? Number(i.after) : c.claim;
+    const low = m ? Number(m.after) : Math.max(0, claim - Math.round(this.shown.margin));
+    return { low, claim, tone: Math.sign(low - c.low) || Math.sign(claim - c.claim) };
+  }
+
+  /** The value as written on the gauge: AI safety reads as a range, verified–claimed ("40–57"). */
+  private valueText(k: GaugeKey): string {
+    if (k !== 'confidence') return String(Math.round(this.shown[k]));
+    const c = this.safety();
+    return c.audited || c.low === c.claim ? String(c.claim) : `${c.low}–${c.claim}`;
+  }
+
   private gaugeText(k: GaugeKey): string {
-    const g = this.e.gauges(this.s).find((x) => x.key === k)!;
-    const v = Math.round(k === 'confidence' ? this.shown.confidence : this.shown[k]);
-    if (k === 'confidence') return g.audited ? `${v} audited` : `${v}, could be as low as ${Math.max(0, v - Math.round(this.shown.margin))}`;
-    return String(v);
+    return k === 'confidence' && this.safety().audited ? `${this.valueText(k)} audited` : this.valueText(k);
   }
 
   private lastSig = '';
@@ -722,39 +737,35 @@ export class App {
     const sig = KEYS.map((k) => Math.round(this.shown[k])).join() + Math.round(this.shown.margin) + views.map((g) => `${g.target}${g.targetKind}${g.eta}${g.markers.map((m) => m.text).join()}`).join();
     if (sig === this.lastSig && !flash) return;
     this.lastSig = sig;
+    const pct = (x: number) => `${Math.max(0, Math.min(100, x))}%`;
     for (const g of views) {
       const box = this.root.querySelector<HTMLElement>(`.gauge[data-key="${g.key}"]`);
       if (!box) continue;
       const v = Math.round(this.shown[g.key]);
-      const base = g.key === 'confidence' ? start.estimate : start[g.key];
-      const delta = this.s.round > 0 ? v - Math.round(base) : 0;
-      box.querySelector('.g-val')!.textContent = String(v);
-      // AI safety: the reported value, and how low it could really be (the uncertainty lies only below)
-      const lowV = g.key === 'confidence' && !g.audited ? Math.max(0, v - Math.round(this.shown.margin)) : null;
-      if (g.key === 'confidence') {
-        let lowEl = box.querySelector<HTMLElement>('.g-low');
-        if (!lowEl) {
-          lowEl = document.createElement('p');
-          lowEl.className = 'g-low';
-          lowEl.setAttribute('aria-hidden', 'true');
-          box.querySelector('.g-bar')!.after(lowEl);
-        }
-        const t = g.audited ? 'Audited: the true value' : `Could be as low as ${lowV}`;
-        if (lowEl.textContent !== t) lowEl.textContent = t;
-      }
+      const safety = g.key === 'confidence' ? this.safety() : null;
+      // the change since the round began; for AI safety, of the verified part (the part that counts)
+      const base = g.key === 'confidence' ? Math.max(0, start.estimate - start.margin) : start[g.key];
+      const delta = this.s.round > 0 ? (safety ? safety.low : v) - Math.round(base) : 0;
+      const val = box.querySelector('.g-val')!;
+      const vt = this.valueText(g.key);
+      if (val.textContent !== vt) val.textContent = vt;
       const dEl = box.querySelector<HTMLElement>('.g-delta')!;
       const good = g.key === 'aiPower' ? 0 : Math.sign(delta);
       dEl.textContent = delta ? signed(delta) : '';
       dEl.className = `g-delta ${good > 0 ? 'good' : good < 0 ? 'bad' : 'flat'}`;
-      const pct = (x: number) => `${Math.max(0, Math.min(100, x))}%`;
-      (box.querySelector('.g-fill') as HTMLElement).style.width = pct(this.shown[g.key]);
+      // AI safety: solid up to what is verified, hatched from there to what the labs claim
+      const fill = box.querySelector<HTMLElement>('.g-fill')!;
       const band = box.querySelector<HTMLElement>('.g-band')!;
-      if (g.key === 'confidence' && !g.audited) {
-        // the band lies only below the reported value
-        band.style.left = pct(this.shown.confidence - this.shown.margin);
-        band.style.width = `${Math.min(100, this.shown.confidence) - Math.max(0, this.shown.confidence - this.shown.margin)}%`;
+      if (safety && !safety.audited) {
+        const lo = Math.max(0, this.shown.confidence - this.shown.margin);
+        fill.style.width = pct(lo);
+        band.style.left = pct(lo);
+        band.style.width = pct(Math.min(100, this.shown.confidence) - lo);
         band.hidden = false;
-      } else band.hidden = true;
+      } else {
+        fill.style.width = pct(this.shown[g.key]);
+        band.hidden = true;
+      }
       if (g.key === 'aiPower') {
         const tg = box.querySelector<HTMLElement>('.g-target')!;
         tg.hidden = g.target === null;
@@ -762,39 +773,30 @@ export class App {
           tg.style.left = pct(g.target);
           tg.className = 'g-target tipping';
         }
-        box.querySelector<HTMLElement>('.g-target-l')!.hidden = true;
-      }
-      if (g.key === 'cooperation') {
-        // the current zone, highlighted and named on the gauge
-        const z = v >= 60 ? 'p' : v >= 30 ? 'a' : 'r';
-        const name = { p: 'Pause', a: 'Race', r: 'Rupture' }[z];
-        const zEl = box.querySelector<HTMLElement>('.g-zone')!;
-        if (zEl.textContent !== name) zEl.textContent = name;
-        zEl.className = `g-zone z-${z}`;
-        for (const x of ['r', 'a', 'p']) box.querySelector(`.zone-${x}`)?.classList.toggle('on', x === z);
-        box.querySelectorAll<HTMLElement>('.g-zones span').forEach((sp, i) => sp.classList.toggle('on', ['r', 'a', 'p'][i] === z));
-      }
-      if (g.key === 'aiPower') {
         box.classList.toggle('near', v >= 70);
-        const eta = box.querySelector<HTMLElement>('.g-eta')!;
-        if (eta.textContent !== (g.eta ?? '')) eta.textContent = g.eta ?? '';
       }
-      box.querySelector('.g-markers')!.innerHTML = g.markers
-        .map((m) => `<li class="${m.prepared ? 'yes' : 'no'}">${m.prepared ? ICON.check : ICON.alert}<span>${esc(m.text)}</span></li>`)
+      // US–China cooperation: the current zone is highlighted on the bar and named in the caption
+      if (g.key === 'cooperation') for (const x of ['r', 'a', 'p']) box.querySelector(`.zone-${x}`)?.classList.toggle('on', x === zoneOf(v).id);
+      // threats aimed at this gauge: a small mark by its name (in full in "?", on the map and in the description)
+      const alerts = g.markers
+        .map((m) => `<span class="g-alert ${m.prepared ? 'yes' : 'no'}" title="${esc(m.text)}">${m.prepared ? ICON.check : ICON.alert}${esc(m.prepared ? 'ready' : (/[−-]\d+/.exec(m.text)?.[0] ?? 'risk'))}</span>`)
         .join('');
+      const al = box.querySelector<HTMLElement>('.g-alerts')!;
+      if (al.innerHTML !== alerts) al.innerHTML = alerts;
       const words =
         g.key === 'aiPower'
           ? `${v} out of 100. At 80, AI starts improving itself: the tipping point, where the world’s ending is decided.${g.eta ? ` ${g.eta}` : ''}`
-          : g.key === 'confidence'
-            ? g.audited
+          : safety
+            ? safety.audited
               ? `${v}, audited: the true value.`
-              : `${v}, as the labs report it. It could be as low as ${lowV}: the truth lies between ${lowV} and ${v}, never higher.`
+              : `${safety.low} verified; the labs claim ${safety.claim}. Only the verified part counts toward your goal; the truth lies between ${safety.low} and ${safety.claim}.`
             : `${v} out of 100.`;
-      const zone = g.key === 'cooperation' ? ` Zone: ${v >= 60 ? 'Pause' : v >= 30 ? 'Race' : 'Rupture'}.` : '';
+      const zone = g.key === 'cooperation' ? ` Zone: ${zoneOf(v).name}.` : '';
       const sub = ` ${g.sub}.`;
       const og = g.key === hd.decides.key ? hd.decides : g.key === hd.net.key ? hd.net : null;
       const tgt = og ? ` ${og === hd.decides ? 'Goal' : 'Floor'} for the world you are heading to: ${og.bar}, ${statusOf(og)}.` : '';
-      const ch = delta ? ` ${delta > 0 ? 'Up' : 'Down'} ${Math.abs(delta)} this round.` : '';
+      const dir = delta > 0 ? 'up' : 'down';
+      const ch = delta ? ` ${safety ? `Verified part ${dir}` : `${dir.charAt(0).toUpperCase()}${dir.slice(1)}`} ${Math.abs(delta)} this round.` : '';
       const desc = `${words}${g.key === 'aiPower' ? '' : sub}${zone}${tgt}${ch}${g.markers.length ? ` ${g.markers.map((m) => m.text).join('. ')}.` : ''}`;
       const d = box.querySelector<HTMLElement>(`#gd-${g.key}`)!;
       if (d.textContent !== desc) d.textContent = desc;
@@ -809,33 +811,73 @@ export class App {
   }
 
   /**
-   * The targets drawn on the gauges: on the gauge that decides the world, a tick "goal 75 · short"; on the
-   * safety net, "floor 55 · on track" (AI safety's status uses its low end). While cards are selected, the ticks
-   * show where the selection would take them, dashed.
+   * Each gauge's status chip and caption: on the gauge that decides the world a tick and "goal 75" with "short" or
+   * "on track"; on the safety net "floor 55" (AI safety's status uses what is verified). AI capabilities: the
+   * tipping point, and a chip when it looks close. Cooperation: its zone. While cards are selected, the chips,
+   * ticks and captions show where the selection would take them, dashed.
    */
   private renderTargets() {
     const now = this.e.heading(this.s);
     const pv = this.pv?.ok ? this.pv : null;
     const h = pv ? pv.outlookAfter : now;
     const pct = (x: number) => `${Math.max(0, Math.min(100, x))}%`;
+    const both = (long: string, short = long) => (long === short ? long : `<span class="long">${long}</span><span class="short">${short}</span>`);
+    const arrow = (a: number | string, b: number | string) => (a === b ? `${a}` : `<b class="pv">${a} → ${b}</b>`);
     for (const k of KEYS) {
-      if (k === 'aiPower') continue;
       const box = this.root.querySelector<HTMLElement>(`.gauge[data-key="${k}"]`);
       if (!box) continue;
-      const tg = box.querySelector<HTMLElement>('.g-target')!;
-      const tl = box.querySelector<HTMLElement>('.g-target-l')!;
-      const role = h.decides.key === k ? 'goal' : h.net.key === k ? 'floor' : null;
-      tg.hidden = tl.hidden = !role;
-      if (!role) continue;
-      const og = role === 'goal' ? h.decides : h.net;
-      const was = pv ? (now.decides.key === k ? now.decides : now.net.key === k ? now.net : null) : null;
-      const st = statusOf(og);
-      const moved = !!pv && (!was || was.bar !== og.bar || statusOf(was) !== st);
-      tg.style.left = tl.style.left = pct(og.bar);
-      tg.className = `g-target ${role}${moved ? ' pv' : ''}`;
-      tl.className = `g-target-l${og.bar >= 70 ? ' end' : ''}${moved ? ' pv' : ''}`;
-      const html = `${role} ${og.bar} · ${was && moved && statusOf(was) !== st ? `${statusOf(was)} → ` : ''}<b class="st ${st === 'on track' ? 'yes' : 'no'}">${st}</b>`;
-      if (tl.innerHTML !== html) tl.innerHTML = html;
+      const chip = box.querySelector<HTMLElement>('.g-chip')!;
+      const cap = box.querySelector<HTMLElement>('.g-cap')!;
+      let chipHtml = '';
+      let chipCls = 'g-chip';
+      const setCap = (html: string) => cap.innerHTML !== html && (cap.innerHTML = html);
+      if (k === 'aiPower') {
+        // the caption (tipping point at 80) never changes; the chip says when it looks close
+        const eta = this.e.gauges(this.s).find((g) => g.key === 'aiPower')?.eta ?? null;
+        if (eta) {
+          const m = /in (~[\d–]+ rounds?)/.exec(eta);
+          chipHtml = both(m ? `tipping in ${m[1]}` : 'tipped', m ? m[1] : 'tipped');
+          chipCls += ' eta';
+        }
+      } else {
+        const tg = box.querySelector<HTMLElement>('.g-target')!;
+        const role = h.decides.key === k ? 'goal' : h.net.key === k ? 'floor' : null;
+        const og = role === 'goal' ? h.decides : role === 'floor' ? h.net : null;
+        const was = pv ? (now.decides.key === k ? now.decides : now.net.key === k ? now.net : null) : null;
+        let tgt = '';
+        let barHtml = '';
+        tg.hidden = !og;
+        if (og) {
+          const st = statusOf(og);
+          const stWas = was ? statusOf(was) : null;
+          const moved = !!pv && (!was || was.bar !== og.bar || stWas !== st);
+          tg.style.left = pct(og.bar);
+          tg.className = `g-target ${role}${moved ? ' pv' : ''}`;
+          barHtml = was ? arrow(was.bar, og.bar) : `${og.bar}`;
+          tgt = `${role} ${barHtml}`;
+          chipHtml = stWas && stWas !== st ? both(`${stWas} → ${st}`, st) : st;
+          chipCls += ` ${st === 'on track' ? 'yes' : 'no'}${moved ? ' pv' : ''}`;
+        }
+        if (k === 'confidence') {
+          const c = this.safety();
+          const a = this.safetyAfter() ?? c;
+          const plain = (x: string) => x.replace(/<[^>]+>/g, '');
+          if (c.audited) setCap(both(`Audited: the true value${tgt ? ` · ${tgt}` : ''}`, `audited${tgt ? ` · ${tgt}` : ''}`));
+          else {
+            const long = `Verified ${arrow(c.low, a.low)} · labs claim ${arrow(c.claim, a.claim)}`;
+            const short = `${arrow(c.low, a.low)} verified`;
+            // the target joins the line when it fits on one line (it is always drawn on the bar)
+            setCap(both(plain(long + tgt).length <= 48 && tgt ? `${long} · ${tgt}` : long, plain(short + tgt).length <= 28 && tgt ? `${short} · ${tgt}` : short));
+          }
+        } else if (k === 'cooperation') {
+          const z = zoneOf(Math.round(this.shown.cooperation));
+          const i = pv?.impacts.find((x) => x.key === 'cooperation');
+          const za = i ? zoneOf(Number(i.after)) : z;
+          setCap(za.id !== z.id ? both(`<b class="pv">${z.name} → ${za.name}</b> zone`, `<b class="pv">${z.name} → ${za.name}</b>`) : both(`${z.name} zone · ${z.range}`, `${z.name} zone`));
+        } else setCap(og ? both(role === 'goal' ? `Goal ${barHtml}: reach it to end well` : `Floor ${barHtml}: never fall below`, tgt) : '');
+      }
+      if (chip.innerHTML !== chipHtml) chip.innerHTML = chipHtml;
+      chip.className = chipCls;
     }
   }
 
@@ -848,32 +890,41 @@ export class App {
     this.renderHeading();
   }
 
-  /** Each gauge the selection moves shows where it would go: "→ 55" by its value and a ghost mark on its bar. */
+  /** Each gauge the selection moves shows where it would go: "→ 55" by its value (AI safety: "→ 52–60") and ghost marks on its bar. */
   private renderGaugePreview() {
     const imp = this.pv?.ok ? this.pv.impacts : [];
+    const tone = (t: number) => (t > 0 ? 'good' : t < 0 ? 'bad' : 'flat');
     for (const k of KEYS) {
       const box = this.root.querySelector<HTMLElement>(`.gauge[data-key="${k}"]`);
       if (!box) continue;
       const i = imp.find((x) => x.key === k);
-      const m = k === 'confidence' ? imp.find((x) => x.key === 'margin') : undefined;
+      const sa = k === 'confidence' ? this.safetyAfter() : null;
+      let text = '';
+      let t = 0;
+      let at = NaN;
+      let atLow = NaN;
+      if (sa) {
+        const c = this.safety();
+        text = `→ ${sa.low === sa.claim ? sa.claim : `${sa.low}–${sa.claim}`}`;
+        t = sa.tone;
+        if (sa.claim !== c.claim) at = sa.claim;
+        if (sa.low !== c.low) atLow = sa.low;
+      } else if (i) {
+        text = `→ ${i.after}`;
+        t = i.tone;
+        at = Number.parseFloat(i.after);
+      }
       const after = box.querySelector<HTMLElement>('.g-after')!;
-      const ghost = box.querySelector<HTMLElement>('.g-ghost')!;
-      const tone = (t: number) => (t > 0 ? 'good' : t < 0 ? 'bad' : 'flat');
-      const parts: string[] = [];
-      if (i) parts.push(`<span class="${tone(i.tone)}">→ ${esc(i.after)}</span>`);
-      if (m) parts.push(`<span class="${tone(m.tone)}">low → ${esc(m.after)}</span>`);
-      if (k === 'cooperation' && i) {
-        const zone = (x: number) => (x >= 60 ? 'Pause' : x >= 30 ? 'Race' : 'Rupture');
-        if (zone(Number(i.before)) !== zone(Number(i.after))) parts.push(`<span class="${tone(i.tone)}">${zone(Number(i.after))}</span>`);
-      }
-      after.innerHTML = parts.join(' ');
-      box.classList.toggle('previewing', parts.length > 0);
-      const v = i ? Number.parseFloat(i.after) : NaN;
-      ghost.hidden = !Number.isFinite(v);
-      if (Number.isFinite(v)) {
-        ghost.style.left = `${Math.max(0, Math.min(100, v))}%`;
-        ghost.className = `g-ghost ${tone(i!.tone)}`;
-      }
+      after.innerHTML = text ? `<span class="${tone(t)}">${esc(text)}</span>` : '';
+      box.classList.toggle('previewing', !!text);
+      const ghost = (el: HTMLElement, x: number) => {
+        el.hidden = !Number.isFinite(x);
+        if (Number.isFinite(x)) el.style.left = `${Math.max(0, Math.min(100, x))}%`;
+        el.classList.toggle('good', t > 0);
+        el.classList.toggle('bad', t < 0);
+      };
+      ghost(box.querySelector<HTMLElement>('.g-ghost:not(.g-ghost-low)')!, at);
+      ghost(box.querySelector<HTMLElement>('.g-ghost-low')!, atLow);
     }
   }
 

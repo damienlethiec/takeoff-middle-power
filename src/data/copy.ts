@@ -15,19 +15,20 @@ export const GAUGE_LABEL: Record<GaugeKey, string> = {
 export const GAUGE_SUB: Record<GaugeKey, string> = {
   aiPower: 'How close AI is to improving itself',
   cooperation: 'Pause · Race · Rupture',
-  confidence: 'Does AI do what we intend? As the labs report it: it could be lower',
+  confidence: 'Does AI do what we intend? The labs claim a number; only what is verified counts',
   cohesion: 'Does Europe hold together?',
 };
 
 /** What the tipping point means, on the capabilities gauge. */
 export const TIPPING_LINE = (at: number) => `Tipping point at ${at}: your choices decide the ending`;
 
-/** "71, could be as low as 41": what the labs report, and how low the truth could be (never higher). */
-export const lowText = (reported: number, low: number) => `${reported}, could be as low as ${low}`;
+/** "41 verified, 71 claimed": what has been verified (the truth is never lower) and what the labs claim (never higher). */
+export const lowText = (reported: number, low: number) => `${low} verified, ${reported} claimed`;
 
-/** "AI safety: more certain (could be as low as 41 → 56)". The uncertainty only ever lies below the reported value. */
+/** "AI safety: more certain (verified 41 → 56)": the verified part grows or shrinks. The truth is never above the
+ *  labs' claim, never below what is verified. (The simulation's request scoring reads "certain" in these chips.) */
 export const marginText = (lowBefore: number | string, lowAfter: number | string, uBefore: number, uAfter: number) =>
-  `${GAUGE_LABEL.confidence}: ${uAfter > uBefore ? 'less' : 'more'} certain (could be as low as ${lowBefore} → ${lowAfter})`;
+  `${GAUGE_LABEL.confidence}: ${uAfter > uBefore ? 'less' : 'more'} certain (verified ${lowBefore} → ${lowAfter})`;
 
 export const GAUGE_HELP: Record<GaugeKey, string> = {
   aiPower:
@@ -35,7 +36,7 @@ export const GAUGE_HELP: Record<GaugeKey, string> = {
   cooperation:
     'Trust between the US and China. Pause 60+, Race 30–59, Rupture below 30. The zone at the tipping point sets the kind of world.',
   confidence:
-    'Does AI do what we intend? You see what the labs and testers report. The truth is never higher, and it could be lower: down to the low end of the band. Labs’ reports flatter and push the value up; oversight (the AI Office, inspections, audits) raises the low end.',
+    'Does AI do what we intend? The labs report a number, but nobody has checked all of it. Only the verified part counts toward your goal: the solid part of the bar. The hatched part is what the labs claim and nobody has verified. The AI Office, inspections and audits grow the verified part; secrecy and opaque AI shrink it. The truth lies in between, revealed at the end.',
   cohesion: 'Whether European society holds together: jobs, trust in institutions, safety from misuse.',
 };
 
@@ -97,7 +98,7 @@ export const CREDITS =
  *  At most four before the first decision (the race, the world, where it is heading, Influence); after that,
  *  only what does not explain itself, the first time it appears. All are listed in Help. */
 export const TIPS = {
-  race: { anchor: 'clock confidence', title: 'The race', text: '**AI capabilities** rise every round; at 80, AI starts improving itself: the tipping point, where the world’s ending is decided.\n**AI safety** is how sure we are that AI does what we intend: the labs report a number, and it could be as low as the bottom of the band. Keep safety ahead.' },
+  race: { anchor: 'clock confidence', title: 'The race', text: '**AI capabilities** rise every round; at 80, AI starts improving itself: the tipping point, where the world’s ending is decided.\n**AI safety** is how sure we are that AI does what we intend: the labs report a number, but only the verified part (solid) counts; the hatched part is unchecked. Inspections and audits grow it. Keep safety ahead.' },
   world: { anchor: 'cooperation cohesion', title: 'The superpowers and Europe', text: '**US–China cooperation** sets the kind of world: Pause 60+, Race 30–59, Rupture below 30.\n**Social cohesion** is whether Europe holds together: jobs, trust, safety from misuse.' },
   outlook: { anchor: 'heading', title: 'Where the world is heading', text: 'If AI tipped now, this is the world you would get and what it needs to end well. Each round is six months from 2027; the game ends at the tipping point, or after 12 rounds.' },
   influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.' },
@@ -121,7 +122,7 @@ export const HELP = {
     'AI capabilities rise every round. At 80, AI starts improving itself: the tipping point (never before round 6). Where the world stands then decides the ending. If it never gets there, the game ends after round 12.',
     'At the tipping point, the US–China cooperation zone sets the world: Pause, Race or Rupture. Without a tipping point, Europe’s AI badge sets it.',
     'In each world, one gauge decides (its goal) and the other pillar is a safety net (its floor). Both are marked on their gauges, and the line under the gauges names the world you are heading for. Europe’s AI, at the end of that line, decides the world if AI never tips.',
-    'AI safety is what the labs and testers report, and how low it could really be. The truth is never above the reported value; it is revealed at the end. Your actions can only narrow the uncertainty; secrecy and opaque AI widen it.',
+    'AI safety shows what is verified and what the labs claim (for example 40–57). Only the verified part counts toward your goal. The truth lies in between and is revealed at the end. Oversight (the AI Office, inspections, audits) grows the verified part; secrecy and opaque AI shrink it.',
     'Influence: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Play as many cards a round as your Influence covers, each card once.',
   ],
 };

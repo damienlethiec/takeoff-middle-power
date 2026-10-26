@@ -449,7 +449,7 @@ export interface OutlookGauge {
   label: string;
   /** The deciding gauge's target, or the safety net's floor. */
   bar: number;
-  /** "62, could be as low as 47", "58", or "60 (audited)". */
+  /** "47 verified, 62 claimed", "58", or "60 (audited)". */
   you: string;
   /** The value shown, and the band it may lie in (equal to it for every gauge but AI safety). */
   value: number;
@@ -472,7 +472,7 @@ export interface HeadingView {
   net: OutlookGauge;
   /** The nearest other world and what it takes, only when it is within reach and would help. */
   alt: { world: WorldId; name: string; text: string } | null;
-  /** Full sentence, e.g. "If AI tipped now: Race. To end well: AI safety 75 (you: 62, could be as low as 47) and Social cohesion 55 or more (you: 58)." */
+  /** Full sentence, e.g. "If AI tipped now: Race. To end well: AI safety 75 (you: 47 verified, 62 claimed) and Social cohesion 55 or more (you: 58)." */
   text: string;
 }
 

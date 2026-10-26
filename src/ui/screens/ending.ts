@@ -13,9 +13,9 @@ function gaugeRow(g: EndingView['gauges'][number]): string {
       ? `<i class="eg-mark ${g.targetKind}" style="left:${pct(g.target)}" aria-hidden="true"></i><span class="eg-mark-l ${g.targetKind}" style="left:${pct(g.target)}" aria-hidden="true">${g.targetKind === 'tipping' ? 'tipping' : g.targetKind === 'goal' ? 'goal' : 'floor'} ${g.target}</span>`
       : '';
   const verdict = g.met === null ? '' : g.met ? `<span class="eg-v yes">${ICON.check}met</span>` : `<span class="eg-v no">${ICON.cross}missed</span>`;
-  const words = `${g.label}: ${g.value}${g.seen ? ` (reported ${g.seen})` : ''}${g.target !== null ? `, ${g.targetKind === 'tipping' ? 'tipping point' : g.targetKind} ${g.target}` : ''}${g.met === null ? '' : g.met ? ', met' : ', missed'}.`;
+  const words = `${g.label}: ${g.value}${g.seen ? ` (${g.seen})` : ''}${g.target !== null ? `, ${g.targetKind === 'tipping' ? 'tipping point' : g.targetKind} ${g.target}` : ''}${g.met === null ? '' : g.met ? ', met' : ', missed'}.`;
   return `<li class="eg">
-    <span class="eg-name">${esc(g.label)} <b class="num">${g.value}</b>${g.seen ? ` <small>reported ${esc(g.seen)}</small>` : ''} ${verdict}</span>
+    <span class="eg-name">${esc(g.label)} <b class="num">${g.value}</b>${g.seen ? ` <small>${esc(g.seen)}</small>` : ''} ${verdict}</span>
     <span class="eg-bar" role="img" aria-label="${esc(words)}"><i class="eg-fill k-${g.key}" style="width:${pct(g.value)}"></i>${mark}</span>
   </li>`;
 }
@@ -57,10 +57,10 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
       ${
         v.reveal.audited
           ? `<p class="reveal-big">An independent audit showed you the truth: AI safety was <b class="num">${v.reveal.truth}</b>.</p>`
-          : `<p class="reveal-big">They reported AI safety <b class="num">${v.reveal.estimate}</b>; it could have been as low as <b class="num">${v.reveal.low}</b>. It was <b class="num">${v.reveal.truth}</b>.</p>
-             <p>${v.reveal.truth < v.reveal.estimate ? `The labs’ reports made AI look ${v.reveal.estimate - v.reveal.truth} points safer than it was.` : 'The reports were right: AI was as safe as they said.'} The gap between the reported value and how low it could be is your uncertainty: oversight (the AI Office, inspections, audits) narrows it.</p>`
+          : `<p class="reveal-big">The labs claimed AI safety <b class="num">${v.reveal.estimate}</b>; you had verified <b class="num">${v.reveal.low}</b>. It was <b class="num">${v.reveal.truth}</b>.</p>
+             <p>${v.reveal.truth < v.reveal.estimate ? `The labs’ claims made AI look ${v.reveal.estimate - v.reveal.truth} points safer than it was.` : 'The claims were right: AI was as safe as the labs said.'} The gap between what the labs claimed and what you verified was your uncertainty: oversight (the AI Office, inspections, audits) grows the verified part.</p>`
       }
-      ${v.reveal.widened.length ? `<h3>What made you less certain</h3><ul class="cf">${v.reveal.widened.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
+      ${v.reveal.widened.length ? `<h3>What shrank the verified part</h3><ul class="cf">${v.reveal.widened.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
       <p>The AI pace was <b>${esc(v.reveal.paceText)}</b>.</p>
       ${v.reveal.unreadLeaks.length ? `<h3>The leaks you could not read</h3><ul class="leaks">${leaks(v.reveal.unreadLeaks)}</ul>` : '<p>You read every leak.</p>'}
       ${v.reveal.readLeaks.length ? `<details><summary>The leaks you read (${v.reveal.readLeaks.length})</summary><ul class="leaks">${leaks(v.reveal.readLeaks)}</ul></details>` : ''}

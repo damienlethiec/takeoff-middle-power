@@ -454,7 +454,7 @@ describe('hidden values never leak', () => {
 describe('heading, report, letters', () => {
   it('the heading line names the world, the goal and the safety net', () => {
     const s = fresh(1, { cooperation: 50, cohesion: 58, confidence: { truth: 60, estimate: 62, margin: 15 } });
-    expect(heading(s).text).toBe('If AI tipped now: Race. To end well: AI safety 75 (you: 62, could be as low as 47) and Social cohesion 55 or more (you: 58).');
+    expect(heading(s).text).toBe('If AI tipped now: Race. To end well: AI safety 75 (you: 47 verified, 62 claimed) and Social cohesion 55 or more (you: 58).');
     expect(heading(s).meaning).toMatch(/race/i);
     expect(heading(s).basis.kind).toBe('cfg');
     expect(heading(s).decides).toMatchObject({ key: 'confidence', bar: 75, low: 47, high: 62, met: 'no' });
@@ -556,16 +556,16 @@ describe('endings', () => {
   it('decides on the true Confidence, and says so in one sentence', () => {
     const s = ended({ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 62, estimate: 70, margin: 15 } });
     const v = ending(s);
-    expect(v.sentence).toBe('The superpowers raced. AI safety was 62 (they reported 70, could be as low as 55), below the 75 a race needs: loss of control.');
+    expect(v.sentence).toBe('The superpowers raced. AI safety was 62 (55 verified, the labs claimed 70), below the 75 a race needs: loss of control.');
     expect(v.reveal.truth).toBe(62);
     expect(v.counterfactuals[0]).toMatch(/^With US–China cooperation at 60 or more at the tipping point/);
   });
 
   it('the reveal gives the band the player saw and names what widened it', () => {
-    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, requests: [], values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less certain (could be as low as 56 → 41)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
+    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, requests: [], values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less certain (verified 56 → 41)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
     const v = ending(ended({ ...tip, history, cooperation: 45, cohesion: 60, confidence: { truth: 48, estimate: 71, margin: 30 } }));
     expect(v.reveal).toMatchObject({ low: 41, high: 71, truth: 48, audited: false });
-    expect(v.reveal.widened[0]).toBe('Opaque reasoning made you less certain: AI safety could be as low as 41, not 56.');
+    expect(v.reveal.widened[0]).toBe('Opaque reasoning: verified AI safety 56 → 41.');
   });
 
   it('a safety net that fails is named', () => {

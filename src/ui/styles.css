@@ -123,10 +123,6 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 
 .stage { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 8px; min-height: 0; }
 .theatre { position: relative; min-height: 0; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 8px; }
-/* sparklines: each gauge's history since 2027 */
-.spark { width: 54px; height: 18px; flex: none; align-self: center; margin-left: auto; overflow: visible; color: var(--mute); }
-.spark polyline { fill: none; stroke: currentColor; stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
-.g-aiPower .spark { color: var(--cap); } .g-confidence .spark { color: var(--align); } .g-cohesion .spark { color: var(--concern); }
 /* the live feed beside the map */
 .feed { background: var(--deck); border: 1px solid var(--rule); border-radius: 14px; display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
 .feed-head { display: flex; align-items: center; gap: 8px; padding: 7px 10px 6px; border-bottom: 1px solid var(--rule); }
@@ -177,72 +173,60 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .keys-hint { margin: 0; font-size: 11.5px; color: var(--mute); text-align: right; }
 .keys-hint kbd { margin: 0 2px 0 0; }
 
-/* ---------- gauges ---------- */
-.gauge { background: var(--deck); border: 1px solid var(--rule); border-radius: 12px; padding: 8px 12px 9px; }
+/* ---------- gauges (v4): four cards, the same four rows aligned across them (subgrid):
+   name and "?"; value, change and status chip; the bar and its marks; one caption ---------- */
+.gauge { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 5px; align-content: start; min-width: 0; background: var(--deck); border: 1px solid var(--rule); border-radius: 12px; padding: 7px 12px 8px; }
 .gauge.flash { animation: gflash 1s ease; }
 @keyframes gflash { 0% { box-shadow: 0 0 0 2px var(--ink); } }
-.g-top { display: flex; align-items: baseline; gap: 8px; }
-.g-name { margin: 0; font-family: var(--f-data); font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--mute); margin-right: auto; }
-.g-val { font-family: var(--f-display); font-weight: 800; font-size: 26px; line-height: 1; white-space: nowrap; }
-.g-delta { font-family: var(--f-data); font-size: 12.5px; min-width: 2.6em; text-align: right; }
-.g-delta.good { color: var(--good); } .g-delta.bad { color: var(--crit-text); } .g-delta.flat { color: var(--mute); }
-.g-info { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--rule); background: transparent; color: var(--mute); font-family: var(--f-display); font-weight: 800; font-size: 14px; padding: 0; align-self: center; }
+.g-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.g-name { margin: 0 auto 0 0; min-width: 0; font-family: var(--f-data); font-size: 12px; font-weight: 600; line-height: 1.2; letter-spacing: .05em; text-transform: uppercase; color: var(--mute); }
+.g-info { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--rule); background: transparent; color: var(--mute); font-family: var(--f-display); font-weight: 800; font-size: 14px; padding: 0; }
 .g-info:hover { color: var(--ink); border-color: var(--mute); }
-.g-subrow { display: flex; gap: 8px; align-items: flex-end; }
-.g-sub { flex: 1; min-width: 0; margin: 1px 0 0; font-size: 12px; line-height: 1.3; color: var(--mute); }
-.g-bar { position: relative; height: 14px; margin: 7px 0 2px; border-radius: 7px; background: var(--deck-2); overflow: visible; }
-.g-fill { position: absolute; left: 0; top: 3px; bottom: 3px; border-radius: 4px; background: var(--c, var(--ink)); transition: width .2s linear; }
-.g-band { position: absolute; top: 0; bottom: 0; border-radius: 7px; background: color-mix(in srgb, var(--align) 30%, transparent); border: 1px dashed color-mix(in srgb, var(--align) 70%, transparent); }
-.g-target { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--ink); }
+/* threats aimed at the gauge: "⚠ −15", "✓ ready" by its name (in full in "?" and on the map) */
+.g-alerts { display: flex; gap: 6px; flex: none; }
+.g-alerts:empty { display: none; }
+.g-alert { display: inline-flex; align-items: center; gap: 3px; font-family: var(--f-data); font-size: 11.5px; white-space: nowrap; }
+.g-alert .ico { width: 13px; height: 13px; }
+.g-alert.no { color: var(--crit-text); } .g-alert.yes { color: var(--good); }
+.g-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.g-val { font-family: var(--f-display); font-weight: 800; font-size: 28px; line-height: 1; }
+.g-aiPower .g-val { color: var(--cap); }
+.g-delta { font-family: var(--f-data); font-size: 12.5px; }
+.g-delta:empty { display: none; }
+.g-delta.good { color: var(--good); } .g-delta.bad { color: var(--crit-text); } .g-delta.flat { color: var(--mute); }
+.g-chip { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--f-data); font-size: 11.5px; font-weight: 600; line-height: 1.35; border: 1px solid currentColor; border-radius: 4px; padding: 0 6px; }
+.g-chip:empty { display: none; }
+.g-chip.yes { color: var(--good); } .g-chip.no { color: var(--crit-text); } .g-chip.eta { color: var(--cap); }
+.g-chip.pv { border-style: dashed; }
+.g-bar { position: relative; align-self: center; height: 14px; margin: 3px 0; border-radius: 7px; background: var(--deck-2); }
+.g-fill { position: absolute; left: 0; top: 2px; bottom: 2px; border-radius: 5px; background: var(--c, var(--ink)); transition: width .2s linear; }
+/* AI safety: solid up to what is verified, hatched from there to what the labs claim */
+.g-band { position: absolute; top: 2px; bottom: 2px; border-radius: 0 5px 5px 0; background: repeating-linear-gradient(-45deg, var(--align) 0 2px, transparent 2px 6px); box-shadow: inset 0 0 0 1px var(--align); transition: left .2s linear, width .2s linear; }
+.g-confidence:has(.g-band:not([hidden])) .g-fill { border-radius: 5px 0 0 5px; }
+.g-target { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--ink); z-index: 1; }
 .g-target.floor { background: repeating-linear-gradient(var(--ink) 0 3px, transparent 3px 5px); }
-.g-target-l { position: absolute; top: 15px; transform: translateX(-50%); font-family: var(--f-data); font-size: 10.5px; color: var(--ink); white-space: nowrap; }
+.g-target.tipping { background: var(--rival); }
+.g-target.pv { outline: 1px dashed var(--align); outline-offset: 1px; }
 .g-cooperation .g-fill { --c: var(--ink); }
 .g-confidence .g-fill { --c: var(--align); }
 .g-aiPower .g-fill { --c: var(--cap); }
 .g-aiPower.near .g-fill { --c: var(--rival); }
-.g-tipzone { position: absolute; left: 80%; right: 0; top: 0; bottom: 0; border-radius: 0 7px 7px 0; background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--rival) 40%, var(--deck-2)) 0 4px, var(--deck-2) 4px 8px); }
-.g-target.tipping { background: var(--rival); width: 3px; }
-.g-tipline, .g-eta { margin: 3px 0 0; font-size: 12px; line-height: 1.3; }
-.g-tipline { font-family: var(--f-data); font-size: 11px; color: var(--ink); }
-.g-tipline .short { display: none; }
-/* the tipping point as a small tick label under the bar (small screens, where the line under it is hidden) */
-.g-tick { display: none; position: absolute; top: 15px; transform: translateX(-50%); font-family: var(--f-data); font-size: 10px; line-height: 1; color: var(--crit-text); }
-.g-help-sub { color: var(--mute); }
-.g-eta { color: var(--cap); font-weight: 600; }
-.g-eta:empty { display: none; }
-.g-low { margin: 3px 0 0; font-size: 12px; line-height: 1.3; font-family: var(--f-data); }
-/* its own line, below the "goal 75" label that hangs under the bar */
-.gauge:has(.g-target-l:not([hidden])) .g-low { margin-top: 17px; }
-.g-low ~ .g-markers:not(:empty) { margin-top: 4px; }
-.gauge:has(.g-low) .g-markers:empty { margin-bottom: 0; }
 .g-cohesion .g-fill { --c: var(--concern); }
+.g-tipzone { position: absolute; left: 80%; right: 0; top: 0; bottom: 0; border-radius: 0 7px 7px 0; background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--rival) 40%, var(--deck-2)) 0 4px, var(--deck-2) 4px 8px); }
+/* US–China cooperation: three zones, the current one outlined (and named in the caption), a pointer for the value */
 .g-cooperation .g-bar { background: none; }
 .g-cooperation .g-bar i[class^="zone-"] { position: absolute; top: 0; bottom: 0; }
 .zone-r { left: 0; width: 30%; background: color-mix(in srgb, var(--rival) 35%, var(--deck-2)); border-radius: 7px 0 0 7px; }
 .zone-a { left: 30%; width: 30%; background: color-mix(in srgb, var(--cap) 25%, var(--deck-2)); }
 .zone-p { left: 60%; width: 40%; background: color-mix(in srgb, var(--align) 25%, var(--deck-2)); border-radius: 0 7px 7px 0; }
-.g-cooperation .g-fill { background: transparent; border-right: 4px solid var(--ink); border-radius: 0; top: -3px; bottom: -3px; }
-.g-zones { display: grid; grid-template-columns: 30fr 30fr 40fr; font-family: var(--f-data); font-size: 10.5px; color: var(--mute); margin-top: 3px; }
-.g-zones span:nth-child(2) { text-align: center; }
-.g-zones span:nth-child(3) { text-align: right; }
-/* the current zone, highlighted and named */
-.g-zones span.on { color: var(--ink); font-weight: 700; }
 .g-bar i[class^="zone-"].on { box-shadow: inset 0 0 0 2px var(--ink); }
-.g-zone { font-family: var(--f-data); font-size: 12px; font-weight: 700; border: 1px solid currentColor; border-radius: 4px; padding: 0 5px; align-self: center; }
-.g-zone.z-p { color: var(--align); } .g-zone.z-a { color: var(--cap); } .g-zone.z-r { color: var(--crit-text); }
-/* targets: "goal 75 · short", "floor 55 · on track"; dashed while previewing a selection */
-.g-target-l.end { transform: translateX(-88%); }
-.g-target-l .st.yes { color: var(--good); } .g-target-l .st.no { color: var(--crit-text); }
-.g-target.pv { outline: 1px dashed var(--align); outline-offset: 1px; }
-.g-target-l.pv { color: var(--align); }
-.g-cooperation:has(.g-target:not([hidden])) .g-zones { margin-top: 16px; }
-.gauge:has(.g-target-l:not([hidden])) .g-markers:empty { margin-bottom: 12px; }
-.g-markers { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
-.g-markers:not(:empty) { margin-top: 18px; }
-.g-markers li { display: flex; gap: 6px; align-items: center; font-size: 12px; }
-.g-markers li.no { color: var(--crit-text); }
-.g-markers li.yes { color: var(--good); }
-.g-aiPower .g-val { color: var(--cap); }
+.g-cooperation .g-fill { background: transparent; border-right: 4px solid var(--ink); border-radius: 0; top: -3px; bottom: -3px; }
+/* one caption line: "goal 75", "Race zone · 30–59", "Verified 40 · labs claim 57 · goal 75" */
+.g-cap { margin: 0; min-width: 0; font-size: 11px; font-variant-numeric: tabular-nums; line-height: 1.35; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-cap .short { display: none; }
+.g-cap b.pv { font-weight: 600; color: var(--align); }
+.g-chip .short { display: none; }
+.g-help-sub { color: var(--mute); }
 /* where the world is heading: one line under the gauges (v4, simplest form) */
 .heading-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 5px 12px; background: var(--deck-2); border: 1px solid var(--rule); border-radius: 10px; min-width: 0; }
 .heading-line.flash { animation: gflash 1.2s ease; }
@@ -541,14 +525,13 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .dk-thr-p { display: block; font-size: 12px; color: var(--mute); }
 .dk-thr li.soon .dk-thr-p { color: var(--good); }
 .dk-side-note { margin: 10px 0 0; }
-/* the preview on the real gauges and in the outlook */
+/* the preview on the real gauges: "→ 55" by the value, dotted ghost marks on the bar, dashed targets */
 .g-after { font-family: var(--f-data); font-size: 12.5px; white-space: nowrap; }
 .g-after:empty { display: none; }
 .g-after .good { color: var(--good); } .g-after .bad { color: var(--crit-text); } .g-after .flat { color: var(--ink); }
 .gauge.previewing { box-shadow: 0 0 0 1px var(--align) inset; }
 .gauge.previewing .g-delta { display: none; }
-.g-top { min-width: 0; }
-.g-ghost { position: absolute; top: -5px; bottom: -5px; width: 0; margin-left: -1px; border-left: 3px dotted var(--ink); z-index: 1; }
+.g-ghost { position: absolute; top: -5px; bottom: -5px; width: 0; margin-left: -1px; border-left: 3px dotted var(--ink); z-index: 2; }
 .g-ghost.good { border-left-color: var(--good); } .g-ghost.bad { border-left-color: var(--crit-text); }
 .badge-was { font-size: 12px; color: var(--mute); }
 .overlay:has(.decision) { padding: 12px; }
@@ -742,22 +725,19 @@ body.ended { overflow: auto; }
   .phase { display: none; }
   .mapwrap { height: 46vh; min-height: 260px; }
   .panel { gap: 6px; }
-  .gauge { padding: 6px 8px; }
-  .g-subrow { display: none; }
-  /* compact gauges: name, value and bar; the subtitle is behind "?", the tipping point a tick on the bar */
-  .g-tipline { display: none; }
-  .g-tick { display: block; }
-  .g-aiPower .g-bar { margin-bottom: 12px; }
-  .g-top { gap: 5px; align-items: center; }
-  .g-bar { margin-top: 5px; }
-  .g-zones { font-size: 9.5px; }
-  .g-eta { font-size: 11.5px; }
-  .g-delta { white-space: nowrap; }
-  .g-markers { display: none; } /* listed in the gauge's "?" dialog and on the map */
+  /* compact gauges, the same four rows: shorter chips and captions; threats are on the map and in "?" */
+  .gauge { padding: 6px 8px; row-gap: 3px; }
   .g-name { font-size: 10px; letter-spacing: .02em; line-height: 1.15; }
-  .g-val { font-size: 20px; }
-  .g-delta { min-width: 0; font-size: 11px; }
-  .g-info { width: 26px; height: 26px; }
+  .g-alerts { display: none; }
+  .g-line { gap: 5px; }
+  .g-val { font-size: 21px; }
+  .g-delta, .g-after { font-size: 11px; }
+  .g-chip { font-size: 10.5px; padding: 0 4px; }
+  .g-cap { font-size: 10.5px; }
+  .g-cap .long, .g-chip .long { display: none; }
+  .g-cap .short, .g-chip .short { display: inline; }
+  /* AI safety's preview: the caption says it ("52 → 60 verified"), the bar shows both parts */
+  .g-confidence .g-after { display: none; }
   .wchip { font-size: 15px; }
   .threat-btn { padding: 3px 7px 3px 4px; }
   .threat-btn .tb-txt b { font-size: 11px; }
