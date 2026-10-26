@@ -35,6 +35,13 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
         .join('')}</ul>`
     : '';
   const leaks = (list: EndingView['reveal']['readLeaks']) => list.map((l) => `<li><blockquote>${esc(l.text)}</blockquote></li>`).join('');
+  const TEAM_HUMAN_URL = 'https://www.teamhuman.org/#pledge';
+  // A call to action, not a game fact: Team Human (supported by the Center for AI Safety) asks governments to keep humans in control of AI.
+  const TEAM_HUMAN_CTA = `<aside class="end-cta" aria-labelledby="cta-h" style="margin: 20px 0; padding: 18px 20px; border: 2px solid var(--warn); border-radius: 14px; background: var(--deck-2)">
+      <h2 id="cta-h" style="margin-top: 0">This was a game. The choices are real.</h2>
+      <p>Team Human, a campaign supported by the Center for AI Safety, asks governments to keep humans in control of AI. Add your name to its statement.</p>
+      <p class="row-btns"><a class="btn-primary big" style="background: var(--warn)" href="${TEAM_HUMAN_URL}" target="_blank" rel="noopener noreferrer">Sign the Team Human Statement<span class="sr-only"> (opens in a new tab)</span></a></p>
+    </aside>`;
   root.innerHTML = `<main class="ending-page ${v.good ? 'good' : 'bad'}" id="ending">
     <header class="end-hero">
       <p class="dateline">${esc(v.dateLabel)} · ${esc(v.worldName)}</p>
@@ -42,6 +49,7 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
       <h1 tabindex="-1">${esc(v.title)}</h1>
       <p class="end-why" id="end-why"><span class="sr-only">Why: </span>${esc(v.sentence)}</p>
     </header>
+    ${TEAM_HUMAN_CTA}
     <section class="end-story" aria-labelledby="st-h">
       <h2 id="st-h">The world in 2032</h2>
       <p>${esc(v.story)}</p>
@@ -74,7 +82,7 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
       ${decisions}
       ${threats ? `<h3>The threats</h3>${threats}` : ''}
     </section>
-    <div class="row-btns center end-again"><button type="button" class="btn-primary big" data-again>Play again <kbd>Enter</kbd></button></div>
+    <div class="row-btns center end-again"><a class="btn-primary big" style="background: var(--warn)" href="${TEAM_HUMAN_URL}" target="_blank" rel="noopener noreferrer">Sign the Team Human Statement<span class="sr-only"> (opens in a new tab)</span></a><button type="button" class="btn-primary big" data-again>Play again <kbd>Enter</kbd></button></div>
     <p class="muted small center">Built on <a href="https://ai-2027.com" target="_blank" rel="noopener noreferrer">AI 2027<span class="sr-only"> (opens in a new tab)</span></a> and <a href="https://cfg.eu/advanced-ai-possible-futures/" target="_blank" rel="noopener noreferrer">CFG, Advanced AI: Possible Futures<span class="sr-only"> (opens in a new tab)</span></a>. OpenBrain, DeepCent and every event after today are fiction.</p>
   </main>`;
   root.querySelector<HTMLButtonElement>('[data-again]')!.addEventListener('click', onAgain);
