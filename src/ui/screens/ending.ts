@@ -5,6 +5,7 @@
 import type { EndingView } from '../../engine/types';
 import { ICON, chips, esc, link } from '../format';
 import { MOOD_WORD, leaPortrait } from '../lea';
+import { ENDING_BY_ID } from '../../data/endings';
 
 function gaugeRow(g: EndingView['gauges'][number]): string {
   const pct = (x: number) => `${Math.max(0, Math.min(100, x))}%`;
@@ -47,6 +48,7 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
       <p class="dateline">${esc(v.dateLabel)} · ${esc(v.worldName)}</p>
       <p class="end-kind">${v.good ? 'A good ending' : 'A bad ending'}</p>
       <h1 tabindex="-1">${esc(v.title)}</h1>
+      <p class="end-cfg">In the CFG report: “${esc(ENDING_BY_ID[v.id].cfgName)}” · ${link(v.source)}</p>
       <p class="end-why" id="end-why"><span class="sr-only">Why: </span>${esc(v.sentence)}</p>
     </header>
     ${TEAM_HUMAN_CTA}
