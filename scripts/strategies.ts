@@ -9,7 +9,7 @@ import type { CardId, GameState, Pick, RequestView, Side } from '../src/engine/t
 
 export interface Strategy {
   name: string;
-  /** Cards to play this round, in order (at most two; the runner skips any that became unplayable). */
+  /** Cards to play this round, in order (as many as Influence allows; the runner skips any that became unplayable). */
   decide: (s: GameState, r: RngHolder) => Pick[];
   /** Answer to silicon blackmail. */
   blackmail: (s: GameState, r: RngHolder) => 'give_in' | 'hold_firm';
@@ -47,7 +47,7 @@ export function playGame(seed: number, strat: Strategy): PlayedGame {
       } else break;
     }
     const want = strat.decide(s, r);
-    for (const p of want.slice(0, 2)) {
+    for (const p of want) {
       const c = hand(s).find((x) => x.id === p.id);
       if (!c) continue;
       if (!c.playable) {
@@ -100,7 +100,7 @@ export const randomStrategy: Strategy = {
   decide: (s, r) => {
     const out: Pick[] = [];
     let ids = playableIds(s);
-    const n = randomInt(r, 1, 2);
+    const n = randomInt(r, 1, 3);
     let budget = s.influence;
     for (let i = 0; i < n && ids.length; i++) {
       const id = pick(r, ids);
@@ -121,7 +121,7 @@ export const randomStrategy: Strategy = {
  * is within reach, else a safe Race; in a plateau, Cohesion. It weighs every gauge by how far it is from what
  * that world needs (the low end of the Confidence band, never the truth), scores each card through the
  * public preview (before → after), adds what the card texts say (protection against a visible threat,
- * hidden safety gains, Influence lost later), and plays the best one or two per Influence spent.
+ * hidden safety gains, Influence lost later), and plays the best per Influence spent, as many as it can afford.
  */
 /** The thoughtful player's weights: how far each gauge is from what the world it aims for needs (public values). */
 function thoughtfulWeights(s: GameState) {
@@ -187,7 +187,6 @@ export const thoughtful: Strategy = {
     const out: Pick[] = [];
     let budget = s.influence;
     for (const o of ranked) {
-      if (out.length >= 2) break;
       if (out.some((x) => x.id === o.c.id) || o.c.cost > budget) continue;
       out.push({ id: o.c.id, ...(o.option ? { option: o.option } : {}) });
       budget -= o.c.cost;
@@ -206,7 +205,7 @@ export const cooperationOnly: Strategy = {
     let budget = s.influence;
     for (const id of ['summit', 'attribution', 'talks', 'coalition'] as CardId[]) {
       const c = hand(s).find((x) => x.id === id);
-      if (out.length < 2 && c && ok.has(id) && c.cost <= budget) {
+      if (c && ok.has(id) && c.cost <= budget) {
         out.push({ id });
         budget -= c.cost;
       }
@@ -256,7 +255,7 @@ export const homeFirst: Strategy = {
     let budget = s.influence;
     for (const w of want) {
       const c = hand(s).find((x) => x.id === w.id)!;
-      if (out.length < 2 && c.cost <= budget) {
+      if (c.cost <= budget) {
         out.push(w);
         budget -= c.cost;
       }

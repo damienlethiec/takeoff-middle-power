@@ -157,13 +157,14 @@ describe('cards', () => {
     }
   });
 
-  it('allows up to two cards a round, never the same card twice', () => {
-    let s = fresh(1);
+  it('allows as many cards a round as Influence pays for, never the same card twice', () => {
+    let s = fresh(1, { influence: 5 });
     s = play(s, { id: 'talks' });
     expect(hand(s).find((c) => c.id === 'talks')!.reason).toMatch(/Already played|rest/);
-    s = play(s, { id: 'ai_office' });
-    expect(hand(s).find((c) => c.id === 'inspections')!.reason).toMatch(/Two cards/);
-    expect(() => playCard(s, { id: 'inspections' })).toThrow();
+    s = play(s, { id: 'ai_office' }, { id: 'inspections' });
+    expect(s.played.map((p) => p.id)).toEqual(['talks', 'ai_office', 'inspections']);
+    expect(s.influence).toBe(0);
+    expect(() => playCard(s, { id: 'talks' })).toThrow();
   });
 
   it('refuses a card you cannot afford', () => {

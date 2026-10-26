@@ -12,8 +12,12 @@ import { MAPDATA } from './mapdata';
 
 const NS = 'http://www.w3.org/2000/svg';
 const VB = { x: 14, y: 0, w: 210, h: 68 };
-// The band that must always be visible: the US west coast to Japan, Scandinavia to southern China.
-const CORE = { x0: 26, x1: 211, y0: 1, y1: 44 };
+// The band that must always be visible, centred on the US – Europe – China axis: the US west coast to Japan,
+// the Arctic coast to the tropics (lon −127…146, lat 75…5).
+const CORE = { x0: 27.3, x1: 209.3, y0: 0.7, y1: 47.3 };
+/** When the map is taller than the core, it centres on lat 76…−20: the south fades out below the equator (no polar seas). */
+const FRAME_MID = 32;
+const FADE = { from: 53.3, to: 66.7 }; // lat −4 → −24
 
 type Zone = 'us' | 'eu' | 'cn' | 'uk' | 'no' | 'ca' | 'jp' | 'kr' | 'other';
 export const PARTNERS: { zone: Zone; name: string; level: number; lon: number; lat: number }[] = [
@@ -189,10 +193,12 @@ export class WorldMap {
     const defs = el('defs', {}, svg);
     defs.innerHTML = `
       <pattern id="sea" width="3" height="3" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r=".17" class="sea-dot"/></pattern>
-      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>`;
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>
+      <linearGradient id="south-fade" gradientUnits="userSpaceOnUse" x1="0" y1="${FADE.from}" x2="0" y2="${FADE.to}"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <mask id="south-mask" maskUnits="userSpaceOnUse" x="-60" y="-60" width="360" height="220"><rect x="-60" y="-60" width="360" height="220" fill="url(#south-fade)"/></mask>`;
     el('rect', { x: -60, y: -60, width: 360, height: 220, fill: 'url(#sea)' }, svg);
     this.layers = {
-      land: el('g', { class: 'm-land' }, svg),
+      land: el('g', { class: 'm-land', mask: 'url(#south-mask)' }, svg),
       labs: el('g', { class: 'm-labs' }, svg),
       labels: el('g', { class: 'm-labels' }, svg),
       fx: el('g', { class: 'm-fx' }, svg),
@@ -269,8 +275,8 @@ export class WorldMap {
         vw = ch * aspect;
       }
       const mid = (CORE.x0 + CORE.x1) / 2;
-      const coreMid = (CORE.y0 + CORE.y1) / 2;
-      const y0 = Math.max(-3, Math.min(coreMid - vh * 0.4, Math.max(-3, 86 - vh)));
+      // top-aligned on the core while it fits; taller, centred on the frame (Arctic sea above, faded south below)
+      const y0 = Math.min(CORE.y0 - 2, FRAME_MID - vh / 2);
       svg.setAttribute('viewBox', `${(mid - vw / 2).toFixed(2)} ${y0.toFixed(2)} ${vw.toFixed(2)} ${vh.toFixed(2)}`);
       this.layout();
     };

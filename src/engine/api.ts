@@ -14,8 +14,8 @@
 //   The clock stops; the player asks for:
 //     report(s)              "See what changed": heading line, up to three changes with their cause, threats that moved
 //     hand(s), advisor(s)    "Make my decisions": the hand and the chief of staff's one recommendation
-//     preview(s, picks)      before → after for one or two cards, in public values only (nothing committed)
-//   s = playCard(s, pick)    up to two cards per round, within Influence
+//     preview(s, picks)      before → after for the selected cards, in public values only (nothing committed)
+//   s = playCard(s, pick)    as many cards as Influence allows, each at most once a round
 //   { state, outcome } = endRound(s)
 //     'next'  → startRound again
 //     'ended' → the tipping point was reached this round, or round 12 is over; s.phase === 'ended'

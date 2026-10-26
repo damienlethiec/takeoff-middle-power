@@ -1,7 +1,7 @@
 // The decision screen (v4): the chief of staff's line, a grid of cards that show everything needed to decide
 // (name, Influence cost, effect chips, what it protects against, one line of text, level), and a bar fixed at
 // the bottom with the combined effect of the selected cards (each gauge before → after, the world change)
-// and Confirm. Clicking a card toggles it (up to two, within Influence). Each card has a Details button that
+// and Confirm. Clicking a card toggles it (as many as Influence allows). Each card has a Details button that
 // opens a dialog with the full proposal, the real-world example and cost, and its levels.
 // Cards are toggle buttons (aria-pressed). Nothing is committed until Confirm.
 
@@ -61,12 +61,12 @@ async function showDetails(c: CardView, selected: boolean, canSelect: boolean): 
 
 /** The combined effect of the selected cards, for the bar at the bottom. */
 function summaryHtml(pv: PreviewView | null, picks: number): string {
-  if (!pv) return '<p class="muted dec-hint">Pick up to two cards: their combined effect shows here before you commit.</p>';
+  if (!pv) return '<p class="muted dec-hint">Pick as many cards as your Influence allows: their combined effect shows here before you commit.</p>';
   const world =
     pv.worldAfter !== pv.worldBefore
       ? `<p class="pv-world"><span class="pv-wk">If AI tipped now</span> <b>${esc(pv.worldBefore)} → ${esc(pv.worldAfter)}</b></p>`
       : `<p class="pv-world same"><span class="pv-wk">If AI tipped now</span> still ${esc(pv.worldAfter)}</p>`;
-  return `<h3 class="dec-k">If you confirm <span class="sr-only">${picks === 1 ? 'this card' : 'these two cards'}</span></h3>
+  return `<h3 class="dec-k">If you confirm <span class="sr-only">${picks === 1 ? 'this card' : `these ${picks} cards`}</span></h3>
     ${pv.ok ? '' : `<p class="bad-text">${esc(pv.reason ?? '')}</p>`}
     <div class="dec-line"><ul class="imps compact">${pv.impacts.length ? pv.impacts.map(impactLine).join('') : '<li class="imp flat">No gauge moves right away.</li>'}</ul>
     ${world}</div>
@@ -79,7 +79,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string): Pr
   const picks: Pick[] = [];
   const m = openModal(
     `<div class="dec-head">
-       <div><div class="dateline">${esc(date)} · Your decisions</div><h2>Play up to two cards</h2></div>
+       <div><div class="dateline">${esc(date)} · Your decisions</div><h2>Play your cards</h2></div>
        <p class="dec-inf" aria-live="off"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">Influence<br/>left</span></p>
      </div>
      <section class="advisor" aria-labelledby="adv-h"><span class="ava" aria-hidden="true">CS</span><div><h3 id="adv-h">Your chief of staff</h3><p>${esc(adv.text)}</p></div></section>
@@ -116,7 +116,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string): Pr
       : '<li class="muted">No cards in your hand.</li>';
     m.el.querySelector('#dec-inf')!.innerHTML = picks.length ? `${after.influence}<small> of ${s.influence}</small>` : String(after.influence);
     const cost = picks.reduce((a, p) => a + (hand.find((c) => c.id === p.id)?.cost ?? 0), 0);
-    ok.innerHTML = picks.length ? `Confirm ${picks.length === 1 ? 'this card' : 'these two cards'} (${cost} Influence) <kbd>Enter</kbd>` : 'Pick a card first';
+    ok.innerHTML = picks.length ? `Confirm ${picks.length === 1 ? 'this card' : `these ${picks.length} cards`} (${cost} Influence) <kbd>Enter</kbd>` : 'Pick a card first';
     ok.disabled = !picks.length;
     sumEl.innerHTML = summaryHtml(picks.length ? e.preview(s, picks) : null, picks.length);
     handEl.querySelectorAll<HTMLInputElement>('input[type=radio]').forEach((r) =>
@@ -145,8 +145,9 @@ export async function showDecision(e: EngineApi, s: GameState, date: string): Pr
     }
     picks.push({ id: c.id as Pick['id'], ...(c.options.length ? { option: c.options[0].id } : {}) });
     const pv = e.preview(s, picks);
+    const after = { influence: pv.influenceAfter };
     announce(
-      `Selected ${c.title}. ${pv.impacts.map((x) => `${x.label} ${x.before} to ${x.after}`).join(', ')}.${pv.worldAfter !== pv.worldBefore ? ` The world would turn from ${pv.worldBefore} to ${pv.worldAfter}.` : ''} ${picks.length < 2 ? 'You can add a second card, or' : ''} Tab to Confirm.`,
+      `Selected ${c.title}. ${pv.impacts.map((x) => `${x.label} ${x.before} to ${x.after}`).join(', ')}.${pv.worldAfter !== pv.worldBefore ? ` The world would turn from ${pv.worldBefore} to ${pv.worldAfter}.` : ''} ${after.influence > 0 ? 'You can add another card, or' : ''} Tab to Confirm.`,
     );
     return true;
   };

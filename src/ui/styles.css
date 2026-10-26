@@ -714,7 +714,7 @@ body.ended { overflow: auto; }
 
 /* small screens: the feed under the map replaces the banners */
 @media (max-width: 560px) {
-  .mapwrap { aspect-ratio: 2 / 1.15; min-height: 0; height: auto; }
+  .mapwrap { aspect-ratio: 2 / 1; min-height: 0; height: auto; }
   .m-over .banners, .m-over .voice { display: none; }
   .threat-btn { padding: 2px; border-radius: 50%; min-width: 44px; justify-content: center; }
   .threat-btn .tb-txt { display: none; }

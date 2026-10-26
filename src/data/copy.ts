@@ -71,7 +71,7 @@ export const INTRO: IntroScreen[] = [
     paragraphs: [
       'Europe cannot stop the race. It can shape it, with Influence and policies.',
       'Your goal: when AI reaches the tipping point, have AI we can trust, superpowers who talk, and a society that holds. The calmer the world, the easier a good ending.',
-      'Twelve rounds of six months, from 2027 to 2032. Each round, watch the world move, then play up to two cards.',
+      'Twelve rounds of six months, from 2027 to 2032. Each round, watch the world move, then play as many cards as your Influence allows.',
     ],
     fact: {
       text: 'Since August 2025, makers of new general-purpose AI models offered in the EU must follow EU rules. From August 2026, the European Commission can enforce them, with fines.',
@@ -91,7 +91,7 @@ export const TIPS = {
   zones: { anchor: 'cooperation', title: 'US–China cooperation', text: 'Pause 60+, Race 30–59, Rupture below 30. The calmer the zone at the tipping point, the lower the bar for a good ending.' },
   margin: { anchor: 'confidence', title: 'The uncertainty', text: 'You never know exactly how safe AI is: the truth is somewhere in the band (estimate ± uncertainty). To be sure, keep the whole band above the target.' },
   firstCard: { anchor: 'hand', title: 'Your cards', text: 'Green chips go up, red chips go down. Every card helps something and costs something. Click a card to select it: the bar at the bottom shows what it would change. Details tells you more.' },
-  twoCards: { anchor: 'hand', title: 'Two cards a round', text: 'You can play up to two cards a round if you can afford them. Saving Influence is a choice too.' },
+  twoCards: { anchor: 'hand', title: 'As many cards as you can afford', text: 'You can play several cards in a round, each once, as long as your Influence covers them. Saving Influence is a choice too.' },
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages where they would strike. Open one to see which card protects against it.' },
   breaking: { anchor: 'map', title: 'Breaking news', text: 'When a threat strikes, it hits your gauges. Being prepared makes the difference.' },
   badge: { anchor: 'badge', title: 'Europe’s AI', text: 'Open or Dependent: does Europe run its own models? If AI never reaches the tipping point, this badge decides the kind of world.' },
@@ -115,6 +115,6 @@ export const HELP = {
     'At the tipping point, the US–China cooperation zone sets the world: Pause, Race or Rupture. Without a tipping point, Europe’s AI badge sets it.',
     'In each world, one gauge decides (its goal) and the other pillar is a safety net (its floor). The band under the gauges tells you both.',
     'AI safety is an estimate ± an uncertainty. The true value is revealed at the end; it always lies inside the band.',
-    'Influence: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Up to two cards a round.',
+    'Influence: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Play as many cards a round as your Influence covers, each card once.',
   ],
 };

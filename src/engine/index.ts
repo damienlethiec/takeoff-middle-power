@@ -832,7 +832,6 @@ function blocked(s: GameState, id: CardId): string | null {
   if (id === 'open_models' && s.europeAiLocked) return 'Locked: Europe gave in to the labs.';
   if ((s.restUntil[id] ?? 0) >= s.round) return 'The envoys need a round of rest.';
   if (s.played.some((p) => p.id === id)) return 'Already played this round.';
-  if (s.played.length >= 2) return 'Two cards already played this round.';
   const cost = cardCost(id, s.uses[id] ?? 0);
   if (cost > s.influence) return `Not enough Influence: costs ${cost}, you have ${s.influence}.`;
   return null;

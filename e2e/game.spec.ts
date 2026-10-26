@@ -198,7 +198,7 @@ test.describe('key interactions', () => {
     expect(s.errors).toEqual([]);
   });
 
-  test('a card shows before → after and the heading line before Confirm; up to two cards; Influence is spent', async ({ page }) => {
+  test('a card shows before → after and the heading line before Confirm; several cards; Influence is spent', async ({ page }) => {
     const s = await boot(page, '?skipintro&notutorial&seed=4');
     await advance(page, 10_000);
     const inf = Number(await page.locator('#inf-v').textContent());
@@ -206,7 +206,7 @@ test.describe('key interactions', () => {
     const d = dialog(page);
     await expect(d).toHaveAttribute('aria-label', 'Your decisions');
     await expect(d.getByText('Your chief of staff')).toBeVisible();
-    await expect(d.getByText(/^Pick up to two cards: their combined effect/)).toBeVisible();
+    await expect(d.getByText(/^Pick as many cards as your Influence allows: their combined effect/)).toBeVisible();
     const talks = d.getByRole('button', { name: /^Diplomatic talks/ });
     await talks.click();
     await expect(talks).toHaveAttribute('aria-pressed', 'true');
@@ -215,7 +215,7 @@ test.describe('key interactions', () => {
     // nothing committed yet
     expect(Number(await page.locator('#inf-v').textContent())).toBe(inf);
     await d.getByRole('button', { name: /^AI Office capacity/ }).click();
-    await expect(d.getByRole('button', { name: /^Confirm these two cards/ })).toBeEnabled();
+    await expect(d.getByRole('button', { name: /^Confirm these 2 cards/ })).toBeEnabled();
     await expect(d.getByRole('button', { name: /^Offer to host inspections/ })).toHaveAttribute('aria-pressed', 'false');
     await d.getByRole('button', { name: /^Confirm/ }).click();
     await advance(page, 1500);
