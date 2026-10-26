@@ -78,6 +78,8 @@ export class App {
   async boot() {
     requestAnimationFrame(this.tick);
     document.addEventListener('keydown', this.onKey);
+    window.addEventListener('resize', () => this.fitSubs());
+    void document.fonts?.ready.then(() => this.fitSubs());
     setFocusFallback(() => this.root.querySelector<HTMLElement>('#map-h') ?? this.root.querySelector<HTMLElement>('h1'));
     const params = new URLSearchParams(location.search);
     if (!params.has('skipintro')) await showIntro();
@@ -547,12 +549,13 @@ export class App {
 
   private buildShell() {
     const tip = this.e.gauges(this.s).find((g) => g.key === 'aiPower')?.target ?? 80;
-    // every gauge has the same four rows, aligned across the cards: name and "?"; the value, its change and a
-    // status chip; the bar with its marks; one caption. The subtitle is behind "?" (and in the description).
+    // every gauge has the same rows, aligned across the cards: name and "?"; a short subtitle (when all four fit on
+    // one line, see fitSubs); the value, its change and a status chip; the bar with its marks; one caption.
     const gauge = (k: GaugeKey, coach: string) => `
       <section class="gauge g-${k}" data-key="${k}" data-coach="${coach}" aria-labelledby="gn-${k}">
         <div class="g-head"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-alerts" aria-hidden="true"></span>
           <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(GAUGE_LABEL[k])}" aria-describedby="gd-${k}" title="${esc(GAUGE_SUB[k])}">?</button></div>
+        <p class="g-sub" aria-hidden="true">${esc(GAUGE_SUB[k])}</p>
         <div class="g-line" aria-hidden="true"><span class="g-val num"></span><span class="g-delta"></span><span class="g-after num"></span><span class="g-chip"></span></div>
         <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? '<i class="g-tipzone"></i>' : ''}<i class="g-fill"></i><i class="g-band"></i><i class="g-ghost g-ghost-low" hidden></i><i class="g-ghost" hidden></i><i class="g-target"></i></div>
         <p class="g-cap" aria-hidden="true">${k === 'aiPower' ? `<span class="long">${esc(TIPPING_LINE(tip))}</span><span class="short">${tip} = the tipping point</span>` : ''}</p>
@@ -628,6 +631,7 @@ export class App {
       }),
     );
     this.setSpeed(this.speed);
+    this.fitSubs();
   }
 
   // ------------------------------------------------------------------ rendering
@@ -696,6 +700,15 @@ export class App {
       }
     }
     if (changed) this.renderGauges();
+  }
+
+  /** The subtitles under the gauges' names show only when all four fit on one line; otherwise they stay behind "?". */
+  private fitSubs() {
+    const panel = this.root.querySelector<HTMLElement>('.stage > .panel');
+    if (!panel) return;
+    panel.classList.remove('no-subs');
+    const subs = [...panel.querySelectorAll<HTMLElement>('.g-sub')];
+    panel.classList.toggle('no-subs', subs.some((p) => p.scrollWidth > p.clientWidth + 1));
   }
 
   /** AI safety as drawn: what is verified (the low end; the truth is never lower) and what the labs claim. */
@@ -792,7 +805,7 @@ export class App {
               : `${safety.low} verified; the labs claim ${safety.claim}. Only the verified part counts toward your goal; the truth lies between ${safety.low} and ${safety.claim}.`
             : `${v} out of 100.`;
       const zone = g.key === 'cooperation' ? ` Zone: ${zoneOf(v).name}.` : '';
-      const sub = ` ${g.sub}.`;
+      const sub = ` ${g.sub}${/[.?!]$/.test(g.sub) ? '' : '.'}`;
       const og = g.key === hd.decides.key ? hd.decides : g.key === hd.net.key ? hd.net : null;
       const tgt = og ? ` ${og === hd.decides ? 'Goal' : 'Floor'} for the world you are heading to: ${og.bar}, ${statusOf(og)}.` : '';
       const dir = delta > 0 ? 'up' : 'down';

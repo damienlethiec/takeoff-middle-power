@@ -11,11 +11,12 @@ export const GAUGE_LABEL: Record<GaugeKey, string> = {
   cohesion: 'Social cohesion',
 };
 
-/** One line under each gauge's name: what it measures, in plain words. */
+/** One short line under each gauge's name: what it measures, in plain words. It shows when all four fit on one
+ *  line (on phones it may stay behind "?"); it is always in the gauge's "?" and its description. */
 export const GAUGE_SUB: Record<GaugeKey, string> = {
   aiPower: 'How close AI is to improving itself',
-  cooperation: 'Pause · Race · Rupture',
-  confidence: 'Does AI do what we intend? The labs claim a number; only what is verified counts',
+  cooperation: 'Do the superpowers talk or race?',
+  confidence: 'Does AI do what we intend?',
   cohesion: 'Does Europe hold together?',
 };
 
