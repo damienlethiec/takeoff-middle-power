@@ -71,7 +71,7 @@ A character arrives during the six months with a short request (≤ 40 words) an
 
 "Make my decisions" replaces the map and the feed with the decisions; the header, the gauges and the heading line stay.
 
-- **The hand**: one card per policy, with its cost, effect chips, what it protects against, its level, its tags (New, Opportunity with rounds left, Recommended, Selected). *Details* opens the full proposal, the real-world example and cost with sources, and its levels.
+- **The hand**: one card per policy, grouped into four families with a heading each (Diplomacy; Oversight & security; Research & chips; At home), with its cost, effect chips, what it protects against, its level, its tags (New by its name when it arrived this round, Opportunity with rounds left, Recommended, Selected). *Details* opens the full proposal, the real-world example and cost with sources, and its levels.
 - **The chief of staff** gives one recommendation, in words, without numbers.
 - **Select** any number of cards Influence covers (a line above the hand says so: "Play as many cards as your Influence allows", also announced when the decisions open) (a click toggles; the hand shows what is still affordable). The selection **previews on the real gauges** ("→ 55", a dotted mark on the bar, the targets dashed where they would move) and in the line ("If you confirm: Heading for [Race] → [Pause]") only when the world or a goal's status would change; Europe's AI chip shows "Dependent → Open".
 - **Active threats** are listed beside the hand ("Prepared if you confirm").

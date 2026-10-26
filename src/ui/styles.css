@@ -592,24 +592,33 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .dec-inf .inf-v { white-space: nowrap; }
 .dec-inf .inf-l { padding: 0; }
 .ava { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--align); color: var(--night); font-family: var(--f-display); font-weight: 800; font-size: 14px; }
-.hand { list-style: none; margin: 10px 0 0; padding: 3px; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; align-content: start; overflow: auto; flex: 1; min-height: 0; }
+.hand { margin: 10px 0 0; padding: 3px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-content: flex-start; overflow: auto; flex: 1; min-height: 0; --card-w: 258px; }
+/* v4 (playtests): the hand in families, each with a short heading over its cards; the families sit side by side and
+   wrap like words in a line, so a small hand still fits on one row and Tab follows the reading order */
+.fam { flex: 0 1 auto; min-width: 0; max-width: 100%; display: flex; flex-direction: column; }
+.fam-h { margin: 0 0 5px; padding-bottom: 3px; border-bottom: 1px solid var(--rule); font-family: var(--f-data); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.fam-new { color: var(--warn); text-transform: none; letter-spacing: 0; }
+.fam-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; flex: 1; }
+.fam-cards > .pc-wrap { width: var(--card-w); max-width: 100%; }
 /* desktop: a small hand sits in the middle of the space the map left (no wider than its cards need), its cards a
    little larger when the window is tall and there are four at most, rather than in a corner above blank space;
    a big hand still scrolls inside (the page does not grow) */
 @media (min-width: 768px) and (min-height: 541px) {
-  .dk-main .hand { flex: 0 1 auto; margin: auto; width: 100%; max-width: calc(var(--n, 4) * 420px + (var(--n, 4) - 1) * 10px + 6px); grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); container: hand / inline-size; }
+  .dk-main .hand { container: hand / inline-size; }
+  .dk-main .hand.few { flex: 0 1 auto; margin: auto 0; justify-content: center; }
 }
 @media (min-width: 768px) and (min-height: 860px) {
   @container hand (min-width: 820px) {
-    .hand:not(:has(> li:nth-child(5))) .pcard { gap: 10px; padding: 16px 18px 8px; }
-    .hand:not(:has(> li:nth-child(5))) .pc-name { font-size: 20px; }
-    .hand:not(:has(> li:nth-child(5))) .pc-cost { font-size: 27px; }
-    .hand:not(:has(> li:nth-child(5))) .pc-cost .ico { width: 20px; height: 20px; }
-    .hand:not(:has(> li:nth-child(5))) .pc-chips .chip { font-size: 14px; }
-    .hand:not(:has(> li:nth-child(5))) .pc-prot { font-size: 14.5px; }
-    .hand:not(:has(> li:nth-child(5))) .pc-text { font-size: 16px; line-height: 1.42; }
-    .hand:not(:has(> li:nth-child(5))) .pc-level, .hand:not(:has(> li:nth-child(5))) .tag { font-size: 12px; }
-    .hand:not(:has(> li:nth-child(5))) .pc-details { font-size: 14.5px; margin: 0 10px 8px; }
+    .hand.few { --card-w: 300px; }
+    .hand.few .pcard { gap: 10px; padding: 16px 18px 8px; }
+    .hand.few .pc-name { font-size: 20px; }
+    .hand.few .pc-cost { font-size: 27px; }
+    .hand.few .pc-cost .ico { width: 20px; height: 20px; }
+    .hand.few .pc-chips .chip { font-size: 14px; }
+    .hand.few .pc-prot { font-size: 14.5px; }
+    .hand.few .pc-text { font-size: 16px; line-height: 1.42; }
+    .hand.few .pc-level, .hand.few .tag { font-size: 12px; }
+    .hand.few .pc-details { font-size: 14.5px; margin: 0 10px 8px; }
   }
 }
 .pc-wrap { display: flex; flex-direction: column; background: var(--deck-2); border: 1.5px solid var(--rule); border-radius: 12px; }
@@ -635,7 +644,7 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .pc-tags:empty { display: none; }
 .tag { font-family: var(--f-data); font-size: 10.5px; border-radius: 4px; padding: 1px 5px; border: 1px solid; }
 .tag.prov { color: var(--mute); border-style: dashed; } .tag.prov.p-real { color: var(--good); border-style: solid; }
-.tag.new { color: var(--warn); } .tag.opp { color: var(--warn); } .tag.rec { color: var(--align); } .tag.sel { color: var(--night); background: var(--align); border-color: var(--align); }
+.tag.new { color: var(--warn); font-weight: 600; } .tag.opp { color: var(--warn); } .tag.rec { color: var(--align); } .tag.sel { color: var(--night); background: var(--align); border-color: var(--align); }
 .pc-details { align-self: flex-start; margin: 0 8px 6px; padding: 4px 6px; font-size: 13px; color: var(--align); min-height: 32px; }
 .pc-wrap .opts { margin: 0 12px 6px; }
 .proposal { font-size: 15px; }
@@ -831,7 +840,8 @@ body.ended { overflow: auto; }
   .intro .intro-friends p { font-size: 14.5px; }
   .stakes li { font-size: 20px; }
   .overlay { padding: 12px 8px; }
-  .hand { grid-template-columns: 1fr; gap: 8px; }
+  .fam, .fam-cards > .pc-wrap { width: 100%; }
+  .fam-cards { gap: 8px; }
   .req-answers { grid-template-columns: 1fr; }
   .req-card { padding: 10px 12px 12px; }
   .req-text { font-size: 16.5px; }

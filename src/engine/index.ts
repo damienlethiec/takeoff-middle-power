@@ -1369,6 +1369,7 @@ function cardView(s: GameState, id: CardId): CardView {
     playable: !reason,
     reason,
     isNew: s.arrivals[id] === s.round,
+    family: def.family,
     basis: def.basis,
   };
 }

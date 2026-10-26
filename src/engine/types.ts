@@ -35,6 +35,9 @@ export type CardId =
   | 'attribution'
   | 'pause_call';
 
+/** v4 (playtests, 26 Oct): the hand is grouped into families with a short heading each (src/data/cards.ts, FAMILIES). */
+export type CardFamily = 'diplomacy' | 'oversight' | 'tech' | 'home';
+
 export type ThreatId = 'theft' | 'opaque' | 'incident' | 'ransomware' | 'blackmail' | 'bio';
 /** Breaking news: the threats when they strike, the two job shocks, and the scenarios' turning points that are not
  *  threats: the leaked misalignment memo (AI 2027, October 2027), Washington's ban on European chip-tool sales to China
@@ -581,6 +584,8 @@ export interface CardView {
   /** Why it cannot be played now, in words. */
   reason: string | null;
   isNew: boolean;
+  /** The family it is shown under in the hand (Diplomacy, Oversight & security…). */
+  family: CardFamily;
   basis: Basis;
 }
 

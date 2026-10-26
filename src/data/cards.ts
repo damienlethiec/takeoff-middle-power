@@ -5,7 +5,7 @@
 // on the card face are built from them, so the face and the rules always agree.
 // Texts: `text` ≤ 25 words (card face), `proposal` ≤ 60 words (opened card).
 
-import type { Basis, CardId, Chip, Fact, MilestoneId, ThreatId } from '../engine/types';
+import type { Basis, CardFamily, CardId, Chip, Fact, MilestoneId, ThreatId } from '../engine/types';
 import { ai2027, cfg, game, real } from './basis';
 import { SOURCES } from './sources';
 import { TUNING } from './tuning';
@@ -26,9 +26,18 @@ export type Arrival =
   | { pauseDeal: true }
   | { opportunity: true };
 
+/** The hand's families, in the order they are shown (v4, playtests of 26 Oct: one long hand was hard to scan). */
+export const FAMILIES: { id: CardFamily; name: string }[] = [
+  { id: 'diplomacy', name: 'Diplomacy' },
+  { id: 'oversight', name: 'Oversight & security' },
+  { id: 'tech', name: 'Research & chips' },
+  { id: 'home', name: 'At home' },
+];
+
 export interface CardDef {
   id: CardId;
   name: string;
+  family: CardFamily;
   /** Names of each level, for cards with levels. */
   levels?: string[];
   text: string;
@@ -47,6 +56,7 @@ export interface CardDef {
 export const CARDS: CardDef[] = [
   {
     id: 'talks',
+    family: 'diplomacy',
     name: 'Diplomatic talks',
     text: 'Bring US and Chinese envoys to one table in Geneva. Trust rises a little; at home, some call you soft on rivals.',
     proposal:
@@ -62,6 +72,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'inspections',
+    family: 'oversight',
     name: 'Push for inspections',
     levels: ['Test the labs’ models in Europe', 'Inspection accord', 'Joint inspectorate'],
     text: 'European inspectors test the labs’ models. What you can verify grows; Washington and Beijing resist letting foreigners in.',
@@ -79,6 +90,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'ai_office',
+    family: 'oversight',
     name: 'AI Office capacity',
     text: 'Hire top model testers for the EU AI Office. Your AI safety uncertainty halves; opaque reasoning hurts less. The money comes from elsewhere.',
     proposal:
@@ -95,6 +107,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'alignment',
+    family: 'tech',
     name: 'Fund alignment research',
     text: 'Pay independent teams to work on making AI safe. The labs adopt little of it unless inspectors give your teams access.',
     proposal:
@@ -107,6 +120,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'coalition',
+    family: 'diplomacy',
     name: 'Middle-power coalition',
     levels: ['UK and Norway join', 'Canada joins', 'Japan and Korea join'],
     text: 'Team up with the UK, Norway, Canada, Japan and Korea. Allies add weight; from level 2 they share the load.',
@@ -124,6 +138,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'audit',
+    family: 'oversight',
     name: 'Independent audit',
     text: 'A game shortcut: auditors show you the true AI safety for two rounds. Real audits only narrow the doubt. Nothing else moves.',
     proposal:
@@ -139,6 +154,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'asml',
+    family: 'tech',
     name: 'Push to use the ASML lever',
     text: 'Push the Dutch to tie ASML’s lithography exports to a deal. Labs concede; Washington answers with its own ban on European chip tools.',
     proposal:
@@ -158,6 +174,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'weight_security',
+    family: 'oversight',
     name: 'Weight security standards',
     text: 'Labs selling in Europe must lock down their model weights. A theft gets harder, not impossible; only big labs can afford it.',
     proposal:
@@ -178,6 +195,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'open_models',
+    family: 'home',
     name: 'Fund open models',
     text: 'Fund open European models anyone can run. Europe’s AI turns Open and local firms grow, but criminals get the same tools.',
     proposal:
@@ -190,6 +208,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'flexicurity',
+    family: 'home',
     name: 'Back flexicurity in member states',
     text: 'Back Danish-style deals in member states with EU retraining funds. Job shocks soften; unions distrust the bargain at first.',
     proposal:
@@ -206,6 +225,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'cyber_shield',
+    family: 'home',
     name: 'Cyber shield for hospitals and grids',
     text: 'Harden hospitals, grids and town halls before AI-written attacks arrive. Ransomware bounces off; the bill strains budgets for a while.',
     proposal:
@@ -222,6 +242,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'oversight_mandate',
+    family: 'home',
     name: 'Human oversight mandate',
     text: 'A human must sign off on AI decisions in hospitals, courts and grids. People trust it; some labs withhold their newest models from Europe.',
     proposal:
@@ -241,6 +262,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'cern_ai',
+    family: 'tech',
     name: 'A CERN for AI on Europe’s gigafactories',
     text: 'Pledge a third of Europe’s new AI gigafactories to safety research under a “CERN for AI”. What you can verify grows; taxpayers ask why.',
     proposal:
@@ -256,6 +278,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'chip_verification',
+    family: 'tech',
     name: 'Fund chips that prove where they run',
     text: 'Fund hardware that lets AI chips prove where they run. A pause becomes checkable; both capitals distrust the idea at first.',
     proposal:
@@ -267,6 +290,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'licensing_treaty',
+    family: 'diplomacy',
     name: 'Push for a licensing treaty',
     text: 'In a pause, draft a treaty: frontier AI only under licence, audited by an expanded IAEA. Labs lobby hard; prices rise at home.',
     proposal:
@@ -278,6 +302,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'biosecurity',
+    family: 'diplomacy',
     name: 'Lead a global biosecurity pact',
     text: 'Rally Washington, Beijing and others to screen DNA orders and test AI for bioweapon help. A rare shared cause; labs grumble.',
     proposal:
@@ -290,6 +315,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'summit',
+    family: 'diplomacy',
     name: 'AI security summit',
     text: 'After the incident, everyone is listening. Push for shared incident reports and inspections of the largest training runs.',
     proposal:
@@ -302,6 +328,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'attribution',
+    family: 'diplomacy',
     name: 'Joint attribution with allies',
     text: 'Name the thieves with your partners, calmly and with evidence. Washington feels backed and keeps its retaliation limited.',
     proposal:
@@ -318,6 +345,7 @@ export const CARDS: CardDef[] = [
   },
   {
     id: 'pause_call',
+    family: 'diplomacy',
     name: 'Call for a pause with other capitals',
     text: 'The memo is out. Demand a pause with India and others; Beijing joins, Washington calls it betrayal. Sways its oversight committee toward slowing down.',
     proposal:

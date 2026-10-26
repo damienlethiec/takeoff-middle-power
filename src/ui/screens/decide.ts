@@ -8,6 +8,7 @@
 
 import type { EngineApi } from '../../engine/api';
 import type { CardView, GameState, Pick, PreviewView, ThreatView } from '../../engine/types';
+import { FAMILIES } from '../../data/cards';
 import { announce } from '../a11y';
 import { ICON, chips, esc, factBox, provTag } from '../format';
 import { modalOpen, openModal } from '../modal';
@@ -25,7 +26,7 @@ export interface DecisionView {
 
 const lc = (x: string) => x.replace(/^(\w)(?=[a-z])/, (c) => c.toLowerCase());
 
-function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: string | undefined): string {
+function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: string | undefined, fresh: boolean): string {
   const locked = !c.playable && !selected;
   const opts =
     selected && c.options.length
@@ -35,12 +36,12 @@ function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: 
       : '';
   return `<li class="pc-wrap${selected ? ' sel' : ''}${locked ? ' locked' : ''}${c.opportunity ? ' opp' : ''}">
     <button type="button" class="pcard" data-card="${esc(c.id)}" aria-pressed="${selected}" aria-describedby="pc-${esc(c.id)}-d">
-      <span class="pc-top"><span class="pc-name">${esc(c.title)}</span><span class="pc-cost num"><span class="sr-only">costs </span>${ICON.influence}${c.cost}<span class="sr-only"> Influence</span></span></span>
+      <span class="pc-top"><span class="pc-name">${esc(c.title)}</span>${fresh ? '<span class="tag new">New</span>' : ''}<span class="pc-cost num"><span class="sr-only">costs </span>${ICON.influence}${c.cost}<span class="sr-only"> Influence</span></span></span>
       ${c.level ? `<span class="pc-level">Level ${c.level} of ${c.levels!.length}</span>` : ''}
       <span class="pc-chips">${chips(c.ups)}${chips(c.downs)}</span>
       ${c.protectsName ? `<span class="pc-prot">${ICON.check}Protects against ${esc(lc(c.protectsName))}</span>` : ''}
       <span class="pc-text" id="pc-${esc(c.id)}-d">${esc(c.text)}${locked && c.reason ? ` <span class="pc-reason">${esc(c.reason)}</span>` : ''}</span>
-      <span class="pc-tags">${provTag(c.basis)}${c.isNew ? '<span class="tag new">New</span>' : ''}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? '<span class="tag sel">Selected</span>' : ''}</span>
+      <span class="pc-tags">${provTag(c.basis)}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? '<span class="tag sel">Selected</span>' : ''}</span>
     </button>
     ${opts}
     <button type="button" class="pc-details btn-link" data-details="${esc(c.id)}" aria-label="Details: ${esc(c.title)}">Details</button>
@@ -100,7 +101,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
         <p class="dk-adv"><span class="ava" aria-hidden="true">CS</span><span><b>Your chief of staff:</b> ${esc(adv.text)}</span></p>
       </header>
       <p class="dk-hint" id="dk-hint">${ICON.influence}Play as many cards as your Influence allows.</p>
-      <ul class="hand" aria-label="Your cards" aria-describedby="dk-hint" data-coach="hand"></ul>
+      <div class="hand" role="group" aria-label="Your cards" aria-describedby="dk-hint" data-coach="hand"></div>
       <div class="dk-bar">
         <p class="dec-inf" data-coach="dec-influence"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">Influence left</span></p>
         <p class="dec-notes" id="dec-notes" aria-live="off"></p>
@@ -118,8 +119,11 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     </aside>`;
   host.hidden = false;
   const handEl = host.querySelector<HTMLElement>('.hand')!;
-  // on desktop the hand is centred and no wider than its cards need (see .hand in styles.css)
-  handEl.style.setProperty('--n', String(Math.max(1, hand.length)));
+  // the families sit side by side and wrap (see .hand in styles.css)
+  const families = FAMILIES.map((f) => ({ ...f, ids: hand.filter((c) => c.family === f.id).map((c) => c.id) })).filter((f) => f.ids.length);
+  handEl.classList.toggle('few', hand.length <= 4);
+  // "New" marks a card that arrived this round (not the opening hand of round 1)
+  const fresh = (c: CardView) => c.isNew && s.round > 1;
   const notesEl = host.querySelector<HTMLElement>('#dec-notes')!;
   const thrEl = host.querySelector<HTMLElement>('#dk-threats')!;
   const ok = host.querySelector<HTMLButtonElement>('#dec-ok')!;
@@ -149,9 +153,16 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
 
   const render = (refocus?: string) => {
     const { after, cards } = views();
+    const card = (c: CardView) => cardHtml(c, picks.some((p) => p.id === c.id), adv.recommend === c.id, picks.find((p) => p.id === c.id)?.option, fresh(c));
     handEl.innerHTML = cards.length
-      ? cards.map((c) => cardHtml(c, picks.some((p) => p.id === c.id), adv.recommend === c.id, picks.find((p) => p.id === c.id)?.option)).join('')
-      : '<li class="muted">No cards in your hand.</li>';
+      ? families
+          .map((f) => {
+            const list = f.ids.map((id) => cards.find((c) => c.id === id)!);
+            const nNew = list.filter(fresh).length;
+            return `<section class="fam" aria-labelledby="fam-${f.id}"><h3 class="fam-h" id="fam-${f.id}">${esc(f.name)}${nNew ? ` <span class="fam-new">· ${nNew} new</span>` : ''}</h3><ul class="fam-cards">${list.map(card).join('')}</ul></section>`;
+          })
+          .join('')
+      : '<p class="muted">No cards in your hand.</p>';
     host.querySelector('#dec-inf')!.innerHTML = picks.length ? `${after.influence}<small> of ${s.influence}</small>` : String(after.influence);
     const cost = picks.reduce((a, p) => a + (hand.find((c) => c.id === p.id)?.cost ?? 0), 0);
     ok.innerHTML = picks.length ? `Confirm ${picks.length === 1 ? '1 card' : `${picks.length} cards`} <small>(${cost} Influence)</small>` : 'Pick a card first';
@@ -208,15 +219,16 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   });
 
   render();
-  const first = adv.recommend ?? hand.find((c) => c.playable)?.id ?? hand[0]?.id;
-  const focusFirst = () => (handEl.querySelector<HTMLElement>(`[data-card="${first}"]`) ?? handEl.querySelector<HTMLElement>('.pcard') ?? host.querySelector<HTMLElement>('#dk-h'))?.focus({ preventScroll: true });
+  // focus lands on the first card the player can play, in the order they are shown
+  const focusFirst = () =>
+    (handEl.querySelector<HTMLElement>('.pc-wrap:not(.locked) .pcard') ?? handEl.querySelector<HTMLElement>('.pcard') ?? host.querySelector<HTMLElement>('#dk-h'))?.focus({ preventScroll: true });
   requestAnimationFrame(() => {
     focusFirst();
     void view.onOpen?.().then(() => {
       if (!host.contains(document.activeElement)) focusFirst();
     });
   });
-  announce(`Your decisions, ${date}. ${hand.length} cards. Play as many as your Influence allows: ${s.influence}. ${adv.text}`);
+  announce(`Your decisions, ${date}. ${hand.length} cards in ${families.length === 1 ? 'one family' : `${families.length} families`}: ${families.map((f) => f.name).join(', ')}. Play as many as your Influence allows: ${s.influence}. ${adv.text}`);
 
   const a = await new Promise<string>((resolve) => {
     host.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((b) => b.addEventListener('click', () => resolve(b.dataset.action!)));
