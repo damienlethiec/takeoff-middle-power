@@ -48,6 +48,8 @@ export class App {
   private eventBusy = false;
   private items: Live[] = [];
   private leakShown = false;
+  /** A tutorial tip has paused the clock and is open. */
+  private tipBusy = false;
   // gauges: what is drawn, what it is heading to
   private shown!: Vals;
   private from!: Vals;
@@ -238,6 +240,7 @@ export class App {
     this.t = 0;
     this.eventShown = false;
     this.eventBusy = false;
+    this.tipBusy = false;
     this.clockActive = true;
     this.running = true;
     this.setPhase('Clock running');
@@ -275,6 +278,13 @@ export class App {
       announce(s.leak.readable ? 'A leak from inside the labs: find the envelope on the map to read it.' : 'A leak from inside the labs, but you cannot read it: it is redacted.');
       void this.tipWhilePaused('leak');
     }
+    // a tip just paused the clock: a request or an event due now waits until it is closed (two dialogs at once
+    // would replace each other, and the tip's promise would never settle, leaving the clock stopped for good)
+    if (this.tipBusy) {
+      this.renderClock();
+      this.renderFeed();
+      return;
+    }
     const ev = s.event;
     const q = this.e.request(s);
     if (q && this.t >= q.at && (!ev || this.eventShown || q.at < ev.at)) {
@@ -311,11 +321,17 @@ export class App {
 
   /** A tip during the clock: pause, show it, resume. */
   private async tipWhilePaused(id: 'leak' | 'threat') {
-    if (modalOpen() || this.eventBusy) return;
+    if (modalOpen() || this.eventBusy || this.tipBusy) return;
     const was = this.running;
+    this.tipBusy = true;
     this.running = false;
-    await this.coach.show(id, this.s.round, this.root);
+    try {
+      await this.coach.show(id, this.s.round, this.root);
+    } finally {
+      this.tipBusy = false;
+    }
     if (was && this.clockActive) this.running = true;
+    this.renderClock();
   }
 
   private async fireEvent() {
@@ -354,6 +370,9 @@ export class App {
     this.from = { ...this.to };
     this.setPhase('Clock running');
     this.eventBusy = false;
+    // the clock was running when this fired: always resume, and redraw the pause button (enabled again)
+    if (this.clockActive) this.running = true;
+    this.renderClock();
   }
 
   /** A character arrives with a request: the clock stops until the player answers (free of Influence). */
@@ -384,6 +403,9 @@ export class App {
     this.from = { ...this.to };
     this.setPhase('Clock running');
     this.eventBusy = false;
+    // the clock was running when this fired: always resume, and redraw the pause button (enabled again)
+    if (this.clockActive) this.running = true;
+    this.renderClock();
   }
 
   private setRunning(on: boolean, say = true) {

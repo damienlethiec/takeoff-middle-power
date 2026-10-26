@@ -256,6 +256,47 @@ test.describe('key interactions', () => {
     expect(s.errors).toEqual([]);
   });
 
+  test('a request, a leak and tips in the same round: the clock always resumes (seed 4, phone, tips on)', async ({ page }) => {
+    // regression: in round 2 the leak's tip and Li Wen's request came due in the same frame; the request's dialog
+    // replaced the tip, whose promise never settled, and the clock stayed stopped with the pause button disabled
+    await page.setViewportSize({ width: 390, height: 844 });
+    const s = await boot(page, '?skipintro&seed=4');
+    const seen = { requests: 0, leaks: 0 };
+    for (let step = 0; step < 400 && (await page.locator('#date').textContent()) !== 'H1 2028'; step++) {
+      const d = dialog(page);
+      if (await d.count()) {
+        if (await d.locator('.req-card.asking').count()) {
+          seen.requests++;
+          await d.locator('.ans-left').click();
+          await expect(d.locator('.reaction')).toBeVisible();
+          await d.getByRole('button', { name: /^Back to the six months/ }).click();
+        } else if ((await d.getAttribute('aria-label')) === 'Your decisions') await d.getByRole('button', { name: 'Play no card' }).click();
+        else await page.keyboard.press('Enter'); // tips, the leak, Breaking news
+        await advance(page, 300, false);
+        continue;
+      }
+      const leak = page.locator('.leak-btn:not([hidden])');
+      if (seen.leaks === 0 && (await leak.count())) {
+        seen.leaks++;
+        await leak.click();
+        await advance(page, 300, false);
+        continue;
+      }
+      const next = dockButton(page, /^(Make my decisions|Start H)/);
+      if (await next.count()) {
+        await next.click();
+        await advance(page, 300, false);
+        continue;
+      }
+      if ((await page.locator('#phase').textContent()) === 'Clock running') await expect(page.locator('#play')).toBeEnabled();
+      await advance(page, 200, false);
+    }
+    await expect(page.locator('#date')).toHaveText('H1 2028');
+    expect(seen.requests).toBeGreaterThanOrEqual(2);
+    expect(seen.leaks).toBe(1);
+    expect(s.errors).toEqual([]);
+  });
+
   test('the tutorial shows coach marks once, and can be turned off', async ({ page }) => {
     const s = await boot(page, '?skipintro&seed=4');
     await advance(page, 400);
