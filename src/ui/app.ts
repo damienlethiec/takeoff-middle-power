@@ -913,6 +913,7 @@ export class App {
 
   /** The change shows briefly by each gauge that moved ("+3", "−4"); without motion it simply appears and goes.
    *  It is decorative: the gauge's description and the announcements say it in words. */
+  private bumps = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
   private popChanges(a: Vals, b: Vals) {
     for (const [k, d] of this.gaugeDeltas(a, b)) {
       const box = this.root.querySelector<HTMLElement>(`.gauge[data-key="${k}"]`);
@@ -925,6 +926,12 @@ export class App {
       pop.textContent = signed(d);
       box.appendChild(pop);
       setTimeout(() => pop.remove(), reducedMotion() ? 2600 : 2200);
+      // a brief glow on the number as it counts to its new value (CSS; none with reduced motion)
+      box.classList.remove('bump', 'b-good', 'b-bad', 'b-flat');
+      void box.offsetWidth;
+      box.classList.add('bump', `b-${tone}`);
+      clearTimeout(this.bumps.get(box));
+      this.bumps.set(box, setTimeout(() => box.classList.remove('bump', 'b-good', 'b-bad', 'b-flat'), 1000));
     }
   }
 

@@ -80,6 +80,27 @@ async function playRun(browser, base, run) {
     log.push(`  opened ${name} from the keyboard`);
   }
 
+  /** A glossary word in a dialog (a toggletip): Enter shows its meaning, Escape hides it without closing the dialog. */
+  async function checkGlossary(name) {
+    if (!(await page.evaluate((m) => !!document.querySelector(`${m} .gl-term`), MODAL)) || !once('glossary')) return;
+    if (!(await tabTo(page, `${MODAL} .gl-term`, { max: 20 }))) return fail(`${name}: could not Tab to a glossary word`);
+    await press('Enter');
+    await advance(page, 150);
+    const open = await page.evaluate(() => {
+      const b = document.activeElement;
+      const d = document.getElementById(b?.getAttribute('aria-controls') ?? '');
+      return b?.getAttribute('aria-expanded') === 'true' && !!d && !d.hidden;
+    });
+    if (!open) fail(`${name}: Enter on a glossary word did not show its meaning`);
+    if (!/: /.test(await said())) fail(`${name}: the glossary meaning was not announced`);
+    await audit('glossary');
+    await press('Escape');
+    await advance(page, 150);
+    if ((await screenOf(page)) !== name) fail(`${name}: Escape on an open glossary word closed the dialog`);
+    else if (!(await focusIs('.gl-term[aria-expanded="false"]'))) fail(`${name}: Escape did not close the glossary word's meaning (${await focused(page)})`);
+    log.push(`  glossary word: opened and closed with the keyboard in ${name}`);
+  }
+
   const url = `${base}?seed=${run.seed}${run.intro ? '' : '&skipintro'}${run.tutorial ? '' : '&notutorial'}`;
   await page.goto(url);
   // time moves only when the harness advances it, so Tab presses never race the game clock
@@ -157,6 +178,29 @@ async function playRun(browser, base, run) {
           if (!g.includes(`letter from ${who[1]}`)) fail(`no map group names the letter from ${who[1]} (${g})`);
           log.push(`  letter from ${who[1]}: in the feed and in a map group`);
         }
+        continue;
+      }
+      // the feed folds a round's extra headlines under "+N more headlines": a button that opens and closes its list
+      if ((await page.evaluate(() => !!document.querySelector('.fd-more-btn'))) && once('feed-more')) {
+        await explore(async () => {
+          if (!(await tabTo(page, '.fd-more-btn', { max: 150 }))) return fail('could not Tab to "+N more" in the feed');
+          const was = await page.evaluate(() => document.activeElement?.getAttribute('aria-expanded'));
+          await press('Enter');
+          await advance(page, 150);
+          const now = await page.evaluate(() => {
+            const b = document.querySelector('.fd-more-btn');
+            const l = document.getElementById(b?.getAttribute('aria-controls') ?? '');
+            return { exp: b?.getAttribute('aria-expanded'), shown: !!l && !l.hidden, focus: document.activeElement === b };
+          });
+          if (now.exp === was || now.shown !== (now.exp === 'true')) fail(`"+N more" did not toggle its list (${JSON.stringify(now)})`);
+          if (!now.focus) fail(`"+N more": focus left the button (${await focused(page)})`);
+          if (now.exp === 'true') {
+            await audit('feed-more');
+            await press('Enter');
+            await advance(page, 150);
+          }
+          log.push('  feed: "+N more" opened and closed with the keyboard');
+        });
         continue;
       }
       if ((await page.evaluate(() => !!document.querySelector('.threat-btn'))) && once('threat')) {
@@ -264,6 +308,7 @@ async function playRun(browser, base, run) {
         else {
           await audit('card-details');
           await checkTrap('card-details');
+          await checkGlossary('card-details');
           await press('Escape');
           await advance(page, 300);
           if (!(await focusIs(`[data-details="${target}"]`))) fail(`card details: focus did not return to Details (${await focused(page)})`);
@@ -279,6 +324,12 @@ async function playRun(browser, base, run) {
         if (!(await tabTo(page, '#dec-ok'))) fail('decision: could not Tab to Confirm');
         log.push(`  card: ${target}`);
         await press('Enter');
+        await advance(page, 400);
+        // diplomacy can fail: the round's summary in the feed says so in words, and so does the announcement
+        if (await page.evaluate(() => /did not work/.test(document.querySelector('.fd-sum')?.textContent ?? ''))) {
+          if (once('failure')) log.push('  a card did not work: said in the feed summary');
+        }
+        continue;
       } else {
         if (!(await tabTo(page, '[data-action="none"]', { back: true }))) fail('decision: could not reach Play no card');
         log.push('  no card');
@@ -322,12 +373,16 @@ async function playRun(browser, base, run) {
       log.push(`  breaking: ${await evalText(`${MODAL} h2`)}`);
       await audit('breaking');
       if (once('trap-breaking')) await checkTrap('breaking');
+      await checkGlossary('breaking');
       const choice = await page.evaluate((m) => !!document.querySelector(`${m} .choice`), MODAL);
       if (!(await tabTo(page, choice ? '.choice' : '[data-primary]'))) fail('breaking: could not reach its button');
       await press('Enter');
     } else if (screen === 'request') {
       await audit('request');
       if (once('trap-request')) await checkTrap('request');
+      await checkGlossary('request');
+      // arrows never fire on another button (a glossary word): come back to an answer first
+      if (await focusIs('.gl-term')) await tabTo(page, '.ans-left', { max: 20 });
       log.push(`  request: ${await evalText(`${MODAL} h2`)}`);
       const named = await page.evaluate(() => [...document.querySelectorAll('.ans')].every((b) => /Will change|No visible change/.test(b.textContent ?? '')));
       if (!named) fail('request: an answer button does not say what it moves');
@@ -372,13 +427,15 @@ async function playRun(browser, base, run) {
   }
   for (const k of ['groups', 'lea', 'postcard', 'threat', 'badge']) if (!done.has(k)) fail(`never checked: ${k}`);
   await context.close();
-  return { run, problems, errors, audits, log };
+  return { run, problems, errors, audits, log, done };
 }
 
 const { chromium } = loadPlaywright();
 const server = await startServer(PORT);
 const browser = await chromium.launch();
 let bad = 0;
+// checked in at least one run (each depends on what the seed shows)
+const somewhere = new Set();
 try {
   if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
   for (const run of RUNS.filter((r) => !process.env.A11Y_ONLY || r.name === process.env.A11Y_ONLY)) {
@@ -395,7 +452,14 @@ try {
     for (const p of r.problems) console.log(`  PROBLEM ${p}`);
     for (const e of r.errors) console.log(`  ERROR ${e}`);
     bad += r.problems.length + r.errors.length;
+    for (const k of r.done) somewhere.add(k);
   }
+  if (!process.env.A11Y_ONLY)
+    for (const k of ['glossary', 'feed-more'])
+      if (!somewhere.has(k)) {
+        console.log(`  PROBLEM no run checked: ${k}`);
+        bad++;
+      }
 } finally {
   await browser.close();
   server.stop();

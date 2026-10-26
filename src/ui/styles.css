@@ -4,9 +4,10 @@
   --night: #0f1729;
   --deck: #16213a;
   --deck-2: #1d2a47;
-  --rule: #2c3c5f;
+  --rule: #364971; /* dividers and quiet frames (a notch lighter after playtests, 26 Oct) */
+  --edge: #62769e; /* the outline of a control: 3:1 on deck and deck-2 (WCAG 1.4.11) */
   --ink: #e7edf7;
-  --mute: #97a6c2;
+  --mute: #a5b3cb; /* 7.5:1 on deck (was #97a6c2, 6.5:1) */
   --sea: #1b2742;
   --land: #2c3b5a;
   --cap: #f4a62a; /* the US, labs, capability */
@@ -18,7 +19,7 @@
   --paper-ink: #1f2533;
   --paper-rule: #cdd2da;
   --paper-margin: #d98b7e;
-  --paper-mute: #5c6475;
+  --paper-mute: #4f5768; /* 5.8:1 on paper (was #5c6475, 4.8:1) */
   --good: #6fcf8e;
   --warn: #f2c14e;
   --crit: #ef6461;
@@ -44,7 +45,7 @@ a { color: var(--align); }
 [hidden] { display: none !important; }
 .num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
 .muted { color: var(--mute); }
-kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spacing: 0; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; opacity: .75; margin-left: 6px; vertical-align: 2px; text-transform: none; }
+kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spacing: 0; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; opacity: .85; margin-left: 6px; vertical-align: 2px; text-transform: none; }
 .ico { width: 1.1em; height: 1.1em; vertical-align: -0.18em; flex: none; }
 
 /* ---------- buttons ---------- */
@@ -52,8 +53,8 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
 .btn-primary:disabled { background: var(--deck-2); color: var(--mute); font-family: var(--f-body); font-weight: 600; font-size: 14px; letter-spacing: 0; text-transform: none; }
 .btn-primary.big { font-size: 26px; padding: 12px 26px; }
-.btn-quiet { background: transparent; border: 1px solid var(--rule); border-radius: 10px; padding: 9px 15px; color: var(--ink); font-weight: 600; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; }
-.btn-quiet:hover { border-color: var(--mute); }
+.btn-quiet { background: transparent; border: 1px solid var(--edge); border-radius: 10px; padding: 9px 15px; color: var(--ink); font-weight: 600; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; }
+.btn-quiet:hover { border-color: var(--ink); }
 .btn-link { background: none; border: 0; color: var(--mute); text-decoration: underline; text-underline-offset: 3px; padding: 8px 4px; font-size: 14px; }
 .row-btns { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 20px; }
 .row-btns.center { justify-content: center; }
@@ -62,9 +63,9 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .fx { display: flex; flex-wrap: wrap; gap: 5px; }
 .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; padding: 2px 8px 2px 6px; font-size: 12.5px; line-height: 1.5; border: 1px solid; white-space: nowrap; }
 .chip b { font-family: var(--f-data); font-weight: 600; font-size: 12.5px; }
-.chip.good { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, transparent); background: color-mix(in srgb, var(--good) 10%, transparent); }
-.chip.bad { color: #ff9c99; border-color: color-mix(in srgb, var(--crit) 45%, transparent); background: color-mix(in srgb, var(--crit) 10%, transparent); }
-.chip.flat { color: var(--mute); border-color: var(--rule); }
+.chip.good { color: var(--good); border-color: color-mix(in srgb, var(--good) 65%, transparent); background: color-mix(in srgb, var(--good) 10%, transparent); }
+.chip.bad { color: #ff9c99; border-color: color-mix(in srgb, #ff9c99 65%, transparent); background: color-mix(in srgb, var(--crit) 10%, transparent); }
+.chip.flat { color: var(--mute); border-color: var(--edge); }
 .chip span { color: var(--ink); }
 .chip.flat span { color: var(--mute); }
 /* gains and losses never by colour alone: a small check or cross after the chip (its name says it in words) */
@@ -103,12 +104,12 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .rounds li.now i { background: var(--align); }
 .rounds li.now { box-shadow: 0 0 0 1px var(--align); }
 .clockctl { display: flex; align-items: center; gap: 8px; }
-.iconbtn { width: 40px; height: 36px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--rule); background: var(--deck); }
+.iconbtn { width: 40px; height: 36px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--edge); background: var(--deck); }
 .iconbtn svg { width: 18px; height: 18px; }
 .iconbtn:disabled { opacity: .45; }
-.speed { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.speed { display: inline-flex; border: 1px solid var(--edge); border-radius: 8px; overflow: hidden; }
 .speed button { background: transparent; border: 0; padding: 7px 10px; font-family: var(--f-data); font-size: 13px; color: var(--mute); min-height: 34px; }
-.speed button + button { border-left: 1px solid var(--rule); }
+.speed button + button { border-left: 1px solid var(--edge); }
 .speed button[aria-pressed="true"] { background: var(--deck-2); color: var(--ink); }
 .speed button:focus-visible { outline-offset: -3px; }
 .phase { font-family: var(--f-data); font-size: 11.5px; color: var(--mute); min-width: 8.5em; }
@@ -135,7 +136,7 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .feed { background: var(--deck); border: 1px solid var(--rule); border-radius: 14px; display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
 .feed-head { display: flex; align-items: center; gap: 8px; padding: 7px 10px 6px; border-bottom: 1px solid var(--rule); }
 .feed-h { margin: 0; font-family: var(--f-data); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
-.feed-tabs { display: flex; gap: 2px; margin-left: auto; border: 1px solid var(--rule); border-radius: 8px; padding: 2px; }
+.feed-tabs { display: flex; gap: 2px; margin-left: auto; border: 1px solid var(--edge); border-radius: 8px; padding: 2px; }
 .feed-tabs [role="tab"] { background: transparent; border: 0; border-radius: 6px; padding: 4px 9px; font-size: 12.5px; color: var(--mute); min-height: 30px; }
 .feed-tabs [role="tab"][aria-selected="true"] { background: var(--deck-2); color: var(--ink); font-weight: 600; }
 .feed-tabs [role="tab"]:focus-visible { outline-offset: -2px; }
@@ -164,12 +165,12 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .k-event.good { --c: var(--good); }
 .k-voice .fd-t { font-family: var(--f-diary); font-style: italic; font-size: 14px; }
 /* flavour (headlines and voices that change nothing) is lighter, so what matters stands out (src/ui/feed.ts) */
-.fd-item.light { padding-top: 3px; padding-bottom: 3px; border-left-color: color-mix(in srgb, var(--rule) 70%, transparent); }
+.fd-item.light { padding-top: 3px; padding-bottom: 3px; border-left-color: var(--rule); }
 .fd-item.light .fd-t { font-size: 12.5px; color: var(--mute); }
 .fd-item.light.k-voice .fd-t { font-size: 13px; }
-.fd-item.light .fd-ico { opacity: .75; }
+.fd-item.light .fd-ico { opacity: .9; }
 .fd-more { display: grid; gap: 3px; }
-.fd-more-btn { justify-self: start; background: transparent; border: 1px dashed var(--rule); border-radius: 6px; padding: 4px 10px; min-height: 30px; font-size: 12.5px; color: var(--mute); }
+.fd-more-btn { justify-self: start; background: transparent; border: 1px dashed var(--edge); border-radius: 6px; padding: 4px 10px; min-height: 30px; font-size: 12.5px; color: var(--mute); }
 .fd-more-btn:hover { color: var(--ink); border-color: var(--mute); }
 .fd-more-list[hidden] { display: none; }
 .fd-sum { background: var(--deck-2); border: 1px solid var(--align); border-radius: 8px; padding: 6px 9px; margin: 4px 0 6px; }
@@ -198,8 +199,8 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 @keyframes gflash { 0% { box-shadow: 0 0 0 2px var(--ink); } }
 .g-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .g-name { margin: 0 auto 0 0; min-width: 0; font-family: var(--f-data); font-size: 12px; font-weight: 600; line-height: 1.2; letter-spacing: .05em; text-transform: uppercase; color: var(--mute); }
-.g-info { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--rule); background: transparent; color: var(--mute); font-family: var(--f-display); font-weight: 800; font-size: 14px; padding: 0; }
-.g-info:hover { color: var(--ink); border-color: var(--mute); }
+.g-info { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--edge); background: transparent; color: var(--mute); font-family: var(--f-display); font-weight: 800; font-size: 14px; padding: 0; }
+.g-info:hover { color: var(--ink); border-color: var(--ink); }
 /* a short subtitle, one line: shown only when all four fit (app.ts fitSubs), otherwise behind "?" */
 .g-sub { margin: -3px 0 0; min-width: 0; font-size: 11.5px; line-height: 1.3; color: var(--mute); white-space: nowrap; overflow: hidden; }
 .panel.no-subs .g-sub { display: none; }
@@ -238,9 +239,9 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 /* US–China cooperation: three zones, the current one outlined (and named in the caption), a pointer for the value */
 .g-cooperation .g-bar { background: none; }
 .g-cooperation .g-bar i[class^="zone-"] { position: absolute; top: 0; bottom: 0; }
-.zone-r { left: 0; width: 30%; background: color-mix(in srgb, var(--rival) 35%, var(--deck-2)); border-radius: 7px 0 0 7px; }
-.zone-a { left: 30%; width: 30%; background: color-mix(in srgb, var(--cap) 25%, var(--deck-2)); }
-.zone-p { left: 60%; width: 40%; background: color-mix(in srgb, var(--align) 25%, var(--deck-2)); border-radius: 0 7px 7px 0; }
+.zone-r { left: 0; width: 30%; background: color-mix(in srgb, var(--rival) 45%, var(--deck-2)); border-radius: 7px 0 0 7px; }
+.zone-a { left: 30%; width: 30%; background: color-mix(in srgb, var(--cap) 35%, var(--deck-2)); }
+.zone-p { left: 60%; width: 40%; background: color-mix(in srgb, var(--align) 35%, var(--deck-2)); border-radius: 0 7px 7px 0; }
 .g-bar i[class^="zone-"].on { box-shadow: inset 0 0 0 2px var(--ink); }
 .g-cooperation .g-fill { background: transparent; border-right: 4px solid var(--ink); border-radius: 0; top: -3px; bottom: -3px; }
 /* one caption line: "goal 75", "Race zone · 30–59", "Verified 40 · labs claim 57 · goal 75" */
@@ -318,7 +319,7 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 @keyframes join { 0% { stroke: #fff; } }
 .m-label { font-family: var(--f-display); font-weight: 800; font-size: 3.2px; letter-spacing: .35px; text-anchor: middle; paint-order: stroke; stroke: var(--deck); stroke-width: .6px; }
 .l-us { fill: var(--cap); } .l-cn { fill: var(--rival); } .l-eu { fill: var(--align); }
-.l-partner { font-family: var(--f-data); font-weight: 400; font-size: 1.9px; letter-spacing: 0; fill: #5a6d94; transition: fill 1s; }
+.l-partner { font-family: var(--f-data); font-weight: 400; font-size: 1.9px; letter-spacing: 0; fill: #7487ad; transition: fill 1s; }
 .l-partner.joined { fill: var(--align); }
 .lab { pointer-events: none; }
 .lab-core { fill: var(--c); }
@@ -463,8 +464,8 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .tag-breaking { background: var(--alarm-bg); color: #fff; border-radius: 4px; padding: 1px 6px; margin-right: 6px; }
 .scene { font-size: 16px; }
 .choices { display: grid; gap: 8px; }
-.choice { text-align: left; display: grid; gap: 2px; background: var(--night); border: 1px solid var(--rule); border-radius: 10px; padding: 10px 14px; }
-.choice:hover { border-color: var(--mute); }
+.choice { text-align: left; display: grid; gap: 2px; background: var(--night); border: 1px solid var(--edge); border-radius: 10px; padding: 10px 14px; }
+.choice:hover { border-color: var(--ink); }
 .choice b { font-size: 16px; }
 .choice span { color: var(--mute); font-size: 14px; }
 
@@ -640,10 +641,10 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
     .hand.few .pc-details { font-size: 14.5px; margin: 0 10px 8px; }
   }
 }
-.pc-wrap { display: flex; flex-direction: column; background: var(--deck-2); border: 1.5px solid var(--rule); border-radius: 12px; }
-.pc-wrap:hover { border-color: var(--mute); }
+.pc-wrap { display: flex; flex-direction: column; background: var(--deck-2); border: 1.5px solid var(--edge); border-radius: 12px; }
+.pc-wrap:hover { border-color: var(--ink); }
 .pc-wrap.sel { border-color: var(--align); box-shadow: 0 0 0 2px var(--align) inset; background: color-mix(in srgb, var(--align) 10%, var(--deck-2)); }
-.pc-wrap.locked { background: var(--deck); }
+.pc-wrap.locked { background: var(--deck); border-color: var(--rule); }
 .pc-wrap.locked .pc-name, .pc-wrap.locked .pc-text { color: var(--mute); }
 .pc-wrap.locked .chip.good, .pc-wrap.locked .chip.bad { filter: saturate(.4); }
 .pc-wrap.opp { border-style: dashed; border-color: var(--warn); }
@@ -748,7 +749,7 @@ body.ended { overflow: auto; }
 .req-text { margin: 10px 0 4px; font-family: var(--f-diary); font-size: 18px; line-height: 1.4; }
 .req-free { margin: 0 0 8px; font-size: 12.5px; color: var(--concern); }
 .req-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.ans { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; text-align: left; min-height: 48px; background: var(--deck); color: var(--ink); border: 2px solid var(--rule); border-radius: 12px; padding: 8px 10px; transition: border-color .15s, background .15s; }
+.ans { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; text-align: left; min-height: 48px; background: var(--deck); color: var(--ink); border: 2px solid var(--edge); border-radius: 12px; padding: 8px 10px; transition: border-color .15s, background .15s; }
 .ans:hover, .ans:focus-visible, .req-card.look-left .ans-left, .req-card.look-right .ans-right { border-color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, var(--deck)); }
 .ans:focus-visible { outline: 3px solid var(--align); outline-offset: 2px; }
 .ans-top { display: flex; align-items: center; gap: 8px; }
@@ -939,6 +940,38 @@ body.ended { overflow: auto; }
 .g-pop.good { color: var(--good); } .g-pop.bad { color: var(--crit-text); } .g-pop.flat { color: var(--ink); }
 @keyframes gpop { 0% { opacity: 0; transform: translateY(5px); } 12% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-3px); } }
 
+/* =================================================================== FEEDBACK (playtests, 26 Oct: "some juice")
+   Small and quick, transform and opacity only (no layout shift, cheap on phones), never flashing; with reduced
+   motion every one of them is off and the plain state change remains (the border, the tick, the new number). */
+/* a card: selected, it lifts a little and a ring spreads from it once; the Selected tag pops in with its tick */
+.pc-wrap { position: relative; transition: transform .16s ease, border-color .16s ease; }
+.pc-wrap.sel { transform: translateY(-2px); }
+.pc-wrap::after { content: ''; position: absolute; inset: -1.5px; border-radius: inherit; pointer-events: none; opacity: 0; }
+.pc-wrap.just-on { animation: cardlift .28s cubic-bezier(.2, .9, .3, 1.3); }
+.pc-wrap.just-on::after { animation: cardring .55s ease-out; }
+.pc-wrap.just-off { animation: cardsettle .22s ease-out; }
+@keyframes cardlift { from { transform: none; } 60% { transform: translateY(-4px); } }
+@keyframes cardring { from { opacity: .9; box-shadow: 0 0 0 0 var(--align); } to { opacity: 0; box-shadow: 0 0 0 9px var(--align); } }
+@keyframes cardsettle { from { transform: translateY(-2px); } }
+.tag.sel { display: inline-flex; align-items: center; gap: 3px; }
+.tag.sel .ico { width: 11px; height: 11px; }
+.just-on .tag.sel { animation: tickin .32s cubic-bezier(.2, .9, .3, 1.4); }
+@keyframes tickin { from { transform: scale(.4); opacity: 0; } }
+/* played: the chosen cards rise and a "Played" stamp lands on them for a moment, the others step back */
+.decide.playing .pc-wrap:not(.sel) { opacity: .45; transition: opacity .2s; }
+.decide.playing .pc-wrap.sel { animation: played .34s ease-in forwards; }
+.decide.playing .pc-wrap.sel::before { content: 'Played'; position: absolute; top: 40%; left: 50%; z-index: 2; transform: translate(-50%, -50%) rotate(-6deg); padding: 2px 10px; border: 2px solid var(--align); border-radius: 6px; background: var(--deck); color: var(--align); font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: .08em; text-transform: uppercase; animation: stamp .2s cubic-bezier(.2, .9, .3, 1.4); }
+@keyframes played { to { transform: translateY(-8px); } }
+@keyframes stamp { from { transform: translate(-50%, -50%) rotate(-6deg) scale(1.6); opacity: 0; } }
+/* a gauge that changes: its number glows briefly in the change's colour as it counts to the new value */
+.g-val { display: inline-block; transform-origin: left center; }
+.gauge.b-good { --tone: var(--good); } .gauge.b-bad { --tone: var(--crit-text); } .gauge.b-flat { --tone: var(--ink); }
+.gauge.bump .g-val { animation: gbump .7s ease-out; }
+.gauge.bump .g-fill { animation: gfill .9s ease-out; }
+.g-cooperation.bump .g-fill { animation: none; } /* its fill is a pointer, not a bar */
+@keyframes gbump { 25% { transform: scale(1.08); text-shadow: 0 0 12px var(--tone); } }
+@keyframes gfill { 20% { box-shadow: 0 0 8px 1px var(--tone); } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
   /* no pulsing, flashing or flowing: looping animations stop, and the states they signalled stay visible */
@@ -951,13 +984,16 @@ body.ended { overflow: auto; }
   .threat-btn.st3:not(.prepared) { box-shadow: 0 0 0 3px color-mix(in srgb, var(--rival) 50%, transparent); }
   /* v4 living world: the change by a gauge simply appears and goes; hotspots stay steady; a joining partner is lit */
   .g-pop, .city-ev .ce-ring, .city-ev .ce-core, .zone.joining { animation: none !important; }
+  /* feedback: the plain states only (the selected border and tick, the new number) */
+  .pc-wrap, .pc-wrap.sel { transform: none; transition: none; }
+  .pc-wrap::after, .pc-wrap::before, .pc-wrap.just-on, .pc-wrap.just-off, .just-on .tag.sel, .gauge.bump .g-val, .gauge.bump .g-fill { animation: none !important; }
   .city-ev.hot .ce-ring { opacity: .7; transform: none; }
   .zone.joining { stroke: #fff; }
 }
 
 /* =================================================================== SOUNDTRACK (optional, off by default) */
 .snd { position: relative; display: inline-flex; align-items: center; gap: 6px; }
-.snd-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--rule); background: var(--deck); color: var(--ink); font-family: var(--f-data); font-size: 12.5px; white-space: nowrap; }
+.snd-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--edge); background: var(--deck); color: var(--ink); font-family: var(--f-data); font-size: 12.5px; white-space: nowrap; }
 .snd-btn .ico { width: 16px; height: 16px; flex: none; }
 .snd-btn[aria-pressed="false"] .snd-wave, .snd-btn[aria-pressed="true"] .snd-mute { display: none; }
 .snd-state { min-width: 2.2em; padding: 1px 5px; border-radius: 4px; background: var(--deck-2); color: var(--mute); text-align: center; }

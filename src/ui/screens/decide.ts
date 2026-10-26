@@ -10,10 +10,10 @@ import type { EngineApi } from '../../engine/api';
 import type { CardView, GameState, Pick, PreviewView, ThreatView } from '../../engine/types';
 import { FAMILIES } from '../../data/cards';
 import { impactWords } from '../../data/effects';
-import { announce } from '../a11y';
+import { announce, reducedMotion } from '../a11y';
 import { ICON, chips, esc, factBox, provTag } from '../format';
 import { glossed } from '../glossary';
-import { modalOpen, openModal } from '../modal';
+import { modalOpen, openModal, wait } from '../modal';
 
 export type DecisionResult = { kind: 'play'; picks: Pick[] } | { kind: 'map' };
 
@@ -50,7 +50,7 @@ function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: 
       ${c.protectsName ? `<span class="pc-prot">${ICON.check}Protects against ${esc(lc(c.protectsName))}</span>` : ''}
       ${oddsHtml(c)}
       <span class="pc-text" id="pc-${esc(c.id)}-d">${esc(c.text)}${locked && c.reason ? ` <span class="pc-reason">${esc(c.reason)}</span>` : ''}</span>
-      <span class="pc-tags">${provTag(c.basis)}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? '<span class="tag sel">Selected</span>' : ''}</span>
+      <span class="pc-tags">${provTag(c.basis)}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? `<span class="tag sel">${ICON.check}Selected</span>` : ''}</span>
     </button>
     ${opts}
     <button type="button" class="pc-details btn-link" data-details="${esc(c.id)}" aria-label="Details: ${esc(c.title)}">Details</button>
@@ -161,7 +161,8 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     thrEl.innerHTML = threatsHtml(threats, covering);
   };
 
-  const render = (refocus?: string) => {
+  /** `moved`: the card just selected or removed, for a brief lift or settle (decorative; none with reduced motion). */
+  const render = (refocus?: string, moved?: { id: string; on: boolean }) => {
     const { after, cards } = views();
     const card = (c: CardView) => cardHtml(c, picks.some((p) => p.id === c.id), adv.recommend === c.id, picks.find((p) => p.id === c.id)?.option, fresh(c));
     handEl.innerHTML = cards.length
@@ -186,6 +187,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
         showPreview();
       }),
     );
+    if (moved) handEl.querySelector(`.pcard[data-card="${CSS.escape(moved.id)}"]`)?.closest('.pc-wrap')?.classList.add(moved.on ? 'just-on' : 'just-off');
     if (refocus) handEl.querySelector<HTMLElement>(refocus)?.focus({ preventScroll: true });
   };
 
@@ -218,14 +220,15 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
       const v = views().cards.find((x) => x.id === id)!;
       const sel = picks.some((p) => p.id === id);
       const a = await showDetails(v, sel, v.playable);
-      if (a === 'toggle') toggle(id);
-      render(`[data-details="${id}"]`);
+      const moved = a === 'toggle' && toggle(id);
+      render(`[data-details="${id}"]`, moved ? { id, on: !sel } : undefined);
       return;
     }
     const b = t.closest<HTMLButtonElement>('.pcard');
     if (!b) return;
     const id = b.dataset.card!;
-    if (toggle(id)) render(`[data-card="${id}"]`);
+    const was = picks.some((p) => p.id === id);
+    if (toggle(id)) render(`[data-card="${id}"]`, { id, on: !was });
   });
 
   render();
@@ -249,6 +252,15 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
       }
     });
   });
+  // played: the chosen cards rise with a small "Played" stamp for a moment before the map comes back (skipped with
+  // reduced motion: the gauges' change says it). Nothing can be pressed meanwhile.
+  if (a === 'confirm' && picks.length && !reducedMotion()) {
+    host.inert = true;
+    host.classList.add('playing');
+    await wait(340);
+    host.classList.remove('playing');
+    host.inert = false;
+  }
   view.onPreview(null);
   host.hidden = true;
   host.innerHTML = '';
