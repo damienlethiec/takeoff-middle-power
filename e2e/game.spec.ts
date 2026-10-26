@@ -305,7 +305,9 @@ test.describe('key interactions', () => {
     await freeze(page);
     await dk.getByRole('button', { name: /^Confirm 2 cards/ }).click();
     await expect(page.locator('#inf-v')).toHaveText(String(inf - spent));
-    await expect(page.locator('#heading-why')).toHaveText(/^Diplomatic talks and AI Office capacity: /);
+    // what the decisions changed is in the feed's decision items (no line lingers under the heading)
+    await expect(page.locator('#heading-why')).toHaveCount(0);
+    await expect(page.locator('#feed-now .fd-item.k-decision', { hasText: 'Diplomatic talks' })).toContainText(/US–China cooperation \d+ → \d+/);
     await expect(page.locator('#phase')).toHaveText('Consequences');
     await page.clock.resume();
     // no stop between rounds: the next six months begin by themselves

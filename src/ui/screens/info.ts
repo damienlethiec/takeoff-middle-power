@@ -2,7 +2,7 @@
 
 import { GAUGE_HELP, GAUGE_LABEL, GAUGE_SUB } from '../../data/copy';
 import { TUNING as T } from '../../data/tuning';
-import type { CardView, EuropeAi, GaugeKey, GaugeView, Leak, ThreatView } from '../../engine/types';
+import type { CardView, EuropeAi, GaugeKey, GaugeView, IncomeView, Leak, ThreatView } from '../../engine/types';
 import { ICON, esc } from '../format';
 import { openModal } from '../modal';
 
@@ -70,6 +70,34 @@ export async function showGaugeHelp(g: GaugeView, text: string): Promise<void> {
      ${g.markers.map((mk) => `<p class="prep ${mk.prepared ? 'yes' : 'no'}">${mk.prepared ? ICON.check : ICON.alert}<span>${esc(mk.text)}</span></p>`).join('')}
      ${close}`,
     { cls: 'info', label: GAUGE_LABEL[g.key as GaugeKey], describedBy: '.why' },
+  );
+  await m.result;
+}
+
+/** Influence, from the "?" by it in the header: what it is, how it is earned each round (TUNING.influence), this
+ *  round's breakdown (the engine's income view) and how to earn more. */
+export async function showInfluenceHelp(influence: number, inc: IncomeView): Promise<void> {
+  const I = T.influence;
+  const C = T.cards;
+  const sign = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
+  const m = openModal(
+    `<div class="dateline">Your resource</div>
+     <h2>Influence <span class="num">${influence}</span></h2>
+     <p class="why">Influence is your one resource: it pays for the policy cards you play. Requests are free: their cost is in the answer you give.</p>
+     <p class="label">Each round you earn</p>
+     <ul class="plain inf-rules">
+       <li><b>${sign(I.base)}</b> as the EU’s envoy</li>
+       <li><b>+1</b> while Social cohesion is ${I.highCohesion} or more: the public backs you</li>
+       <li><b>−1</b> while Social cohesion is below ${I.lowCohesion}: a crisis at home</li>
+       <li><b>+1</b> once the coalition reaches level ${I.coalitionLevel}: allies share the load</li>
+       <li>Never less than ${sign(I.minIncome)} a round; you can hold at most ${I.cap}.</li>
+     </ul>
+     <p class="label">Next round</p>
+     <p>${inc.nextRoundExists ? `<b class="num">${sign(inc.next)}</b>: ${esc(inc.reasons.join(' · '))}` : 'No next round: this is your last Influence.'}</p>
+     <p class="label">To earn more</p>
+     <p>Keep Europe together (Social cohesion ${I.highCohesion}+) and build the coalition. Some cards cost Influence for a while: flexicurity ${sign(C.flexicurity.influence)} a round for ${C.flexicurity.rounds} rounds, the cyber shield ${sign(C.cyber_shield.influence)} a round for ${C.cyber_shield.rounds} rounds.</p>
+     <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">Close <kbd>Esc</kbd></button></div>`,
+    { cls: 'info inf-info', label: 'Influence', describedBy: '.why' },
   );
   await m.result;
 }

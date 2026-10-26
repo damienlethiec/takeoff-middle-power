@@ -17,7 +17,7 @@ import { showBreaking } from './screens/breaking';
 import { showDecision } from './screens/decide';
 import { renderEnding } from './screens/ending';
 import { showHelp } from './screens/help';
-import { showBadge, showGaugeHelp, showLeak, showThreat } from './screens/info';
+import { showBadge, showGaugeHelp, showInfluenceHelp, showLeak, showThreat } from './screens/info';
 import { showContinue, showIntro } from './screens/intro';
 import { showWorlds } from './screens/worlds';
 import { showRequest } from './screens/request';
@@ -657,6 +657,7 @@ export class App {
           <span class="inf-ico">${ICON.influence}</span><span class="inf-v num" id="inf-v"></span>
           <span class="inf-l">Influence <small id="inf-next"></small></span>
           <span class="inf-why" id="inf-why"></span>
+          <button type="button" class="g-info inf-help" id="inf-help" aria-label="About Influence: what it is and how to earn it">?</button>
         </div>
         <div class="top-btns">
           ${this.sound.html()}
@@ -674,7 +675,6 @@ export class App {
           <p class="sr-only" id="hl-words"></p>
           <span class="hl-badge" id="hl-badge"></span>
           <span class="hl-sep" aria-hidden="true">·</span><button type="button" class="btn-link hl-why" data-worlds aria-label="Why? What this world means, the five worlds, and how to change course">Why?</button>
-          <p class="heading-why" id="heading-why"></p>
         </section>
         <section class="theatre" aria-labelledby="map-h">
           <h2 class="sr-only" id="map-h" tabindex="-1">World map</h2>
@@ -699,6 +699,7 @@ export class App {
     };
     $('#play', this.root).addEventListener('click', () => this.setRunning(!this.running));
     $('#help-btn', this.root).addEventListener('click', () => this.openHelp());
+    $('#inf-help', this.root).addEventListener('click', () => this.openFromMap(() => showInfluenceHelp(this.s.influence, this.e.nextIncome(this.s))));
     this.sound.bind(this.root);
     $('#heading-line', this.root).addEventListener('click', (ev) => {
       const h = this.e.heading(this.s);
@@ -972,7 +973,9 @@ export class App {
       const og = g.key === hd.decides.key ? hd.decides : g.key === hd.net.key ? hd.net : null;
       const tgt = og ? ` ${og === hd.decides ? 'Goal' : 'Floor'} for the world you are heading to: ${og.bar}, ${statusOf(og)}.` : '';
       const dir = delta > 0 ? 'up' : 'down';
-      const ch = delta ? ` ${safety ? `Verified part ${dir}` : `${dir.charAt(0).toUpperCase()}${dir.slice(1)}`} ${Math.abs(delta)} this round.` : '';
+      // the + / − sign and the colour show it on the gauge; in words: up or down, and better or worse
+      const better = g.key === 'aiPower' ? '' : delta > 0 ? ', better' : ', worse';
+      const ch = delta ? ` ${safety ? `Verified part ${dir}` : `${dir.charAt(0).toUpperCase()}${dir.slice(1)}`} ${Math.abs(delta)} this round${better}.` : '';
       const desc = `${words}${g.key === 'aiPower' ? '' : sub}${zone}${tgt}${ch}${g.markers.length ? ` ${g.markers.map((m) => m.text).join('. ')}.` : ''}`;
       const d = box.querySelector<HTMLElement>(`#gd-${g.key}`)!;
       if (d.textContent !== desc) d.textContent = desc;
@@ -1125,7 +1128,6 @@ export class App {
         sec.classList.add('flash');
       }
     }
-    $('#heading-why', this.root).textContent = this.headingWhy;
     // Europe's AI picks the world if AI never tips: its badge always ends the line (and previews a selection)
     const badge = $('#hl-badge', this.root);
     const ai = pv?.impacts.some((i) => i.key === 'europeAi') ? (this.s.europeAi === 'open' ? 'dependent' : 'open') : this.s.europeAi;
