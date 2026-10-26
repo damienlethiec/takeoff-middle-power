@@ -107,6 +107,16 @@ Léa used to be the game's human heart; she had become one feed item among other
 
 **Requests.** Léa keeps her three; your mother brings two (back her old hospital's AI triage pilot; make hospitals report near misses) and Malik two (fast-track visas for AI researchers such as his Chinese colleague; welcome his lab's Paris office, which would bring him home but make Europe's AI Dependent).
 
+## Faithful to the scenarios (26 Oct)
+
+A content pass on the decisions, threats, events and endings, from the audit against AI 2027 and CFG (rules in [DEVELOPER_NOTES.md](DEVELOPER_NOTES.md), stretches in [V4_BUILD_NOTES.md](V4_BUILD_NOTES.md), realism notes 18–31):
+
+- **A provenance tag** on every decision card and Breaking news: *Real*, *From AI 2027*, *From CFG* or *Invented* (a game device such as the independent audit).
+- **AI 2027's turning point**: the misalignment memo leaks (Breaking news) before the tipping point; Europe can **call for a pause with other capitals**; at the tipping point **Washington's oversight committee votes**, race on or slow down, and its vote moves the final US–China cooperation. The vote shows in Why?, on the end screen, and in the heading line's world.
+- **Europe acts on its own ground**, with real blowback: EU testing before any inspection accord (which needs a crisis or a pause), Washington's chip-tool ban after the ASML lever, labs withholding models after the oversight mandate, the Five Eyes pulling partners away. Weight security and the AI Office protect in part.
+- **New decisions**: a CERN for AI on the gigafactories, chips that prove where they run, a licensing treaty within a pause, a biosecurity pact; **new crises**: Taiwan, a US–China ban on large open models, bioweapon uplift.
+- **The gradual worlds** are picked by how far AI got (Plateau below 60, Big AI from 60), and in Big AI only an Open Europe ends well; three endings retold as CFG tells them (*The agent economy*, *Silicon blackmail*, *Unstable pause*).
+
 ## Tutorial
 
 Short tips, one at a time, next to what they explain, each once; switchable off, all listed in Help. Round 1: one tip per gauge (capabilities, safety, cooperation, cohesion), then where the world is heading, then Influence on the decisions. Later, the first time it appears: a request (stacked over the request card), a threat, Europe's AI (from round 2). A tip waits while its part of the screen is not visible.

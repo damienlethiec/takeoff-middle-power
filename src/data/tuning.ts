@@ -147,10 +147,10 @@ export const TUNING = {
     ransomware: { powerWeight: 0.6, openBonus: 15, stages: [32, 37, 42], unprepared: { cohesion: -15 }, prepared: { cohesion: -3 } },
     /** Silicon blackmail: appears with the oversight mandate while Dependent, grows one stage a round. */
     blackmail: { holdFirm: { cohesion: -10 } },
-    /** Bioweapon uplift (AI 2027, July 2027; CFG, Take-off): AI capabilities stages after the cheap remote worker,
+    /** Bioweapon uplift (AI 2027, July 2027; CFG, Take-off): AI capabilities stages after self-improving AI,
      *  `openBonus` more if Europe's AI is Open. Unprepared: a lockdown scare; prepared (the biosecurity pact): fear
      *  shared, a little cooperation. */
-    bio: { stages: [70, 73, 76], openBonus: 3, unprepared: { cohesion: -6 }, prepared: { cohesion: -1 } },
+    bio: { stages: [66, 69, 72], openBonus: 3, unprepared: { cohesion: -6 }, prepared: { cohesion: -1 } },
   },
 
   /** Breaking news that are not threats (CFG, AI 2027). Each comes once. */

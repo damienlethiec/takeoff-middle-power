@@ -17,11 +17,11 @@ Start: AI power 18, Cooperation 52, Confidence truth 52 / estimate 55 ± 15, Coh
 3. **Drift**: Cooperation −1 (−2 once AI power ≥ 60); Cohesion −1 once AI power ≥ 60, and −1 more while Cooperation is in the Rupture zone; true Confidence −1 once AI power ≥ 60; the labs' reports push the estimate +2. (Current values in `tuning.ts` and in "Tuning changes for v4" below.)
    **AI weighs on jobs (v4, `jobDrift`)**: Cohesion also loses `round(min(2, (AI power − 35) / 25) × factor)` a round (0 below 47 or so, 1 from about 48, 2 from about 73); the factor is 1, −0.5 once flexicurity is played, −0.25 per answer that protects workers (Léa's "Speed it up", the union's "Tax the agents" and "Guarantee it"; `WORKER_ANSWERS` in `src/data/social.ts`), at least 0.25. Recorded as "AI takes over more work".
    **Social events (v4, `social`)**: one a round, a second with chance `min(0.75, 0.3 + 0.25 × unrest)`, where `unrest = max(0, (60 − Cohesion) / 20) + max(0, (AI power − 40) / 30)` (public values only). Drawn among the 25 events of `src/data/social.ts` whose condition holds (some need AI to take jobs, the Rupture zone or Europe's AI Open), never twice a game; weights `1 + 0.5 × unrest` for bad news, `1.6 + 0.5 × protections` for good news. Sizes: small 2, medium 3, large 4 (Cohesion, sometimes Cooperation, or "verified" for AI safety, which narrows the uncertainty like oversight). A job event's hit is softened by 1 per protection, never below 1. They draw from their own seeded stream (seed and round), so the main generator's draws are unchanged; the first comes early in the six months, a second later.
-4. **AI 2027 milestones** are reached strictly in the scenario's order (`src/data/milestones.ts`): by AI power threshold (28, 34, 42, 58, 62, 66, 70, 75, 80), or when their threat strikes (the weight theft, the superhuman coder via opaque reasoning). Some carry an effect: China wakes up (Cooperation −2), AI takes jobs (Cohesion −2), Agent-2 kept internal (margin +2), alignment declared (estimate +4), national security (margin +2), geopolitics (Cooperation −4).
-5. **Threats** grow in three stages from public values only (stages never go back): theft by `AI power + 0.4 × (50 − Cooperation)` at 28 / 36 / 42; opaque reasoning by AI power at 45 / 50 / 55; AI incident by AI power at 52 / 57 / 62 (only after opaque reasoning has struck); ransomware by `0.5 × AI power + 25 if Europe's AI is Open` at 32 / 40 / 48; silicon blackmail appears with the oversight mandate while Dependent, then grows one stage a round. A threat strikes at the earliest the round after it became imminent.
-6. **One event at most**: the next AI 2027 milestone's threat if ripe, else a job shock (first at AI power 40 after "AI takes jobs", second at 70 after "the cheap remote worker"), else the AI incident (chance per round `0.2 + 0.02 × (60 − true Confidence)`, between 8% and 85%: it shows as "possible"), else silicon blackmail, else ransomware.
+4. **AI 2027 milestones** are reached strictly in the scenario's order (`src/data/milestones.ts`): by AI power threshold (28, 34, 42, 58, 62, 66, 70, 75, 80), or when their threat strikes (the weight theft, the superhuman coder via opaque reasoning). Some carry an effect: China wakes up (Cooperation −2), AI takes jobs (Cohesion −2), Agent-2 kept internal (margin +2), alignment declared (estimate +4), national security (margin +2), geopolitics (Cooperation −4, and the Five Eyes headline: Washington shares its AI with London and Ottawa; a coalition at level 1 wavers, Influence −2 at once, `fiveEyes`). A theft cut short by weight security shows its milestone as "cut short".
+5. **Threats** grow in three stages from public values only (stages never go back): theft by `AI power + 0.4 × (50 − Cooperation)` at 28 / 33 / 38; opaque reasoning by AI power at 45 / 48 / 51; AI incident by AI power at 52 / 57 / 62 (only after opaque reasoning has struck); ransomware by `0.6 × AI power + 15 if Europe's AI is Open` at 32 / 37 / 42 (a Dependent Europe meets it from about AI power 53); bioweapon uplift by `AI power + 3 if Open` at 66 / 69 / 72, after self-improving AI; silicon blackmail appears with the oversight mandate while Dependent, or when Europe protests the US chip-tool ban, then grows one stage a round. A threat strikes at the earliest the round after it became imminent.
+6. **One event at most**: the next AI 2027 milestone's threat if ripe; else **the memo leaks** (first round with AI power ≥ 76 after the geopolitics milestone, so at or before the tipping point); else a job shock (first at AI power 40 after "AI takes jobs", second at 70 after "the cheap remote worker"); else a crisis that is not a threat, each once a game (the **US chip-tool ban** after the ASML lever or in the Rupture zone once the theft struck; a **Taiwan Strait crisis** in the Rupture zone once the theft struck, from AI power 50; the superpowers' **open-model ban** when Europe's AI is Open, outside the Rupture zone, from AI power 55); else the AI incident (chance per round `0.2 + 0.02 × (60 − true Confidence)`, between 8% and 85%: it shows as "possible"), else silicon blackmail, else ransomware, else bioweapon uplift.
 7. **The tipping point**: AI power ≥ 80, from round 6, and only once every earlier AI 2027 milestone has been reached; otherwise AI power stops at 79. The round in which it is reached is the last round of decisions.
-8. **Map content**: milestone headlines, then threat-stage headlines, then a world headline from the pool when there is room (two at most); one or two public voices; a leak every two or three rounds from round 2; a friend's letter on the schedule of `letters.schedule` (rounds 1 Léa, 2 Malik, 3 your mother, 5 Léa, 6 Malik, 7 your mother, 9 Léa). Letters move no gauge and draw their variant from their own seeded stream (seed and round); the main generator still makes one unused draw at rounds 1, 4 and 8 (`letters.legacyDraws`, where Léa's letters drew before 26 Oct) so seeded games are unchanged. Each pool is picked from public values only (see `src/data/letters.ts`).
+8. **Map content**: milestone headlines, then threat-stage headlines, then a world headline from the pool when there is room (two at most); one or two public voices; a leak round every two or three rounds from round 2, where the next leak comes if its AI 2027 milestone has been reached (sycophant: the start; could replicate: Agent-2 kept internal; hides mistakes: alignment inconclusive; performs for testers: national security), else the round stays quiet; a friend's letter on the schedule of `letters.schedule` (rounds 1 Léa, 2 Malik, 3 your mother, 5 Léa, 6 Malik, 7 your mother, 9 Léa). Letters move no gauge and draw their variant from their own seeded stream (seed and round); the main generator still makes one unused draw at rounds 1, 4 and 8 (`letters.legacyDraws`, where Léa's letters drew before 26 Oct) so seeded games are unchanged. Each pool is picked from public values only (see `src/data/letters.ts`).
 
 Then the player may read the report (at most three changes with a cause, routine drift left out, and the threats that moved), and play up to two cards (`playCard`), never the same card twice in a round. `endRound` ends the game at the tipping point or after the last round (`TUNING.rounds`: 10 since 26 Oct, was 12).
 
@@ -29,35 +29,49 @@ Then the player may read the report (at most three changes with a cause, routine
 
 | Event | Prepared by | Unprepared | Prepared |
 | --- | --- | --- | --- |
-| Model theft | Weight security standards | AI power +5, Cooperation −15 | Cooperation −3; with a coalition, *Joint attribution* opens |
-| Opaque reasoning | AI Office capacity | Margin × 2 | Nothing |
-| AI incident | Coalition level 1 and inspections level 2 | Estimate −10, Cohesion −5 | Cooperation +10; *Emergency inspection summit* opens |
+| Model theft | Weight security standards | AI power +5, Cooperation −15 | Cut short: AI power +2, Cooperation −6; with a coalition, *Joint attribution* opens |
+| Opaque reasoning | AI Office capacity | Margin × 1.5 | Margin × 1.2 |
+| AI incident | Coalition level 1 and inspections level 1 | Estimate −10, Cohesion −5, Cooperation +3 | Cooperation +10; either way the *AI security summit* opens (Europe leads it only if prepared) |
 | Ransomware wave | Cyber shield | Cohesion −15 | Cohesion −3 |
 | Silicon blackmail | Europe's AI Open | Give in (Europe's AI locked Dependent, open models gone) or hold firm (Cohesion −10) | Nothing |
-| Job shock 1 and 2 | Flexicurity reform | Cohesion −5 | Cohesion −1 |
+| Bioweapon uplift | Lead a global biosecurity pact | Cohesion −6 | Cohesion −1 |
+| Job shock 1 and 2 | Back flexicurity in member states | Cohesion −5 | Cohesion −1 |
+| The memo leaks | Inspection accord (level 2) | Cohesion −3, margin +4 (Europe had seen only older models) | Cohesion −3. Either way: flag `memo_public`, the *Call for a pause* opens, the Oversight Committee will vote |
+| US chip-tool ban (choice) | none | Comply: Cohesion −4, Cooperation −3; protest: silicon blackmail grows a stage | |
+| Taiwan Strait crisis | none | Cooperation −5, Cohesion −4, AI power −2 | |
+| Open-model ban (choice) | none | Join: Europe's AI → Dependent, Cohesion −2; keep them open: Cooperation −4, ransomware grows a stage | |
 
-The job shocks also show in the feed and on the map as a social item with the jobs icon (Rotterdam, then Warsaw; `JOB_SHOCK_PLACE` in `src/data/social.ts`); their effect is the event's, applied once.
+The crises that are not threats set `<id>_done` and `<id>_<choice>` flags (for the news). The job shocks also show in the feed and on the map as a social item with the jobs icon (Rotterdam, then Warsaw; `JOB_SHOCK_PLACE` in `src/data/social.ts`); their effect is the event's, applied once.
+
+## The Oversight Committee (AI 2027, October 2027)
+
+Once the memo has leaked (`memo_public`), the committee votes at the tipping point, from public values only: 4 votes to slow down, +1 for the leaked memo, +1 for Europe's pause call (`pause_call`), +1 when verified AI safety is below 50 ("nobody outside can vouch for it"), −1 in the Rupture zone (hawks). Six or more of ten: slow down, the final US–China cooperation moves +10 and the true AI safety +8 (outside alignment researchers, Agent-4 shut down); else race on, cooperation −4 (China's offer of a pause refused). Flags `committee_slowdown` / `committee_race`. The heading line already counts the vote as it stands; the Why? dialog and the end screen show it with its reasons.
 
 ## Cards
 
 | Card | Cost | Effect | Uses | Arrives |
 | --- | --- | --- | --- | --- |
-| Diplomatic talks | 1 | Cooperation +8, Cohesion −2; rests the next round | 3 | Round 1 |
-| Offer to host inspections → Inspection accord → Joint inspectorate | 2 / 2 / 3 | Estimate +8, truth +6, margin −4 (−6 with the AI Office), Cooperation −4 | 3 levels | Round 1 |
-| AI Office capacity | 2 | Margin × 0.5, Cohesion −1; protects against opaque reasoning; leaks +2 oversight | 1 | Round 1 |
-| Fund alignment research | 2 | Truth +6, estimate +2, Cohesion −1 | 3 | Round 2 |
-| Middle-power coalition | 2 / 2 / 3 | Cooperation +6, Cohesion −1; level 2: Influence +1 a round | 3 levels | Round 3 |
-| Independent audit | 1 | Estimate set to the truth; the true value shown for 2 rounds | 2 | Round 4 |
-| Use the ASML lever | 2 | Safety: estimate +10, truth +8; or access: Cohesion +8. Cooperation −12 | 2 | AI power 35 |
-| Weight security standards | 1 | Protects against theft; Europe's AI → Dependent; Cohesion −2 | 1 | Theft threat seen |
-| Fund open models | 2 | Europe's AI → Open, Cohesion +6, estimate and truth −6; ransomware pressure +25 | 1 | First job shock |
-| Flexicurity reform | 3 | Cohesion +10; softens job shocks; Influence −1 for 2 rounds | 1 | First job shock |
+| Diplomatic talks | 1 | Cooperation +6, Cohesion −2; rests the next round | 3 | Round 1 |
+| Push for inspections: Test the labs' models in Europe → Inspection accord → Joint inspectorate | 2 / 3 / 3 | Margin −8 (−10 with the AI Office); from the accord: Cooperation +3, truth +3, Influence −1 next round. The accord and the inspectorate need an AI incident, the summit, or Cooperation 60+ | 3 levels | Round 1 |
+| AI Office capacity | 2 | Margin × 0.5, Cohesion −1; softens opaque reasoning; leaks +2 oversight | 1 | Round 1 |
+| Fund alignment research | 2 | Truth +3 (+4 more with inspections level 2), estimate +2, Cohesion −1 | 3 | Round 2 |
+| Middle-power coalition | 2 / 2 / 3 | Cooperation +3, Cohesion −1; level 2: Influence +1 a round | 3 levels | Round 3 |
+| Independent audit (a game device) | 1 | Estimate set to the truth; the true value shown for 2 rounds | 2 | Round 4 |
+| Push to use the ASML lever | 2 | Safety: margin −8; or access: Cohesion +6. Cooperation −2; Washington answers with the chip-tool ban | 2 | AI power 35 |
+| Weight security standards | 1 | Cuts a theft short; Europe's AI → Dependent unless Europe funded open models; Cohesion −2 | 1 | Theft threat seen |
+| Fund open models | 2 | Europe's AI → Open, Cohesion +6; ransomware pressure +15 | 1 | Round 2 |
+| Back flexicurity in member states | 3 | Cohesion +10; softens job shocks; Influence −1 for 2 rounds | 1 | AI takes jobs milestone |
 | Cyber shield for hospitals and grids | 2 | Protects against ransomware; Cohesion +3; Influence −1 for 2 rounds | 1 | Ransomware threat seen |
-| Human oversight mandate | 2 | Cohesion +6, AI power −2; silicon blackmail threat if Dependent | 1 | Round 6 |
-| *Emergency inspection summit* | 1 | Cooperation +10, estimate and truth +5 | 2 rounds | Prepared AI incident |
+| Human oversight mandate | 2 | Cohesion +6; labs withhold models: Europe's AI → Dependent unless Europe funded open models; silicon blackmail threat if Dependent | 1 | Round 6 |
+| A CERN for AI on Europe's gigafactories | 3 | Margin −8, Cohesion −3 | 1 | Round 3 |
+| Fund chips that prove where they run | 3 | Cooperation +4, margin −3, Influence −1 next round | 1 | AI power 50 |
+| Push for a licensing treaty | 3 | Margin −6, truth +6, Cooperation +3, Cohesion −2; only with Cooperation 60+ | 1 | Pause zone and (the summit or inspections level 2) |
+| Lead a global biosecurity pact | 2 | Protects against bioweapon uplift; Cooperation +3, Cohesion −1 | 1 | Bioweapon threat seen |
+| *AI security summit* | 1 | Cooperation +10 (Europe prepared for the incident) or +5, margin −5, truth +4 | 2 rounds | Any AI incident |
 | *Joint attribution with allies* | 1 | Cooperation +5 | 2 rounds | Theft, with a coalition |
+| *Call for a pause with other capitals* | 2 | Cooperation +4, one committee vote to slow down, Influence −2 next round | 2 rounds | The memo leaks |
 
-**Oversight** (to read leaks): AI Office 2, each inspection level 1, an audit 1. Leak levels in order: 1, 1, 2, 2, 3, 3. A leak's text says whether the labs are overconfident (estimate − truth ≥ 6) or not.
+**Oversight** (to read leaks): AI Office 2, each inspection level 1, an audit 1. Leak levels in order: 1, 1, 2, 2. A leak's text says whether the labs are overconfident (estimate − truth ≥ 6) or not.
 
 ## Requests: which side means yes
 
@@ -70,18 +84,18 @@ One convention for every request (26 Oct): **right goes along with the request, 
 
 | World | Decides | Safety net |
 | --- | --- | --- |
-| Pause (Cooperation 60+) | Confidence 65 | Cohesion 45 |
+| Pause (Cooperation 60+) | Confidence 68 | Cohesion 45 |
 | Race (30–59) | Confidence 75 | Cohesion 55 |
 | Rupture (< 30) | Cohesion 82 | Confidence 65 |
 | Plateau, open models | Cohesion 60 | Confidence 40 |
-| Plateau, big labs | Cohesion 60 | Confidence 40 |
+| Plateau, big labs (Big AI) | Cohesion 60, and Europe's AI Open | Confidence 40 |
 
   "Met" in the heading uses the whole band for Confidence: yes if estimate − margin ≥ target, no if estimate + margin < target, else uncertain.
 - `advisor(s)`: weighs each gauge by how far it is from what the heading's world needs (the low end of the Confidence band), scores each playable card through the public preview plus what the card text says (protection against a visible threat, hidden safety gain, Influence lost later), and recommends the best value per Influence. Its words carry no numbers (tested).
 
 ## The end
 
-At the tipping point, the final Cooperation is drawn within ±2 of the current value (suspense near the borders), and its zone picks the world; without a tipping point, Europe's AI badge does. The ending is good when the deciding gauge reaches its target and the safety net its floor, **using the true Confidence**. `ending(s)` builds the one-sentence explanation, the four gauges with target and floor, the reveal (truth vs estimate, pace, unread leaks), up to two "what would have changed it" lines (a calmer zone, the shortfall, an unprepared threat), the decisions with their chips, and the threats.
+At the tipping point, the final Cooperation is drawn within ±2 of the current value (suspense near the borders), the Oversight Committee's vote moves it (+10 or −4, once the memo has leaked), and its zone picks the world; without a tipping point, AI power at the end does (below 60 the Plateau, from 60 Big AI, `plateau.bigAiFrom`). The ending is good when the deciding gauge reaches its target and the safety net its floor, **using the true Confidence**; in Big AI, Europe's AI must also be Open (CFG's agent economy). `ending(s)` builds the one-sentence explanation, the four gauges with target and floor, the reveal (truth vs estimate, pace, unread leaks), up to two "what would have changed it" lines (a calmer zone, the shortfall, an unprepared threat), the decisions with their chips, and the threats.
 
 ## Tuning changes from the V3 spec's first draft
 
@@ -158,6 +172,20 @@ Ideas kept for the final pass, in this order, each checked with `npm run sim` at
    - *Requests*: removed as duplicates of new decision cards: `rs_compute_pledge` (weight 2, true AI safety +10: the strongest safety answer), `sc_biosecurity`, `us_licence_treaty`. New: `cn_watch_chips` (Rupture, round 6+, coalition 1+: cooperation +6, cohesion −3, Europe's AI Dependent / cooperation −4). Changed: `mk_visa` right answer cooperation +2 → 0 with a later true AI safety +2, gate maxCoop 50 → 59 (it never came to thoughtful players); `cn_joint_research` needs cooperation 35+ (no joint research in a Rupture); `cn_tools` is no longer first in line when China wakes up (`priority: false`; it came in 92% of thoughtful games); `rs_memo` now comes after the memo leak (outside tests: verified uncertainty −4, cooperation −2, cohesion −1 / take their word) instead of calling for a pause at the tipping point (AI −3, claim −4, cooperation +3, cohesion −2); `jn_memo` comes before the leak, from the geopolitics milestone (uncertainty −5, cohesion −2, cooperation −2; was −6, −3, +2 at the tipping point), and excludes `rs_memo`.
    - *Sanity run after this pass* (`npm run sim`, 100 games, on top of the core pass 9473f11, both unbalanced): passive 0%, random 22%, thoughtful **45%** (target 55–80%), cooperation-only 3%, home-first 42%, advised 41%, saver 43%; *The cognitive revolution* and *A divided world that holds* below 2% for every strategy. Not split between the two passes (the owner caps the runs); on this side the likeliest cause is the removed `rs_compute_pledge` (true AI safety +10, drawn twice as often as others).
    - *Recently-seen memory*: real players' games weigh items seen in their last two games at 0.25 (`TUNING.news.recentWeight`), social events and requests included, which shifts which gauge-moving items come; the seeded simulation passes no memory. Measure it in the final pass with `playGame(seed, strategy, recent)` chained over consecutive seeds if it matters.
+
+9. **Structural content rewrite (26 Oct, audit of the decisions, threats, events and endings; owner's decisions).** Direction and rule changes, all with provisional sizes in `tuning.ts`, none rebalanced. Quick sim (100 games a strategy) after them: passive 0%, random 13%, thoughtful 38%, cooperation-only 0% (was 4–8%), home-first 25%, advised 34%, saver 37%; *The cognitive revolution* and *A divided world that holds* fell below 2% for every strategy; tipping worlds are almost never won (thoughtful: steady pace 9%, fast 0%). The balance guardrail in `tests/balance.test.ts` was relaxed (thoughtful > 0.3, random > 0.03) until this pass. To look at, in this order:
+   - **Hidden AI safety lost Europe's direct gains.** Inspections no longer add truth +6 a level (only +3 from the accord, under a deal), the ASML lever no longer adds truth +8, alignment research gives +3 (+4 more with the accord) instead of +6, open models no longer cost −6. The tipping worlds' targets (Pause 68, Race 75) were sized with those gains: lower them, or raise the in-access gains (accord, licensing treaty +6, summit +4, the committee's slowdown +8), or slow the truth's drift (−2 a round past AI power 60).
+   - **The committee vote** moves the final cooperation +10 / −4 and the truth +8 on a slowdown (4 base votes, +1 memo, +1 pause call, +1 verified below 50, −1 Rupture; 6 needed). The pause call is rarely played by the strategies (thoughtful 8%); "doubt" alone often decides the vote. Check whether the vote should need the pause call more, and whether +1 for low verified rewards neglecting oversight.
+   - **Big AI needs an Open Europe** (`plateau.bigAiFrom` 60): slow games split between Plateau and Big AI; random players rarely end Open (random 13%). Check the 60 threshold, and that open models (once, cost 2) are not a must-play.
+   - **Inspections**: accord and inspectorate gated (incident, summit or Pause zone), costs 2 / 3 / 3 and Influence −1 next round; cooperation 0 then +3. **Coalition** +3 a level (was +6), **talks** +6 (was +8).
+   - **Partial protections**: a prepared theft now costs AI power +2 and cooperation −6 (was −3 only); the AI Office leaves opaque reasoning at margin ×1.2 (was no effect).
+   - **Blowback**: the ASML lever triggers the US chip-tool ban (comply: Cohesion −4, cooperation −3; protest: silicon blackmail grows); the oversight mandate turns Europe Dependent unless it funded open models, and no longer slows AI (−2 removed); the Five Eyes headline costs a level-1 coalition Influence −2; the pause call and chip verification cost Influence −2 / −1 next round.
+   - **New crises**: Taiwan (Rupture, Cooperation −5, Cohesion −4, AI power −2), the open-model ban (Open Europe: join or keep), the memo (Cohesion −3, margin +4 without an accord), bioweapon uplift (rare: strikes in 1–5% of games). Home-first meets the chip-tool ban (83%) and Taiwan (45%) often: it hurts the *Multipolar world* (Cohesion 82).
+   - **Ransomware** reaches a Dependent Europe (0.6 × AI power, +15 if Open; was 0.5 and +25). **Incident**: unprepared Cooperation +3; the summit opens after any incident (+5, or +10 when prepared); prepared needs inspections level 1 (was 2).
+   - **New cards** with first sizes: CERN for AI (3, margin −8, Cohesion −3, round 3), chips that prove where they run (3, Cooperation +4, margin −3, AI power 50), licensing treaty (3, Pause only), biosecurity pact (2), pause call (2). Open models arrive in round 2 (were after the first job shock), flexicurity with *AI takes jobs*.
+   - **Leaks** wait for their milestone and the DeepCent leak is cut: fewer leaks a game; levels 1, 1, 2, 2.
+   - **Fewer requests**: the living-world pass removed `rs_compute_pledge`, `sc_biosecurity` and `us_licence_treaty` (duplicates of the CERN for AI, biosecurity and licensing cards) and its own Five Eyes headline (the milestone has one): check the "6–10 requests a game" and "rounds without a request" guardrails.
+   - The strategies were taught the new rules (event choices, Europe's AI weighted 8 when heading for Big AI, the committee's world change scored): check they still play like the people they stand for.
 
 ## Final simulation (2,000 games per strategy)
 

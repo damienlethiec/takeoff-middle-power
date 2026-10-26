@@ -427,7 +427,7 @@ function threatStages(s: GameState) {
   set('opaque', stageOf(s.aiPower, TT.opaque.stages));
   if (reached(s, 'superhuman_coder') || s.threats.opaque.struck) set('incident', stageOf(s.aiPower, TT.incident.stages));
   set('ransomware', stageOf(s.aiPower * TT.ransomware.powerWeight + (s.europeAi === 'open' ? TT.ransomware.openBonus : 0), TT.ransomware.stages));
-  if (reached(s, 'cheap_remote_worker')) set('bio', stageOf(s.aiPower + (s.europeAi === 'open' ? TT.bio.openBonus : 0), TT.bio.stages));
+  if (reached(s, 'self_improving')) set('bio', stageOf(s.aiPower + (s.europeAi === 'open' ? TT.bio.openBonus : 0), TT.bio.stages));
   const b = s.threats.blackmail;
   if (b.stage > 0 && b.stage < 3 && !b.struck && s.arrivals.oversight_mandate !== s.round) set('blackmail', (b.stage + 1) as 1 | 2 | 3);
 }
@@ -652,6 +652,7 @@ function chooseEvent(s: GameState, h: RngHolder): EventId | null {
   if (s.jobShocks === 1 && s.aiPower >= J[1] && reached(s, 'cheap_remote_worker')) return 'job_shock_2';
   const crisis = crisisEvent(s);
   if (crisis) return crisis;
+  if (ripe(s, 'bio')) return 'bio';
   if (ripe(s, 'incident')) {
     const I = T.threats.incident;
     const p = clamp(I.chanceBase + (I.chanceCenter - s.confidence.truth) * I.chancePerPoint, I.chanceMin, I.chanceMax);
@@ -659,7 +660,6 @@ function chooseEvent(s: GameState, h: RngHolder): EventId | null {
   }
   if (ripe(s, 'blackmail')) return 'blackmail';
   if (ripe(s, 'ransomware')) return 'ransomware';
-  if (ripe(s, 'bio')) return 'bio';
   return null;
 }
 
