@@ -104,9 +104,9 @@ export const TUNING = {
 
   threats: {
     /** Theft pressure = AI power + (50 − Cooperation) × coopWeight. Stages at these pressures. */
-    theft: { coopWeight: 0.4, stages: [28, 36, 42], unprepared: { aiPower: 5, cooperation: -15 }, prepared: { cooperation: -3 } },
+    theft: { coopWeight: 0.4, stages: [28, 33, 38], unprepared: { aiPower: 5, cooperation: -15 }, prepared: { cooperation: -3 } },
     /** Opaque reasoning: AI power stages, after the theft. */
-    opaque: { stages: [45, 50, 55], marginFactor: 1.5 },
+    opaque: { stages: [45, 48, 51], marginFactor: 1.5 },
     /** AI incident: AI power stages, after opaque reasoning; strike chance per round at stage 3 depends on hidden safety. */
     incident: {
       stages: [52, 57, 62],
@@ -120,7 +120,7 @@ export const TUNING = {
       needs: { coalition: 1, inspections: 2 },
     },
     /** Ransomware pressure = AI power × powerWeight + 25 if Europe's AI is Open. */
-    ransomware: { powerWeight: 0.5, openBonus: 25, stages: [32, 40, 48], unprepared: { cohesion: -15 }, prepared: { cohesion: -3 } },
+    ransomware: { powerWeight: 0.5, openBonus: 25, stages: [32, 37, 42], unprepared: { cohesion: -15 }, prepared: { cohesion: -3 } },
     /** Silicon blackmail: appears with the oversight mandate while Dependent, grows one stage a round. */
     blackmail: { holdFirm: { cohesion: -10 } },
   },
