@@ -47,7 +47,7 @@ function outcomeHtml(v: RequestView, a: AnswerView, o: RequestOutcome): string {
     <p class="reaction" id="req-reaction">“${esc(o.reaction)}”</p>
     <p class="pc-chips" aria-label="What changed">${o.chips.length ? chips(o.chips) : '<span class="chip flat">No visible change</span>'}</p>
     ${o.notes.map((n) => `<p class="note-line">${esc(n)}</p>`).join('')}
-    <div class="row-btns"><button type="button" class="btn-primary" data-primary data-action="ok">Back to the six months <kbd>Enter</kbd></button></div>
+    <div class="row-btns"><button type="button" class="btn-primary" data-primary data-action="ok">Back to the map <kbd>Enter</kbd></button></div>
   </div>`;
 }
 

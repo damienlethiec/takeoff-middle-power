@@ -64,7 +64,7 @@ A character arrives during the six months with a short request (≤ 40 words) an
 - **Characters** (all fictional; OpenBrain and DeepCent are AI 2027's): Dana Whitfield (US envoy), Li Wen (China's delegate in Geneva), Marcus Hale (OpenBrain's CEO), Dr Ines Moreau (independent evaluator), Katrin Vogel (union leader), Tomas Novak (open-model collective), General Aurélie Brandt (EU cyber and intelligence), Minister Hana Sato (Japan and the middle powers), Sam Okafor (journalist), the three friends back home (Léa, your mother, Malik), and "Agent", OpenBrain's frontier model speaking for itself.
 - **Which comes**: first a request tied to a milestone reached this round or to a growing threat, else a seeded draw; 6 to 10 a game; never the same one twice. Three **follow-ups** come back on an earlier answer ("I warned you").
 - **On the card**: the character's portrait, name and role, the request, "Free of Influence", the two answers with their effects as chips (+ / − and words), "If AI tipped now" when an answer would change the world, and **Learn more** (a sourced fact or the scenario passage it echoes).
-- **Answering**: click an answer, swipe the card, or press ← / → once to look (the answer is highlighted and announced) and again to answer. The character reacts, with what changed. Requests and answers stay in the feed.
+- **Answering**: click an answer, swipe the card, or press ← / → once to look (the answer is highlighted and announced) and again to answer. The character reacts, with what changed; "Back to the map" (Enter) resumes the clock. Requests and answers stay in the feed.
 - Requests never widen the AI safety uncertainty (only events and the labs' reports do).
 
 ## Decisions
@@ -73,7 +73,7 @@ A character arrives during the six months with a short request (≤ 40 words) an
 
 - **The hand**: one card per policy, with its cost, effect chips, what it protects against, its level, its tags (New, Opportunity with rounds left, Recommended, Selected). *Details* opens the full proposal, the real-world example and cost with sources, and its levels.
 - **The chief of staff** gives one recommendation, in words, without numbers.
-- **Select** any number of cards Influence covers (a click toggles; the hand shows what is still affordable). The selection **previews on the real gauges** ("→ 55", a dotted mark on the bar, the targets dashed where they would move) and in the line ("If you confirm: Heading for [Race] → [Pause]") only when the world or a goal's status would change; Europe's AI chip shows "Dependent → Open".
+- **Select** any number of cards Influence covers (a line above the hand says so: "Play as many cards as your Influence allows", also announced when the decisions open) (a click toggles; the hand shows what is still affordable). The selection **previews on the real gauges** ("→ 55", a dotted mark on the bar, the targets dashed where they would move) and in the line ("If you confirm: Heading for [Race] → [Pause]") only when the world or a goal's status would change; Europe's AI chip shows "Dependent → Open".
 - **Active threats** are listed beside the hand ("Prepared if you confirm").
 - **Confirm** (n cards, cost), **Play no card**, or **Back to the map** (Escape).
 

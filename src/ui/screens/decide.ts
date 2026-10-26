@@ -99,7 +99,8 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
         <div class="dk-title"><div class="dateline">${esc(date)} · Your decisions</div><h2 id="dk-h" tabindex="-1">Play your cards</h2></div>
         <p class="dk-adv"><span class="ava" aria-hidden="true">CS</span><span><b>Your chief of staff:</b> ${esc(adv.text)}</span></p>
       </header>
-      <ul class="hand" aria-label="Your cards" data-coach="hand"></ul>
+      <p class="dk-hint" id="dk-hint">${ICON.influence}Play as many cards as your Influence allows.</p>
+      <ul class="hand" aria-label="Your cards" aria-describedby="dk-hint" data-coach="hand"></ul>
       <div class="dk-bar">
         <p class="dec-inf" data-coach="dec-influence"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">Influence left</span></p>
         <p class="dec-notes" id="dec-notes" aria-live="off"></p>
@@ -215,7 +216,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
       if (!host.contains(document.activeElement)) focusFirst();
     });
   });
-  announce(`Your decisions, ${date}. ${hand.length} cards. ${adv.text}`);
+  announce(`Your decisions, ${date}. ${hand.length} cards. Play as many as your Influence allows: ${s.influence}. ${adv.text}`);
 
   const a = await new Promise<string>((resolve) => {
     host.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((b) => b.addEventListener('click', () => resolve(b.dataset.action!)));

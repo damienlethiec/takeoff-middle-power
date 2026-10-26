@@ -558,6 +558,8 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .dk-adv { flex: 1 1 320px; display: flex; gap: 8px; align-items: center; margin: 0; font-size: 13.5px; line-height: 1.35; }
 .dk-adv .ava { width: 28px; height: 28px; font-size: 12px; }
 .dk-main .hand { margin-top: 8px; }
+.dk-hint { display: flex; gap: 6px; align-items: center; margin: 6px 0 0; font-size: 13.5px; font-weight: 600; color: var(--concern); }
+.dk-hint .ico { width: 15px; height: 15px; flex: none; }
 .dk-bar { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "inf notes" "btns btns"; align-items: center; gap: 6px 14px; border-top: 1px solid var(--rule); padding-top: 7px; margin-top: 8px; }
 .dk-bar .dec-inf { grid-area: inf; margin: 0; }
 .dk-bar .dec-inf .inf-v { font-size: 26px; }

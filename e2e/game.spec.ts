@@ -38,7 +38,7 @@ async function advance(page: Page, ms: number, answer = true) {
     if (answer && t % 500 === 0 && (await page.locator('.req-card.asking').count())) {
       await page.locator('.req-card.asking .ans-left').click();
       await page.clock.fastForward(400);
-      await page.getByRole('button', { name: /^Back to the six months/ }).click();
+      await page.locator('.req-card.answered').getByRole('button', { name: /^Back to the map/ }).click();
     }
   }
 }
@@ -96,7 +96,7 @@ async function closeDialog(page: Page, side: 'left' | 'right' = 'left') {
       expect(await tipOpen()).toBe(0);
       await expect(req.locator('.reaction')).toBeVisible({ timeout: 100 });
     });
-    await req.getByRole('button', { name: /^Back to the six months/ }).click();
+    await req.getByRole('button', { name: /^Back to the map/ }).click();
     return 'request';
   }
   const choice = d.locator('.choice').first();
@@ -374,7 +374,7 @@ test.describe('key interactions', () => {
           await page.keyboard.press('ArrowRight');
         }
         await expect(d.locator('.reaction')).toBeVisible();
-        await expect(d.getByRole('button', { name: /^Back to the six months/ })).toBeFocused();
+        await expect(d.getByRole('button', { name: /^Back to the map/ })).toBeFocused();
         await page.keyboard.press('Enter');
         await advance(page, 300, false);
         await expect(page.locator('#phase')).not.toHaveText('A request');
