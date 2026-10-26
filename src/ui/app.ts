@@ -1212,10 +1212,11 @@ export class App {
         sec.classList.add('flash');
       }
     }
-    // Europe's AI picks the world if AI never tips: its badge always ends the line (and previews a selection)
+    // Europe's AI decides the ending if AI stalls under a few big labs: its badge always ends the line (and previews a selection)
     const badge = $('#hl-badge', this.root);
     const ai = pv?.impacts.some((i) => i.key === 'europeAi') ? (this.s.europeAi === 'open' ? 'dependent' : 'open') : this.s.europeAi;
-    const plateau = h.plateau && now.plateau;
+    // heading for a plateau with big labs: the badge decides the ending there
+    const plateau = !!h.needsOpen && !!now.needsOpen;
     const bsig = `${this.s.europeAi}>${ai}${plateau ? ':plateau' : ''}`;
     if (badge.dataset.v !== bsig) {
       const hadFocus = badge.contains(document.activeElement);

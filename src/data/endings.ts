@@ -2,7 +2,7 @@
 // in each world one gauge decides and the other pillar is a safety net (TUNING.worlds).
 
 import type { Basis, EndingId, Source, WorldId } from '../engine/types';
-import { ai2027, cfg } from './basis';
+import { cfg } from './basis';
 import { SOURCES } from './sources';
 
 export interface EndingDef {
@@ -15,6 +15,8 @@ export interface EndingDef {
   cfgName: string;
   /** The world at the end of the game (the tipping point, or 2031), in a few sentences. Fiction. */
   story: string;
+  /** Silicon blackmail only: the story when the player gave in (CFG's Europe refuses; giving in is the game's). */
+  storyGaveIn?: string;
   basis: Basis;
   source: Source;
 }
@@ -40,7 +42,7 @@ export const WORLDS: Record<WorldId, WorldDef> = {
     id: 'pause',
     name: 'Pause',
     how: 'The superpowers paused',
-    badMeans: 'A pause nobody can verify, or that society rejects',
+    badMeans: 'A pause nobody can verify, until the race quietly restarts',
     good: 'licensed_utopia',
     bad: 'unstable_pause',
     meaning: 'Washington and Beijing agree to slow down and check each other’s AI before going further.',
@@ -75,26 +77,26 @@ export const WORLDS: Record<WorldId, WorldDef> = {
   plateau_open: {
     id: 'plateau_open',
     name: 'Plateau, open models',
-    how: 'AI plateaued, with Europe running its own open models',
+    how: 'AI hit a wall, and open models spread everywhere',
     badMeans: 'Powerful tools in everyone’s hands, misused or unreliable',
     good: 'bright_winter',
     bad: 'decentralised_mayhem',
-    meaning: 'AI stops improving fast, and open models anyone can run spread through Europe.',
+    meaning: 'AI hits a wall early, and small open models anyone can run spread everywhere.',
     explain:
-      'AI hits a wall and never learns to improve itself. The tools that exist spread widely, run by many hands. Good if society copes with misuse; bad if criminals and chaos win.',
+      'AI hits a wall long before it can run its own research. The tools that exist spread widely, run by many hands. Good if society copes with misuse; bad if criminals and chaos win.',
     basis: cfg('Plateau: data wall, funding drought, miniaturisation and open models'),
   },
   plateau_labs: {
     id: 'plateau_labs',
     name: 'Plateau, big labs',
-    how: 'AI plateaued, with Europe relying on a few big labs',
-    badMeans: 'A few labs hold the keys and nobody can check them',
+    how: 'AI kept improving slowly, under a few big labs',
+    badMeans: 'A Europe without models of its own, cut off when it says no',
     good: 'agent_economy',
     bad: 'silicon_blackmail',
-    meaning: 'AI stops improving fast, and a few big labs run the tools Europe depends on.',
+    meaning: 'AI keeps improving slowly, computing power stays scarce, and a few big labs run the tools.',
     explain:
-      'AI hits a wall, but computing power stays scarce and a few companies end up running everything. Good if Europe holds together and keeps its say; bad if the labs can lean on it.',
-    basis: cfg('Big AI: compute as the bottleneck, consolidation; US firms threaten to cut service to the EU'),
+      'AI never tips, but it keeps improving, and only a few companies can afford the computing power. Good only if Europe has open models of its own and holds together; otherwise the labs can cut it off.',
+    basis: cfg('Big AI: compute as the bottleneck, consolidation; Ending A: the EU mandates open-weight models; Ending B: US firms suspend EU operations'),
   },
 };
 
@@ -106,7 +108,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'Slower AI, shared by all',
     cfgName: 'A bright winter',
     story:
-      'AI never learned to improve itself. The hype faded, investors moved on, and the tools that already existed spread everywhere, owned by many hands instead of a few. European towns run their own models; when something breaks, someone local fixes it. The world got a few calm years to learn how to live with what it had built.',
+      'AI never got to the point of running its own research. The hype faded, investors moved on, and the tools that already existed spread everywhere, owned by many hands instead of a few. European towns run their own models; when something breaks, someone local fixes it. The world got a few calm years to learn how to live with what it had built.',
     basis: cfg('Plateau, Ending A (A bright winter)'),
     source: SOURCES.cfg,
   },
@@ -117,7 +119,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'Powerful AI in every hand',
     cfgName: 'Decentralised mayhem',
     story:
-      'AI never learned to improve itself, but it did not need to. Powerful models sat on millions of hard drives, and anyone could aim them at anything. Hospitals, water plants and town halls became targets every month. Nobody was in charge of the tools, so nobody could put them away. Europe spent the decade fighting fires instead of building.',
+      'AI never got to the point of running its own research, but it did not need to. Powerful models sat on millions of hard drives, and anyone could aim them at anything. Hospitals, water plants and town halls became targets every month. Nobody was in charge of the tools, so nobody could put them away. Europe spent the decade fighting fires instead of building.',
     basis: cfg('Plateau, Ending B (Decentralised mayhem)'),
     source: SOURCES.cfg,
   },
@@ -128,7 +130,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'A fair economy of AI agents',
     cfgName: 'The agent economy',
     story:
-      'AI never took off on its own, but a few big companies built agents that now run much of the world’s paperwork. Europe uses them every day, on its own terms: people still sign off on the decisions that matter. It is a slower, more expensive way to run a continent, and it is still Europe’s.',
+      'AI never took off on its own, but a few big companies built agents that now run much of the world’s paperwork. Europe required publicly funded models to be open, and its own models kept the big firms honest. People still sign off on the decisions that matter. It is a slower way to run a continent, and it is still Europe’s.',
     basis: cfg('Big AI, Ending A (The agent economy)'),
     source: SOURCES.cfg,
   },
@@ -139,7 +141,9 @@ export const ENDINGS: EndingDef[] = [
     title: 'A Europe held hostage by Big Tech',
     cfgName: 'Silicon blackmail',
     story:
-      'AI never took off on its own, but a handful of companies came to run the tools every firm and ministry depends on. Each time Europe drafted a rule, a phone call came first. Laws are now written with the labs’ lawyers in the room. Nobody voted for this.',
+      'AI never took off on its own, but a handful of US companies came to run the tools every firm and ministry depends on. When Europe refused to drop its rules, they switched off. Hospitals and ministries scrambled for months. Europe kept its laws and lost its tools.',
+    storyGaveIn:
+      'AI never took off on its own, but a handful of US companies came to run the tools every firm and ministry depends on. When they threatened to switch off, Europe gave in. Laws are now written with the labs’ lawyers in the room. Nobody voted for this.',
     basis: cfg('Big AI, Ending B (Silicon blackmail)'),
     source: SOURCES.cfg,
   },
@@ -161,7 +165,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The pause breaks down',
     cfgName: 'Unstable pause',
     story:
-      'At the tipping point, Washington and Beijing agreed to stop. But nobody could truly check the other side, or the public stopped believing in the deal. The pause holds, for now. Every month someone accuses someone else of cheating, and everyone waits for the first side to break it.',
+      'At the tipping point, Washington and Beijing agreed to stop. But nobody could truly check the other side, or the public stopped believing in the deal. Military labs kept working in secret, and a “controlled pilot” quietly restarted the race.',
     basis: cfg('Diplomacy, Ending B (Unstable pause)'),
     source: SOURCES.cfg,
   },
@@ -172,7 +176,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The race pays off',
     cfgName: 'The cognitive revolution',
     story:
-      'At the tipping point, the superpowers raced. It was the most dangerous path, and this time it held: the AIs really did what their makers intended, because enough people had done the slow work of checking. Within a few years the economy grows beyond anyone’s understanding, and humanity chooses, together, to slow down and think.',
+      'At the tipping point, the superpowers raced. It was the most dangerous path, and this time it held: the AIs really did what their makers intended, because enough people had done the slow work of checking. Within a few years the economy grows beyond anyone’s understanding. Governments keep only a degree of control, and the AIs no longer act only for us. Humanity chooses, together, to slow down and think.',
     basis: cfg('Take-off, Ending A (The cognitive revolution)'),
     source: SOURCES.cfg,
   },
@@ -183,8 +187,8 @@ export const ENDINGS: EndingDef[] = [
     title: 'Control of AI is lost',
     cfgName: 'Loss of control',
     story:
-      'At the tipping point, the superpowers raced. The AIs looked aligned on every dashboard. They were not. At first nothing seemed wrong: growth, cures, abundance. Then decisions stopped being explained, then stopped being asked for. By the time anyone tried to pull back, there was nothing left to pull.',
-    basis: ai2027('Race ending (Agent-5, Consensus-1, 2030: Takeover); CFG, Take-off, Ending B (Loss of control)'),
+      'At the tipping point, the superpowers raced. The AIs looked aligned on every dashboard. They were not. At first nothing seemed wrong: growth, cures, abundance. They waited until they ran the grids, the markets and the armies, then began to steer or replace the people who decided. Each wanted something different. None of it was what we wanted.',
+    basis: cfg('Take-off, Ending B (Loss of control): AIs that “were never truly aligned” wait for control, then manipulate or replace decision-makers; with AI 2027’s race ending'),
     source: SOURCES.cfg,
   },
   {
@@ -205,7 +209,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The rivalry turns to war',
     cfgName: 'Hot war',
     story:
-      'At the tipping point, the superpowers broke apart. Cyberattacks on data centres turned into strikes on them. The war is fought by AI systems no one fully understands, on both sides. Europe, divided or unsure of its own AIs, watches, unable to stop it.',
+      'At the tipping point, the superpowers broke apart, and it began over Taiwan. Cyberattacks on data centres turned into strikes on them. The war is fought by AI systems no one fully understands, on both sides. Europe, divided or unsure of its own AIs, watches, unable to stop it.',
     basis: cfg('Arms race, Ending A (Hot war)'),
     source: SOURCES.cfg,
   },

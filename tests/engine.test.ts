@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CARDS } from '../src/data/cards';
 import { ENDING_BY_ID } from '../src/data/endings';
+import { LEAKS } from '../src/data/leaks';
 import { MILESTONES } from '../src/data/milestones';
 import { TUNING as T } from '../src/data/tuning';
 import {
@@ -231,12 +232,13 @@ describe('cards', () => {
     expect(gauges(c).find((x) => x.key === 'confidence')!.audited).toBe(false);
   });
 
-  it('Europe’s AI: open models make it Open, weight security makes it Dependent again', () => {
+  it('Europe’s AI: open models make it Open; weight security makes it Dependent, unless Europe funded its own models', () => {
     const s = fresh(1, { hand: ['open_models', 'weight_security'] });
     const a = play(s, { id: 'open_models' });
     expect(a.europeAi).toBe('open');
-    const b = nextRound(endRound(a).state);
-    expect(play({ ...b, influence: 10 }, { id: 'weight_security' }).europeAi).toBe('dependent');
+    const b = { ...nextRound(endRound(a).state), influence: 10 };
+    expect(play(b, { id: 'weight_security' }).europeAi).toBe('open');
+    expect(play({ ...b, uses: {} }, { id: 'weight_security' }).europeAi).toBe('dependent');
   });
 
   it('the ASML lever offers two concessions; Washington answers with a chip-tool ban', () => {
@@ -553,10 +555,15 @@ describe('heading, report, letters', () => {
     expect(heading({ ...s, cooperation: 70 }).alt).toBeNull();
   });
 
-  it('turns to a plateau when the visible AI power cannot reach the tipping point', () => {
+  it('turns to a plateau when the visible AI power cannot reach the tipping point; how far AI gets picks which', () => {
     const s = fresh(1, { round: 9, aiPower: 50, lastRise: 4 });
-    expect(heading(s).world).toBe('plateau_labs');
-    expect(heading({ ...s, europeAi: 'open' }).text).toMatch(/^If AI stalls: Plateau, open models\./);
+    expect(heading(s).world).toBe('plateau_open');
+    expect(heading(s).text).toMatch(/^If AI stalls: Plateau, open models\./);
+    expect(heading(s).needsOpen).toBeNull();
+    const labs = { ...s, aiPower: 62 };
+    expect(heading(labs).world).toBe('plateau_labs');
+    expect(heading(labs).needsOpen).toEqual({ now: 'dependent' });
+    expect(heading(labs).text).toMatch(/Europe’s AI Open \(you: Dependent\)/);
   });
 
   it('the report lists at most three changes, each with its cause', () => {
@@ -624,6 +631,22 @@ describe('heading, report, letters', () => {
     expect(readable).toBeGreaterThan(0);
     expect(redacted).toBeGreaterThan(0);
   });
+
+  it('each leak comes after its AI 2027 milestone, in order, and every leak can be reached', () => {
+    const seenIds = new Set<string>();
+    for (const seed of SEEDS.slice(0, 60)) {
+      const f = playGame(seed, thoughtful).final;
+      f.leaks.forEach((l, i) => {
+        const def = LEAKS[i];
+        expect(l.id).toBe(def.id);
+        const m = f.milestones.find((x) => x.id === def.after);
+        expect(m, `${l.id} before ${def.after}`).toBeTruthy();
+        expect(m!.round).toBeLessThanOrEqual(l.round);
+        seenIds.add(l.id);
+      });
+    }
+    expect([...seenIds].sort()).toEqual(LEAKS.map((l) => l.id).sort());
+  });
 });
 
 describe('endings', () => {
@@ -644,10 +667,13 @@ describe('endings', () => {
       [{ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 62, estimate: 70, margin: 15 } }, 'loss_of_control'],
       [{ ...tip, cooperation: 10, cohesion: 90, confidence: { truth: 70, estimate: 70, margin: 3 } }, 'multipolar_world'],
       [{ ...tip, cooperation: 10, cohesion: 70, confidence: { truth: 70, estimate: 70, margin: 3 } }, 'hot_war'],
-      [{ round: T.rounds, tipping: null, europeAi: 'open', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'bright_winter'],
-      [{ round: T.rounds, tipping: null, europeAi: 'open', cohesion: 50, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'decentralised_mayhem'],
-      [{ round: T.rounds, tipping: null, europeAi: 'dependent', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'agent_economy'],
-      [{ round: T.rounds, tipping: null, europeAi: 'dependent', cohesion: 65, confidence: { truth: 30, estimate: 40, margin: 12 } }, 'silicon_blackmail'],
+      // without a tipping point, how far AI got picks the world: a plateau below 60, big labs from 60
+      [{ round: T.rounds, tipping: null, aiPower: 55, europeAi: 'dependent', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'bright_winter'],
+      [{ round: T.rounds, tipping: null, aiPower: 55, europeAi: 'open', cohesion: 50, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'decentralised_mayhem'],
+      // with big labs in charge, only an Open Europe ends well (CFG, Big AI, Ending A)
+      [{ round: T.rounds, tipping: null, aiPower: 65, europeAi: 'open', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'agent_economy'],
+      [{ round: T.rounds, tipping: null, aiPower: 65, europeAi: 'dependent', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'silicon_blackmail'],
+      [{ round: T.rounds, tipping: null, aiPower: 65, europeAi: 'open', cohesion: 65, confidence: { truth: 30, estimate: 40, margin: 12 } }, 'silicon_blackmail'],
     ];
     for (const [patch, id] of cases) expect(ended(patch).ending, id).toBe(id);
   });

@@ -231,7 +231,8 @@ export function createInitialState(seed: number, opts: { recent?: string[] } = {
   const h: RngHolder = { rng: seedToRng(seed) };
   const pace = weightedPick(h, T.pace.weights);
   const leakRounds: number[] = [];
-  for (let r: number = T.leaks.firstRound; r <= T.rounds && leakRounds.length < LEAKS.length; r += randomInt(h, T.leaks.gapMin, T.leaks.gapMax)) leakRounds.push(r);
+  // the rounds a leak may come; each leak waits for its AI 2027 milestone, so some of these rounds stay quiet
+  for (let r: number = T.leaks.firstRound; r <= T.rounds; r += randomInt(h, T.leaks.gapMin, T.leaks.gapMax)) leakRounds.push(r);
   const st = T.start;
   const s: GameState = {
     version: 3,
@@ -879,9 +880,10 @@ export function startRound(state: GameState): GameState {
   s.voices = voices.map((v, i) => ({ id: v.id, round: s.round, region: v.region, text: v.text, at: 0.27 + i * 0.33, basis: v.basis, ...(v.place ? { place: v.place } : {}) }));
 
   // 6. a leak, every two or three rounds
-  if (s.leakRounds.includes(s.round)) {
+  const nextLeak = LEAKS[s.leaks.length];
+  if (s.leakRounds.includes(s.round) && nextLeak && reached(s, nextLeak.after)) {
     const i = s.leaks.length;
-    const def = LEAKS[i];
+    const def = nextLeak;
     const level: number = T.leaks.levels[i] ?? 3;
     const over = s.confidence.estimate - s.confidence.truth >= T.overconfidentGap;
     s.leak = {
@@ -1224,10 +1226,8 @@ function cardFx(s: GameState, p: Pick): Fx[] {
         { key: 'cooperation', amount: C.asml.cooperation },
       ];
     case 'weight_security':
-      return [
-        { key: 'europeAi', amount: 0, set: 'dependent' },
-        { key: 'cohesion', amount: C.weight_security.cohesion },
-      ];
+      // only big labs can afford it, unless Europe pays for the security of the open models it funded
+      return [{ key: 'cohesion', amount: C.weight_security.cohesion }, ...(used(s, 'open_models') ? [] : [{ key: 'europeAi' as const, amount: 0, set: 'dependent' as const }])];
     case 'open_models':
       return [
         { key: 'europeAi', amount: 0, set: 'open' },
@@ -1478,10 +1478,16 @@ export function endRound(state: GameState): { state: GameState; outcome: 'next' 
   return { state: s, outcome: 'next' };
 }
 
+/** Without a tipping point: AI hit a wall (Plateau) or kept improving slowly under a few labs (Big AI). */
+const gradualWorld = (aiPower: number): WorldId => (aiPower >= T.plateau.bigAiFrom ? 'plateau_labs' : 'plateau_open');
+
+/** In Big AI, only a Europe with its own open models ends well (CFG, Big AI, Ending A). */
+const needsOpen = (world: WorldId) => world === 'plateau_labs';
+
 /** Which world the game ends in. */
 function worldAtEnd(s: GameState): WorldId {
   if (s.tipping) return zoneOf(s.finalCooperation ?? s.cooperation);
-  return s.europeAi === 'open' ? 'plateau_open' : 'plateau_labs';
+  return gradualWorld(s.aiPower);
 }
 
 function gaugeValueTrue(s: GameState, key: GaugeKey): number {
@@ -1533,7 +1539,7 @@ function finish(s: GameState) {
   }
   const world = worldAtEnd(s);
   const w = T.worlds[world];
-  const good = gaugeValueTrue(s, w.decides) >= w.target && gaugeValueTrue(s, w.net) >= w.floor;
+  const good = gaugeValueTrue(s, w.decides) >= w.target && gaugeValueTrue(s, w.net) >= w.floor && (!needsOpen(world) || s.europeAi === 'open');
   s.ending = good ? WORLDS[world].good : WORLDS[world].bad;
   s.phase = 'ended';
   for (const friend of FRIEND_IDS) s.letters.push({ slot: 'end', round: s.round, id: `end_${s.ending}_${friend}`, friend });
@@ -1551,7 +1557,7 @@ function projectedWorld(s: GameState): WorldId {
   if (s.tipping) return zoneOf(coop);
   const left = T.rounds - s.round;
   const reach = s.aiPower + s.lastRise * left * 1.15;
-  if (s.round >= 4 && reach < T.tippingAt) return s.europeAi === 'open' ? 'plateau_open' : 'plateau_labs';
+  if (s.round >= 4 && reach < T.tippingAt) return gradualWorld(Math.round(reach));
   return zoneOf(coop);
 }
 
@@ -1581,16 +1587,17 @@ export function heading(s: GameState): HeadingView {
   const net = og(w.net, w.floor);
   const plateau = world === 'plateau_open' || world === 'plateau_labs';
   const name = def.name;
-  const text = `${plateau ? 'If AI stalls' : 'If AI tipped now'}: ${name}. To end well: ${decides.label} ${w.target} (you: ${decides.you}) and ${net.label} ${w.floor} or more (you: ${net.you}).`;
+  const open = needsOpen(world) ? `, Europe’s AI Open (you: ${s.europeAi === 'open' ? 'Open' : 'Dependent'})` : '';
+  const text = `${plateau ? 'If AI stalls' : 'If AI tipped now'}: ${name}. To end well: ${decides.label} ${w.target} (you: ${decides.you})${open} and ${net.label} ${w.floor} or more (you: ${net.you}).`;
   const vote = s.phase === 'play' && !plateau ? committeeVote(s) : null;
   const committee = vote ? { ...vote, shift: committeeShift(vote) } : null;
-  return { world, name, plateau, meaning: def.meaning, basis: def.basis, decides, net, committee, alt: alternative(s, world, decides, net), text };
+  return { world, name, plateau, meaning: def.meaning, basis: def.basis, decides, net, needsOpen: needsOpen(world) ? { now: s.europeAi } : null, committee, alt: alternative(s, world, decides, net), text };
 }
 
 /** "Or change course": the nearest other world, from public values, only when it is within reach and would help. */
 function alternative(s: GameState, world: WorldId, d: HeadingView['decides'], n: HeadingView['net']): HeadingView['alt'] {
   if (s.tipping || s.phase !== 'play') return null;
-  if (d.met === 'yes' && n.met === 'yes') return null;
+  if (d.met === 'yes' && n.met === 'yes' && !(needsOpen(world) && s.europeAi !== 'open')) return null;
   const coop = s.cooperation;
   const near = (bar: number) => bar - coop > 0 && bar - coop <= T.outlook.altGap;
   if (world === 'race' && near(T.zones.pause)) {
@@ -1609,11 +1616,11 @@ function alternative(s: GameState, world: WorldId, d: HeadingView['decides'], n:
       text: `Lift ${GAUGE_LABEL.cooperation} to ${T.zones.race} or more (you: ${coop}) to turn the Rupture into a Race, where ${GAUGE_LABEL[r.decides]} ${r.target} and ${GAUGE_LABEL[r.net]} ${r.floor} decide.`,
     };
   }
-  if (world === 'plateau_labs' && !s.europeAiLocked && s.hand.includes('open_models') && s.threats.blackmail.stage > 0 && !s.threats.blackmail.struck)
+  if (world === 'plateau_labs' && s.europeAi !== 'open' && !s.europeAiLocked && s.hand.includes('open_models'))
     return {
-      world: 'plateau_open',
-      name: WORLDS.plateau_open.name,
-      text: `Fund open models to make Europe’s AI Open: the same bar, and the big labs lose their hold on Europe.`,
+      world: 'plateau_labs',
+      name: WORLDS.plateau_labs.name,
+      text: `Fund open models to make Europe’s AI Open: with a few big labs in charge, only a Europe with its own models ends well.`,
     };
   return null;
 }
@@ -1755,7 +1762,7 @@ export function advisor(s: GameState): AdvisorView {
         else if (i.key === 'confidence') parts.conf += verifiedLine ? 0 : d * w.conf;
         else if (i.key === 'margin') parts.conf += d * w.conf;
         else if (i.key === 'cohesion') parts.coh += d * w.coh;
-        else if (i.key === 'europeAi') parts.coh += (i.after === 'Open' ? 1 : -1) * (plateau ? 4 : 0.5);
+        else if (i.key === 'europeAi') parts.coh += (i.after === 'Open' ? 1 : -1) * (needsOpen(hd.world) ? 8 : plateau ? 1 : 0.5);
       }
       if (cv.id === 'alignment') parts.conf += (s.inspections >= T.cards.alignment.accessInspections ? 4 : 1.5) * w.conf;
       if (cv.id === 'licensing_treaty' || cv.id === 'summit') parts.conf += 2 * w.conf;
@@ -1840,7 +1847,7 @@ const WORLD_NOUN: Record<WorldId, string> = {
   race: 'a race',
   rupture: 'a rupture',
   plateau_open: 'a plateau with open models',
-  plateau_labs: 'a plateau with big labs',
+  plateau_labs: 'a world run by big labs',
 };
 
 export function ending(s: GameState): EndingView {
@@ -1860,7 +1867,8 @@ export function ending(s: GameState): EndingView {
   const nOk = nv >= w.floor;
   const tail = `: ${def.title.charAt(0).toLowerCase()}${def.title.slice(1)}.`;
   let sentence: string;
-  if (!dOk) sentence = `${wd.how}. ${label(w.decides)} was ${dv}${withSeen(w.decides)}, below the ${w.target} ${WORLD_NOUN[world]} needs${tail}`;
+  if (needsOpen(world) && s.europeAi !== 'open') sentence = `${wd.how}, and Europe had no models of its own to fall back on${tail}`;
+  else if (!dOk) sentence = `${wd.how}. ${label(w.decides)} was ${dv}${withSeen(w.decides)}, below the ${w.target} ${WORLD_NOUN[world]} needs${tail}`;
   else if (!nOk)
     sentence = `${wd.how} and ${label(w.decides)} reached ${dv}, but ${label(w.net)} fell to ${nv}${withSeen(w.net)}, below the ${w.floor} ${WORLD_NOUN[world]} needs${tail}`;
   else sentence = `${wd.how}. ${label(w.decides)} was ${dv}${withSeen(w.decides)}, above the ${w.target} ${WORLD_NOUN[world]} needs, and ${label(w.net)} held at ${nv}${tail}`;
@@ -1895,8 +1903,12 @@ export function ending(s: GameState): EndingView {
     if (st.struck && st.prepared === false && t.id !== 'blackmail' && cf.length < 3)
       cf.push(`The ${t.name.replace(/^(\w)(?=[a-z])/, (x) => x.toLowerCase())} caught Europe unprepared. ${t.protectedBy.map((x) => (x === 'inspections' ? 'testing the labs’ models in Europe' : CARD_BY_ID[x].name)).join(' and ')} would have changed that.`);
   }
-  if (!s.tipping && world !== 'plateau_open' && !s.europeAiLocked && T.worlds.plateau_open.decides === w.decides)
-    cf.push('Funding open models would have made this a plateau with open models: same bar, but no silicon blackmail.');
+  if (needsOpen(world) && s.europeAi !== 'open')
+    cf.unshift(
+      s.europeAiLocked
+        ? 'Europe gave in to the labs and could no longer fund its own models: with a few big labs in charge, only a Europe with its own open models ends well.'
+        : 'Funding open models would have given Europe its own alternative: with a few big labs in charge, only an Open Europe ends well.',
+    );
 
   const decisions = s.history.flatMap((r) =>
     r.decisions.map((p) => {
@@ -1921,7 +1933,7 @@ export function ending(s: GameState): EndingView {
     worldName: wd.name,
     dateLabel: dateLabel(s.round),
     year: yearOf(s.round),
-    story: def.story,
+    story: def.storyGaveIn && s.threats.blackmail.choice === 'give_in' ? def.storyGaveIn : def.story,
     sentence,
     gauges: gaugesEnd,
     reveal: {

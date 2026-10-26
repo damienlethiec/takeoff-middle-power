@@ -15,7 +15,7 @@ describe('balance (small sample)', () => {
   it('passive rarely wins, random sometimes, a thoughtful player usually', () => {
     expect(good(passive)).toBeLessThan(0.15);
     const r = good(randomStrategy);
-    expect(r).toBeGreaterThan(0.08);
+    expect(r).toBeGreaterThan(0.03); // 0.08 before the content rewrite of 26 Oct (see below)
     expect(r).toBeLessThan(0.38);
     const t = good(thoughtful);
     // 0.5 before the content rewrite of 26 Oct, which removed Europe's direct gains on the hidden AI safety; relaxed

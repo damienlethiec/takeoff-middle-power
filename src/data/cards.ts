@@ -161,7 +161,7 @@ export const CARDS: CardDef[] = [
     name: 'Weight security standards',
     text: 'Labs selling in Europe must lock down their model weights. A theft gets harder, not impossible; only big labs can afford it.',
     proposal:
-      'Any lab that sells advanced AI in Europe must protect its model weights to military standards: vetted staff, sealed data centres, constant monitoring. Europe reaches US data centres only through market access, so a theft would be cut short, not stopped. Only the biggest labs can pay for this, so Europe ends up relying on them.',
+      'Any lab that sells advanced AI in Europe must protect its model weights to military standards: vetted staff, sealed data centres, constant monitoring. Europe reaches US data centres only through market access, so a theft would be cut short, not stopped. Only big labs can pay: unless Europe funds its own models’ security, it relies on them.',
     example: {
       text: 'The EU AI Act requires providers of general-purpose AI models with systemic risk to “ensure an adequate level of cybersecurity protection” for the model.',
       source: SOURCES.aiAct,
@@ -171,7 +171,7 @@ export const CARDS: CardDef[] = [
       source: SOURCES.rand,
     },
     ups: [up('Model theft: cut short, partly')],
-    downs: [down('Europe’s AI → Dependent'), down(`Social cohesion ${n(C.weight_security.cohesion)}`)],
+    downs: [down('Europe’s AI → Dependent, unless it funds its own'), down(`Social cohesion ${n(C.weight_security.cohesion)}`)],
     protects: 'theft',
     arrives: { threatSeen: 'theft' },
     basis: ai2027('February 2027: China Steals Agent-2 (with AI Act Article 55(1)(d): cybersecurity of models with systemic risk)'),

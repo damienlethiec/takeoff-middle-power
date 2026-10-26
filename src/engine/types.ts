@@ -528,6 +528,8 @@ export interface HeadingView {
   /** What decides whether this world ends well (its target) and the safety net (its floor). */
   decides: OutlookGauge;
   net: OutlookGauge;
+  /** Big AI (plateau with big labs): a good ending also needs Europe's AI Open; `now` is the badge today. */
+  needsOpen: { now: EuropeAi } | null;
   /** Once the memo has leaked: how the Oversight Committee would vote now (public values), and how far its vote
    *  would move US–China cooperation at the tipping point. The world above already includes it. */
   committee: (CommitteeVote & { shift: number }) | null;

@@ -33,7 +33,11 @@ function eventChoice(s: GameState, strat: Strategy, r: RngHolder): string | unde
   const opts = s.event!.options;
   if (!opts.length) return undefined;
   if (s.event!.id === 'blackmail') return strat.blackmail(s, r);
-  return strat.name === 'random' ? pick(r, opts).id : opts[0].id;
+  if (strat.name === 'random') return pick(r, opts).id;
+  if (strat.name === 'passive') return opts[0].id;
+  // the others keep Europe's open models when AI looks set to stall (where Europe's AI decides), else join the ban
+  if (s.event!.id === 'open_ban') return heading(lite(s)).plateau ? 'keep' : 'join';
+  return opts[0].id;
 }
 
 const playableIds = (s: GameState) => hand(s).filter((c) => c.playable).map((c) => c.id);
@@ -166,7 +170,10 @@ function thoughtfulWeights(s: GameState) {
 /** Requests: the answer whose visible effects help most the world it aims for. */
 const thoughtfulAnswer = (s: GameState, v: RequestView): Side => {
   const { w } = thoughtfulWeights(s);
-  return chipValue(v, 'right', w) > chipValue(v, 'left', w) ? 'right' : 'left';
+  // heading for a plateau with big labs, only an Open Europe ends well: Europe's AI weighs much more
+  const labs = heading(lite(s)).world === 'plateau_labs';
+  const badge = (side: Side) => (labs ? v[side].chips.reduce((x, c) => x + (/Europe’s AI → Open/.test(c.text) ? 6 : /Europe’s AI → Dependent/.test(c.text) ? -6 : 0), 0) : 0);
+  return chipValue(v, 'right', w) + badge('right') > chipValue(v, 'left', w) + badge('left') ? 'right' : 'left';
 };
 
 export const thoughtful: Strategy = {
@@ -189,7 +196,7 @@ export const thoughtful: Strategy = {
         else if (i.key === 'confidence') v += verifiedLine ? 0 : d * w.conf;
         else if (i.key === 'margin') v += d * w.conf;
         else if (i.key === 'cohesion') v += d * w.coh;
-        else if (i.key === 'europeAi') v += (i.after === 'Open' ? 1 : -1) * (plateau ? 4 : 0.5);
+        else if (i.key === 'europeAi') v += (i.after === 'Open' ? 1 : -1) * (heading(s).world === 'plateau_labs' ? 8 : plateau ? 2 : 1.5);
       }
       if (id === 'alignment') v += (s.inspections >= 2 ? 4 : 1.5) * w.conf; // the card says the real gain is larger than shown, more with an accord
       if (id === 'licensing_treaty' || id === 'summit') v += 2 * w.conf; // real safety up (not shown)

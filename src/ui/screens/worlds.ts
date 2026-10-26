@@ -1,6 +1,6 @@
 // "Why?" (from the line under the gauges): what the world you are heading for means and how to change course,
 // then the five worlds in a few lines each, a small diagram of how the game picks one (US–China cooperation
-// zones if AI tips, Europe's AI badge if it stalls), Europe's AI explained (what it means, the worlds and
+// zones if AI tips, how far AI got if it stalls), Europe's AI explained (what it means, the worlds and
 // endings it leads to, what changes it), what decides each world, and sources.
 
 import { GAUGE_LABEL } from '../../data/copy';
@@ -26,10 +26,10 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
         <span class="wd-z w-race${here('race')}"><b>Race</b><small>${z.race}–${z.pause - 1}</small>${youAreHere('race')}</span>
         <span class="wd-z w-pause${here('pause')}"><b>Pause</b><small>${z.pause} or more</small>${youAreHere('pause')}</span>
       </div>
-      <p class="wd-k">If AI stalls (never reaches ${T.tippingAt}), Europe’s AI picks it</p>
+      <p class="wd-k">If AI stalls (never reaches ${T.tippingAt}), how far it got picks it</p>
       <div class="wd-plat">
-        <span class="wd-z w-plateau_open${here('plateau_open')}"><b>Plateau, open models</b><small>Europe’s AI: Open</small>${youAreHere('plateau_open')}</span>
-        <span class="wd-z w-plateau_labs${here('plateau_labs')}"><b>Plateau, big labs</b><small>Europe’s AI: Dependent</small>${youAreHere('plateau_labs')}</span>
+        <span class="wd-z w-plateau_open${here('plateau_open')}"><b>${esc(WORLDS.plateau_open.name)}</b><small>capabilities below ${T.plateau.bigAiFrom}</small>${youAreHere('plateau_open')}</span>
+        <span class="wd-z w-plateau_labs${here('plateau_labs')}"><b>${esc(WORLDS.plateau_labs.name)}</b><small>${T.plateau.bigAiFrom} or more; Europe’s AI must be Open</small>${youAreHere('plateau_labs')}</span>
       </div>
     </div>`;
   const items = ORDER.map((w) => {
@@ -38,7 +38,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
     return `<li class="wl${here(w)}">
       <h3>${worldChip(w, d.name)}${w === current ? ' <span class="tag rec">You are heading here</span>' : ''}</h3>
       <p>${esc(d.explain)}</p>
-      <p class="muted small">To end well: ${esc(GAUGE_LABEL[t.decides])} ${t.target} or more, and ${esc(GAUGE_LABEL[t.net])} at least ${t.floor}. Good ending: <i>${esc(ENDING_BY_ID[d.good].title)}</i>; otherwise <i>${esc(ENDING_BY_ID[d.bad].title)}</i>.</p>
+      <p class="muted small">To end well: ${esc(GAUGE_LABEL[t.decides])} ${t.target} or more${w === 'plateau_labs' ? ', Europe’s AI Open' : ''}, and ${esc(GAUGE_LABEL[t.net])} at least ${t.floor}. Good ending: <i>${esc(ENDING_BY_ID[d.good].title)}</i>; otherwise <i>${esc(ENDING_BY_ID[d.bad].title)}</i>.</p>
     </li>`;
   }).join('');
   const now = h
@@ -48,15 +48,15 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
          <p>To end well here: ${esc(h.decides.label)} must reach ${h.decides.bar} (you: ${esc(h.decides.you)}, ${statusOf(h.decides)}), and ${esc(h.net.label)} must stay at ${h.net.bar} or more (you: ${esc(h.net.you)}, ${statusOf(h.net)}).</p>
          ${h.committee ? `<p><b>Washington’s oversight committee</b> would vote ${h.committee.slowdown}–${h.committee.race} to ${h.committee.outcome === 'slowdown' ? 'slow down' : 'race on'} if AI tipped now. Its vote moves ${esc(GAUGE_LABEL.cooperation)} by ${h.committee.shift > 0 ? '+' : '−'}${Math.abs(h.committee.shift)} at the tipping point (included above). ${esc(h.committee.reasons.join('. '))}.</p>` : ''}
          ${h.alt ? `<p class="wd-alt"><b>Change course:</b> ${esc(h.alt.text)}</p>` : ''}
-         ${ai ? `<p>Europe’s AI is <b>${ai === 'open' ? 'Open' : 'Dependent'}</b>: it decides the world if AI never tips (a plateau with ${ai === 'open' ? 'open models' : 'big labs'}).</p>` : ''}
+         ${h.needsOpen ? `<p>With a few big labs in charge, Europe’s AI must also be <b>Open</b> to end well. It is <b>${h.needsOpen.now === 'open' ? 'Open' : 'Dependent'}</b>.</p>` : ''}
        </section>`
     : '';
   const ending = (w: WorldId, k: 'good' | 'bad') => `<i>${esc(ENDING_BY_ID[WORLDS[w][k]].title)}</i>`;
   const badge = `<section class="wd-ai" aria-labelledby="wd-ai-h">
        <h3 id="wd-ai-h">Europe’s AI: Open or Dependent</h3>
        <p>Does Europe run AI models it controls (Open), or rely on a few big labs (Dependent)?${ai ? ` Today it is <b>${ai === 'open' ? 'Open' : 'Dependent'}</b>.` : ''}</p>
-       <p>It decides the world if AI never reaches the tipping point. Open leads to a plateau with open models: ${ending('plateau_open', 'good')} or ${ending('plateau_open', 'bad')}. Dependent leads to a plateau with big labs: ${ending('plateau_labs', 'good')} or ${ending('plateau_labs', 'bad')}.</p>
-       <p>What changes it: funding open models, or backing open developers when they ask, makes it Open. Weight security standards, deals with the big labs, or giving in to their pressure make it Dependent.</p>
+       <p>If AI stalls after it kept improving under a few big labs, it decides the ending: Open leads to ${ending('plateau_labs', 'good')} (if Europe holds together), Dependent to ${ending('plateau_labs', 'bad')}. An Open Europe also stands firm against the labs’ threats, but criminals get the same tools (ransomware).</p>
+       <p>What changes it: funding open models, or backing open developers when they ask, makes it Open. Weight security standards, deals with the big labs, rules that make labs withhold their models, or giving in to their pressure make it Dependent.</p>
      </section>`;
   const m = openModal(
     `<div class="dateline">${h ? 'Why this world' : 'The five worlds'}</div>
@@ -66,7 +66,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
      ${diagram}
      ${badge}
      <ul class="worlds-list">${items}</ul>
-     <p class="muted small">Built on ${link(SOURCES.cfg)} (the five worlds and their ten endings) and ${link(SOURCES.ai2027)}. Which world follows from which gauge is the game’s reading of these scenarios.</p>
+     <p class="muted small">Built on ${link(SOURCES.cfg)} (the five worlds and their ten endings) and ${link(SOURCES.ai2027)} (the oversight committee’s vote). Which world follows from which gauge is the game’s reading of these scenarios.</p>
      <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">Close <kbd>Esc</kbd></button></div>`,
     { cls: 'info worlds', label: 'The five worlds', describedBy: '.why' },
   );

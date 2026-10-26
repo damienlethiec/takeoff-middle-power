@@ -446,13 +446,13 @@ test.describe('key interactions', () => {
     const d = dialog(page);
     await expect(d.getByRole('heading', { name: 'Where the world can go' })).toBeVisible();
     await expect(d.getByRole('heading', { level: 3, name: /^If AI tipped now, you would be in/ })).toBeVisible();
-    await expect(d).toContainText(/Europe’s AI is (Open|Dependent): it decides the world if AI never tips/);
+    await expect(d.getByRole('heading', { level: 3, name: 'Europe’s AI: Open or Dependent' })).toBeVisible();
     await expect(d.locator('.worlds-list > li')).toHaveCount(5);
     await page.keyboard.press('Escape');
     await expect(why).toBeFocused();
 
-    const badge = page.getByRole('button', { name: /^Europe’s AI: Dependent\. Decides the world if AI never tips/ });
-    await expect(badge).toHaveAttribute('title', 'Decides the world if AI never tips');
+    const badge = page.getByRole('button', { name: /^Europe’s AI: Dependent\. Decides the ending if AI stalls under a few big labs/ });
+    await expect(badge).toHaveAttribute('title', 'Decides the ending if AI stalls under a few big labs');
     await badge.click();
     await expect(dialog(page).getByRole('heading', { name: 'Europe’s AI: Dependent' })).toBeVisible();
     await page.keyboard.press('Escape');

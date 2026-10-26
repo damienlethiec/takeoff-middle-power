@@ -37,8 +37,8 @@ export async function showBadge(ai: EuropeAi, locked: boolean): Promise<void> {
          ? 'Europe runs open models it controls. Fewer companies hold the keys, but criminals get the same tools.'
          : 'Europe relies on a few big labs for its AI. They are capable and secure, and they can lean on Europe.'
      }</p>
-     <p>If AI never reaches the tipping point, this badge decides the kind of world: a plateau with open models, or with big labs. ${T.worlds.plateau_open.decides === T.worlds.plateau_labs.decides && T.worlds.plateau_open.target === T.worlds.plateau_labs.target ? `Both need ${esc(GAUGE_LABEL[T.worlds.plateau_open.decides])} ${T.worlds.plateau_open.target} or more to end well.` : 'Why? on the line under the gauges shows what each needs to end well.'}</p>
-     <p>It turns Open when you fund open models, and Dependent again with weight security standards${locked ? '. It is now locked: Europe gave in to the labs' : ', or if Europe gives in to silicon blackmail'}.</p>
+     <p>If AI stalls after it kept improving under a few big labs (AI capabilities ${T.plateau.bigAiFrom} or more at the end), only an Open Europe ends well: its own models keep the big firms honest. Open also blunts the labs’ threats to cut Europe off, but criminals get the same tools.</p>
+     <p>It turns Open when you fund open models; it turns Dependent with weight security standards, a rule that makes labs withhold their models (unless Europe funded its own)${locked ? '. It is now locked: Europe gave in to the labs' : ', or if Europe gives in to silicon blackmail'}.</p>
      ${close}`,
     { cls: 'info', label: 'Europe’s AI', describedBy: '.why' },
   );

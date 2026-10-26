@@ -138,7 +138,7 @@ export const HELP = {
   rules: [
     'AI capabilities rise every round. At 80, AI starts improving itself: the tipping point (never before round 6). Where the world stands then decides the ending. If it never gets there, the game ends after round 10.',
     'At the tipping point, the US–China cooperation zone sets the world: Pause, Race or Rupture. Without a tipping point, Europe’s AI badge sets it.',
-    'In each world, one gauge decides (its goal) and the other pillar is a safety net (its floor). Both are marked on their gauges, and the line under the gauges names the world you are heading for. Europe’s AI, at the end of that line, decides the world if AI never tips.',
+    'In each world, one gauge decides (its goal) and the other pillar is a safety net (its floor). Both are marked on their gauges, and the line under the gauges names the world you are heading for. Europe’s AI, at the end of that line, decides the ending if AI stalls under a few big labs.',
     'AI safety shows what is verified and what the labs claim (for example 40–57). Only the verified part counts toward your goal. The truth lies in between and is revealed at the end. Oversight (the AI Office, inspections, audits) grows the verified part; secrecy and opaque AI shrink it.',
     'Requests: the right answer goes along with what is asked, the left one refuses or puts it off. Both cost something.',
     'Influence: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Play as many cards a round as your Influence covers, each card once.',

@@ -74,6 +74,11 @@ export const TUNING = {
     plateau_labs: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
   },
 
+  /** Without a tipping point, how far AI got picks CFG's gradual world: below `bigAiFrom` AI hit a wall (Plateau,
+   *  open models everywhere); from it, AI kept improving slowly under a few labs' compute (Big AI). In Big AI only a
+   *  Europe with its own open models ends well (CFG's agent economy: publicly funded models must be open-weight). */
+  plateau: { bigAiFrom: 60 },
+
   jobShocks: { at: [40, 70], hit: -5, softened: -1 },
 
   /** AI 2027 milestones (src/data/milestones.ts): the AI power that reaches each, and the size of its effect. */
@@ -181,8 +186,9 @@ export const TUNING = {
    *  `race.cooperation` (China's offer of a pause refused). */
   committee: { base: 4, needed: 6, doubtBelow: 50, slowdown: { cooperation: 10, truth: 8 }, race: { cooperation: -4 } },
 
-  /** Leaks: every two or three rounds, readable with enough oversight. */
-  leaks: { firstRound: 2, gapMin: 2, gapMax: 3, levels: [1, 1, 2, 2, 3, 3] },
+  /** Leaks: a leak round every two or three rounds; each leak comes at the first leak round after its AI 2027
+   *  milestone (src/data/leaks.ts), readable with enough oversight. */
+  leaks: { firstRound: 2, gapMin: 2, gapMax: 3, levels: [1, 1, 2, 2] },
 
   /** Oversight points: AI Office 2, each inspection level 1, an audit 1. */
   oversight: { aiOffice: 2, perInspection: 1, audit: 1 },
