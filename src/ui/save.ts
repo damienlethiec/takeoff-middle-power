@@ -119,6 +119,28 @@ export function clearSave(s?: Store) {
   }
 }
 
+/**
+ * Every localStorage key this game writes, all prefixed `takeoff.` (the save, the tutorial switch, the sound and its
+ * volume, single-key shortcuts). Other games served from the same origin keep their own keys. A test checks that
+ * every `takeoff.` key in src/ui is listed here.
+ */
+export const GAME_KEYS = [SAVE_KEY, 'takeoff.v4.tutorial', 'takeoff.sound', 'takeoff.soundVolume', 'takeoff.singleKeyShortcuts'] as const;
+
+/** "Forget my save": remove every key of GAME_KEYS. False when storage is unavailable or a removal failed. */
+export function forgetAll(s?: Store): boolean {
+  const st = store(s);
+  if (!st) return false;
+  let ok = true;
+  for (const k of GAME_KEYS) {
+    try {
+      st.removeItem(k);
+    } catch {
+      ok = false;
+    }
+  }
+  return ok;
+}
+
 /** The round the player will be in after resuming (the next one when the save is between rounds). */
 export function resumeRound(env: SaveEnvelope): number {
   return env.stage === 'between' && env.state.phase === 'play' ? env.state.round + 1 : env.state.round;

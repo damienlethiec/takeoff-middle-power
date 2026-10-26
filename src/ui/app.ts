@@ -24,7 +24,7 @@ import { showRequest } from './screens/request';
 import { badgeHtml, headingLineHtml, statusOf } from './outlook';
 import { Feed } from './feed';
 import { Soundtrack } from './sound';
-import { clearSave, readSave, saveLabel, writeSave, type SaveEnvelope, type SaveStage } from './save';
+import { clearSave, forgetAll, readSave, saveLabel, writeSave, type SaveEnvelope, type SaveStage } from './save';
 
 const ROUND_MS = 8000;
 /** The start of Léa's letter, for her line in the map's list (the feed has it in full). */
@@ -80,6 +80,8 @@ export class App {
   private prevThreats: ThreatView[] = [];
   private dockResolve: (() => void) | null = null;
   private headingWhy = '';
+  /** Set by "Forget my save" until the page reloads: no autosave. */
+  private forgetting = false;
   /** The optional soundtrack (off by default): it lives across games. */
   private sound = new Soundtrack();
 
@@ -99,13 +101,28 @@ export class App {
     void document.fonts?.ready.then(() => this.fitSubs());
     setFocusFallback(() => this.root.querySelector<HTMLElement>('#map-h') ?? this.root.querySelector<HTMLElement>('h1'));
     const params = new URLSearchParams(location.search);
+    // just back from "Forget my save" (Help): say so once the first dialog is open, and clean the address
+    const forgotten = params.has('forgotten');
+    if (forgotten) {
+      const url = new URL(location.href);
+      url.searchParams.delete('forgotten');
+      history.replaceState(history.state, '', url.toString());
+    }
+    const said = () => {
+      if (forgotten) announce('Your save and settings are forgotten.');
+    };
     // a saved game: Continue or New game (a ?seed= or ?fresh link always starts a new game, for tests and replays)
     const saved = params.has('seed') || params.has('fresh') ? null : readSave(this.e.createInitialState(1));
     if (saved) {
       if ((await showContinue(saveLabel(saved, (r) => this.e.dateLabel(r)))) === 'continue') return this.resume(saved);
       clearSave();
     }
-    if (!params.has('skipintro')) await showIntro();
+    if (!params.has('skipintro')) {
+      // showIntro opens its first dialog at once: the message lands in that dialog's live region
+      const intro = showIntro();
+      said();
+      await intro;
+    } else said();
     this.newGame(params.has('seed') ? Number(params.get('seed')) : undefined);
   }
 
@@ -150,6 +167,7 @@ export class App {
 
   /** Autosave at a safe point (see save.ts); without storage the game simply goes on. */
   private autosave(stage: SaveStage, state = this.s) {
+    if (this.forgetting) return;
     writeSave(state, stage, this.coach.seenIds());
   }
 
@@ -557,8 +575,24 @@ export class App {
 
   private openHelp() {
     this.openFromMap(() =>
-      showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on), shortcuts: shortcutsOn(), onShortcuts: (on) => setSingleKeyShortcuts(on), tips: Object.values(TIPS).map((t) => ({ round: 0, title: t.title, text: t.text })) }),
+      showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on), shortcuts: shortcutsOn(), onShortcuts: (on) => setSingleKeyShortcuts(on), tips: Object.values(TIPS).map((t) => ({ round: 0, title: t.title, text: t.text })) }).then((a) => {
+        if (a === 'forget') this.forget();
+      }),
     );
+  }
+
+  /**
+   * "Forget my save" (Help): remove every key the game keeps in this browser, then reload cleanly, so no setting
+   * survives in memory either. The page comes back on the introduction, without Continue, and says why
+   * (?forgotten, read once at boot and removed from the address).
+   */
+  private forget() {
+    // nothing is saved again while the page reloads (the clock may tick once more)
+    this.forgetting = true;
+    forgetAll();
+    const url = new URL(location.href);
+    url.searchParams.set('forgotten', '');
+    location.replace(url.toString());
   }
   /** A feed item shown on the map: its threat icon lights up, or its region's group opens with it highlighted. */
   private showOnMap(it: FeedItem) {

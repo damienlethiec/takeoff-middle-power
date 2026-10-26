@@ -132,4 +132,12 @@ export const HELP = {
     'Requests: the right answer goes along with what is asked, the left one refuses or puts it off. Both cost something.',
     'Influence: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Play as many cards a round as your Influence covers, each card once.',
   ],
+  /** The Privacy section: what the game keeps, and where. The host's statement is linked after the last line. */
+  privacy: [
+    'The game keeps your saved game and settings in this browser only.',
+    'Nothing is sent to us or anyone else: no cookies, no tracking.',
+    'The site is hosted on GitHub Pages, which, like any host, sees visitors’ IP addresses:',
+  ],
+  privacyLink: { label: 'GitHub’s privacy statement', url: 'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement' },
+  forgetHint: 'Removes your saved game and settings from this browser, then starts again from the introduction.',
 };

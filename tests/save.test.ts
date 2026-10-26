@@ -3,7 +3,8 @@
 import { describe, expect, it } from 'vitest';
 import { answerRequest, createInitialState, endRound, request, resolveEvent, startRound } from '../src/engine/index';
 import type { GameState } from '../src/engine/types';
-import { SAVE_KEY, SAVE_VERSION, clearSave, decodeSave, encodeSave, readSave, resumeRound, saveLabel, writeSave } from '../src/ui/save';
+import { GAME_KEYS, SAVE_KEY, SAVE_VERSION, clearSave, decodeSave, encodeSave, forgetAll, readSave, resumeRound, saveLabel, writeSave } from '../src/ui/save';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dateLabel } from '../src/engine/index';
 import { answerAll, nextRound } from './helpers';
 
@@ -129,5 +130,33 @@ describe('save and resume', () => {
     expect(saveLabel(env, dateLabel)).toBe('see how it ends');
     clearSave(st);
     expect(readSave(fresh(), st)).toBeNull();
+  });
+});
+
+describe('forget my save (Help)', () => {
+  it('removes every key the game keeps, and only those', () => {
+    const st = memStore();
+    writeSave(fresh(), 'between', [], st);
+    for (const k of GAME_KEYS) if (k !== SAVE_KEY) st.setItem(k, 'off');
+    st.setItem('takeoff.reign.save', 'another game on the same origin');
+    expect(forgetAll(st)).toBe(true);
+    expect([...st.m.keys()]).toEqual(['takeoff.reign.save']);
+    expect(readSave(fresh(), st)).toBeNull();
+  });
+
+  it('lists every storage key used in src/ui', () => {
+    const dir = new URL('../src/ui/', import.meta.url);
+    const used = new Set<string>();
+    for (const f of readdirSync(dir)) {
+      if (!f.endsWith('.ts')) continue;
+      for (const m of readFileSync(new URL(f, dir), 'utf8').matchAll(/'(takeoff\.[\w.]+)'/g)) used.add(m[1]);
+    }
+    expect(used.size).toBeGreaterThan(3);
+    expect([...used].sort()).toEqual([...GAME_KEYS].sort());
+  });
+
+  it('never throws without storage', () => {
+    const blocked = { getItem: () => null, setItem: () => {}, removeItem: () => { throw new DOMException('blocked', 'SecurityError'); } };
+    expect(forgetAll(blocked)).toBe(false);
   });
 });

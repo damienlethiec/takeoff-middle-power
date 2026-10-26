@@ -157,4 +157,40 @@ test.describe('save and resume', () => {
     await expect(page.getByRole('button', { name: /^Continue your game/ })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
+
+  test('Help: the privacy note, and Forget my save clears every setting and starts again', async ({ page }) => {
+    const errors: string[] = [];
+    await boot(page, '?skipintro&notutorial', errors);
+    for (let i = 0; i < 200 && !(await saved(page))?.state.round; i++) await step(page);
+    expect((await saved(page))?.state.round).toBe(1);
+    await page.evaluate(() => {
+      localStorage.setItem('takeoff.sound', 'off');
+      localStorage.setItem('takeoff.singleKeyShortcuts', 'off');
+      localStorage.setItem('takeoff.reign.other', 'kept'); // another game on the same origin
+    });
+
+    await page.getByRole('button', { name: 'Help and keyboard shortcuts' }).click();
+    const help = dialog(page);
+    await expect(help.getByRole('heading', { name: 'Privacy' })).toBeVisible();
+    await expect(help).toContainText('in this browser only');
+    const gh = help.getByRole('link', { name: 'GitHub’s privacy statement (opens in a new tab)' });
+    await expect(gh).toHaveAttribute('href', 'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement');
+    await expect(gh).toHaveAttribute('target', '_blank');
+    await expect(gh).toHaveAttribute('rel', 'noopener noreferrer');
+    const forget = help.getByRole('button', { name: 'Forget my save' });
+    await forget.focus();
+    const loaded = page.waitForEvent('load');
+    await page.keyboard.press('Enter');
+    await loaded;
+    await freeze(page);
+
+    await until(page, () => expect(page.locator('.sr-live')).toContainText('Your save and settings are forgotten.', { timeout: 100 }));
+    expect(page.url()).not.toContain('forgotten');
+    await expect(page.locator('#round-of')).toContainText('Round 1 of 12');
+    const left = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)])));
+    expect(left['takeoff.sound']).toBeUndefined();
+    expect(left['takeoff.singleKeyShortcuts']).toBeUndefined();
+    expect(left['takeoff.reign.other']).toBe('kept');
+    expect(errors).toEqual([]);
+  });
 });
