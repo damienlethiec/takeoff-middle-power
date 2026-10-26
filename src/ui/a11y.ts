@@ -60,7 +60,7 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 
 /** The polite live region in use: the open dialog's own (screen readers ignore content outside a modal), else the page's. */
 function region(): HTMLElement {
-  const inModal = document.querySelector<HTMLElement>('.overlay:not(.leaving) .modal .sr-live');
+  const inModal = [...document.querySelectorAll<HTMLElement>('.overlay:not(.leaving):not([inert]) .modal .sr-live')].at(-1);
   if (inModal) return inModal;
   let r = document.querySelector<HTMLElement>('body > .sr-live');
   if (!r) {

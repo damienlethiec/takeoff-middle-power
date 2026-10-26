@@ -68,11 +68,11 @@ try {
           taken.add('decision');
           await shot('decision');
         }
-        const cards = await page.$$(`${modal} .pcard:not(.locked)`);
+        const cards = await page.$$(`${modal} .pc-wrap:not(.locked) .pcard`);
         if (cards.length) {
           await cards[0].click();
           await advance(page, 100);
-          const more = await page.$$(`${modal} .pcard:not(.locked):not(.sel)`);
+          const more = await page.$$(`${modal} .pc-wrap:not(.locked):not(.sel) .pcard`);
           if (more.length && decisions % 2) await more[0].click();
           if (!taken.has('decision-preview')) {
           taken.add('decision-preview');

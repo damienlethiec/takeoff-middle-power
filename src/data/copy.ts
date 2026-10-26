@@ -90,7 +90,7 @@ export const TIPS = {
   heading: { anchor: 'heading', title: 'If AI tipped now', text: 'Where the world is going and what will decide it. Keep the goal gauge above its target and the other above its floor.' },
   zones: { anchor: 'cooperation', title: 'US–China cooperation', text: 'Pause 60+, Race 30–59, Rupture below 30. The calmer the zone at the tipping point, the lower the bar for a good ending.' },
   margin: { anchor: 'confidence', title: 'The uncertainty', text: 'You never know exactly how safe AI is: the truth is somewhere in the band (estimate ± uncertainty). To be sure, keep the whole band above the target.' },
-  firstCard: { anchor: 'hand', title: 'Your cards', text: 'Green chips go up, red chips go down. Every card helps something and costs something. Open one to see what it would change.' },
+  firstCard: { anchor: 'hand', title: 'Your cards', text: 'Green chips go up, red chips go down. Every card helps something and costs something. Click a card to select it: the bar at the bottom shows what it would change. Details tells you more.' },
   twoCards: { anchor: 'hand', title: 'Two cards a round', text: 'You can play up to two cards a round if you can afford them. Saving Influence is a choice too.' },
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages where they would strike. Open one to see which card protects against it.' },
   breaking: { anchor: 'map', title: 'Breaking news', text: 'When a threat strikes, it hits your gauges. Being prepared makes the difference.' },

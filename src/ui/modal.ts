@@ -97,12 +97,15 @@ function labelFromHeading(el: HTMLElement) {
 
 export function openModal(
   html: string,
-  opts: { cls?: string; overlayCls?: string; label?: string; keep?: boolean; describedBy?: string } = {},
+  opts: { cls?: string; overlayCls?: string; label?: string; keep?: boolean; describedBy?: string; stacked?: boolean } = {},
 ): ModalHandle {
   flush();
   const prev = document.activeElement as HTMLElement | null;
+  // a stacked dialog (card details over the decision screen) keeps the one below, inert, and gives focus back to its trigger
+  const parent = opts.stacked ? current : null;
   if (!current && prev && prev !== document.body && !prev.closest('.overlay')) opener = prev;
-  current?.close();
+  if (parent) parent.overlay.setAttribute('inert', '');
+  else current?.close();
   const overlay = document.createElement('div');
   overlay.className = `overlay ${opts.overlayCls ?? ''}`;
   const el = document.createElement('div');
@@ -134,6 +137,13 @@ export function openModal(
       overlay.classList.add('leaving');
       overlay.setAttribute('inert', '');
       setTimeout(() => overlay.remove(), 180);
+      if (current === handle && parent) {
+        current = parent;
+        parent.overlay.removeAttribute('inert');
+        flush();
+        if (!tryFocus(prev)) tryFocus(parent.el);
+        return;
+      }
       if (current === handle) {
         current = null;
         // the page is usable again at once: what follows (the dock, the ending) may move focus into it

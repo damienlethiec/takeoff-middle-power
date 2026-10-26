@@ -230,7 +230,7 @@ async function playRun(browser, base, run) {
       await audit('decision');
       if (!(await focusIs('.pcard'))) fail(`decision: focus is not on a card (${await focused(page)})`);
       if (once('trap-decision')) await checkTrap('decision');
-      const target = await page.evaluate(() => document.querySelector('.pcard:not(.locked)')?.dataset.card ?? null);
+      const target = await page.evaluate(() => document.querySelector('.pc-wrap:not(.locked) .pcard')?.dataset.card ?? null);
       if (target) {
         if (!(await tabTo(page, `.pcard[data-card="${target}"]`)) && !(await tabTo(page, `.pcard[data-card="${target}"]`, { back: true }))) fail('decision: could not Tab to a card');
         await press('Enter');

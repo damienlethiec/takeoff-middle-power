@@ -49,7 +49,7 @@ async function playToEnd(page: Page, s: Session) {
       const name = (await d.getAttribute('aria-label')) ?? '';
       if (name === 'Your decisions') {
         seen.decisions++;
-        const card = d.locator('.pcard:not(.locked)').first();
+        const card = d.locator('.pc-wrap:not(.locked) .pcard').first();
         if (await card.count()) {
           await card.click();
           await expect(d.getByText('If you confirm')).toBeVisible();
@@ -189,17 +189,17 @@ test.describe('key interactions', () => {
     const d = dialog(page);
     await expect(d).toHaveAttribute('aria-label', 'Your decisions');
     await expect(d.getByText('Your chief of staff')).toBeVisible();
-    await expect(d.getByText('Pick a card to see what it would change before you commit.')).toBeVisible();
+    await expect(d.getByText(/^Pick up to two cards: their combined effect/)).toBeVisible();
     const talks = d.getByRole('button', { name: /^Diplomatic talks/ });
     await talks.click();
     await expect(talks).toHaveAttribute('aria-pressed', 'true');
     await expect(d.locator('.imps .imp').first()).toHaveText(/^US–China cooperation \d+ → \d+/);
-    await expect(d.locator('.pv-k', { hasText: 'If AI tipped now' })).toBeVisible();
+    await expect(d.locator('.pv-world')).toContainText('If AI tipped now');
     // nothing committed yet
     expect(Number(await page.locator('#inf-v').textContent())).toBe(inf);
     await d.getByRole('button', { name: /^AI Office capacity/ }).click();
     await expect(d.getByRole('button', { name: /^Confirm these two cards/ })).toBeEnabled();
-    await expect(d.getByRole('button', { name: /^Offer to host inspections/ })).not.toHaveClass(/sel/);
+    await expect(d.getByRole('button', { name: /^Offer to host inspections/ })).toHaveAttribute('aria-pressed', 'false');
     await d.getByRole('button', { name: /^Confirm/ }).click();
     await advance(page, 1500);
     expect(Number(await page.locator('#inf-v').textContent())).toBe(inf - 1 - 2);
