@@ -168,7 +168,7 @@ export class Feed {
     const tone = x.tone > 0 ? ' good' : x.tone < 0 ? ' bad' : '';
     return `<li><button type="button" class="fd-item k-${x.kind}${x.social ? ` s-${x.social.kind}` : ''}${tone}${this.selected === x.id ? ' on' : ''}" data-id="${esc(x.id)}" aria-pressed="${this.selected === x.id}">
       <span class="fd-ico">${x.kind === 'lea' && x.mood ? friendPortrait(x.friend ?? 'lea', x.mood) : itemIcon(x)}</span>
-      <span class="fd-body"><span class="fd-k">${esc(x.label)}${x.prov ? ` ${provTag(x.prov)}` : ''}</span><span class="fd-t">${esc(x.text)}</span>${x.detail ? `<span class="fd-d">${esc(x.detail)}</span>` : ''}</span>
+      <span class="fd-body"><span class="fd-kl"><span class="fd-k">${esc(x.label)}</span>${x.prov ? ` ${provTag(x.prov)}` : ''}</span><span class="fd-t">${esc(x.text)}</span>${x.detail ? `<span class="fd-d">${esc(x.detail)}</span>` : ''}</span>
       <span class="sr-only">: show on the map</span>
     </button></li>`;
   }
