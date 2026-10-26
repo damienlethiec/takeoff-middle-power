@@ -12,6 +12,9 @@ import { esc } from './format';
 
 export const LANG_KEY = 'takeoff.lang';
 
+/** Opened with ?lang=xx: the header's menu also offers the pseudo-locale, to switch back and forth while testing. */
+let pseudoOffered = false;
+
 function stored(): AnyLang | null {
   try {
     const v = localStorage.getItem(LANG_KEY);
@@ -33,6 +36,7 @@ function store(l: AnyLang) {
 /** The language a page starts in: ?lang= first, then the player's saved choice, else English. */
 export function initialLang(search = typeof location === 'undefined' ? '' : location.search): AnyLang {
   const q = new URLSearchParams(search).get('lang');
+  if (q === 'xx') pseudoOffered = true;
   if (q && isLang(q)) return q;
   return stored() ?? 'en';
 }
@@ -87,12 +91,13 @@ export function langRowHtml(): string {
 /** The header's language button: "EN", with a small menu of the five languages. A disclosure: Enter or Space opens
  *  it, the arrows move in the list, Escape closes it and returns to the button. */
 export function langMenuHtml(): string {
-  const cur = LANGS.find((l) => l.id === lang());
+  const all: { id: AnyLang; name: string; short: string }[] = pseudoOffered || lang() === 'xx' ? [...LANGS, { id: 'xx', name: 'Pseudo', short: 'XX' }] : LANGS;
+  const cur = all.find((l) => l.id === lang());
   const label = t('ui.lang.button', 'Language: {name}. Change language', { name: cur?.name ?? 'English' });
   return `<div class="lang-menu">
     <button type="button" class="iconbtn lang-btn" id="lang-btn" aria-expanded="false" aria-controls="lang-list" aria-label="${esc(label)}" title="${esc(t('ui.lang.label', 'Language'))}"><span aria-hidden="true">${esc(cur?.short ?? lang().toUpperCase())}</span></button>
-    <ul class="lang-list" id="lang-list" hidden>${LANGS.map(
-      (l) => `<li><button type="button" class="lang-opt" data-lang="${l.id}" lang="${l.id}" ${lang() === l.id ? 'aria-current="true"' : ''}><span class="lang-short" aria-hidden="true">${l.short}</span> ${esc(l.name)}</button></li>`,
+    <ul class="lang-list" id="lang-list" hidden>${all.map(
+      (l) => `<li><button type="button" class="lang-opt" data-lang="${l.id}" lang="${l.id === 'xx' ? 'en' : l.id}" ${lang() === l.id ? 'aria-current="true"' : ''}><span class="lang-short" aria-hidden="true">${l.short}</span> ${esc(l.name)}</button></li>`,
     ).join('')}</ul>
   </div>`;
 }
