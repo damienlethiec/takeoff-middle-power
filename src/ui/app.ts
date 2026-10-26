@@ -18,12 +18,13 @@ import { showDecision } from './screens/decide';
 import { renderEnding } from './screens/ending';
 import { showHelp } from './screens/help';
 import { showBadge, showGaugeHelp, showLeak, showThreat } from './screens/info';
-import { showIntro } from './screens/intro';
+import { showContinue, showIntro } from './screens/intro';
 import { showWorlds } from './screens/worlds';
 import { showRequest } from './screens/request';
 import { badgeHtml, headingLineHtml, statusOf } from './outlook';
 import { Feed } from './feed';
 import { Soundtrack } from './sound';
+import { clearSave, readSave, saveLabel, writeSave, type SaveEnvelope, type SaveStage } from './save';
 
 const ROUND_MS = 8000;
 /** The start of Léa's letter, for her line in the map's list (the feed has it in full). */
@@ -85,6 +86,12 @@ export class App {
     void document.fonts?.ready.then(() => this.fitSubs());
     setFocusFallback(() => this.root.querySelector<HTMLElement>('#map-h') ?? this.root.querySelector<HTMLElement>('h1'));
     const params = new URLSearchParams(location.search);
+    // a saved game: Continue or New game (a ?seed= or ?fresh link always starts a new game, for tests and replays)
+    const saved = params.has('seed') || params.has('fresh') ? null : readSave(this.e.createInitialState(1));
+    if (saved) {
+      if ((await showContinue(saveLabel(saved, (r) => this.e.dateLabel(r)))) === 'continue') return this.resume(saved);
+      clearSave();
+    }
     if (!params.has('skipintro')) await showIntro();
     this.newGame(params.has('seed') ? Number(params.get('seed')) : undefined);
   }
@@ -95,11 +102,28 @@ export class App {
   }
 
   private newGame(seed = (Date.now() % 2147483646) + 1) {
+    clearSave();
+    this.start(this.e.createInitialState(seed));
+  }
+
+  /**
+   * Resume a saved game: the state exactly as saved. Mid-round ('round'), the six months replay from their start:
+   * headlines and voices show again, but the event and requests already resolved are not asked again, and nothing
+   * is applied twice. The feed's earlier rounds, the map, Léa's letters and the threats rebuild from the state.
+   * Not restored: the gauges' travel since the round began (they show where they are), the "why" line under the
+   * heading, and the Help's log of tips (the tips themselves are not shown again).
+   */
+  private resume(env: SaveEnvelope) {
+    this.start(env.state, env.stage, env.tips);
+  }
+
+  private start(state: GameState, resume: SaveStage | null = null, tips: string[] = []) {
     this.gameId += 1;
     document.body.classList.remove('ended');
-    this.s = this.e.createInitialState(seed);
+    this.s = state;
     this.coach.reset();
-    this.prevThreats = [];
+    this.coach.markSeen(tips);
+    this.prevThreats = resume ? this.e.threats(state) : [];
     this.headingWhy = '';
     this.buildShell();
     const v = this.vals();
@@ -108,7 +132,12 @@ export class App {
     this.to = { ...v };
     this.renderAll();
     tryFocus($('#game-title', this.root));
-    void this.loop(this.gameId);
+    void this.loop(this.gameId, resume);
+  }
+
+  /** Autosave at a safe point (see save.ts); without storage the game simply goes on. */
+  private autosave(stage: SaveStage, state = this.s) {
+    writeSave(state, stage, this.coach.seenIds());
   }
 
   private vals(s = this.s): Vals {
@@ -119,9 +148,11 @@ export class App {
 
   // ------------------------------------------------------------------ flow
 
-  private async loop(id: number) {
-    for (;;) {
-      const outcome = await this.playRound();
+  private async loop(id: number, resume: SaveStage | null = null) {
+    // a game saved once only its ending was left goes straight to the ending
+    while (this.s.phase !== 'ended') {
+      const outcome = await this.playRound(resume === 'round');
+      resume = null;
       if (id !== this.gameId) return;
       if (outcome === 'ended') break;
     }
@@ -132,11 +163,17 @@ export class App {
     this.sound.setPaused(false);
     this.sound.setWorld({ aiPower: this.s.aiPower, cooperation: this.s.cooperation, tipping: !!this.s.tipping, ending: this.e.ending(this.s).good ? 'good' : 'bad' });
     announce(`The game is over: ${this.e.ending(this.s).title}.`);
+    // the ending is on screen: the game is over, nothing left to resume
+    clearSave();
   }
 
-  private async playRound(): Promise<'next' | 'ended'> {
+  /** One round; `resumed`: the round had already started in a saved game (startRound is not run again). */
+  private async playRound(resumed = false): Promise<'next' | 'ended'> {
     const before = this.s;
-    this.s = this.e.startRound(this.s);
+    if (!resumed) {
+      this.s = this.e.startRound(this.s);
+      this.autosave('round');
+    }
     const s = this.s;
     const date = this.e.dateLabel(s.round);
     // gauges travel from where they were to where six months take them
@@ -155,7 +192,8 @@ export class App {
     const letter = this.e.letters(s).find((l) => l.round === s.round && l.slot !== 'end');
     this.renderAll();
     const inc = s.influence - before.influence;
-    announce(
+    if (resumed) announce(`Your saved game resumes: ${date}, round ${s.round} of 12. You have ${s.influence} Influence. The clock is running.${letter ? ' Léa wrote to you: her letter is in the news.' : ''}`);
+    else announce(
       `${date} begins, round ${s.round} of 12. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${letter ? ' Léa wrote to you: her letter is in the news.' : ''}${s.round === 1 ? ' Press question mark for help.' : ''}`,
     );
     this.sound.cue('round');
@@ -222,6 +260,8 @@ export class App {
         console.warn('playCard refused', err);
       }
     }
+    // the decisions are confirmed: save the round as it will end (endRound is pure; playRound runs it again below)
+    this.autosave('between', this.e.endRound(this.s).state);
     this.from = { ...this.shown };
     this.to = this.vals();
     this.follow = 'tween';
@@ -376,6 +416,7 @@ export class App {
       console.warn('resolveEvent failed', err);
       this.s = this.e.resolveEvent(this.s, ev.options[0]?.id);
     }
+    this.autosave('round');
     this.from = { ...this.shown };
     this.to = this.vals();
     this.follow = 'tween';
@@ -405,6 +446,7 @@ export class App {
     await showRequest(v, date, (side) => {
       const r = this.e.answerRequest(this.s, side);
       this.s = r.state;
+      this.autosave('round');
       this.from = { ...this.shown };
       this.to = this.vals();
       this.follow = 'tween';

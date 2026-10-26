@@ -57,6 +57,14 @@ export class Coach {
     this.log.length = 0;
   }
 
+  /** The tips shown so far in this game, and marking them shown again (save and resume). */
+  seenIds(): string[] {
+    return [...this.seen];
+  }
+  markSeen(ids: string[]) {
+    for (const id of ids) if (id in TIPS) this.seen.add(id as TipId);
+  }
+
   /** Has this tip been shown (or logged) already in this game? */
   has(id: TipId): boolean {
     return this.seen.has(id);
