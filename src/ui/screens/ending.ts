@@ -36,7 +36,7 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
         .join('')}</ul>`
     : '';
   const leaks = (list: EndingView['reveal']['readLeaks']) => list.map((l) => `<li><blockquote>${esc(l.text)}</blockquote></li>`).join('');
-  const TEAM_HUMAN_URL = 'https://www.teamhuman.org/#pledge';
+  const TEAM_HUMAN_URL = 'https://www.teamhuman.org/';
   // A call to action, not a game fact: Team Human (supported by the Center for AI Safety) asks governments to keep humans in control of AI.
   const TEAM_HUMAN_CTA = `<aside class="end-cta" aria-labelledby="cta-h" style="margin: 20px 0; padding: 18px 20px; border: 2px solid var(--warn); border-radius: 14px; background: var(--deck-2)">
       <h2 id="cta-h" style="margin-top: 0">This was a game. The choices are real.</h2>
