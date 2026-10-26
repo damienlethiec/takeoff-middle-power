@@ -7,6 +7,7 @@ import { CHARACTERS } from '../data/characters';
 import { REQUEST_BY_ID, REQUESTS } from '../data/requests';
 import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, lowText, marginText, verifiedWord } from '../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../data/endings';
+import { FRIENDS, letterLabel } from '../data/friends';
 import { LEA_END, LEA_END_BASIS, LEA_END_MOOD, LEA_R1, LEA_R4, LEA_R8, type LetterDef } from '../data/lea';
 import { LEAK_REDACTED_ADVICE, LEAKS } from '../data/leaks';
 import { VOICES, WORLD_HEADLINES, type MapLine, type PublicWorld } from '../data/mapcontent';
@@ -706,7 +707,7 @@ export function startRound(state: GameState): GameState {
 
   // 7. Léa's letter
   const letter = letterFor(s, h);
-  if (letter) s.letters.push({ slot: s.round === T.letters.r1 ? 'r1' : s.round === T.letters.r4 ? 'r4' : 'r8', round: s.round, id: letter.id });
+  if (letter) s.letters.push({ slot: `r${s.round}`, round: s.round, id: letter.id, friend: 'lea' });
 
   // 8. cards that arrive now
   arrive(s);
@@ -1228,7 +1229,7 @@ function finish(s: GameState) {
   s.ending = good ? WORLDS[world].good : WORLDS[world].bad;
   s.phase = 'ended';
   const variant = randomInt(h, 0, 1);
-  s.letters.push({ slot: 'end', round: s.round, id: `end_${s.ending}_${variant}` });
+  s.letters.push({ slot: 'end', round: s.round, id: `end_${s.ending}_${variant}`, friend: 'lea' });
   s.rng = h.rng;
 }
 
@@ -1505,10 +1506,11 @@ export function letters(s: GameState): LetterView[] {
     if (l.slot === 'end') {
       const m = /^end_(.+)_(\d)$/.exec(l.id)!;
       const ending = m[1] as EndingId;
-      return { slot: 'end', round: l.round, id: l.id, mood: LEA_END_MOOD(ending), text: LEA_END[ending][Number(m[2])], basis: LEA_END_BASIS(ending) };
+      return { slot: 'end', round: l.round, id: l.id, friend: l.friend ?? 'lea', mood: LEA_END_MOOD(ending), text: LEA_END[ending][Number(m[2])], postcard: false, basis: LEA_END_BASIS(ending) };
     }
     const d = letterDef(l.id)!;
-    return { slot: l.slot, round: l.round, id: l.id, mood: d.mood, text: d.text, basis: d.basis };
+    // saves from before the friends (26 Oct) have no `friend`: those letters were all Léa's
+    return { slot: l.slot, round: l.round, id: l.id, friend: l.friend ?? 'lea', mood: d.mood, text: d.text, postcard: true, basis: d.basis };
   });
 }
 
@@ -1614,7 +1616,10 @@ export function ending(s: GameState): EndingView {
     counterfactuals: cf.slice(0, 2),
     decisions,
     threats: threatList,
-    lea: letters(s).find((l) => l.slot === 'end')!,
+    friends: letters(s)
+      .filter((l) => l.slot === 'end')
+      .map((l) => ({ friend: l.friend, mood: l.mood, text: l.text, basis: l.basis })),
+    lea: letters(s).find((l) => l.slot === 'end' && l.friend === 'lea')!,
     basis: def.basis,
     source: def.source,
   };
@@ -1652,9 +1657,11 @@ const REGION_NAME: Record<RegionId, string> = { eu: 'Europe', us: 'the US', cn: 
 function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): FeedItem[] {
   const out: FeedItem[] = [];
   const base = { round: r.round, detail: null, threat: null, tone: 0 as const };
-  // Léa's letter in full, with her mood (the feed shows her small portrait)
+  // A friend's letter in full, with their mood (the feed shows a small portrait); it opened the round as a postcard
   const def = r.letter ? letterDef(r.letter) : null;
-  if (def) out.push({ ...base, id: `lea_${r.round}`, at: 0.03, kind: 'lea', label: 'Letter from Léa, your friend in Lyon', text: def.text, region: 'eu', mood: def.mood });
+  const friend = r.letter ? (s.letters.find((l) => l.id === r.letter && l.round === r.round)?.friend ?? 'lea') : 'lea';
+  if (def)
+    out.push({ ...base, id: `lea_${r.round}`, at: 0.03, kind: 'lea', label: letterLabel(friend), text: def.text, region: FRIENDS[friend].region, friend, mood: def.mood, postcard: true });
   for (const h of r.headlines) {
     const t = /^t_(\w+)_(\d)$/.exec(h.id);
     const threat = t ? (t[1] as ThreatId) : null;

@@ -5,8 +5,9 @@
 //   s = startRound(s)        Influence arrives; AI capabilities rise at the hidden pace; cooperation and cohesion
 //                            drift; the labs' reports raise what they claim about AI safety (what is verified does
 //                            not move); AI 2027 milestones are reached in order; threats grow (public values only);
-//                            maybe one event (s.event); headlines, voices, a leak every two or three rounds, Léa's
-//                            letter at rounds 1, 4 and 8; cards arrive.
+//                            maybe one event (s.event); headlines, voices, a leak every two or three rounds, maybe a
+//                            friend's letter (letters(s): friend, mood, postcard); cards arrive.
+//   If this round has a letter with postcard: true, the UI shows it full screen before the clock starts.
 //   The UI plays the six months (about 8 s): feed(s) gives the round's items with their `at`; they appear in the
 //   news feed and on the map as the clock passes them.
 //   if s.event: the clock stops at event.at for its Breaking news screen →
@@ -25,6 +26,9 @@
 //
 // Always available: gauges(s), heading(s), threats(s), nextIncome(s), letters(s), feed(s), report(s) (this round's
 // biggest changes), dateLabel(round).
+// Friends back home (v4): FriendId 'lea' | 'mother' | 'malik', metadata in src/data/friends.ts (FRIENDS: name, label,
+// city, lon, lat, region). Letters never move a gauge. In the feed a letter is kind 'lea' (historical name) with
+// `friend`, `mood` and `postcard`; ending(s).friends holds one epilogue per friend (ending(s).lea is deprecated).
 // Hidden values (the true AI safety, the AI pace) appear only in ending(s), and in gauges(s) while an
 // independent audit runs (by the player's choice).
 

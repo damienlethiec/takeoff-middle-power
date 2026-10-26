@@ -358,13 +358,24 @@ export interface PublicValues {
   cohesion: number;
 }
 
+/** v4: three friends back home write to you, each the human face of one part of the world: Léa (Social cohesion),
+ *  your mother (AI safety as lived) and Malik (AI capabilities, US–China cooperation, Europe's AI).
+ *  Their names, labels and cities are in src/data/friends.ts. Letters never move a gauge. */
+export type FriendId = 'lea' | 'mother' | 'malik';
+export type FriendMood = 'hopeful' | 'worried' | 'relieved' | 'sad';
+/** @deprecated use FriendMood (kept so older UI code compiles). */
+export type LeaMood = FriendMood;
+/** The round a letter was written for ('r1'…'r12'), or 'end' for the epilogue. */
+export type LetterSlot = `r${number}` | 'end';
+/** @deprecated use LetterSlot. */
+export type LeaSlot = LetterSlot;
+
 export interface LetterRecord {
-  slot: LeaSlot;
+  slot: LetterSlot;
   round: number;
   id: string;
+  friend: FriendId;
 }
-export type LeaSlot = 'r1' | 'r4' | 'r8' | 'end';
-export type LeaMood = 'hopeful' | 'worried' | 'relieved' | 'sad';
 
 export interface GameState {
   version: 3;
@@ -574,10 +585,21 @@ export interface ReportView {
 }
 
 export interface LetterView {
-  slot: LeaSlot;
+  slot: LetterSlot;
   round: number;
   id: string;
-  mood: LeaMood;
+  friend: FriendId;
+  mood: FriendMood;
+  text: string;
+  /** The letter opens its round: the UI shows it full screen (a postcard) before the round's clock starts. */
+  postcard: boolean;
+  basis: Basis;
+}
+
+/** One friend's epilogue on the ending screen ("Back home, 2032"). */
+export interface FriendEpilogue {
+  friend: FriendId;
+  mood: FriendMood;
   text: string;
   basis: Basis;
 }
@@ -622,6 +644,9 @@ export interface EndingView {
   counterfactuals: string[];
   decisions: { round: number; date: string; name: string; ups: Chip[]; downs: Chip[] }[];
   threats: { id: ThreatId; name: string; struck: boolean; prepared: boolean | null; by: string }[];
+  /** One short epilogue per friend, in the order lea, mother, malik. */
+  friends: FriendEpilogue[];
+  /** @deprecated Léa's epilogue as a letter (use `friends`); kept until the UI moves to `friends`. */
   lea: LetterView;
   basis: Basis;
   source: Source;
@@ -634,7 +659,8 @@ export interface FeedItem {
   round: number;
   at: number;
   kind: 'headline' | 'milestone' | 'threat' | 'voice' | 'leak' | 'event' | 'lea' | 'decision' | 'request' | 'social';
-  /** "Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Letter from Léa, your friend in Lyon", "Your decision" */
+  /** "Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Letter from Léa, your friend in Lyon", "Your decision".
+   *  kind 'lea' is historical: it is any friend's letter (see `friend`). */
   label: string;
   text: string;
   /** What it changed, in words ("US–China cooperation 51 → 55"). */
@@ -642,8 +668,11 @@ export interface FeedItem {
   region: RegionId | null;
   threat: ThreatId | null;
   tone: -1 | 0 | 1;
-  /** Léa's letter: her mood (the feed shows her small portrait). */
-  mood?: LeaMood;
+  /** A friend's letter (kind 'lea'): who wrote it, their mood (the feed shows a small portrait), and whether it
+   *  opened the round as a full-screen postcard. */
+  friend?: FriendId;
+  mood?: FriendMood;
+  postcard?: boolean;
   /** A social event (v4): its kind and city (the map shows it there). */
   social?: { kind: SocialKind; city: string; lon: number; lat: number };
 }

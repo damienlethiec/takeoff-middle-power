@@ -1,7 +1,7 @@
 // Player-facing words that are not cards, threats, events, headlines or letters:
 // labels, the two intro screens, the tutorial's coach marks and the help.
 
-import type { Fact, GaugeKey, Pace, Zone } from '../engine/types';
+import type { Fact, FriendId, GaugeKey, Pace, Zone } from '../engine/types';
 import { SOURCES } from './sources';
 
 export const GAUGE_LABEL: Record<GaugeKey, string> = {
@@ -59,8 +59,10 @@ export interface IntroScreen {
   title: string;
   paragraphs: string[];
   stakes?: string[];
-  /** Léa, introduced with her portrait (v4). */
+  /** @deprecated Léa alone (v4 before the friends); use `friends`. */
   lea?: string[];
+  /** The three friends back home, one line each with their portrait: the people you are doing this for. */
+  friends?: { friend: FriendId; line: string }[];
   fact?: Fact;
 }
 
@@ -87,6 +89,11 @@ export const INTRO: IntroScreen[] = [
     lea: [
       'Your friend Léa, a translator in Lyon, writes to you every few months.',
       'She is not a minister or an expert. Her letters show you what the world’s choices do to people like her: her job, her family, her city.',
+    ],
+    friends: [
+      { friend: 'lea', line: 'Léa, your oldest friend, translates for a living in Lyon. She wonders whether there will still be work for people like her.' },
+      { friend: 'mother', line: 'Your mother, a retired nurse in Lyon, still helps out at her old hospital, where the first AI tools are arriving.' },
+      { friend: 'malik', line: 'Malik, your old flatmate, builds AI at a lab in San Francisco. He loves it, and he has no job like it back home.' },
     ],
     fact: {
       text: 'Since August 2025, makers of new general-purpose AI models offered in the EU must follow EU rules. From August 2026, the European Commission can enforce them, with fines.',
