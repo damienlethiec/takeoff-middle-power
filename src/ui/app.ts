@@ -159,6 +159,15 @@ export class App {
     return { aiPower: s.aiPower, cooperation: s.cooperation, confidence: c.value, margin: c.margin, cohesion: s.cohesion };
   }
 
+  /** The values this round began with (after its Influence; before the six months' drift), for a resumed round.
+   *  An independent audit shows AI safety's truth: then that gauge starts where it is. */
+  private startVals(s = this.s): Vals {
+    const now = this.vals(s);
+    const audited = this.e.gauges(s).find((x) => x.key === 'confidence')!.audited;
+    const r = s.roundStart;
+    return { aiPower: r.aiPower, cooperation: r.cooperation, cohesion: r.cohesion, confidence: audited ? now.confidence : r.estimate, margin: audited ? now.margin : r.margin };
+  }
+
   // ------------------------------------------------------------------ flow
 
   private async loop(id: number, resume: SaveStage | null = null) {
@@ -189,13 +198,15 @@ export class App {
     }
     const s = this.s;
     const date = this.e.dateLabel(s.round);
-    // gauges travel from where they were to where six months take them
-    this.from = this.vals(before);
+    // gauges travel from where they were to where six months take them; a resumed round replays its six months
+    // from the start, so its gauges glide again from the values the round began with
+    this.from = resumed ? this.startVals() : this.vals(before);
+    if (resumed) this.shown = { ...this.from };
     this.to = this.vals();
     this.follow = 'clock';
     this.caughtUp = false;
-    // social events step the gauges at their time (a resumed round already shows where it is)
-    this.steps = before === this.s ? [] : s.social.round.map((x) => ({ id: x.id, at: x.at, d: { ...ZERO, cohesion: x.moved.cohesion, cooperation: x.moved.cooperation, confidence: x.moved.estimate, margin: x.moved.margin }, state: 'wait' as const, told: false }));
+    // social events step the gauges at their time
+    this.steps = s.social.round.map((x) => ({ id: x.id, at: x.at, d: { ...ZERO, cohesion: x.moved.cohesion, cooperation: x.moved.cooperation, confidence: x.moved.estimate, margin: x.moved.margin }, state: 'wait' as const, told: false }));
     this.items = [
       ...s.headlines.map((item) => ({ item, kind: 'headline' as const, state: 'wait' as const, until: Math.min(1.05, item.at + 0.42) })),
       ...s.voices.map((item) => ({ item, kind: 'voice' as const, state: 'wait' as const, until: Math.min(1.05, item.at + 0.32) })),
@@ -223,10 +234,8 @@ export class App {
     this.beginClock();
     // what six months of drift will do, briefly by each gauge (social events show their own when they happen);
     // a big jump in AI capabilities sends a ripple from the labs
-    if (before !== this.s) {
-      this.popChanges(this.from, this.minus(this.to, this.stepSum(() => true)));
-      if (s.lastRise >= RIPPLE_RISE) this.map.ripple();
-    }
+    this.popChanges(this.from, this.minus(this.to, this.stepSum(() => true)));
+    if (s.lastRise >= RIPPLE_RISE) this.map.ripple();
     await new Promise<void>((r) => (this.clockDone = r));
     this.clockActive = false;
     this.prevThreats = this.e.threats(this.s);
