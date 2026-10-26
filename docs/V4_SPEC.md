@@ -34,12 +34,13 @@ v3 simplified the model, but its screen still asked the player to find things: t
 
 From top to bottom:
 
-- **The header**: the title, the date and round ("H1 2028 · Round 3 of 12" with a 12-step progress bar), pause and speed (×1, ×2), the phase in words ("Clock running", "A request", "Your decisions"), Influence with next round's income and its reasons, and Help.
+- **The header**: the title, the date and round ("H1 2028 · Round 3 of 12" with a 12-step progress bar), pause and speed (×1, ×2), the phase in words ("Clock running", "A request", "Your decisions"), Influence with next round's income and its reasons and a "?" (what Influence is, what each round brings, how to earn more), and Help.
 - **The four gauges**, one card each, the same rows aligned across them: name and "?", the value with this round's change and a status chip, the bar with its marks, one caption.
   - *AI capabilities*: the clock; the tipping point at 80 is a hatched zone. When the tipping point looks at most four rounds away (visible values only), "tipping in ~2–4 rounds".
   - *AI safety*: verified–claimed ("40–56"), the goal when it is the deciding gauge, caption "Verified 40 · labs claim 56 · goal 75".
   - *US–China cooperation*: three zones (Rupture, Race, Pause); the current one outlined and named in the caption ("Race zone · 30–59").
-  - *Social cohesion*: its floor or goal ("Floor 55: never fall below").
+  - *Social cohesion*: its floor or goal ("Floor 55: never fall below"). It erodes a little every round as AI takes over more work (flexicurity and the answers that protect workers soften it) and moves with the social events.
+  - The gauges glide through the six months and step at each social event; a change shows briefly by the gauge ("+3", "−4": sign and colour, "better" or "worse" in words for screen readers) when a round, a social event, a request, breaking news or the decisions move it.
   - A threat aimed at a gauge shows as a small mark by its name ("⚠ −15", "ready").
 - **The heading line** (see above). *Why?* opens the five-worlds dialog.
 - **The map** (left) and **the news feed** (right; under the map below 768 px).
@@ -52,7 +53,7 @@ From top to bottom:
 3. **A request may arrive** (at most one a round, two when a follow-up is due): the clock stops, the character's card opens, the player answers, the clock resumes.
 4. **Breaking news may strike**: the clock stops for its screen (impact before → after, prepared or not, an "Already real" fact), then resumes.
 5. **The clock stops.** "What changed" (the three biggest changes with their cause) tops the feed. Nothing opens by itself; the dock offers "Make my decisions".
-6. **Decisions** (below), then **consequences**: the gauges move, the line under them says what the cards changed, the decisions enter the feed, and the next six months begin.
+6. **Decisions** (below), then **consequences**: the gauges move and show their change, the decisions enter the feed with what they changed, and the next six months begin.
 7. The game ends at the **tipping point** (capabilities 80, never before round 6) or after **round 12**: "See how it ends".
 
 ## Requests
@@ -77,16 +78,18 @@ A character arrives during the six months with a short request (≤ 40 words) an
 
 ## The news feed
 
-- **This round**: every item as it appears, newest first, each a button with an icon and a type ("Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Request · Li Wen", "Letter from Léa, your friend in Lyon", "Your decision"), and what it changed.
+- **This round**: every item as it appears, newest first, each a button with an icon and a type ("Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Request · Li Wen", "Letter from Léa, your friend in Lyon", "Strike · Paris, France · in this story", "Your decision"), and what it changed.
+- **Social events**: one or two a round, different each game, in a European city: strikes, protests, scandals, layoffs (the two job shocks too) and good news, each with a headline, one line on why it matters (a real precedent, or the scenario it echoes) and what it changed. Bad news comes more often when Social cohesion is low or AI capabilities high.
 - **What changed** tops it when the six months end; **Earlier** holds past rounds by date, each with its own "What changed".
 - Choosing an item shows it on the map (its threat lights up, or its region's group opens with the item highlighted); choosing a map item highlights it here. **N** jumps to the feed.
 
 ## The map
 
-A dot-matrix world centred on the US–Europe–China band (Europe's colour covers Europe only), with the labs pulsing faster as capabilities rise, coalition partners lighting up around Europe and protests over European cities as Social cohesion falls.
+A dot-matrix world centred on the US–Europe–China band (Europe's colour covers Europe only), with the labs pulsing faster as capabilities rise, coalition partners lighting up around Europe (briefly brighter as each joins), protests over European cities and Europe's dots dimming as Social cohesion falls, and a soft ripple from the labs when AI capabilities jump.
 
 - **Threat icons** where the threat would strike, larger at each stage, green with a check once Europe is prepared; each opens what protects Europe.
 - **Groups**: the round's items as small icons by type, one group per region (the US, Europe, China) with a count. Hover or click opens its list (Tab goes into it, Escape closes it). Léa's letter is an envelope, first in Europe's group; the leak is in the US group and opens from there. While a request is open, the character's group is marked "Request".
+- **Social events** join Europe's group with an icon by kind (a briefcase for jobs, a picket sign, a megaphone, an alarm, a spark for good news) and a mark at their city: bad news is a hotspot that pulses gently (steady with reduced motion), good news glows.
 - Only the newest headline shows briefly as a banner by its group.
 
 ## Léa
