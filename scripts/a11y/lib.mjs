@@ -69,7 +69,12 @@ export const settle = (page, ms = 600) => page.waitForTimeout(ms);
 export async function axe(page) {
   if (!(await page.evaluate(() => 'axe' in window))) await page.addScriptTag({ path: AXE });
   const v = await page.evaluate(async () => {
-    const r = await axe.run(document, { resultTypes: ['violations'] });
+    // an item fading in while axe runs (time flows during the audit) would be measured half transparent:
+    // audit the settled state
+    const still = document.createElement('style');
+    still.textContent = '*, *::before, *::after { animation: none !important; transition: none !important; }';
+    document.head.appendChild(still);
+    const r = await axe.run(document, { resultTypes: ['violations'] }).finally(() => still.remove());
     return r.violations.map((x) => ({
       id: x.id,
       impact: x.impact,
@@ -87,8 +92,9 @@ export const screenOf = (page) =>
   page.evaluate(() => {
     if (document.querySelector('.ending-page')) return 'ending';
     const m = document.querySelector('.overlay:not(.leaving):not([inert]) .modal');
-    if (!m) return document.querySelector('.dock:not([hidden])') ? 'dock' : 'main';
-    for (const k of ['intro', 'coach', 'breaking', 'request', 'decision', 'card-details', 'worlds', 'letters', 'help', 'info']) if (m.classList.contains(k)) return k;
+    // v4: the decisions are drawn in place of the map (not a dialog)
+    if (!m) return document.querySelector('#decide:not([hidden])') ? 'decision' : document.querySelector('.dock:not([hidden])') ? 'dock' : 'main';
+    for (const k of ['intro', 'coach', 'breaking', 'request', 'card-details', 'worlds', 'help', 'info']) if (m.classList.contains(k)) return k;
     return `modal:${m.className}`;
   });
 

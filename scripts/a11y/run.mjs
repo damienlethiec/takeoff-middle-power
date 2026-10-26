@@ -1,4 +1,4 @@
-// Accessibility check (v3): plays whole games with the keyboard alone (no mouse) and runs axe on every screen.
+// Accessibility check (v4): plays whole games with the keyboard alone (no mouse) and runs axe on every screen.
 //   npm run a11y                      starts vite on port 5176 and stops it at the end
 //   A11Y_URL=http://localhost:5173/takeoff-middle-power/ npm run a11y   reuses a running server
 //   A11Y_SHOTS=/some/dir npm run a11y  also saves a screenshot of each screen
@@ -128,30 +128,61 @@ async function playRun(browser, base, run) {
         await fn();
         if (was && (await phase()) === 'Paused' && (await screenOf(page)) === 'main') await toggle();
       };
-      if (await page.evaluate(() => !!document.querySelector('.lea-btn.unread')) && once('lea')) {
+      // the map's icon groups: Enter opens a group's list, Tab goes into it, Escape closes it and returns to the group
+      if ((await page.evaluate(() => !!document.querySelector('.m-cluster:not([hidden])'))) && once('groups')) {
         await explore(async () => {
-          const box = await page.evaluate(() => document.querySelector('.lea-btn')?.getBoundingClientRect().toJSON());
-          if (!box || box.width < 44 || box.height < 44) fail(`Léa's button is smaller than 44 px (${JSON.stringify(box)})`);
-          await openAndReturn('letters', '.lea-btn', ' ');
+          if (!(await tabTo(page, '.m-cluster:not([hidden])', { max: 150 }))) return fail('could not Tab to a map group');
+          const box = await page.evaluate(() => document.activeElement?.getBoundingClientRect().toJSON());
+          if (!box || box.width < 24 || box.height < 24) fail(`a map group is smaller than 24 px (${JSON.stringify(box)})`);
+          await press('Enter');
+          await advance(page, 150);
+          if ((await page.evaluate(() => document.activeElement?.getAttribute('aria-expanded'))) !== 'true') fail('Enter on a map group did not open its list');
+          await press('Tab');
+          if (!(await focusIs('.m-pop .mp-item'))) fail(`Tab from a map group did not go into its list (${await focused(page)})`);
+          await audit('map-group');
+          await press('Escape');
+          await advance(page, 150);
+          if (!(await focusIs('.m-cluster[aria-expanded="false"]'))) fail(`Escape in a group's list did not close it and return to the group (${await focused(page)})`);
+          log.push('  map group: opened, entered and closed with the keyboard');
         });
         continue;
       }
-      if (await page.evaluate(() => !!document.querySelector('.threat-btn')) && once('threat')) {
+      // Léa writes in the feed, named as your friend, and her envelope is in Europe's group
+      if ((await page.evaluate(() => !!document.querySelector('.fd-item.k-lea'))) && once('lea')) {
+        const t = await page.evaluate(() => document.querySelector('.fd-item.k-lea')?.textContent ?? '');
+        if (!/Letter from Léa, your friend in Lyon/.test(t)) fail('Léa’s letter in the feed does not say who she is');
+        const g = await page.evaluate(() => document.querySelector('.m-cluster.c-eu:not([hidden])')?.textContent ?? '');
+        if (!/letter from Léa, your friend in Lyon/.test(g)) fail(`Europe’s map group does not name Léa’s letter (${g})`);
+        log.push('  Léa’s letter: in the feed and in Europe’s group');
+        continue;
+      }
+      if ((await page.evaluate(() => !!document.querySelector('.threat-btn'))) && once('threat')) {
         await explore(() => openAndReturn('threat-info', '.threat-btn'));
         continue;
       }
-      if (await page.evaluate(() => !!document.querySelector('.leak-btn:not([hidden])')) && once('leak')) {
-        await explore(() => openAndReturn('leak', '.leak-btn'));
+      // the leak: in the US group's list; it opens from there, and focus comes back to it (or to its group)
+      if ((await page.evaluate(() => /leak/.test(document.querySelector('.m-cluster.c-us:not([hidden])')?.textContent ?? ''))) && once('leak')) {
+        await explore(async () => {
+          if (!(await tabTo(page, '.m-cluster.c-us', { max: 150 }))) return fail('could not Tab to the US group');
+          if ((await page.evaluate(() => document.activeElement?.getAttribute('aria-expanded'))) !== 'true') await press('Enter');
+          await advance(page, 150);
+          if (!(await tabTo(page, '.m-pop .mp-item.k-leak', { max: 12 }))) return fail('could not Tab to the leak in the US group');
+          await press('Enter');
+          await advance(page, 150);
+          if ((await screenOf(page)) !== 'info') return fail('Enter on the leak did not open it');
+          await audit('leak');
+          await checkTrap('leak');
+          await press('Escape');
+          await advance(page, 300);
+          if (!(await focusIs('.m-pop .mp-item.k-leak, .m-cluster.c-us'))) fail(`leak: focus did not return to the map (${await focused(page)})`);
+          log.push('  leak: opened from the US group');
+        });
         continue;
       }
       if (done.has('main') && once('badge')) {
         await explore(async () => {
-          await openAndReturn('gauge-help', '.g-info[data-info="confidence"]');
-          // on small screens the band is collapsed: expand it with its button first
-          if (await page.evaluate(() => { const t = document.querySelector('.ol-toggle'); return !!t && t.checkVisibility() && t.getAttribute('aria-expanded') === 'false'; })) {
-            if (await tabTo(page, '.ol-toggle')) await press('Enter');
-            else fail('could not Tab to the band’s More button');
-          }
+          // a gauge's "?" (any gauge: their markup is being redesigned)
+          await openAndReturn('gauge-help', '.gauge button[aria-label^="About"], .g-info');
           await openAndReturn('worlds', '[data-worlds]');
           await openAndReturn('badge', '.badge-btn');
           // the help by its shortcut, the news feed by N
@@ -199,8 +230,59 @@ async function playRun(browser, base, run) {
       continue;
     }
 
+    if (screen === 'decision') {
+      // v4: the cards take the map's place (not a dialog). Focus lands on a card; Escape goes back to the map.
+      await advance(page, 150);
+      if ((await screenOf(page)) !== 'decision') continue; // a tip opened over it
+      await audit('decision');
+      if (!(await focusIs('.pcard'))) fail(`decision: focus is not on a card (${await focused(page)})`);
+      if (once('decision-escape')) {
+        await press('Escape');
+        await advance(page, 200);
+        if ((await screenOf(page)) !== 'dock') fail(`decision: Escape did not go back to the map (${await screenOf(page)})`);
+        else if (!(await focusIs('.dock [data-go].btn-primary'))) fail(`decision: after Escape, focus is not on Make my decisions (${await focused(page)})`);
+        await press('Enter');
+        await advance(page, 200);
+        continue;
+      }
+      const target = await page.evaluate(() => document.querySelector('.pc-wrap:not(.locked) .pcard')?.dataset.card ?? null);
+      if (target && once('card-details')) {
+        // a card's details: a dialog over the decisions; Escape returns to its Details button
+        if (!(await tabTo(page, `[data-details="${target}"]`))) fail('decision: could not Tab to Details');
+        await press('Enter');
+        await advance(page, 200);
+        if ((await screenOf(page)) !== 'card-details') fail('decision: Details did not open its dialog');
+        else {
+          await audit('card-details');
+          await checkTrap('card-details');
+          await press('Escape');
+          await advance(page, 300);
+          if (!(await focusIs(`[data-details="${target}"]`))) fail(`card details: focus did not return to Details (${await focused(page)})`);
+        }
+      }
+      if (target) {
+        if (!(await tabTo(page, `.pcard[data-card="${target}"]`)) && !(await tabTo(page, `.pcard[data-card="${target}"]`, { back: true }))) fail('decision: could not Tab to a card');
+        await press('Enter');
+        await advance(page, 200);
+        if ((await page.evaluate(() => document.activeElement?.getAttribute('aria-pressed'))) !== 'true') fail('decision: the selected card is not aria-pressed');
+        if (!/Selected/.test(await said())) fail('decision: the selection was not announced');
+        await audit('decision-preview');
+        if (!(await tabTo(page, '#dec-ok'))) fail('decision: could not Tab to Confirm');
+        log.push(`  card: ${target}`);
+        await press('Enter');
+      } else {
+        if (!(await tabTo(page, '[data-action="none"]', { back: true }))) fail('decision: could not reach Play no card');
+        log.push('  no card');
+        await press('Enter');
+      }
+      await advance(page, 400);
+      continue;
+    }
+
     // a dialog: focus moved in, labelled, trap once per kind, then act with the keyboard
-    await advance(page, 100);
+    await advance(page, screen === 'request' ? 300 : 100);
+    // a tip may have stacked over it meanwhile (the request tip points at the request card): take it first
+    if ((await screenOf(page)) !== screen) continue;
     const inModal = await page.evaluate((m) => document.querySelector(m)?.contains(document.activeElement), MODAL);
     if (!inModal) fail(`${screen}: focus did not move into the dialog (${await focused(page)})`);
     const labelled = await page.evaluate((m) => {
@@ -243,41 +325,7 @@ async function playRun(browser, base, run) {
       if (!/You answered/.test(await said())) fail('request: the answer was not announced');
       await audit('request-outcome');
       await press('Enter');
-    } else if (screen === 'decision') {
-      await audit('decision');
-      if (!(await focusIs('.pcard'))) fail(`decision: focus is not on a card (${await focused(page)})`);
-      if (once('trap-decision')) await checkTrap('decision');
-      const target = await page.evaluate(() => document.querySelector('.pc-wrap:not(.locked) .pcard')?.dataset.card ?? null);
-      if (target && once('card-details')) {
-        // a card's details: a dialog over the decision screen; Escape returns to its Details button
-        if (!(await tabTo(page, `[data-details="${target}"]`))) fail('decision: could not Tab to Details');
-        await press('Enter');
-        await advance(page, 200);
-        if ((await screenOf(page)) !== 'card-details') fail('decision: Details did not open its dialog');
-        else {
-          await audit('card-details');
-          await checkTrap('card-details');
-          await press('Escape');
-          await advance(page, 300);
-          if (!(await focusIs(`[data-details="${target}"]`))) fail(`card details: focus did not return to Details (${await focused(page)})`);
-        }
-      }
-      if (target) {
-        if (!(await tabTo(page, `.pcard[data-card="${target}"]`)) && !(await tabTo(page, `.pcard[data-card="${target}"]`, { back: true }))) fail('decision: could not Tab to a card');
-        await press('Enter');
-        await advance(page, 200);
-        if ((await page.evaluate(() => document.activeElement?.getAttribute('aria-pressed'))) !== 'true') fail('decision: the selected card is not aria-pressed');
-        if (!/Selected/.test(await said())) fail('decision: the selection was not announced');
-        await audit('decision-preview');
-        if (!(await tabTo(page, '#dec-ok'))) fail('decision: could not Tab to Confirm');
-        log.push(`  card: ${target}`);
-        await press('Enter');
-      } else {
-        if (!(await tabTo(page, '#dec-none', { back: true }))) fail('decision: could not reach Play no card');
-        log.push('  no card');
-        await press('Enter');
-      }
-    } else if (['letters', 'help', 'info', 'worlds', 'card-details'].includes(screen)) {
+    } else if (['help', 'info', 'worlds', 'card-details'].includes(screen)) {
       await press('Escape');
     } else {
       fail(`unexpected screen ${screen}`);
@@ -302,7 +350,7 @@ async function playRun(browser, base, run) {
     }
     if ((await evalText('#date')) !== 'H1 2027') fail('Play again did not start a new game');
   }
-  for (const k of ['lea', 'threat', 'badge']) if (!done.has(k)) fail(`never checked: ${k}`);
+  for (const k of ['groups', 'lea', 'threat', 'badge']) if (!done.has(k)) fail(`never checked: ${k}`);
   await context.close();
   return { run, problems, errors, audits, log };
 }
