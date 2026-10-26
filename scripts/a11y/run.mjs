@@ -304,6 +304,17 @@ async function playRun(browser, base, run) {
       log.push(`  tip: ${await evalText(`${MODAL} h2`)}`);
       await tabTo(page, '[data-primary]');
       await press('Enter');
+    } else if (screen === 'postcard') {
+      // a friend's letter opens the round, full screen, before the clock: Continue has focus, Enter goes on
+      const h = await evalText(`${MODAL} h2`);
+      log.push(`  postcard: ${h}`);
+      if (once('postcard')) {
+        await audit('postcard');
+        await checkTrap('postcard');
+      }
+      if (!/^Letter from (Léa|your mother|Malik), /.test(h)) fail(`postcard: the heading does not say who wrote (${h})`);
+      if (!(await focusIs('[data-primary]'))) fail(`postcard: focus is not on Continue (${await focused(page)})`);
+      await press('Enter');
     } else if (screen === 'breaking') {
       log.push(`  breaking: ${await evalText(`${MODAL} h2`)}`);
       await audit('breaking');
@@ -356,7 +367,7 @@ async function playRun(browser, base, run) {
     }
     if ((await evalText('#date')) !== 'H1 2027') fail('Play again did not start a new game');
   }
-  for (const k of ['groups', 'lea', 'threat', 'badge']) if (!done.has(k)) fail(`never checked: ${k}`);
+  for (const k of ['groups', 'lea', 'postcard', 'threat', 'badge']) if (!done.has(k)) fail(`never checked: ${k}`);
   await context.close();
   return { run, problems, errors, audits, log };
 }

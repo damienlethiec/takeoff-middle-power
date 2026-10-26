@@ -1,8 +1,9 @@
 // Original flat portraits (from the hybrid), drawn in SVG for this game (no photos, no real people). Each character has a
-// recognisable silhouette; Léa has a few expressions that follow her mood. Decorative: the name is always in text.
+// recognisable silhouette; the three friends (friends.ts) have a few expressions that follow their mood. Decorative: the name is always in text.
 
-import type { CharacterId, LeaMood } from '../engine/types';
-import { leaPortrait } from './friends';
+import type { CharacterId, FriendId, FriendMood } from '../engine/types';
+import { FRIEND_IDS } from '../data/friends';
+import { friendPortrait } from './friends';
 
 interface Look {
   bg: string;
@@ -20,7 +21,7 @@ const HEAD = '<ellipse cx="32" cy="28" rx="11" ry="12.5" fill="var(--skin)"/><re
 const face = (eyes = 'M27 28h0.01M37 28h0.01', mouth = 'M28.5 34q3.5 2.5 7 0', brows = 'M25.5 24.5l3-.6M35.5 23.9l3 .6') =>
   `<path d="${eyes}" stroke="#1d2433" stroke-width="2.6" stroke-linecap="round"/><path d="${brows}" stroke="#1d2433" stroke-width="1.2" stroke-linecap="round" fill="none"/><path d="${mouth}" stroke="#1d2433" stroke-width="1.4" stroke-linecap="round" fill="none"/>`;
 
-const LOOKS: Record<Exclude<CharacterId, 'ai' | 'lea'>, Look> = {
+const LOOKS: Record<Exclude<CharacterId, 'ai' | FriendId>, Look> = {
   us_envoy: {
     bg: '#f4a62a',
     skin: '#f1c9a5',
@@ -104,9 +105,11 @@ function person(l: Look, faceSvg = face()): string {
 
 const AI = `<rect width="64" height="64" rx="12" fill="#0f1729"/><g fill="none" stroke="#5ed1c2" stroke-width="1.6"><path d="M32 10l18 10v22L32 52 14 42V20z"/><path d="M32 16l13 7.5v15L32 46 19 38.5v-15z" opacity=".45"/></g><circle cx="26" cy="29" r="2.6" fill="#9ff3ff"/><circle cx="38" cy="29" r="2.6" fill="#9ff3ff"/><path d="M24 37h3l2-3 3 6 3-6 2 3h3" fill="none" stroke="#9ff3ff" stroke-width="1.4" stroke-linejoin="round"/>`;
 
-/** The portrait of a character, as an inline SVG string (decorative). */
-export function portrait(id: CharacterId, mood: LeaMood = 'hopeful', cls = ''): string {
-  if (id === 'lea') return leaPortrait(mood).replace('class="friend-face', `class="portrait ${cls} friend-face`);
+export const isFriend = (id: string): id is FriendId => (FRIEND_IDS as string[]).includes(id);
+
+/** The portrait of a character, as an inline SVG string (decorative). The three friends back home have their own faces, with their mood. */
+export function portrait(id: CharacterId | FriendId, mood: FriendMood = 'hopeful', cls = ''): string {
+  if (isFriend(id)) return friendPortrait(id, mood).replace('class="friend-face', `class="portrait ${cls} friend-face`);
   const inner = id === 'ai' ? AI : person(LOOKS[id]);
   return `<svg class="portrait ${cls}" viewBox="0 0 64 64" aria-hidden="true" focusable="false">${inner}</svg>`;
 }

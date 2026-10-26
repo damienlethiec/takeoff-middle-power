@@ -21,6 +21,8 @@ import { showBadge, showGaugeHelp, showInfluenceHelp, showLeak, showThreat } fro
 import { showContinue, showIntro } from './screens/intro';
 import { showWorlds } from './screens/worlds';
 import { showRequest } from './screens/request';
+import { showPostcard } from './screens/postcard';
+import { FRIENDS } from '../data/friends';
 import { badgeHtml, headingLineHtml, statusOf } from './outlook';
 import { Feed } from './feed';
 import { Soundtrack } from './sound';
@@ -66,6 +68,8 @@ export class App {
   private eventBusy = false;
   private items: Live[] = [];
   private leakShown = false;
+  /** The round whose opening postcard was shown (saved, so a resumed round does not show it again). */
+  private postcardSeen = 0;
   /** A tutorial tip has paused the clock and is open. */
   private tipBusy = false;
   // gauges: what is drawn, what it is heading to
@@ -144,11 +148,12 @@ export class App {
    * heading, and the Help's log of tips (the tips themselves are not shown again).
    */
   private resume(env: SaveEnvelope) {
-    this.start(env.state, env.stage, env.tips);
+    this.start(env.state, env.stage, env.tips, env.postcard ?? 0);
   }
 
-  private start(state: GameState, resume: SaveStage | null = null, tips: string[] = []) {
+  private start(state: GameState, resume: SaveStage | null = null, tips: string[] = [], postcard = 0) {
     this.gameId += 1;
+    this.postcardSeen = postcard;
     document.body.classList.remove('ended');
     this.s = state;
     this.coach.reset();
@@ -168,7 +173,7 @@ export class App {
   /** Autosave at a safe point (see save.ts); without storage the game simply goes on. */
   private autosave(stage: SaveStage, state = this.s) {
     if (this.forgetting) return;
-    writeSave(state, stage, this.coach.seenIds());
+    writeSave(state, stage, this.coach.seenIds(), undefined, this.postcardSeen);
   }
 
   private vals(s = this.s): Vals {
@@ -233,15 +238,22 @@ export class App {
     this.feedDone = false;
     this.feed.clearMark();
     this.map.setThreats(this.prevThreats);
-    // Léa's letter is a feed item (in full, with her portrait) and an envelope in Europe's group on the map
+    // a friend's letter opens the round as a postcard (once), then stays in the feed (in full, with their portrait)
+    // and as an envelope on the map
     const letter = this.e.letters(s).find((l) => l.round === s.round && l.slot !== 'end');
+    const wrote = letter ? ` ${letter.friend === 'mother' ? 'Your mother' : FRIENDS[letter.friend].name} wrote to you: the letter is in the news.` : '';
     this.renderAll();
-    const inc = s.influence - before.influence;
-    if (resumed) announce(`Your saved game resumes: ${date}, round ${s.round} of 12. You have ${s.influence} Influence. The clock is running.${letter ? ' Léa wrote to you: her letter is in the news.' : ''}`);
-    else announce(
-      `${date} begins, round ${s.round} of 12. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${letter ? ' Léa wrote to you: her letter is in the news.' : ''}${s.round === 1 ? ' Press question mark for help.' : ''}`,
-    );
     this.sound.cue('round');
+    if (letter?.postcard && this.postcardSeen !== s.round) {
+      await showPostcard(letter, date);
+      this.postcardSeen = s.round;
+      this.autosave('round');
+    }
+    const inc = s.influence - before.influence;
+    if (resumed) announce(`Your saved game resumes: ${date}, round ${s.round} of 12. You have ${s.influence} Influence. The clock is running.${wrote}`);
+    else announce(
+      `${date} begins, round ${s.round} of 12. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${wrote}${s.round === 1 ? ' Press question mark for help.' : ''}`,
+    );
     // the tutorial: one tip per gauge, then where the world is heading, then Influence on the decision view;
     // later, only what does not explain itself, the first time it appears.
     // A tip whose part of the screen is not visible waits (it is tried again next round).

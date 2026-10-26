@@ -3,10 +3,10 @@
 // Lyon; Malik, your old flatmate, an engineer at an AI lab in San Francisco. Decorative wherever the name is
 // already given in words; with `alt`, an image with that name. Colours are in styles.css (.friend-face.f-<id>).
 
-import type { LeaMood } from '../engine/types';
+import type { FriendId, FriendMood } from '../engine/types';
 
-export type FriendKey = 'lea' | 'mother' | 'malik';
-export type Mood = LeaMood;
+type FriendKey = FriendId;
+type Mood = FriendMood;
 
 const BROWS: Record<Mood, string> = {
   hopeful: 'M23 27.5q4-2.6 8 0M41 27.5q4-2.6 8 0',
@@ -90,3 +90,4 @@ export function friendPortrait(friend: FriendKey, mood: Mood, alt?: string): str
 export function leaPortrait(mood: Mood, label?: string): string {
   return friendPortrait('lea', mood, label);
 }
+

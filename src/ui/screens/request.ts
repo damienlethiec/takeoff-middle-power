@@ -8,7 +8,7 @@ import type { AnswerView, RequestOutcome, RequestView, Side } from '../../engine
 import { announce, reducedMotion, tryFocus } from '../a11y';
 import { chips, esc, link } from '../format';
 import { openModal, wait } from '../modal';
-import { portrait } from '../portraits';
+import { isFriend, portrait } from '../portraits';
 
 function answerButton(a: AnswerView): string {
   const arrow = a.side === 'left' ? '←' : '→';
@@ -43,7 +43,7 @@ function requestHtml(v: RequestView, date: string): string {
 
 function outcomeHtml(v: RequestView, a: AnswerView, o: RequestOutcome): string {
   return `<div class="req-card answered c-${v.character.id}">
-    <div class="req-who">${portrait(v.character.id, v.character.id === 'lea' ? 'relieved' : 'hopeful')}<div><h2 id="req-name" tabindex="-1">${esc(v.character.name)}</h2><p class="req-role">You answered: <b>${esc(a.label)}</b></p></div></div>
+    <div class="req-who">${portrait(v.character.id, isFriend(v.character.id) ? 'relieved' : 'hopeful')}<div><h2 id="req-name" tabindex="-1">${esc(v.character.name)}</h2><p class="req-role">You answered: <b>${esc(a.label)}</b></p></div></div>
     <p class="reaction" id="req-reaction">“${esc(o.reaction)}”</p>
     <p class="pc-chips" aria-label="What changed">${o.chips.length ? chips(o.chips) : '<span class="chip flat">No visible change</span>'}</p>
     ${o.notes.map((n) => `<p class="note-line">${esc(n)}</p>`).join('')}

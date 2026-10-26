@@ -40,7 +40,7 @@ async function reload(page: Page) {
 const dialog = (page: Page) => page.locator('.overlay:not(.leaving) [role="dialog"]').last();
 const dockButton = (page: Page, name: RegExp) => page.locator('.dock:not([hidden])').getByRole('button', { name });
 const decisions = (page: Page) => page.locator('#decide:not([hidden])');
-const saved = (page: Page) => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? 'null'), KEY) as Promise<{ stage: string; state: { round: number; phase: string } } | null>;
+const saved = (page: Page) => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? 'null'), KEY) as Promise<{ stage: string; postcard?: number; state: { round: number; phase: string } } | null>;
 
 async function advance(page: Page, ms: number) {
   for (let t = 0; t < ms; t += 100) await page.clock.fastForward(100);
@@ -124,6 +124,41 @@ test.describe('save and resume', () => {
     expect(await saved(page)).toBeNull();
     await reload(page);
     await expect(page.getByRole('button', { name: /^Continue your game/ })).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
+  test('a friend’s postcard opens round 1 before the clock, and is not shown again after resuming', async ({ page }) => {
+    const errors: string[] = [];
+    // no seed in the address: a seeded game is never offered to resume
+    await boot(page, '?skipintro&notutorial', errors);
+    await advance(page, 400);
+    const card = dialog(page);
+    await expect(card).toHaveClass(/postcard/);
+    const h = card.getByRole('heading', { level: 2 });
+    await expect(h).toHaveText(/^Letter from (Léa|your mother|Malik), /);
+    const title = (await h.textContent())!.trim();
+    await expect(card.getByRole('img', { name: /^(Léa|Your mother|Malik), (hopeful|worried|relieved|sad)$/ })).toBeVisible();
+    await until(page, () => expect(card.getByRole('button', { name: /^Continue/ })).toBeFocused({ timeout: 100 }));
+    // the clock waits for the letter to be read
+    const progress = page.locator('#rounds li.now i');
+    const at = await progress.getAttribute('style');
+    await advance(page, 2000);
+    expect(await progress.getAttribute('style')).toBe(at);
+    expect((await saved(page))?.postcard ?? 0).toBe(0);
+    await page.keyboard.press('Enter');
+    await advance(page, 400);
+    await expect(page.locator('.modal.postcard')).toHaveCount(0);
+    expect((await saved(page))?.postcard).toBe(1);
+    // the letter stays in the news, named by who wrote it
+    await expect(page.locator('.feed .fd-item.k-lea .fd-k')).toHaveText(title);
+    // resuming round 1 does not show it again
+    await reload(page);
+    const go = dialog(page).getByRole('button', { name: /^Continue your game/ });
+    await until(page, () => expect(go).toBeFocused({ timeout: 100 }));
+    await go.click();
+    await advance(page, 600);
+    await expect(page.locator('.modal.postcard')).toHaveCount(0);
+    await expect(page.locator('#round-of')).toContainText('Round 1 of 12');
     expect(errors).toEqual([]);
   });
 

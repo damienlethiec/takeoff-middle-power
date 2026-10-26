@@ -77,6 +77,17 @@ describe('save and resume', () => {
     expect(saveLabel(env, dateLabel)).toBe(`${dateLabel(5)}, round 5`);
   });
 
+  it('remembers the round whose postcard was shown (0 for a save made before postcards)', () => {
+    const s = midGame(4);
+    expect(decodeSave(encodeSave(s, 'round', [], 1, 4), fresh())?.postcard).toBe(4);
+    const old = JSON.parse(encodeSave(s, 'round'));
+    delete old.postcard;
+    expect(decodeSave(JSON.stringify(old), fresh())?.postcard).toBe(0);
+    const st = memStore();
+    expect(writeSave(s, 'round', [], st, 4)).toBe(true);
+    expect(readSave(fresh(), st)?.postcard).toBe(4);
+  });
+
   it('ignores and removes corrupt, old or foreign saves', () => {
     const s = midGame(4);
     const good = encodeSave(s, 'round');

@@ -26,10 +26,15 @@ async function boot(page: Page, query: string): Promise<Session> {
   return session;
 }
 
-/** Advance the fake clock in 100 ms jumps (the game caps a frame at 100 ms). Requests that arrive are answered (left). */
+/** Advance the fake clock in 100 ms jumps (the game caps a frame at 100 ms). Requests that arrive are answered (left);
+ *  a friend's postcard that opens a round is always read on (Continue). */
 async function advance(page: Page, ms: number, answer = true) {
   for (let t = 0; t < ms; t += 100) {
     await page.clock.fastForward(100);
+    if (t % 500 === 0 && (await page.locator('.overlay:not(.leaving) .modal.postcard').count())) {
+      await page.locator('.overlay:not(.leaving) .modal.postcard').getByRole('button', { name: /^Continue/ }).click();
+      await page.clock.fastForward(300);
+    }
     if (answer && t % 500 === 0 && (await page.locator('.req-card.asking').count())) {
       await page.locator('.req-card.asking .ans-left').click();
       await page.clock.fastForward(400);
@@ -95,6 +100,7 @@ async function closeDialog(page: Page, side: 'left' | 'right' = 'left') {
 /** Play until the end screen, one card a round. Returns what happened on the way. */
 async function playToEnd(page: Page, s: Session) {
   const seen = { decisions: 0, played: [] as string[], breaking: 0, rounds: 0, requests: 0 };
+  await advance(page, 400, false); // round 1 opens with a friend's postcard
   await page.getByRole('button', { name: '×2' }).click();
   for (let step = 0; step < 900; step++) {
     if (await page.locator('.ending-page').count()) return seen;

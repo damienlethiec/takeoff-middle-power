@@ -27,6 +27,8 @@ export interface SaveEnvelope {
   stage: SaveStage;
   /** Tutorial tips already shown in this game (so they are not shown again after resuming). */
   tips: string[];
+  /** The round whose opening postcard (a friend's letter) was already shown, so a resumed round does not show it again; 0 if none. */
+  postcard?: number;
   state: GameState;
 }
 
@@ -60,8 +62,8 @@ function sameShape(saved: unknown, fresh: GameState): saved is GameState {
   return s.version === f.version && typeof s.rng === 'number' && typeof s.round === 'number';
 }
 
-export function encodeSave(state: GameState, stage: SaveStage, tips: string[] = [], savedAt = Date.now()): string {
-  const env: SaveEnvelope = { v: SAVE_VERSION, savedAt, stage, tips, state };
+export function encodeSave(state: GameState, stage: SaveStage, tips: string[] = [], savedAt = Date.now(), postcard = 0): string {
+  const env: SaveEnvelope = { v: SAVE_VERSION, savedAt, stage, tips, postcard, state };
   return JSON.stringify(env);
 }
 
@@ -75,18 +77,19 @@ export function decodeSave(raw: string | null, fresh: GameState): SaveEnvelope |
     if (!sameShape(env.state, fresh)) return null;
     const st = env.state;
     if (st.round < 0 || st.round > 12 || (env.stage === 'round' && (st.round < 1 || st.phase !== 'play'))) return null;
-    return { v: env.v, savedAt: Number(env.savedAt) || 0, stage: env.stage, tips: Array.isArray(env.tips) ? env.tips.filter((t) => typeof t === 'string') : [], state: st };
+    const postcard = Number(env.postcard) || 0;
+    return { v: env.v, savedAt: Number(env.savedAt) || 0, stage: env.stage, tips: Array.isArray(env.tips) ? env.tips.filter((t) => typeof t === 'string') : [], postcard, state: st };
   } catch {
     return null;
   }
 }
 
 /** Save; returns false (and keeps nothing half-written) when storage is unavailable, full or the save too big. */
-export function writeSave(state: GameState, stage: SaveStage, tips: string[] = [], s?: Store): boolean {
+export function writeSave(state: GameState, stage: SaveStage, tips: string[] = [], s?: Store, postcard = 0): boolean {
   const st = store(s);
   if (!st) return false;
   try {
-    const raw = encodeSave(state, stage, tips);
+    const raw = encodeSave(state, stage, tips, Date.now(), postcard);
     if (raw.length > MAX_CHARS) return false;
     st.setItem(SAVE_KEY, raw);
     return true;

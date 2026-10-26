@@ -117,7 +117,7 @@ export const screenOf = (page) =>
     const m = document.querySelector('.overlay:not(.leaving):not([inert]) .modal');
     // v4: the decisions are drawn in place of the map (not a dialog)
     if (!m) return document.querySelector('#decide:not([hidden])') ? 'decision' : document.querySelector('.dock:not([hidden])') ? 'dock' : 'main';
-    for (const k of ['intro', 'coach', 'breaking', 'request', 'card-details', 'worlds', 'help', 'info']) if (m.classList.contains(k)) return k;
+    for (const k of ['intro', 'coach', 'postcard', 'breaking', 'request', 'card-details', 'worlds', 'help', 'info']) if (m.classList.contains(k)) return k;
     return `modal:${m.className}`;
   });
 
