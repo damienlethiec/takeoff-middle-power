@@ -29,7 +29,7 @@ import { Soundtrack } from './sound';
 import { clearSave, forgetAll, readSave, saveLabel, writeSave, type SaveEnvelope, type SaveStage } from './save';
 
 const ROUND_MS = 8000;
-/** The start of Léa's letter, for her line in the map's list (the feed has it in full). */
+/** The start of a friend's letter, for its line in the map's list (the feed has it in full). */
 const firstSentence = (t: string) => {
   const m = /^.+?[.!?](?=\s|$)/.exec(t);
   return m && m[0].length < t.length ? `${m[0]} …` : t;
@@ -644,7 +644,7 @@ export class App {
       cur && cur.round === this.s.round
         ? cur.items
             .filter((x) => onMap.has(x.kind) && x.region && (x.at <= t || (this.feedDone && x.at <= 1)))
-            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: x.label, text: x.kind === 'lea' ? firstSentence(x.text) : x.kind === 'leak' && x.detail ? `${x.text} ${x.detail}` : x.text, social: x.social?.kind }))
+            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: x.label, text: x.kind === 'lea' ? firstSentence(x.text) : x.kind === 'leak' && x.detail ? `${x.text} ${x.detail}` : x.text, social: x.social?.kind, friend: x.friend, mood: x.mood }))
         : [],
     );
     // social events at their cities (v4)

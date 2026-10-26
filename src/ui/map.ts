@@ -2,14 +2,15 @@
 // China lit, coalition partners that join around Europe and pulsing labs (v4: no US–China arc; the cooperation
 // gauge says it). Everything the player can act on sits on top as real
 // HTML buttons placed over their spot: threat icons that grow in three stages. The round's items (headlines,
-// voices, Léa's letter, the leak, requests, breaking news) are small icons by type, clustered per region with
+// voices, a friend's letter, the leak, requests, breaking news) are small icons by type, clustered per region with
 // a count; their text is in the news feed and in the cluster's list (hover or click). Only the newest headline shows briefly as a banner. Nothing on the map overlaps: each pin is
 // nudged off the ones placed before it.
 
-import type { EuropeAi, RegionId, SocialKind, ThreatView } from '../engine/types';
+import type { EuropeAi, FriendId, FriendMood, RegionId, SocialKind, ThreatView } from '../engine/types';
 import { THREAT_BY_ID } from '../data/threats';
 import { esc, ICON } from './format';
 import { KIND_ICON, SOCIAL_ICON } from './feed';
+import { friendPortrait } from './friends';
 import { MAPDATA } from './mapdata';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -144,7 +145,7 @@ const REGION_TITLE: Record<RegionId, string> = { us: 'The US', eu: 'Europe', cn:
 const KIND_WORD: Record<string, string> = {
   headline: 'headline',
   voice: 'voice',
-  lea: 'letter from Léa, your friend in Lyon',
+  lea: 'letter',
   leak: 'leak',
   event: 'breaking story',
   request: 'request',
@@ -183,7 +184,15 @@ export interface MapEntry {
   text: string;
   /** A social event's kind (its icon). */
   social?: SocialKind;
+  /** A friend's letter: who wrote and their mood (the envelope shows their face). */
+  friend?: FriendId;
+  mood?: FriendMood;
 }
+
+/** A letter's icon: the face of the friend who wrote, with a small envelope. */
+const letterIcon = (x: MapEntry) => `${friendPortrait(x.friend ?? 'lea', x.mood ?? 'hopeful')}<span class="env">${KIND_ICON.lea}</span>`;
+/** "letter from Malik, your old flatmate in San Francisco" (from the feed's label). */
+const letterWords = (x: MapEntry) => x.label.replace(/^Letter\b/, 'letter');
 
 function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}, parent?: Element): SVGElementTagNameMap[K] {
   const e = document.createElementNS(NS, tag);
@@ -458,15 +467,17 @@ export class WorldMap {
       const mine = list.filter((x) => x.region === r);
       b.hidden = !mine.length;
       if (!mine.length) continue;
-      // Léa's letter leads her region's group (it is the item the player is most likely to look for)
+      // a friend's letter leads its region's group (it is the item the player is most likely to look for), with
+      // the face of the friend who wrote last
       const kinds = [...new Set(mine.map(groupOf))].sort((a, b) => Number(b === 'lea') - Number(a === 'lea'));
+      const letter = mine.filter((x) => x.kind === 'lea').at(-1);
       const counts = kinds.map((k) => {
         const n = mine.filter((x) => groupOf(x) === k).length;
-        return `${n} ${plural(k, n)}`;
+        return k === 'lea' && letter ? `${n} ${n === 1 ? letterWords(letter) : letterWords(letter).replace(/^letter/, 'letters, the last')}` : `${n} ${plural(k, n)}`;
       });
       b.innerHTML = `<span class="mc-icons" aria-hidden="true">${kinds
         .slice(0, 3)
-        .map((k) => `<span class="mc-i k-${k}">${ICONS[k]}</span>`)
+        .map((k) => (k === 'lea' && letter ? `<span class="mc-i mc-face k-lea">${letterIcon(letter)}</span>` : `<span class="mc-i k-${k}">${ICONS[k]}</span>`))
         .join('')}</span>${mine.length > 1 ? `<span class="mc-n" aria-hidden="true">${mine.length}</span>` : ''}<span class="sr-only">${esc(REGION_TITLE[r])} this round: ${counts.join(', ')}. Show them</span>`;
       b.title = `${REGION_TITLE[r]} this round: ${counts.join('; ')}`;
       b.classList.toggle('new', true);
@@ -576,7 +587,7 @@ export class WorldMap {
     this.pop.innerHTML = `<p class="mp-h">${esc(REGION_TITLE[r])} · this round</p><ul>${mine
       .map(
         (x) =>
-          `<li><button type="button" class="mp-item k-${groupOf(x)}" data-item="${esc(x.id)}"${x.kind === 'lea' ? ` title="${esc(x.label)}"` : ''}><span class="mp-ico" aria-hidden="true">${ICONS[groupOf(x)]}</span><span class="mp-b"><span class="mp-k">${esc(x.label)}</span><span class="mp-t">${esc(x.text)}</span></span><span class="sr-only">${x.kind === 'leak' ? ': read it' : ': show in the news'}</span></button></li>`,
+          `<li><button type="button" class="mp-item k-${groupOf(x)}" data-item="${esc(x.id)}"${x.kind === 'lea' ? ` title="${esc(x.label)}"` : ''}><span class="mp-ico${x.kind === 'lea' ? ' mp-face' : ''}" aria-hidden="true">${x.kind === 'lea' ? letterIcon(x) : ICONS[groupOf(x)]}</span><span class="mp-b"><span class="mp-k">${esc(x.label)}</span><span class="mp-t">${esc(x.text)}</span></span><span class="sr-only">${x.kind === 'leak' ? ': read it' : ': show in the news'}</span></button></li>`,
       )
       .join('')}</ul>`;
     this.placePop();

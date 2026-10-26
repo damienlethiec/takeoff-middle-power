@@ -147,13 +147,16 @@ async function playRun(browser, base, run) {
         });
         continue;
       }
-      // Léa writes in the feed, named as your friend, and her envelope is in Europe's group
+      // a friend's letter is in the feed, saying who wrote, and its envelope (their face) is in a map group that names them
       if ((await page.evaluate(() => !!document.querySelector('.fd-item.k-lea'))) && once('lea')) {
-        const t = await page.evaluate(() => document.querySelector('.fd-item.k-lea')?.textContent ?? '');
-        if (!/Letter from Léa, your friend in Lyon/.test(t)) fail('Léa’s letter in the feed does not say who she is');
-        const g = await page.evaluate(() => document.querySelector('.m-cluster.c-eu:not([hidden])')?.textContent ?? '');
-        if (!/letter from Léa, your friend in Lyon/.test(g)) fail(`Europe’s map group does not name Léa’s letter (${g})`);
-        log.push('  Léa’s letter: in the feed and in Europe’s group');
+        const t = await page.evaluate(() => document.querySelector('.fd-item.k-lea .fd-k')?.textContent ?? '');
+        const who = /^Letter from (Léa|your mother|Malik), .+$/.exec(t.trim());
+        if (!who) fail(`the letter in the feed does not say who wrote it (${t})`);
+        else {
+          const g = await page.evaluate(() => [...document.querySelectorAll('.m-cluster:not([hidden])')].map((c) => c.textContent ?? '').join(' | '));
+          if (!g.includes(`letter from ${who[1]}`)) fail(`no map group names the letter from ${who[1]} (${g})`);
+          log.push(`  letter from ${who[1]}: in the feed and in a map group`);
+        }
         continue;
       }
       if ((await page.evaluate(() => !!document.querySelector('.threat-btn'))) && once('threat')) {
