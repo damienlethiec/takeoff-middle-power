@@ -60,7 +60,7 @@ export const CARDS: CardDef[] = [
     name: 'Diplomatic talks',
     text: 'Bring US and Chinese envoys to one table in Geneva. Trust rises a little; at home, some call you soft on rivals.',
     proposal:
-      'Europe hosts quiet talks between Washington and Beijing on the risks both fear: AI in military command, stolen models, accidents. No treaty, only channels that stay open. Critics at home say Europe is cosying up to rivals. After each round of talks, the envoys need a round off.',
+      'Europe hosts quiet talks between Washington and Beijing on the risks both fear: AI in military command, stolen models, accidents. No treaty, only ways to keep talking. Critics at home say Europe is cosying up to rivals. After each round of talks, the envoys need a round off.',
     example: {
       text: 'In November 2024, Presidents Biden and Xi agreed on “the need to maintain human control over the decision to use nuclear weapons”.',
       source: SOURCES.bidenXi,
@@ -74,10 +74,10 @@ export const CARDS: CardDef[] = [
     id: 'inspections',
     family: 'oversight',
     name: 'Push for inspections',
-    levels: ['Test the labs’ models in Europe', 'Inspection accord', 'Joint inspectorate'],
-    text: 'European inspectors test the labs’ models. What you can verify grows; Washington and Beijing resist letting foreigners in.',
+    levels: ['Test the labs’ models in Europe', 'Inspection accord', 'Joint inspection agency'],
+    text: 'European inspectors test the AI labs’ models. You can check more of their claims; Washington and Beijing resist letting foreigners in.',
     proposal:
-      'First, the AI Office tests every frontier model sold in Europe. Then, only once a crisis or a pause makes the superpowers willing, an accord lets European inspectors into their labs, and finally a joint inspectorate. Verification is what makes a deal possible; each step costs diplomatic capital. With a coalition, testing prepares the world for an AI incident.',
+      'First, the AI Office tests every top AI model sold in Europe. Later, once a crisis or a pause makes the superpowers willing, an accord lets European inspectors into their labs, then a joint inspection agency. No deal holds unless someone can check it; each step costs goodwill. With a coalition, testing prepares the world for an AI incident.',
     costLine: {
       text: 'The IAEA, which checks nuclear programmes worldwide, spends about €171 million a year on verification (2025).',
       source: SOURCES.iaeaBudget2025,
@@ -92,9 +92,9 @@ export const CARDS: CardDef[] = [
     id: 'ai_office',
     family: 'oversight',
     name: 'AI Office capacity',
-    text: 'Hire top model testers for the EU AI Office. Your AI safety uncertainty halves; opaque reasoning hurts less. The money comes from elsewhere.',
+    text: 'Hire top AI testers for the AI Office. You check far more of the labs’ claims, even when AI thinking turns unreadable. Other budgets pay.',
     proposal:
-      'The EU AI Office already has the power to evaluate general-purpose AI models. This gives it the people: testers paid like lab engineers, with their own computing power. They halve what you don’t know about the labs’ claims and sharpen every inspection. If models start reasoning in a code no one can read, they keep testing what the models do.',
+      'The EU’s AI Office already has the power to test big AI models. This gives it the people: testers paid like lab engineers, with their own computers. They halve what you don’t know about the labs’ claims and sharpen every inspection. If AI starts thinking in a code no one can read, they keep testing what it does.',
     example: {
       text: 'Under the AI Act, the European Commission’s AI Office has “the ability to conduct evaluations of GPAI models”.',
       source: SOURCES.aiOffice,
@@ -108,10 +108,10 @@ export const CARDS: CardDef[] = [
   {
     id: 'alignment',
     family: 'tech',
-    name: 'Fund alignment research',
+    name: 'Fund AI safety research',
     text: 'Pay independent teams to work on making AI safe. The labs adopt little of it unless inspectors give your teams access.',
     proposal:
-      'Europe funds independent alignment teams in universities and institutes. Their papers are public, but the labs that build frontier AI take up little of it on their own. Once an inspection accord opens the labs to European teams, their work counts for far more. Most of it never shows in the labs’ reports. The money comes out of other budgets.',
+      'Europe funds independent teams in universities working on alignment: making AI reliably do what we intend. Their papers are public, but the big labs use little of them on their own. Once an inspection accord opens the labs to European teams, their work counts for far more. Most of it never shows in the labs’ reports. Other budgets pay.',
     costLine: { text: 'In July 2025, the UK’s AI Security Institute launched a fund of over £15 million for alignment research.', source: SOURCES.aisiAlignment },
     ups: [up(`AI safety ${n(C.alignment.estimate)} shown`), up('Real safety up (not shown), more with an accord')],
     downs: [down(`Social cohesion ${n(C.alignment.cohesion)}`)],
@@ -121,11 +121,11 @@ export const CARDS: CardDef[] = [
   {
     id: 'coalition',
     family: 'diplomacy',
-    name: 'Middle-power coalition',
+    name: 'Coalition of middle powers',
     levels: ['UK and Norway join', 'Canada joins', 'Japan and Korea join'],
     text: 'Team up with the UK, Norway, Canada, Japan and Korea. Allies add weight; from level 2 they share the load.',
     proposal:
-      'Europe builds a small, nimble coalition: the UK and Norway first, then Canada, then Japan and South Korea. Together they speak with one voice in Washington and Beijing. From level 2, allies share the load: +1 Influence every round. Washington may tempt its Five Eyes partners away with privileged access, and compromises cost goodwill at home.',
+      'Europe builds a small, nimble coalition: the UK and Norway first, then Canada, then Japan and South Korea. Together they speak with one voice in Washington and Beijing. From level 2, allies share the load: +1 Influence every round. Washington may tempt its closest allies away with special access, and compromises cost goodwill at home.',
     example: {
       text: 'The Europe 2031 report recommends to “build a small, nimble coalition with countries like Norway, the UK, Canada, Japan and South Korea”.',
       source: SOURCES.europe2031,
@@ -142,7 +142,7 @@ export const CARDS: CardDef[] = [
     name: 'Independent audit',
     text: 'A game shortcut: auditors show you the true AI safety for two rounds. Real audits only narrow the doubt. Nothing else moves.',
     proposal:
-      'This card is a device of the game: for two rounds, your AI safety gauge shows the truth instead of the labs’ reports. No real audit can see that much; in AI 2027 even the lab cannot tell whether its AI is aligned. It changes nothing by itself: you spend a turn learning where you really stand.',
+      'This card is a device of the game: for two rounds, your AI safety gauge shows the truth instead of the labs’ reports. No real audit can see that much; in AI 2027 even the lab cannot tell whether its AI truly does what it intends. It changes nothing by itself: you spend a turn learning where you really stand.',
     example: {
       text: 'In late 2024, the UK and US AI Safety Institutes tested OpenAI’s o1 model before its release, during a limited period of access.',
       source: SOURCES.aisiO1,
@@ -156,9 +156,9 @@ export const CARDS: CardDef[] = [
     id: 'asml',
     family: 'tech',
     name: 'Push to use the ASML lever',
-    text: 'Push the Dutch to tie ASML’s lithography exports to a deal. Labs concede; Washington answers with its own ban on European chip tools.',
+    text: 'ASML, a Dutch firm, alone makes the machines for the best chips. Tie their sales to a deal: labs give way; Washington hits back.',
     proposal:
-      'Export licences for the lithography machines every advanced chip needs are a Dutch decision, coordinated with Washington. Europe pushes to use them as leverage: ask the labs to open their newest models to European testers, or to give European firms and public services access. Washington will not let Europe set terms: expect it to block European chip-tool sales to China.',
+      'Every advanced chip needs ASML’s chip-printing machines, and the Dutch government decides, with Washington, who may buy them. Europe pushes for that leverage: ask the labs to open their newest models to European testers, or to give European firms and public services access. Washington won’t let Europe set terms: expect it to block European chip-tool sales to China.',
     example: {
       text: 'The Europe 2031 report: “The only card Europe still holds is ASML - the one bottleneck the entire AI race runs through.”',
       source: SOURCES.europe2031,
@@ -175,10 +175,10 @@ export const CARDS: CardDef[] = [
   {
     id: 'weight_security',
     family: 'oversight',
-    name: 'Weight security standards',
-    text: 'Labs selling in Europe must lock down their model weights. A theft gets harder, not impossible; only big labs can afford it.',
+    name: 'Lock down AI models',
+    text: 'Labs selling in Europe must guard their model weights, the files that are the AI. Harder to steal, not impossible; only big labs can pay.',
     proposal:
-      'Any lab that sells advanced AI in Europe must protect its model weights to military standards: vetted staff, sealed data centres, constant monitoring. Europe reaches US data centres only through market access, so a theft would be cut short, not stopped. Only big labs can pay: unless Europe funds its own models’ security, it relies on them.',
+      'Any lab selling advanced AI in Europe must guard its model weights like military secrets: vetted staff, sealed computer centres, constant watch. Europe has no say inside US labs, only over its own market, so a theft would be cut short, not stopped. Only big labs can pay: unless Europe funds its own models’ security, it relies on them.',
     example: {
       text: 'The EU AI Act requires providers of general-purpose AI models with systemic risk to “ensure an adequate level of cybersecurity protection” for the model.',
       source: SOURCES.aiAct,
@@ -199,7 +199,7 @@ export const CARDS: CardDef[] = [
     name: 'Fund open models',
     text: 'Fund open European models anyone can run. Europe’s AI turns Open and local firms grow, but criminals get the same tools.',
     proposal:
-      'Europe funds open models that run on European computers, in every European language, for firms and public services, and asks that publicly funded models be open-weight. Fewer companies hold the keys to Europe’s AI. But criminals get the same tools, and nobody can recall a model once it is out.',
+      'Europe funds open models that run on European computers, in every European language, for firms and public services, and asks that models paid for with public money be published for anyone to use. Fewer companies hold the keys to Europe’s AI. But criminals get the same tools, and nobody can recall a model once it is out.',
     costLine: { text: 'OpenEuroLLM, an EU project to build open models for all EU languages, has a budget of €37.4 million (2025).', source: SOURCES.openEuroLlm },
     ups: [up('Europe’s AI → Open'), up(`Social cohesion ${n(C.open_models.cohesion)}`)],
     downs: [down('Ransomware threat grows')],
@@ -209,10 +209,10 @@ export const CARDS: CardDef[] = [
   {
     id: 'flexicurity',
     family: 'home',
-    name: 'Back flexicurity in member states',
-    text: 'Back Danish-style deals in member states with EU retraining funds. Job shocks soften; unions distrust the bargain at first.',
+    name: 'Back safety nets for AI layoffs',
+    text: 'Back the Danish model, “flexicurity”: firms adopt AI freely, laid-off workers get pay and retraining. Job shocks soften; unions are wary at first.',
     proposal:
-      'Labour law is national, but the EU can fund and coordinate. Europe backs Danish-style deals in member states, with EU retraining funds: firms adopt AI more freely, and workers who lose their jobs get generous income support and paid retraining. Job shocks hurt far less. Unions distrust the bargain at first, and it costs you political goodwill for a while.',
+      'Labour law is national, but the EU can fund and coordinate. Europe backs Danish-style deals in each country, with EU retraining funds: firms adopt AI more freely, and workers who lose their jobs get generous income support and paid retraining. Job shocks hurt far less. Unions distrust the bargain at first, and it costs you political goodwill for a while.',
     example: {
       text: 'The Europe 2031 report: “A flexicurity model, like the Danish example, allows firms to adopt AI more deeply.”',
       source: SOURCES.europe2031,
@@ -263,10 +263,10 @@ export const CARDS: CardDef[] = [
   {
     id: 'cern_ai',
     family: 'tech',
-    name: 'A CERN for AI on Europe’s gigafactories',
-    text: 'Pledge a third of Europe’s new AI gigafactories to safety research under a “CERN for AI”. What you can verify grows; taxpayers ask why.',
+    name: 'A CERN for AI safety',
+    text: 'Give a third of Europe’s new giant AI computer centres to safety research, run like CERN. You can check more; taxpayers ask why.',
     proposal:
-      'Europe is building AI gigafactories with public money. This turns a third of their computing power over to safety and security research, run by a new “CERN for AI”. European testers can then check frontier models as deeply as the labs do. Taxpayers ask why their gigafactories do not build European champions instead.',
+      'Europe is building giant AI computer centres, “gigafactories”, with public money. This turns a third of their computing power over to safety research, run by a new “CERN for AI”. European testers can then check the top models as deeply as the labs do. Taxpayers ask why their money does not build European champions instead.',
     costLine: {
       text: 'In February 2025, the EU’s InvestAI initiative announced “a new European fund of €20 billion for AI gigafactories”.',
       source: SOURCES.investAi,
@@ -282,7 +282,7 @@ export const CARDS: CardDef[] = [
     name: 'Fund chips that prove where they run',
     text: 'Fund hardware that lets AI chips prove where they run. A pause becomes checkable; both capitals distrust the idea at first.',
     proposal:
-      'Europe’s toolmakers and chip researchers develop tamper-resistant features that let a chip report where it runs and what it trains. Without them, any pause is a promise nobody can check. Washington and Beijing both suspect the other would cheat, and both suspect Europe’s motives at first: it costs diplomatic capital.',
+      'Europe’s toolmakers and chip researchers develop features, hard to fake, that let a chip report where it runs and what it trains. Without them, any pause is a promise nobody can check. Washington and Beijing both suspect the other would cheat, and both suspect Europe’s motives at first: it costs goodwill.',
     ups: [up(`US–China cooperation ${n(C.chip_verification.cooperation)}`), up('AI safety: more verified')],
     downs: [down(`Influence ${n(C.chip_verification.influence)} next round`)],
     arrives: { aiPower: C.chip_verification.arrivesAt },
@@ -292,9 +292,9 @@ export const CARDS: CardDef[] = [
     id: 'licensing_treaty',
     family: 'diplomacy',
     name: 'Push for a licensing treaty',
-    text: 'In a pause, draft a treaty: frontier AI only under licence, audited by an expanded IAEA. Labs lobby hard; prices rise at home.',
+    text: 'In a pause, draft a treaty: the strongest AI only under licence, checked like nuclear power is. Labs lobby hard; prices rise at home.',
     proposal:
-      'With the superpowers ready to slow down, Europe drafts the treaty that makes it last: the most powerful AI may only be trained and run under licence, audited by an expanded IAEA, and taxed. The labs lobby hard, and AI gets dearer at home. It only works while Washington and Beijing both want a pause.',
+      'With the superpowers ready to slow down, Europe drafts the treaty that makes it last: the most powerful AI may only be trained and run under licence, checked by an expanded IAEA, the UN’s nuclear watchdog, and taxed. The labs lobby hard, and AI gets dearer at home. It only works while Washington and Beijing both want a pause.',
     ups: [up('AI safety: more verified'), up('Real safety up (not shown)'), up(`US–China cooperation ${n(C.licensing_treaty.cooperation)}`)],
     downs: [down(`Social cohesion ${n(C.licensing_treaty.cohesion)}`), down('Only in a pause')],
     arrives: { pauseDeal: true },
@@ -303,11 +303,11 @@ export const CARDS: CardDef[] = [
   {
     id: 'biosecurity',
     family: 'diplomacy',
-    name: 'Lead a global biosecurity pact',
+    name: 'Lead a pact against bioweapons',
     text: 'Rally Washington, Beijing and others to screen DNA orders and test AI for bioweapon help. A rare shared cause; labs grumble.',
     proposal:
-      'New AI can coach an amateur through making a pathogen. Europe leads an international initiative: DNA synthesis orders screened everywhere, frontier models tested for bioweapon help before release, a shared alert network. Washington and Beijing both fear this one, so it brings them closer. The labs grumble about delays.',
-    ups: [up('Protects against bioweapon uplift'), up(`US–China cooperation ${n(C.biosecurity.cooperation)}`)],
+      'New AI can coach an amateur through making a deadly germ. Europe leads a worldwide effort: orders for lab-made DNA checked everywhere, new AI models tested for bioweapon help before release, a shared alert network. Washington and Beijing both fear this one, so it brings them closer. The labs grumble about delays.',
+    ups: [up('Protects against AI help with bioweapons'), up(`US–China cooperation ${n(C.biosecurity.cooperation)}`)],
     downs: [down(`Social cohesion ${n(C.biosecurity.cohesion)}`)],
     protects: 'bio',
     arrives: { threatSeen: 'bio' },
@@ -317,9 +317,9 @@ export const CARDS: CardDef[] = [
     id: 'summit',
     family: 'diplomacy',
     name: 'AI security summit',
-    text: 'After the incident, everyone is listening. Push for shared incident reports and inspections of the largest training runs.',
+    text: 'After the incident, everyone is listening. Push for shared incident reports and inspections when the biggest AIs are trained.',
     proposal:
-      'The AI incident frightened Washington and Beijing alike, and a security summit meets. Europe pushes for shared incident reports and inspections of the largest training runs. If Europe’s testers and coalition were ready, it leads the talks; otherwise it follows. The window closes in two rounds.',
+      'The AI incident frightened Washington and Beijing alike, and a security summit meets. Europe pushes for shared incident reports and inspections when the biggest AIs are trained. If Europe’s testers and coalition were ready, it leads the talks; otherwise it follows. The window closes in two rounds.',
     ups: [up(`US–China cooperation +${C.summit.cooperationFollow} to +${C.summit.cooperation}`), up('AI safety: more verified'), up('Real safety up (not shown)')],
     downs: [down('Only for two rounds')],
     arrives: { opportunity: true },
@@ -329,10 +329,10 @@ export const CARDS: CardDef[] = [
   {
     id: 'attribution',
     family: 'diplomacy',
-    name: 'Joint attribution with allies',
+    name: 'Name the thieves with allies',
     text: 'Name the thieves with your partners, calmly and with evidence. Washington feels backed and keeps its retaliation limited.',
     proposal:
-      'With your coalition partners, Europe publishes a joint, evidence-based attribution of the theft. Washington feels supported and keeps its retaliation limited; Beijing gets a firm but calm message instead of more attacks. The window closes in two rounds.',
+      'With your coalition partners, Europe publicly names who stole the model, with the evidence. Washington feels supported and keeps its retaliation limited; Beijing gets a firm but calm message instead of more attacks. The window closes in two rounds.',
     example: {
       text: 'In July 2021, the EU said malicious cyber activity, including the Microsoft Exchange hack, was “undertaken from the territory of China”.',
       source: SOURCES.euAttribution2021,
@@ -347,7 +347,7 @@ export const CARDS: CardDef[] = [
     id: 'pause_call',
     family: 'diplomacy',
     name: 'Call for a pause with other capitals',
-    text: 'The memo is out. Demand a pause with India and others; Beijing joins, Washington calls it betrayal. Sways its oversight committee toward slowing down.',
+    text: 'The memo is out. Demand a pause with India and others; Beijing joins, Washington cries betrayal. It sways Washington’s new AI committee toward slowing down.',
     proposal:
       'Europe’s leaders accuse Washington of building an AI it cannot control and host a summit demanding a pause. India and others join; Beijing says yes. Washington’s new oversight committee will vote at the tipping point: race on, or slow down. Your call adds one vote for slowing down. Washington will make you pay for it.',
     ups: [up(`US–China cooperation ${n(C.pause_call.cooperation)}`), up('One more vote to slow down')],

@@ -38,7 +38,7 @@ export async function showBadge(ai: EuropeAi, locked: boolean): Promise<void> {
          : 'Europe relies on a few big labs for its AI. They are capable and secure, and they can lean on Europe.'
      }</p>
      <p>If AI stalls after it kept improving under a few big labs (AI capabilities ${T.plateau.bigAiFrom} or more at the end), only an Open Europe ends well: its own models keep the big firms honest. Open also blunts the labs’ threats to cut Europe off, but criminals get the same tools.</p>
-     <p>It turns Open when you fund open models; it turns Dependent with weight security standards, a rule that makes labs withhold their models (unless Europe funded its own)${locked ? '. It is now locked: Europe gave in to the labs' : ', or if Europe gives in to silicon blackmail'}.</p>
+     <p>It turns Open when you fund open models; it turns Dependent when you make labs lock down their models, or pass a rule that makes labs withhold their models (unless Europe funded its own)${locked ? '. It is now locked: Europe gave in to the labs' : ', or if Europe gives in to silicon blackmail'}.</p>
      ${close}`,
     { cls: 'info', label: 'Europe’s AI', describedBy: '.why' },
   );
@@ -95,7 +95,7 @@ export async function showInfluenceHelp(influence: number, inc: IncomeView): Pro
      <p class="label">Next round</p>
      <p>${inc.nextRoundExists ? `<b class="num">${sign(inc.next)}</b>: ${esc(inc.reasons.join(' · '))}` : 'No next round: this is your last Influence.'}</p>
      <p class="label">To earn more</p>
-     <p>Keep Europe together (Social cohesion ${I.highCohesion}+) and build the coalition. Some cards cost Influence for a while: flexicurity ${sign(C.flexicurity.influence)} a round for ${C.flexicurity.rounds} rounds, the cyber shield ${sign(C.cyber_shield.influence)} a round for ${C.cyber_shield.rounds} rounds.</p>
+     <p>Keep Europe together (Social cohesion ${I.highCohesion}+) and build the coalition. Some cards cost Influence for a while: safety nets for AI layoffs ${sign(C.flexicurity.influence)} a round for ${C.flexicurity.rounds} rounds, the cyber shield ${sign(C.cyber_shield.influence)} a round for ${C.cyber_shield.rounds} rounds.</p>
      <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">Close <kbd>Esc</kbd></button></div>`,
     { cls: 'info inf-info', label: 'Influence', describedBy: '.why' },
   );

@@ -1982,9 +1982,9 @@ function widenedBy(s: GameState): string[] {
 
 function shortfall(key: GaugeKey, gap: number): string {
   if (key === 'confidence')
-    return `${GAUGE_LABEL.confidence} needed ${gap} more point${gap > 1 ? 's' : ''}. Alignment research raises the real value; the AI Office, inspections and audits show you where it stands.`;
+    return `${GAUGE_LABEL.confidence} needed ${gap} more point${gap > 1 ? 's' : ''}. AI safety research raises the real value; the AI Office, inspections and audits show you where it stands.`;
   if (key === 'cohesion')
-    return `${GAUGE_LABEL.cohesion} needed ${gap} more point${gap > 1 ? 's' : ''}. Flexicurity, the oversight mandate and open models lift it; a cyber shield and flexicurity protect it from shocks.`;
+    return `${GAUGE_LABEL.cohesion} needed ${gap} more point${gap > 1 ? 's' : ''}. Safety nets for AI layoffs, human sign-off on AI and open models lift it; a cyber shield and those safety nets protect it from shocks.`;
   return `${GAUGE_LABEL[key]} needed ${gap} more.`;
 }
 

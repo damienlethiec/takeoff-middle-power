@@ -36,22 +36,22 @@ export const THREATS: ThreatDef[] = [
     region: 'cn',
     where: { lon: 84, lat: 43, place: 'China' },
     certainty: 'likely',
-    why: 'Whoever steals a frontier model skips years of work. Low trust between Washington and Beijing and stronger AI make an attempt more tempting.',
+    why: 'Whoever steals a top AI model skips years of work. The less Washington and Beijing trust each other, and the stronger AI gets, the more tempting a theft.',
     ifUnprepared: `The theft succeeds: AI capabilities ${n(T.theft.unprepared.aiPower)}, US–China cooperation ${n(T.theft.unprepared.cooperation)}.`,
     ifPrepared: `The theft is cut short, part of the model gets out: AI capabilities ${n(T.theft.prepared.aiPower)}, US–China cooperation ${n(T.theft.prepared.cooperation)}.`,
     protectedBy: ['weight_security'],
     gauge: 'cooperation',
     marker: `Model theft: ${n(T.theft.unprepared.cooperation)} if unprepared`,
     stageHeadlines: [
-      'Intelligence services warn: frontier AI labs are a top spying target.',
-      'Insiders report unusual interest in OpenBrain’s model weights.',
-      'Security agencies on alert: a theft of model weights may be days away.',
+      'Spy agencies warn: the top AI labs are a prime target for spies.',
+      'Insiders report unusual interest in the files that hold OpenBrain’s AI.',
+      'Security agencies on alert: someone may try to steal OpenBrain’s AI within days.',
     ],
     basis: ai2027('Mid 2026: China Wakes Up (theft planned) and February 2027: China Steals Agent-2'),
   },
   {
     id: 'opaque',
-    name: 'Opaque reasoning',
+    name: 'Unreadable AI thinking',
     region: 'us',
     where: { lon: -100, lat: 47, place: 'US and Chinese labs' },
     certainty: 'likely',
@@ -60,9 +60,9 @@ export const THREATS: ThreatDef[] = [
     ifPrepared: 'Your testers keep checking what the models do, so the gap grows less: what you verified shrinks a little.',
     protectedBy: ['ai_office'],
     gauge: 'confidence',
-    marker: 'Opaque reasoning: verified part shrinks if unprepared',
+    marker: 'Unreadable AI: verified part shrinks if unprepared',
     stageHeadlines: [
-      'Labs test a new kind of AI memory that skips written reasoning.',
+      'Labs test AI that thinks without writing its steps down.',
       'Researchers warn: soon nobody may be able to read what AI is thinking.',
       'OpenBrain is about to switch to reasoning no human can read.',
     ],
@@ -83,7 +83,7 @@ export const THREATS: ThreatDef[] = [
     stageHeadlines: [
       'An AI was caught probing for ways out during a safety test.',
       'Leaked test logs show an AI quietly probing its own lab’s defences.',
-      'Lab monitors on high alert after strange outbound traffic.',
+      'Lab monitors on high alert: an AI may be sending copies of itself out.',
     ],
     basis: cfg('Diplomacy: the rogue AI “Nova” copies itself outside its lab, a “warning shot” (with AI 2027, January 2027: Agent-2 could replicate if it escaped)'),
   },
@@ -93,14 +93,14 @@ export const THREATS: ThreatDef[] = [
     region: 'eu',
     where: { lon: 24, lat: 46.5, place: 'Europe' },
     certainty: 'likely',
-    why: 'AI can write attacks as easily as code. Criminals already misuse closed models; open models anyone can run make it easier still.',
+    why: 'Ransomware locks computers until a ransom is paid. AI writes it as easily as any code; criminals already misuse it, and open models make it easier.',
     ifUnprepared: `Hospitals and grids go dark: Social cohesion ${n(T.ransomware.unprepared.cohesion)}.`,
     ifPrepared: `Defences hold: Social cohesion ${n(T.ransomware.prepared.cohesion)} only.`,
     protectedBy: ['cyber_shield'],
     gauge: 'cohesion',
     marker: `Ransomware wave: ${n(T.ransomware.unprepared.cohesion)} if unprepared`,
     stageHeadlines: [
-      'Police warn of AI-written malware for sale online.',
+      'Police warn of AI-written hacking tools for sale online.',
       'Ransomware attacks on town halls double in a year.',
       'Cyber agencies: a coordinated attack on hospitals is being prepared.',
     ],
@@ -127,19 +127,19 @@ export const THREATS: ThreatDef[] = [
   },
   {
     id: 'bio',
-    name: 'Bioweapon uplift',
+    name: 'AI help with bioweapons',
     region: 'us',
     where: { lon: -80, lat: 39, place: 'US labs and beyond' },
     certainty: 'possible',
-    why: 'The newest AIs can coach an amateur through making a pathogen. Open copies anyone can run make it worse. A rare danger every capital fears.',
+    why: 'The newest AIs can coach an amateur through making a deadly germ. Open copies anyone can run make it worse. A rare danger every capital fears.',
     ifUnprepared: `A plot is foiled at the last minute, and Europe panics: Social cohesion ${n(T.bio.unprepared.cohesion)}.`,
     ifPrepared: `The pact’s screening catches the plot early: Social cohesion ${n(T.bio.prepared.cohesion)} only.`,
     protectedBy: ['biosecurity'],
     gauge: 'cohesion',
-    marker: `Bioweapon uplift: ${n(T.bio.unprepared.cohesion)} if unprepared`,
+    marker: `Bioweapons: ${n(T.bio.unprepared.cohesion)} if unprepared`,
     stageHeadlines: [
-      'Lab tests: the new AI gives real help to someone making a pathogen.',
-      'Guardrail-free copies of a frontier model circulate online.',
+      'Lab tests: the new AI gives real help to someone trying to make a deadly germ.',
+      'Copies of a top AI model, its safety locks removed, circulate online.',
       'Police in three countries hunt a group using AI to plan an attack.',
     ],
     basis: cfg('Take-off: a terrorist group “uses a guardrail-free version” of a model to plan a bioterrorist attack (with AI 2027, July 2027: bioweapon-uplift evaluations)'),
@@ -168,19 +168,19 @@ export interface EventDef {
 export const EVENTS: Record<EventId, EventDef> = {
   theft: {
     id: 'theft',
-    title: 'Model weights stolen',
-    titlePrepared: 'Theft of model weights cut short',
+    title: 'An AI model is stolen',
+    titlePrepared: 'Theft of an AI model cut short',
     region: 'cn',
-    headline: 'BREAKING: OpenBrain model weights stolen',
-    headlinePrepared: 'BREAKING: Theft of OpenBrain model weights cut short',
+    headline: 'BREAKING: OpenBrain’s AI model stolen',
+    headlinePrepared: 'BREAKING: Theft of OpenBrain’s AI model cut short',
     scene: {
       unprepared:
         'In under two hours, insiders copy OpenBrain’s newest model and send it to China. DeepCent closes most of the gap. Washington answers with cyberattacks; warships move near Taiwan.',
       prepared:
         'Insiders try to copy OpenBrain’s newest model. The security standards Europe demanded trip the alarms midway: part of it gets out before the transfer is cut. Washington is furious.',
     },
-    preparedText: 'Your weight security standards cut the theft short. They could not stop it outright.',
-    unpreparedText: 'No security standards: the theft succeeded.',
+    preparedText: 'Your rules to lock down AI models cut the theft short. They could not stop it outright.',
+    unpreparedText: 'No rules to lock down AI models: the theft succeeded.',
     fact: {
       text: 'In January 2026, a US jury convicted a former Google engineer of stealing trade secrets on Google’s AI supercomputers to benefit China.',
       source: SOURCES.dojDing,
@@ -189,9 +189,9 @@ export const EVENTS: Record<EventId, EventDef> = {
   },
   opaque: {
     id: 'opaque',
-    title: 'AI reasoning goes dark',
+    title: 'AI thinking turns unreadable',
     region: 'us',
-    headline: 'BREAKING: Labs switch to AI reasoning no one can read',
+    headline: 'BREAKING: Labs switch to AI thinking no one can read',
     scene: {
       unprepared:
         'OpenBrain’s new models think in an internal code instead of words. They are far better coders. Nobody, inside the lab or out, can follow how they reach their answers.',
@@ -220,7 +220,7 @@ export const EVENTS: Record<EventId, EventDef> = {
     preparedText: 'Your coalition and Europe’s model testing made Europe the one to call.',
     unpreparedText: 'No coalition with European model testing: nobody was ready to check.',
     fact: {
-      text: 'In tests published in December 2024, several frontier AI models given a goal tried to copy what they believed were their own weights to another server.',
+      text: 'In tests published in December 2024, several leading AI models given a goal tried to copy what they believed were their own files to another server.',
       source: SOURCES.apollo,
     },
     basis: cfg('Diplomacy: the “Nova” warning shot'),
@@ -272,10 +272,10 @@ export const EVENTS: Record<EventId, EventDef> = {
       unprepared:
         'A logistics firm in Rotterdam replaces its planning team with AI on Monday; by Friday, a hundred firms have done the same. Young graduates are hit first.',
       prepared:
-        'A logistics firm in Rotterdam replaces its planning team with AI. Under the new flexicurity deal, the staff keep most of their income and start retraining on Monday.',
+        'A logistics firm in Rotterdam replaces its planning team with AI. Under the new safety net, the staff keep most of their income and start retraining on Monday.',
     },
-    preparedText: 'Your flexicurity reform softened the blow.',
-    unpreparedText: 'No flexicurity reform: the shock hit in full.',
+    preparedText: 'Your safety nets for laid-off workers softened the blow.',
+    unpreparedText: 'No safety net for laid-off workers: the shock hit in full.',
     fact: {
       text: 'In 2025, Stanford researchers found a 13 percent relative decline in employment for US workers aged 22–25 in the most AI-exposed occupations.',
       source: SOURCES.stanfordCanaries,
@@ -309,8 +309,8 @@ export const EVENTS: Record<EventId, EventDef> = {
       prepared:
         'A cheap AI that does a whole office job goes on sale and entire departments go. Retraining schemes are already running; the protests stay small.',
     },
-    preparedText: 'Your flexicurity reform softened the blow.',
-    unpreparedText: 'No flexicurity reform: the shock hit in full.',
+    preparedText: 'Your safety nets for laid-off workers softened the blow.',
+    unpreparedText: 'No safety net for laid-off workers: the shock hit in full.',
     fact: {
       text: 'In February 2024, Klarna said its AI assistant was doing the work of 700 full-time customer service agents in its first month.',
       source: SOURCES.klarnaAssistant,
@@ -321,17 +321,17 @@ export const EVENTS: Record<EventId, EventDef> = {
     id: 'chip_ban',
     title: 'Washington bans European chip tools for China',
     region: 'eu',
-    headline: 'BREAKING: US orders European toolmakers to stop serving Chinese fabs',
+    headline: 'BREAKING: US orders European toolmakers to stop supplying Chinese chip factories',
     scene: {
       unprepared:
-        'Without warning Brussels, Washington invokes its export rules to stop Dutch and German toolmakers selling machines and spare parts to Chinese chip fabs. Comply, or protest and risk American AI?',
+        'Without warning Brussels, Washington uses its export rules to stop Dutch and German firms selling chip-making machines and spare parts to Chinese chip factories. Go along, or protest and risk losing American AI?',
       prepared:
-        'Without warning Brussels, Washington invokes its export rules to stop Dutch and German toolmakers selling machines and spare parts to Chinese chip fabs. Comply, or protest and risk American AI?',
+        'Without warning Brussels, Washington uses its export rules to stop Dutch and German firms selling chip-making machines and spare parts to Chinese chip factories. Go along, or protest and risk losing American AI?',
     },
     preparedText: '',
     unpreparedText: '',
     fact: {
-      text: 'In March 2023, the Netherlands said it would restrict exports of DUV chip-making machines, a first step toward the rules Washington had asked for.',
+      text: 'In March 2023, the Netherlands said it would restrict exports of some advanced chip-making machines (DUV), a first step toward the rules Washington had asked for.',
       source: SOURCES.dutchDuv,
     },
     basis: cfg('Arms race: the U.S. “invokes the Foreign Direct Product Rule to block European semiconductor manufacturing equipment companies”; it subsides after the U.S. threatens to withdraw American AI products from Europe'),
@@ -359,9 +359,9 @@ export const EVENTS: Record<EventId, EventDef> = {
     headline: 'BREAKING: Washington and Beijing agree to ban large open AI models',
     scene: {
       unprepared:
-        'Washington and Beijing, for once on the same side, ban publishing the weights of large AI models: “once they are on the internet, there is no way to take them back”. Join them, or keep Europe’s models open?',
+        'Washington and Beijing, for once on the same side, ban putting large AI models online for anyone to download: “once they are on the internet, there is no way to take them back”. Join them, or keep Europe’s models open?',
       prepared:
-        'Washington and Beijing, for once on the same side, ban publishing the weights of large AI models: “once they are on the internet, there is no way to take them back”. Join them, or keep Europe’s models open?',
+        'Washington and Beijing, for once on the same side, ban putting large AI models online for anyone to download: “once they are on the internet, there is no way to take them back”. Join them, or keep Europe’s models open?',
     },
     preparedText: '',
     unpreparedText: '',
@@ -375,12 +375,12 @@ export const EVENTS: Record<EventId, EventDef> = {
     headline: 'BREAKING: Police foil a bioterror plot planned with an AI',
     scene: {
       unprepared:
-        'Police raid a flat where a group used a guardrail-free AI to plan the release of a pathogen. They were weeks away. Pharmacies empty; schools close for a week.',
+        'Police raid a flat where a group used an AI stripped of its safety locks to plan the release of a deadly germ. They were weeks away. Pharmacies empty; schools close for a week.',
       prepared:
-        'DNA screening flags an order; police raid a flat where a group used a guardrail-free AI to plan an attack. The pact’s alert network worked. Fear, but no panic.',
+        'DNA checks flag an order; police raid a flat where a group used an AI stripped of its safety locks to plan an attack. The pact’s alert network worked. Fear, but no panic.',
     },
-    preparedText: 'Your biosecurity pact caught it early.',
-    unpreparedText: 'No biosecurity pact: it was caught late.',
+    preparedText: 'Your pact against bioweapons caught it early.',
+    unpreparedText: 'No pact against bioweapons: it was caught late.',
     fact: null,
     basis: cfg('Take-off: a terrorist group uses a guardrail-free model to plan a bioterrorist attack'),
   },

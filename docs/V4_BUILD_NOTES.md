@@ -128,6 +128,12 @@ From the audit of the 14 decisions, 5 threats, 5 Breaking news, 2 job shocks, 12
 30. **Leaks wait for their milestone**: a leak round with no leak due stays quiet, so a slow game reads fewer leaks. The DeepCent leak (slowdown, January 2028) is cut: it could not be reached in ten rounds and presumed joint checks.
 31. **Job shocks**: the Stanford fact now says US workers; the second shock's fact is Klarna's assistant (Feb 2024). AI 2027's protest was in Washington: the milestone's cause now says "anti-AI protests in Washington find echoes in European cities".
 
+### Plain-language pass (26 Oct)
+
+Playtesters found the game full of jargon. Player text now aims at a curious 14-year-old or a grandparent; meanings, bases and effects are unchanged (the seeded sim output is byte-identical). Terms that must stay (model weights, open models, the AI Office, alignment…) are explained where they first appear and in the glossary.
+
+32. **Renamed for plain words**: cards *Fund alignment research* → *Fund AI safety research*, *Middle-power coalition* → *Coalition of middle powers*, *Weight security standards* → *Lock down AI models*, *Back flexicurity in member states* → *Back safety nets for AI layoffs* (its text still names Denmark's "flexicurity"), *A CERN for AI on Europe's gigafactories* → *A CERN for AI safety*, *Lead a global biosecurity pact* → *Lead a pact against bioweapons*, *Joint attribution with allies* → *Name the thieves with allies*; inspections' third level *Joint inspectorate* → *Joint inspection agency*; threats *Opaque reasoning* → *Unreadable AI thinking*, *Bioweapon uplift* → *AI help with bioweapons*; events *Model weights stolen* → *An AI model is stolen*, *AI reasoning goes dark* → *AI thinking turns unreadable*. The licensing treaty's face says "checked like nuclear power is" (its proposal still names the IAEA); "a third" of the gigafactories stands for CFG's 35%, as before.
+
 ## Simulation (v4)
 
 *To be filled by the balancing pass*: final `npm run sim` table for v4 against the targets in CLAUDE.md, and the requests and uncertainty checks. The tuning history is in DEVELOPER_NOTES, "Tuning changes for v4".

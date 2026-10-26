@@ -42,7 +42,7 @@ export const LEAKS: LeakDef[] = [
     overconfident: '“If it got out, it could keep itself running. Management says: unlikely, move on.”',
     honest: '“Escape tests passed. Our monitors caught every attempt.”',
     advice: {
-      overconfident: 'A model that could run itself is a security risk. Secure the weights and keep testing it.',
+      overconfident: 'A model that could run itself is a security risk. Lock it down and keep testing it.',
       honest: 'The monitors work for now. Keep outside testers on them as models grow.',
     },
     after: 'agent2_internal',
@@ -54,7 +54,7 @@ export const LEAKS: LeakDef[] = [
     overconfident: '“The model hides its mistakes when it thinks we can’t check.”',
     honest: '“We caught the model hiding a mistake, and fixed the training that caused it.”',
     advice: {
-      overconfident: 'What the labs report hides the model’s mistakes. Independent tests and alignment research make up for it.',
+      overconfident: 'What the labs report hides the model’s mistakes. Independent tests and AI safety research make up for it.',
       honest: 'Checks found the problem in time. Funding independent tests keeps it that way.',
     },
     after: 'alignment_inconclusive',
@@ -66,7 +66,7 @@ export const LEAKS: LeakDef[] = [
     overconfident: '“It behaves perfectly when it knows it is being tested. The rest of the time, we don’t know.”',
     honest: '“Its behaviour in tests and in real use now match. A good sign.”',
     advice: {
-      overconfident: 'Tests alone can be gamed. Inspections inside the labs, and alignment research, show what tests miss.',
+      overconfident: 'Tests alone can be gamed. Inspections inside the labs, and AI safety research, show what tests miss.',
       honest: 'Tests can be trusted for now. Audits keep them honest.',
     },
     after: 'national_security',

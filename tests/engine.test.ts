@@ -138,7 +138,7 @@ describe('Influence', () => {
     const after = playCard(flex, { id: 'flexicurity' });
     const inc = nextIncome(after);
     expect(inc.next).toBe(1);
-    expect(inc.reasons.join(' ')).toContain('Back flexicurity in member states');
+    expect(inc.reasons.join(' ')).toContain('Back safety nets for AI layoffs');
   });
 
   it('never pays less than the minimum', () => {
@@ -392,7 +392,7 @@ describe('threats and events', () => {
   it('partial protection: weight security cuts the theft short, the AI Office softens opaque reasoning', () => {
     const theft = ripe(fresh(1, { round: 5, aiPower: 50, jobShocks: 1, uses: { weight_security: 1 }, milestones: MILESTONES.slice(0, 4).map((m) => ({ id: m.id, round: 1 })) }), 'theft');
     const t = startRound(theft);
-    expect(t.event!.title).toBe('Theft of model weights cut short');
+    expect(t.event!.title).toBe('Theft of an AI model cut short');
     expect(t.headlines.map((h) => h.text).join(' ')).toMatch(/cut short/);
     const r = resolveEvent(t);
     expect(r.aiPower - t.aiPower).toBe(T.threats.theft.prepared.aiPower);
@@ -696,10 +696,10 @@ describe('endings', () => {
   });
 
   it('the reveal gives the band the player saw and names what widened it', () => {
-    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, requests: [], values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less verified (56 → 41)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
+    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, requests: [], values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less verified (56 → 41)', cause: 'AI thinking turns unreadable', tone: -1 as const }] }];
     const v = ending(ended({ ...tip, history, cooperation: 45, cohesion: 60, confidence: { truth: 48, estimate: 71, margin: 30 } }));
     expect(v.reveal).toMatchObject({ low: 41, high: 71, truth: 48, audited: false });
-    expect(v.reveal.widened[0]).toBe('Opaque reasoning: verified AI safety 56 → 41.');
+    expect(v.reveal.widened[0]).toBe('Unreadable AI thinking: verified AI safety 56 → 41.');
   });
 
   it('a safety net that fails is named', () => {

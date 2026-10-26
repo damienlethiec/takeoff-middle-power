@@ -56,7 +56,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
        <h3 id="wd-ai-h">Europe’s AI: Open or Dependent</h3>
        <p>Does Europe run AI models it controls (Open), or rely on a few big labs (Dependent)?${ai ? ` Today it is <b>${ai === 'open' ? 'Open' : 'Dependent'}</b>.` : ''}</p>
        <p>If AI stalls after it kept improving under a few big labs, it decides the ending: Open leads to ${ending('plateau_labs', 'good')} (if Europe holds together), Dependent to ${ending('plateau_labs', 'bad')}. An Open Europe also stands firm against the labs’ threats, but criminals get the same tools (ransomware).</p>
-       <p>What changes it: funding open models, or backing open developers when they ask, makes it Open. Weight security standards, deals with the big labs, rules that make labs withhold their models, or giving in to their pressure make it Dependent.</p>
+       <p>What changes it: funding open models, or backing open developers when they ask, makes it Open. Rules to lock down AI models, deals with the big labs, rules that make labs withhold their models, or giving in to their pressure make it Dependent.</p>
      </section>`;
   const m = openModal(
     `<div class="dateline">${h ? 'Why this world' : 'The five worlds'}</div>
