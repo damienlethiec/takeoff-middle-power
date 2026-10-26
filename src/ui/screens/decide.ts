@@ -116,6 +116,8 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     </aside>`;
   host.hidden = false;
   const handEl = host.querySelector<HTMLElement>('.hand')!;
+  // on desktop the hand is centred and no wider than its cards need (see .hand in styles.css)
+  handEl.style.setProperty('--n', String(Math.max(1, hand.length)));
   const notesEl = host.querySelector<HTMLElement>('#dec-notes')!;
   const thrEl = host.querySelector<HTMLElement>('#dk-threats')!;
   const ok = host.querySelector<HTMLButtonElement>('#dec-ok')!;
