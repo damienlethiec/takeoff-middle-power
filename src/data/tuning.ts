@@ -45,7 +45,7 @@ export const TUNING = {
 
   /** "At this pace" on the capabilities gauge, from public values only (the last rise): the range of rounds
    *  left to the tipping point is (gap / last rise) × these factors. Low under 1 because AI speeds up AI. */
-  eta: { low: 0.6, high: 1.1 },
+  eta: { low: 0.6, high: 1.1, showWithin: 4 },
 
   /** "Or change course" in the band: another world is offered only when the cooperation gap is this small. */
   outlook: { altGap: 15 },

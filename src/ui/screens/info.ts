@@ -1,6 +1,6 @@
 // Small explanation dialogs opened from the map: a threat, Europe's AI badge, a leak, a gauge.
 
-import { GAUGE_HELP, GAUGE_LABEL } from '../../data/copy';
+import { GAUGE_HELP, GAUGE_LABEL, GAUGE_SUB } from '../../data/copy';
 import type { CardView, EuropeAi, GaugeKey, GaugeView, Leak, ThreatView } from '../../engine/types';
 import { ICON, esc } from '../format';
 import { openModal } from '../modal';
@@ -63,6 +63,7 @@ export async function showGaugeHelp(g: GaugeView, text: string): Promise<void> {
   const m = openModal(
     `<div class="dateline">Gauge</div>
      <h2>${esc(GAUGE_LABEL[g.key as GaugeKey])} <span class="num">${esc(text)}</span></h2>
+     <p class="g-help-sub">${esc(GAUGE_SUB[g.key as GaugeKey])}</p>
      <p class="why">${esc(GAUGE_HELP[g.key as GaugeKey])}</p>
      ${g.target !== null ? `<p>${g.targetKind === 'tipping' ? `The tipping point is at ${g.target}.` : g.targetKind === 'goal' ? `Your goal in the world you are heading to: ${g.target} or more.` : `Your safety net in the world you are heading to: keep it at ${g.target} or more.`}</p>` : ''}
      ${g.markers.map((mk) => `<p class="prep ${mk.prepared ? 'yes' : 'no'}">${mk.prepared ? ICON.check : ICON.alert}<span>${esc(mk.text)}</span></p>`).join('')}

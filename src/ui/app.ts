@@ -552,7 +552,7 @@ export class App {
         <div class="g-top"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-val num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
           <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(GAUGE_LABEL[k])}" aria-describedby="gd-${k}">?</button></div>
         <div class="g-subrow" aria-hidden="true"><p class="g-sub">${esc(GAUGE_SUB[k])}</p><svg class="spark" viewBox="0 0 48 16" preserveAspectRatio="none"><title>History since 2027</title><polyline points=""/></svg></div>
-        <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? '<i class="g-tipzone"></i>' : ''}<i class="g-band"></i><i class="g-fill"></i><i class="g-target"></i><span class="g-target-l"></span></div>
+        <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? `<i class="g-tipzone"></i><span class="g-tick" style="left:${tip}%">${tip}</span>` : ''}<i class="g-band"></i><i class="g-fill"></i><i class="g-target"></i><span class="g-target-l"></span></div>
         ${k === 'cooperation' ? '<div class="g-zones" aria-hidden="true"><span>Rupture</span><span>Race</span><span>Pause</span></div>' : ''}
         ${k === 'aiPower' ? `<p class="g-tipline" aria-hidden="true"><span class="long">${esc(TIPPING_LINE(tip))}</span><span class="short">${tip} = the tipping point</span></p><p class="g-eta" aria-hidden="true"></p>` : ''}
         <ul class="g-markers"></ul>
@@ -581,10 +581,7 @@ export class App {
       <main class="stage">
         <section class="panel" aria-labelledby="gauges-h">
           <h2 class="sr-only" id="gauges-h">Gauges</h2>
-          <div class="g-pair" role="group" aria-label="The race: ${esc(GAUGE_LABEL.aiPower)} against ${esc(GAUGE_LABEL.confidence)}">
-            ${gauge('aiPower', 'clock')}<span class="g-vs" aria-hidden="true">vs</span>${gauge('confidence', 'confidence')}
-          </div>
-          ${gauge('cooperation', 'cooperation')}${gauge('cohesion', 'cohesion')}
+          ${gauge('aiPower', 'clock')}${gauge('confidence', 'confidence')}${gauge('cooperation', 'cooperation')}${gauge('cohesion', 'cohesion')}
         </section>
         <section class="outlook collapsed" data-coach="heading" aria-labelledby="ol-h" id="outlook">
           <div class="ol-body" id="ol-body"></div>

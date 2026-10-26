@@ -383,13 +383,15 @@ describe('hidden values never leak', () => {
 
   it('the "at this pace" estimate uses visible values only, never the hidden pace', () => {
     for (const seed of SEEDS.slice(0, 30)) {
-      const s = fresh(seed, { round: 3, aiPower: 40, lastRise: 6 });
+      const s = fresh(seed, { round: 4, aiPower: 66, lastRise: 6 });
       const texts = (['slow', 'steady', 'fast'] as const).map((pace) => gauges({ ...s, pace }).find((g) => g.key === 'aiPower')!.eta);
-      expect(texts[0]).toMatch(/^At this pace: in about \d/);
+      expect(texts[0]).toMatch(/^Tipping point in ~\d/);
       expect(new Set(texts).size).toBe(1);
       expect(texts[0]).not.toMatch(/slow|steady|fast/);
     }
-    expect(gauges(fresh(1, { round: 10, aiPower: 50, lastRise: 3 }))[0].eta).toMatch(/AI may stall/);
+    // far off: no estimate at all
+    expect(gauges(fresh(1, { round: 10, aiPower: 50, lastRise: 3 }))[0].eta).toBeNull();
+    expect(gauges(fresh(1, { round: 3, aiPower: 40, lastRise: 6 }))[0].eta).toBeNull();
   });
 
   it('the advisor never uses numbers', () => {

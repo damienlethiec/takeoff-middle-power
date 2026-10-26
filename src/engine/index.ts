@@ -1180,25 +1180,25 @@ function alternative(s: GameState, world: WorldId, d: HeadingView['decides'], n:
 }
 
 /**
- * "At this pace: in about 3–5 rounds". Built only from what the player sees: AI capabilities now, their rise over
- * the last six months, the round and the public rule that the tipping point never comes before round 6.
- * Never from the hidden pace (a test checks it).
+ * "Tipping point in ~2–4 rounds", only when it looks close (at most four rounds at the visible pace); otherwise
+ * nothing. Built only from what the player sees: AI capabilities now, their rise over the last six months, the
+ * round and the public rule that the tipping point never comes before round 6. Never from the hidden pace (a
+ * test checks it).
  */
 export function tippingEstimate(s: GameState): string | null {
   if (s.tipping) return 'AI has reached the tipping point.';
   if (s.round < 1 || s.phase !== 'play') return null;
   const left = T.rounds - s.round;
-  if (left <= 0) return 'Last round: AI will not tip this game.';
+  if (left <= 0) return null;
   const gap = Math.max(0, T.tippingAt - s.aiPower);
   const rate = Math.max(1, s.lastRise);
   const n = gap / rate;
   const notBefore = Math.max(1, T.earliestTipping - s.round);
   const lo = Math.max(notBefore, Math.floor(n * T.eta.low));
   const hi = Math.max(lo, Math.ceil(n * T.eta.high));
-  if (lo > left) return 'At this pace: not before the end of 2032. AI may stall.';
-  const r = (x: number) => `${x} round${x > 1 ? 's' : ''}`;
-  if (hi > left) return `At this pace: in ${lo === left ? 'the last round' : `${lo} round${lo > 1 ? 's' : ''} or more`}, or never.`;
-  return `At this pace: in about ${lo === hi ? r(lo) : `${lo}–${r(hi)}`}.`;
+  if (hi > T.eta.showWithin || lo > left) return null;
+  const top = Math.min(hi, left);
+  return lo >= top ? `Tipping point in ~${lo} round${lo > 1 ? 's' : ''}` : `Tipping point in ~${lo}–${top} rounds`;
 }
 
 export function gauges(s: GameState): GaugeView[] {

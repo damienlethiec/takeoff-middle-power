@@ -169,11 +169,7 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .protest-ring { fill: none; stroke: var(--concern); stroke-width: .35; transform-box: fill-box; transform-origin: center; animation: protest 2.8s ease-out infinite; animation-delay: var(--d, 0s); }
 .protest-core { fill: var(--concern); }
 @keyframes protest { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
-.panel { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: stretch; }
-/* the race at a glance: what AI can do, side by side with whether it does what we intend */
-.g-pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); background: var(--deck); border: 1px solid var(--rule); border-radius: 12px; }
-.g-pair > .gauge { border: 0; background: transparent; }
-.g-vs { align-self: center; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--rule); background: var(--deck-2); font-family: var(--f-data); font-size: 11px; color: var(--mute); }
+.panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
 .panel > h2 { position: absolute; }
 .keys-hint { margin: 0; font-size: 11.5px; color: var(--mute); text-align: right; }
 .keys-hint kbd { margin: 0 2px 0 0; }
@@ -206,6 +202,9 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .g-tipline, .g-eta { margin: 3px 0 0; font-size: 12px; line-height: 1.3; }
 .g-tipline { font-family: var(--f-data); font-size: 11px; color: var(--ink); }
 .g-tipline .short { display: none; }
+/* the tipping point as a small tick label under the bar (small screens, where the line under it is hidden) */
+.g-tick { display: none; position: absolute; top: 15px; transform: translateX(-50%); font-family: var(--f-data); font-size: 10px; line-height: 1; color: var(--crit-text); }
+.g-help-sub { color: var(--mute); }
 .g-eta { color: var(--cap); font-weight: 600; }
 .g-eta:empty { display: none; }
 .g-cohesion .g-fill { --c: var(--concern); }
@@ -638,7 +637,6 @@ body.ended { overflow: auto; }
   .inf-why { display: none; }
   .theatre { grid-template-columns: minmax(0, 1fr) 280px; }
   .panel { grid-template-columns: 1fr 1fr; }
-  .g-pair { grid-column: 1 / -1; }
   .outlook { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
   .ol-alt { grid-column: 1 / -1; border-left: 0 !important; border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 6px; }
 }
@@ -667,10 +665,17 @@ body.ended { overflow: auto; }
   .panel { gap: 6px; }
   .gauge { padding: 6px 8px; }
   .g-subrow { display: none; }
-  .g-tipline .long { display: none; }
-  .g-tipline .short { display: inline; }
-  .g-name { font-size: 11px; letter-spacing: .04em; }
-  .g-vs { width: 22px; height: 22px; font-size: 10px; }
+  /* compact gauges: name, value and bar; the subtitle is behind "?", the tipping point a tick on the bar */
+  .g-tipline { display: none; }
+  .g-tick { display: block; }
+  .g-aiPower .g-bar { margin-bottom: 12px; }
+  .g-top { gap: 5px; align-items: center; }
+  .g-bar { margin-top: 5px; }
+  .g-zones { font-size: 9.5px; }
+  .g-eta { font-size: 11.5px; }
+  .g-delta { white-space: nowrap; }
+  .g-markers { display: none; } /* listed in the gauge's "?" dialog and on the map */
+  .g-name { font-size: 10px; letter-spacing: .02em; line-height: 1.15; }
   .g-val { font-size: 20px; }
   .g-delta { min-width: 0; font-size: 11px; }
   .g-info { width: 26px; height: 26px; }
