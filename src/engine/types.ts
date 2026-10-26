@@ -626,7 +626,7 @@ export interface FeedItem {
   round: number;
   at: number;
   kind: 'headline' | 'milestone' | 'threat' | 'voice' | 'leak' | 'event' | 'lea' | 'decision' | 'request';
-  /** "Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Léa", "Your decision" */
+  /** "Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Letter from Léa", "Your decision" */
   label: string;
   text: string;
   /** What it changed, in words ("US–China cooperation 51 → 55"). */
@@ -634,6 +634,8 @@ export interface FeedItem {
   region: RegionId | null;
   threat: ThreatId | null;
   tone: -1 | 0 | 1;
+  /** Léa's letter: her mood (the feed shows her small portrait). */
+  mood?: LeaMood;
 }
 
 export interface FeedRound {

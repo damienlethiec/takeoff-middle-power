@@ -1,5 +1,6 @@
 // The live feed beside the map (v4): it replaces the journal and the report. Every item of the current six
-// months appears while the clock runs (headlines, threats, voices, Léa, leaks, events, requests), then the
+// months appears while the clock runs (headlines, threats, voices, Léa's letter in full with her portrait,
+// leaks, events, requests), then the
 // player's decisions with what they changed. At the end of the six months, "What changed" (the three biggest
 // changes with their cause) sits at the top. Two tabs: "This round" and "Earlier" (earlier rounds by date).
 // Items are real buttons: clicking one highlights it on the map; clicking a map pin highlights its item here.
@@ -8,6 +9,7 @@
 
 import type { Change, FeedItem, FeedRound } from '../engine/types';
 import { esc } from './format';
+import { leaPortrait } from './lea';
 
 const I = (d: string) => `<svg class="ico" viewBox="0 0 20 20" aria-hidden="true">${d}</svg>`;
 export const KIND_ICON: Record<FeedItem['kind'], string> = {
@@ -15,9 +17,10 @@ export const KIND_ICON: Record<FeedItem['kind'], string> = {
   milestone: I('<path d="M5 17V3M5 4h10l-2.5 3.5L15 11H5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'),
   threat: I('<path d="M10 2.5l8 14.5H2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14.4" r="1.1" fill="currentColor"/>'),
   voice: I('<path d="M3 4h14v9H9l-4 3v-3H3z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>'),
-  leak: I('<rect x="2.5" y="4.5" width="15" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 5.5l7 5.5 7-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'),
+  // a leak is a drop; Léa's letter is the envelope
+  leak: I('<path d="M10 2.5C7.5 6.5 5 9.3 5 12.3a5 5 0 0 0 10 0c0-3-2.5-5.8-5-9.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 13.2a2.2 2.2 0 0 0 2 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'),
   event: I('<path d="M11 2L5 11h4.5L8 18l7-10h-4.6z" fill="currentColor"/>'),
-  lea: I('<circle cx="10" cy="7" r="3.3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4 17c.8-3.4 3.2-5 6-5s5.2 1.6 6 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>'),
+  lea: I('<rect x="2.5" y="4.5" width="15" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 5.5l7 5.5 7-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'),
   decision: I('<path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'),
   request: I('<circle cx="7" cy="7" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 16c.6-2.7 2.3-4 4.5-4s3.9 1.3 4.5 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 5h6v5h-3l-2 2v-2h-1z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>'),
 };
@@ -158,7 +161,7 @@ export class Feed {
   private item(x: FeedItem): string {
     const tone = x.tone > 0 ? ' good' : x.tone < 0 ? ' bad' : '';
     return `<li><button type="button" class="fd-item k-${x.kind}${tone}${this.selected === x.id ? ' on' : ''}" data-id="${esc(x.id)}" aria-pressed="${this.selected === x.id}">
-      <span class="fd-ico">${KIND_ICON[x.kind]}</span>
+      <span class="fd-ico">${x.kind === 'lea' && x.mood ? leaPortrait(x.mood) : KIND_ICON[x.kind]}</span>
       <span class="fd-body"><span class="fd-k">${esc(x.label)}</span><span class="fd-t">${esc(x.text)}</span>${x.detail ? `<span class="fd-d">${esc(x.detail)}</span>` : ''}</span>
       <span class="sr-only">: show on the map</span>
     </button></li>`;

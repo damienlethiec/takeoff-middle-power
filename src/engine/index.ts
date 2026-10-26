@@ -1583,7 +1583,9 @@ const REGION_NAME: Record<RegionId, string> = { eu: 'Europe', us: 'the US', cn: 
 function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): FeedItem[] {
   const out: FeedItem[] = [];
   const base = { round: r.round, detail: null, threat: null, tone: 0 as const };
-  if (r.letter) out.push({ ...base, id: `lea_${r.round}`, at: 0.03, kind: 'lea', label: 'Léa', text: 'Léa wrote to you from Lyon. Her portrait is on the map.', region: 'eu' });
+  // Léa's letter in full, with her mood (the feed shows her small portrait)
+  const def = r.letter ? letterDef(r.letter) : null;
+  if (def) out.push({ ...base, id: `lea_${r.round}`, at: 0.03, kind: 'lea', label: 'Letter from Léa', text: def.text, region: 'eu', mood: def.mood });
   for (const h of r.headlines) {
     const t = /^t_(\w+)_(\d)$/.exec(h.id);
     const threat = t ? (t[1] as ThreatId) : null;

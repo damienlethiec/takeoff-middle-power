@@ -5,7 +5,7 @@
 // It talks to the engine only through EngineApi.
 
 import type { EngineApi } from '../engine/api';
-import type { FeedItem, GameState, GaugeKey, LeaMood, MapItem, Pick, PreviewView, RequestView, ThreatView } from '../engine/types';
+import type { FeedItem, GameState, GaugeKey, MapItem, Pick, PreviewView, RequestView, ThreatView } from '../engine/types';
 import { CARD_BY_ID } from '../data/cards';
 import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, TIPS, marginText } from '../data/copy';
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
@@ -19,13 +19,17 @@ import { renderEnding } from './screens/ending';
 import { showHelp } from './screens/help';
 import { showBadge, showGaugeHelp, showLeak, showThreat } from './screens/info';
 import { showIntro } from './screens/intro';
-import { showLetters } from './screens/letters';
 import { showWorlds } from './screens/worlds';
 import { showRequest } from './screens/request';
 import { badgeHtml, headingLineHtml, statusOf } from './outlook';
 import { Feed } from './feed';
 
 const ROUND_MS = 8000;
+/** The start of Léa's letter, for her line in the map's list (the feed has it in full). */
+const firstSentence = (t: string) => {
+  const m = /^.+?[.!?](?=\s|$)/.exec(t);
+  return m && m[0].length < t.length ? `${m[0]} …` : t;
+};
 const KEYS: GaugeKey[] = ['aiPower', 'cooperation', 'confidence', 'cohesion'];
 type Vals = { aiPower: number; cooperation: number; confidence: number; margin: number; cohesion: number };
 type Live = { item: MapItem; kind: 'headline' | 'voice'; state: 'wait' | 'live' | 'gone'; until: number };
@@ -58,9 +62,6 @@ export class App {
   private follow: 'clock' | 'tween' = 'tween';
   private prevThreats: ThreatView[] = [];
   private dockResolve: (() => void) | null = null;
-  private unreadLetter = false;
-  /** Léa wrote this round: she is on the map until the round ends. */
-  private leaThisRound = false;
   private headingWhy = '';
 
   constructor(
@@ -91,7 +92,6 @@ export class App {
     this.s = this.e.createInitialState(seed);
     this.coach.reset();
     this.prevThreats = [];
-    this.unreadLetter = false;
     this.headingWhy = '';
     this.buildShell();
     const v = this.vals();
@@ -140,15 +140,12 @@ export class App {
     this.feedDone = false;
     this.feed.clearMark();
     this.map.setThreats(this.prevThreats);
+    // Léa's letter is a feed item (in full, with her portrait) and an envelope in Europe's group on the map
     const letter = this.e.letters(s).find((l) => l.round === s.round && l.slot !== 'end');
-    // Léa is on the map only in a round when she has written (an envelope until it is read)
-    this.leaThisRound = !!letter;
-    this.unreadLetter = !!letter;
-    this.map.setLea(letter?.mood ?? this.leaMood(), !!letter, !!letter);
     this.renderAll();
     const inc = s.influence - before.influence;
     announce(
-      `${date} begins, round ${s.round} of 12. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${letter ? ' Léa wrote to you: her portrait is over Lyon on the map.' : ''}${s.round === 1 ? ' Press question mark for help.' : ''}`,
+      `${date} begins, round ${s.round} of 12. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${letter ? ' Léa wrote to you: her letter is in the news.' : ''}${s.round === 1 ? ' Press question mark for help.' : ''}`,
     );
     // the tutorial: at most four tips before the first decision (the race, the world, where it is heading, then
     // Influence on the decision view); later, only what does not explain itself, the first time it appears.
@@ -468,7 +465,7 @@ export class App {
       showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on), shortcuts: shortcutsOn(), onShortcuts: (on) => setSingleKeyShortcuts(on), tips: Object.values(TIPS).map((t) => ({ round: 0, title: t.title, text: t.text })) }),
     );
   }
-  /** A feed item shown on the map: its threat icon, Léa or the leak lights up, or its banner comes back where it happened. */
+  /** A feed item shown on the map: its threat icon lights up, or its region's group opens with it highlighted. */
   private showOnMap(it: FeedItem) {
     const glow = (b: HTMLElement | null) => {
       if (!b) return false;
@@ -479,7 +476,6 @@ export class App {
       return true;
     };
     if (it.threat && glow(this.map.threatButton(it.threat))) return;
-    if (it.kind === 'lea' && this.map.leaButton && !this.map.leaButton.hidden && glow(this.map.leaButton)) return;
     // this round's items: their region's list opens with the item highlighted
     if (this.map.showEntry(it.id)) return;
     if (it.region) this.map.burst(it.region, true);
@@ -502,26 +498,15 @@ export class App {
     this.feed.render(this.feedCache, t, this.feedDone);
     // the round's items, as icons clustered per region on the map (they leave with the round)
     const cur = this.feedCache.at(-1);
-    const onMap = new Set(['headline', 'milestone', 'voice', 'leak', 'event', 'request']);
+    const onMap = new Set(['headline', 'milestone', 'voice', 'lea', 'leak', 'event', 'request']);
     this.map.setItems(
       cur && cur.round === this.s.round
         ? cur.items
             .filter((x) => onMap.has(x.kind) && x.region && (x.at <= t || (this.feedDone && x.at <= 1)))
-            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: x.label, text: x.text }))
+            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: x.label, text: x.kind === 'lea' ? firstSentence(x.text) : x.text }))
         : [],
     );
   }
-  private openLea() {
-    this.openFromMap(async () => {
-      await showLetters(
-        this.e.letters(this.s).filter((l) => l.slot !== 'end'),
-        (r) => this.e.dateLabel(r),
-      );
-      this.unreadLetter = false;
-      this.map.setLea(this.leaMood(), false, this.leaThisRound);
-    });
-  }
-
   /**
    * The game waits on the main screen for the player: a bar with one or two buttons. Enter presses the
    * primary one. Nothing opens by itself.
@@ -613,10 +598,6 @@ export class App {
     </div>`;
     this.map = new WorldMap($('#mapwrap', this.root));
     $('#mapwrap', this.root).setAttribute('aria-describedby', this.map.summaryId);
-    this.map.onLea = () => {
-      this.markFeed((x) => x.kind === 'lea');
-      this.openLea();
-    };
     this.map.onItem = (entry) => {
       this.feed.mark(entry.id);
       if (entry.kind === 'leak' && this.s.leak) this.openFromMap(() => showLeak(this.s.leak!, this.e.dateLabel(this.s.round)));
@@ -653,18 +634,8 @@ export class App {
     this.renderGauges(flash);
     this.renderHeading();
     this.map.update({ aiPower: this.shown.aiPower, cooperation: this.shown.cooperation, coalition: this.s.coalition, europeAi: this.s.europeAi });
-    if (!this.unreadLetter) this.map.setLea(this.leaMood(), false, this.leaThisRound);
     this.map.setUnrest(this.s.cohesion < 40 ? 2 : this.s.cohesion < 52 ? 1 : 0);
     this.renderSparks();
-  }
-
-  /** Léa's face follows the world between letters: relieved after a crisis Europe was ready for, worried or sad as Europe frays. */
-  private leaMood(): LeaMood {
-    const s = this.s;
-    if (s.roundEvent?.prepared) return 'relieved';
-    if (s.cohesion < 45) return 'sad';
-    if (s.cohesion < 58 || s.roundEvent?.prepared === false) return 'worried';
-    return 'hopeful';
   }
 
   /** Each gauge's history since 2027, as a small line (public values only). */

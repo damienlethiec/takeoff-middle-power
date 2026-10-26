@@ -1,17 +1,15 @@
 // The wall screen: a dot-matrix world (data from the first prototype) drawn in SVG, with Europe, the US and
 // China lit, coalition partners that join around Europe and pulsing labs (v4: no US–China arc; the cooperation
 // gauge says it). Everything the player can act on sits on top as real
-// HTML buttons placed over their spot: threat icons that grow in three stages and Léa over Lyon when she
-// has written. The round's items (headlines, voices, the leak, requests, breaking news) are small icons by
-// type, clustered per region with a count; their text is in the news feed and in the cluster's list (hover
-// or click). Only the newest headline shows briefly as a banner. Nothing on the map overlaps: each pin is
+// HTML buttons placed over their spot: threat icons that grow in three stages. The round's items (headlines,
+// voices, Léa's letter, the leak, requests, breaking news) are small icons by type, clustered per region with
+// a count; their text is in the news feed and in the cluster's list (hover or click). Only the newest headline shows briefly as a banner. Nothing on the map overlaps: each pin is
 // nudged off the ones placed before it.
 
-import type { EuropeAi, LeaMood, RegionId, ThreatView } from '../engine/types';
+import type { EuropeAi, RegionId, ThreatView } from '../engine/types';
 import { THREAT_BY_ID } from '../data/threats';
 import { esc, ICON } from './format';
 import { KIND_ICON } from './feed';
-import { leaPortrait } from './lea';
 import { MAPDATA } from './mapdata';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -115,7 +113,6 @@ const LABS: { region: RegionId; lon: number; lat: number; name: string }[] = [
   { region: 'cn', lon: 120.2, lat: 30.3, name: '' },
   { region: 'cn', lon: 114.1, lat: 22.6, name: '' },
 ];
-const LYON = { lon: 4.85, lat: 45.76 };
 /** Cities where protests show when Social cohesion falls. */
 const PROTESTS = [
   { lon: 2.35, lat: 48.86 }, // Paris
@@ -132,12 +129,12 @@ const CLUSTER_SPOT: Record<RegionId, { lon: number; lat: number }> = {
   cn: { lon: 92, lat: 46 },
 };
 const REGION_NAME: Record<RegionId, string> = { us: 'the US', eu: 'Europe', cn: 'China' };
-const KIND_WORD: Record<string, string> = { headline: 'headline', voice: 'voice', leak: 'leak', event: 'breaking story', request: 'request' };
+const KIND_WORD: Record<string, string> = { headline: 'headline', voice: 'voice', lea: 'letter from Léa', leak: 'leak', event: 'breaking story', request: 'request' };
 
 /** One item of the current round on the map (from the news feed). */
 export interface MapEntry {
   id: string;
-  kind: 'headline' | 'milestone' | 'voice' | 'leak' | 'event' | 'request';
+  kind: 'headline' | 'milestone' | 'voice' | 'lea' | 'leak' | 'event' | 'request';
   region: RegionId;
   label: string;
   text: string;
@@ -170,7 +167,6 @@ export class WorldMap {
   private overlay: HTMLElement;
   private placed = new Map<HTMLElement, { lon: number; lat: number }>();
   private threatBtns = new Map<string, HTMLButtonElement>();
-  leaButton: HTMLButtonElement | null = null;
   private clusters = {} as Record<RegionId, HTMLButtonElement>;
   private pop: HTMLElement | null = null;
   private popRegion: RegionId | null = null;
@@ -182,7 +178,6 @@ export class WorldMap {
   private calling: RegionId | null = null;
   private summary: HTMLElement | null = null;
   private summaryParts = { state: '', threats: '', unrest: '', items: '' };
-  onLea?: () => void;
   /** An item of the cluster list was chosen (the app shows it in the feed, or opens the leak). */
   onItem?: (entry: MapEntry) => void;
   onThreat?: (id: ThreatView['id'], btn: HTMLButtonElement) => void;
@@ -240,13 +235,6 @@ export class WorldMap {
       this.summary.className = 'sr-only map-summary';
       this.summary.id = `map-summary-${++mapIds}`;
       container.appendChild(this.summary);
-      // Léa (only when she has written this round): a real button laid over Lyon
-      this.leaButton = this.mk('button', 'lea-btn') as HTMLButtonElement;
-      this.leaButton.type = 'button';
-      this.leaButton.hidden = true;
-      this.leaButton.addEventListener('click', () => this.onLea?.());
-      this.place(this.leaButton, LYON);
-      this.setLea('hopeful', false, false);
       // one cluster per region for the round's items, with the list it opens
       for (const r of REGIONS) {
         const b = this.mk('button', `m-cluster c-${r}`) as HTMLButtonElement;
@@ -318,7 +306,7 @@ export class WorldMap {
   }
 
   /**
-   * Put every pin on its spot, then nudge it off the pins placed before it (threats first, then Léa, the
+   * Put every pin on its spot, then nudge it off the pins placed before it (threats first, then the
    * clusters and the banner), staying inside the map. When nothing is free (a small phone map), the least
    * covered place wins. Boxes come from the spot and the element's size (every pin is centred on its spot),
    * not from the layout, so entry animations do not skew them.
@@ -328,7 +316,7 @@ export class WorldMap {
     const h = this.container.clientHeight;
     if (!w || !h) return;
     for (const e of this.placed.keys()) if (!e.isConnected) this.placed.delete(e);
-    const rank = (e: HTMLElement) => (e.classList.contains('threat-btn') ? 0 : e.classList.contains('lea-btn') ? 1 : e.classList.contains('m-cluster') ? 2 : 3);
+    const rank = (e: HTMLElement) => (e.classList.contains('threat-btn') ? 0 : e.classList.contains('m-cluster') ? 1 : 2);
     const order = [...this.placed.keys()].sort((a, b) => rank(a) - rank(b));
     type Box = { l: number; t: number; r: number; b: number };
     const done: Box[] = [];
@@ -365,18 +353,6 @@ export class WorldMap {
       if (ew && eh) done.push(box(x, y));
     }
     if (this.pop && this.popRegion) this.placePop();
-  }
-
-  /** Léa over Lyon, only when she has written this round (an envelope until her letter is read); her mood shows. */
-  setLea(mood: LeaMood, unread: boolean, visible = unread) {
-    const b = this.leaButton;
-    if (!b) return;
-    // the name is the visible text plus words for screen readers (WCAG 2.5.3: label in name)
-    b.innerHTML = `${leaPortrait(mood)}${unread ? `<span class="lea-env" aria-hidden="true">${ICON.leak}</span>` : ''}<span class="lea-tag">Léa${unread ? ' <i class="lea-new">new<span class="sr-only"> letter</span></i>' : ''}<span class="sr-only">, in Lyon: read her letters</span></span>`;
-    b.classList.toggle('unread', unread);
-    const was = b.hidden;
-    b.hidden = !visible;
-    if (was !== b.hidden) this.layout();
   }
 
   /** Threat icons where they would strike: bigger at each stage, green with a check once prepared. */
@@ -437,7 +413,8 @@ export class WorldMap {
       const mine = list.filter((x) => x.region === r);
       b.hidden = !mine.length;
       if (!mine.length) continue;
-      const kinds = [...new Set(mine.map((x) => (x.kind === 'milestone' ? 'headline' : x.kind)))];
+      // Léa's letter leads her region's group (it is the item the player is most likely to look for)
+      const kinds = [...new Set(mine.map((x) => (x.kind === 'milestone' ? 'headline' : x.kind)))].sort((a, b) => Number(b === 'lea') - Number(a === 'lea'));
       const counts = kinds.map((k) => `${mine.filter((x) => (x.kind === 'milestone' ? 'headline' : x.kind) === k).length} ${KIND_WORD[k]}${mine.filter((x) => (x.kind === 'milestone' ? 'headline' : x.kind) === k).length > 1 ? 's' : ''}`);
       b.innerHTML = `<span class="mc-icons" aria-hidden="true">${kinds
         .slice(0, 3)
@@ -616,7 +593,7 @@ export class WorldMap {
       this.summaryParts.state =
         `Map of the world. The US and China are ${zone}. ` +
         (joined.length ? `Standing with Europe: ${joined.join(', ')}.` : 'No partner stands with Europe yet.') +
-        ` Europe’s AI: ${v.europeAi === 'open' ? 'Open' : 'Dependent'}. Léa lives in Lyon.`;
+        ` Europe’s AI: ${v.europeAi === 'open' ? 'Open' : 'Dependent'}.`;
       this.writeSummary();
     }
   }
