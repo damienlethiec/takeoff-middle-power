@@ -46,6 +46,15 @@ async function advance(page: Page, ms: number) {
   for (let t = 0; t < ms; t += 100) await page.clock.fastForward(100);
 }
 
+/** A round that opens with a friend's letter shows it as a postcard before the clock runs: read it on (Continue), if it comes. */
+async function readPostcard(page: Page) {
+  const card = page.locator('.overlay:not(.leaving) .modal.postcard');
+  for (let t = 0; t < 2000 && !(await card.count()); t += 100) await page.clock.fastForward(100);
+  if (!(await card.count())) return;
+  await card.getByRole('button', { name: /^Continue/ }).click();
+  await page.clock.fastForward(300);
+}
+
 /** The page's time is stopped: let it run in small steps until the check passes (an animation, a focus move). */
 async function until(page: Page, check: () => Promise<unknown>, ms = 3000) {
   for (let t = 0; ; t += 50) {
@@ -93,6 +102,7 @@ test.describe('save and resume', () => {
   test('reload mid-game, Continue, play to the end: the save is cleared', async ({ page }) => {
     const errors: string[] = [];
     await boot(page, '?skipintro&notutorial', errors);
+    await readPostcard(page);
     await page.getByRole('button', { name: '×2' }).click();
     // play two rounds, then into round 3's six months
     for (let i = 0; i < 400; i++) {
@@ -114,6 +124,8 @@ test.describe('save and resume', () => {
     await expect(page.locator('#date')).toHaveText(date);
     // nothing was applied twice, and the earlier rounds are back in the feed
     expect(await saved(page)).toEqual(before);
+    // round 3 was saved as it opened, before its friend's postcard was read: the postcard shows now
+    await readPostcard(page);
     await page.locator('#feed').getByRole('tab', { name: 'Earlier' }).click();
     await expect(page.locator('#feed-past')).toContainText('round 2');
     await expect(page.locator('#feed-past')).toContainText('round 1');
@@ -198,6 +210,7 @@ test.describe('save and resume', () => {
     await boot(page, '?skipintro&notutorial', errors);
     for (let i = 0; i < 200 && !(await saved(page))?.state.round; i++) await step(page);
     expect((await saved(page))?.state.round).toBe(1);
+    if (await page.locator('.overlay:not(.leaving) .modal.postcard').count()) await readPostcard(page);
     await page.evaluate(() => {
       localStorage.setItem('takeoff.sound', 'off');
       localStorage.setItem('takeoff.singleKeyShortcuts', 'off');
@@ -219,7 +232,8 @@ test.describe('save and resume', () => {
     await loaded;
     await freeze(page);
 
-    await until(page, () => expect(page.locator('.sr-live')).toContainText('Your save and settings are forgotten.', { timeout: 100 }));
+    // (round 1's postcard may open meanwhile, with a live region of its own)
+    await until(page, () => expect(page.locator('.sr-live').filter({ hasText: 'Your save and settings are forgotten.' })).toHaveCount(1, { timeout: 100 }));
     expect(page.url()).not.toContain('forgotten');
     await expect(page.locator('#round-of')).toContainText('Round 1 of 12');
     const left = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)])));
