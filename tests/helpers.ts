@@ -18,7 +18,7 @@ export function freeze<T>(x: T): T {
 /** Start the next round, resolve its event (default choice: hold firm) and answer its requests (default: left). */
 export function nextRound(s: GameState, choice = 'hold_firm', side: 'left' | 'right' = 'left'): GameState {
   let n = startRound(s);
-  if (n.event) n = resolveEvent(n, n.event.options.length ? (n.event.options.some((o) => o.id === choice) ? choice : n.event.options[0].id) : undefined);
+  while (n.event) n = resolveEvent(n, n.event.options.length ? (n.event.options.some((o) => o.id === choice) ? choice : n.event.options[0].id) : undefined);
   while (request(n)) n = answerRequest(n, side).state;
   return n;
 }

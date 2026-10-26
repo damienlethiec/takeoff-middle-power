@@ -158,11 +158,12 @@ export const TUNING = {
     /** Opaque reasoning: AI power stages, after the theft. The uncertainty grows by `marginFactor`, by
      *  `preparedFactor` with the AI Office's testers (they test behaviour; nobody can read the reasoning). */
     opaque: { stages: [45, 48, 51], marginFactor: 1.5, preparedFactor: 1.2 },
-    /** AI incident: AI power stages, after opaque reasoning; strike chance per round at stage 3 depends on hidden safety. */
+    /** AI incident: AI power stages, once opaque reasoning is imminent; strike chance per round at stage 3 depends on
+     *  hidden safety (`chanceBase` + `chancePerPoint` × (`chanceCenter` − truth)). */
     incident: {
       stages: [50, 54, 58],
-      chanceBase: 0.3,
-      chancePerPoint: 0.02,
+      chanceBase: 0.2,
+      chancePerPoint: 0.01,
       chanceMin: 0.08,
       chanceMax: 0.85,
       chanceCenter: 60,
@@ -178,9 +179,17 @@ export const TUNING = {
     blackmail: { holdFirm: { cohesion: -10 } },
     /** Bioweapon uplift (AI 2027, July 2027; CFG, Take-off): AI capabilities stages after self-improving AI,
      *  `openBonus` more if Europe's AI is Open. Unprepared: a lockdown scare; prepared (the biosecurity pact): fear
-     *  shared, a little cooperation. */
-    bio: { stages: [66, 69, 72], openBonus: 3, unprepared: { cohesion: -6 }, prepared: { cohesion: -1 } },
+     *  shared, a little cooperation. Once imminent it strikes with `chance` a round: AI 2027 names the uplift as a
+     *  risk the labs test for, not an attack that happens. */
+    bio: { stages: [66, 69, 72], openBonus: 3, chance: 0.3, unprepared: { cohesion: -6 }, prepared: { cohesion: -1 } },
   },
+
+  /** Breaking news a round (v4, 27 Oct). One scenario event at most (an AI 2027 milestone's threat, the memo, a job
+   *  shock, a crisis); when it takes the slot, a threat that is due (the AI incident, bioweapon uplift, silicon
+   *  blackmail, ransomware) may still strike as a second, `gap` later in the six months, so the scenario's crowded
+   *  late rounds never starve the threats. With two, at most `requestsWithTwo` request, early in the six months
+   *  (`requestAt`), so the player is never flooded. */
+  breaking: { max: 2, gap: 0.25, latest: 0.9, requestsWithTwo: 1, requestAt: 0.15 },
 
   /** Breaking news that are not threats (CFG, AI 2027). Each comes once. */
   events: {
@@ -209,7 +218,8 @@ export const TUNING = {
 
   /** AI 2027's Oversight Committee vote at the tipping point (once the memo leaked): ten votes, `base` to slow down,
    *  +1 for the leaked memo, +1 for Europe's pause call, +1 when what is verified about AI safety is below
-   *  `doubtBelow` (nobody outside can vouch for it), −1 in the Rupture zone (hawks). Slow down at `needed` or more.
+   *  `doubtBelow` after an AI incident (nobody outside can vouch for it, and the warning shot made it public), −1 in
+   *  the Rupture zone (hawks). Slow down at `needed` or more.
    *  Slowing down moves the final US–China cooperation by `slowdown.cooperation` and the true AI safety by
    *  `slowdown.truth` (outside researchers brought in, Agent-4 shut down); racing on moves cooperation by
    *  `race.cooperation` (China's offer of a pause refused). */

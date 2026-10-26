@@ -40,6 +40,7 @@ import type {
   EndingId,
   EndingView,
   EventId,
+  EventRecord,
   GameState,
   GaugeKey,
   GaugeView,
@@ -264,7 +265,9 @@ export function createInitialState(seed: number, opts: { recent?: string[] } = {
     threats: Object.fromEntries(THREAT_IDS.map((t) => [t, emptyThreat()])) as GameState['threats'],
     jobShocks: 0,
     event: null,
+    eventNext: null,
     roundEvent: null,
+    roundEvent2: null,
     headlines: [],
     voices: [],
     leak: null,
@@ -427,7 +430,8 @@ function threatStages(s: GameState) {
   };
   set('theft', stageOf(s.aiPower + (50 - s.cooperation) * TT.theft.coopWeight, TT.theft.stages));
   set('opaque', stageOf(s.aiPower, TT.opaque.stages));
-  if (reached(s, 'superhuman_coder') || s.threats.opaque.struck) set('incident', stageOf(s.aiPower, TT.incident.stages));
+  // the AI incident grows once opaque reasoning is imminent: nobody can read what the newest models think
+  if (reached(s, 'superhuman_coder') || s.threats.opaque.struck || s.threats.opaque.stage >= 3) set('incident', stageOf(s.aiPower, TT.incident.stages));
   set('ransomware', stageOf(s.aiPower * TT.ransomware.powerWeight + (s.europeAi === 'open' ? TT.ransomware.openBonus : 0), TT.ransomware.stages));
   if (reached(s, 'self_improving')) set('bio', stageOf(s.aiPower + (s.europeAi === 'open' ? TT.bio.openBonus : 0), TT.bio.stages));
   const b = s.threats.blackmail;
@@ -617,7 +621,7 @@ function eventOptions(s: GameState, id: EventId, prepared: boolean): { id: strin
   return [];
 }
 
-function buildEvent(s: GameState, id: EventId, h: RngHolder): PendingEvent {
+function buildEvent(s: GameState, id: EventId, h: RngHolder | null, at?: number): PendingEvent {
   const def = EVENTS[id];
   const prepared = eventPrepared(s, id);
   const preparedBy = eventPreparedBy(id);
@@ -628,7 +632,7 @@ function buildEvent(s: GameState, id: EventId, h: RngHolder): PendingEvent {
   return {
     id,
     round: s.round,
-    at: 0.35 + random(h) * 0.3,
+    at: at ?? 0.35 + random(h!) * 0.3,
     region: def.region,
     title: prepared && def.titlePrepared ? def.titlePrepared : def.title,
     headline: prepared && def.headlinePrepared ? def.headlinePrepared : def.headline,
@@ -643,7 +647,8 @@ function buildEvent(s: GameState, id: EventId, h: RngHolder): PendingEvent {
   };
 }
 
-/** Pick this round's event, if any: AI 2027 milestones first, then job shocks, then the other threats. */
+/** Pick this round's event, if any: AI 2027 milestones first, then the memo, job shocks and crises, then the other
+ *  threats. */
 function chooseEvent(s: GameState, h: RngHolder): EventId | null {
   const next = nextMilestone(s);
   if (next?.via && ripe(s, next.via)) return next.via;
@@ -654,15 +659,34 @@ function chooseEvent(s: GameState, h: RngHolder): EventId | null {
   if (s.jobShocks === 1 && s.aiPower >= J[1] && reached(s, 'cheap_remote_worker')) return 'job_shock_2';
   const crisis = crisisEvent(s);
   if (crisis) return crisis;
-  if (ripe(s, 'bio')) return 'bio';
-  if (ripe(s, 'incident')) {
-    const I = T.threats.incident;
-    const p = clamp(I.chanceBase + (I.chanceCenter - s.confidence.truth) * I.chancePerPoint, I.chanceMin, I.chanceMax);
-    if (random(h) < p) return 'incident';
-  }
+  return threatEvent(s, h);
+}
+
+/** A threat that is due and not a milestone of AI 2027: the AI incident (CFG's warning shot) first, then bioweapon
+ *  uplift (each with a chance a round), silicon blackmail, ransomware. */
+function threatEvent(s: GameState, h: RngHolder): ThreatId | null {
+  if (ripe(s, 'incident') && random(h) < incidentChance(s)) return 'incident';
+  if (ripe(s, 'bio') && random(h) < T.threats.bio.chance) return 'bio';
   if (ripe(s, 'blackmail')) return 'blackmail';
   if (ripe(s, 'ransomware')) return 'ransomware';
   return null;
+}
+
+/** The round's second Breaking news (v4, 27 Oct): when a scenario event (a milestone's threat, the memo, a job shock,
+ *  a crisis) took the slot, the AI incident or bioweapon uplift may still strike (each with its chance), so the
+ *  crowded late rounds never starve the scenarios' warning shots. Silicon blackmail and ransomware keep waiting for
+ *  a free slot. */
+function secondEvent(s: GameState, first: EventId, h: RngHolder): EventId | null {
+  if (T.breaking.max < 2 || (THREAT_IDS as EventId[]).includes(first) && !MILESTONES.some((m) => m.via === first)) return null;
+  if (ripe(s, 'incident') && random(h) < incidentChance(s)) return 'incident';
+  if (ripe(s, 'bio') && random(h) < T.threats.bio.chance) return 'bio';
+  return null;
+}
+
+/** The AI incident's chance a round once imminent: higher when the true AI safety is low (CFG's warning shot). */
+function incidentChance(s: GameState): number {
+  const I = T.threats.incident;
+  return clamp(I.chanceBase + (I.chanceCenter - s.confidence.truth) * I.chancePerPoint, I.chanceMin, I.chanceMax);
 }
 
 /** The scenarios' crises that are not threats, each once a game (checked before the AI incident's draw). */
@@ -789,6 +813,8 @@ export function startRound(state: GameState): GameState {
   s.voices = [];
   s.leak = null;
   s.roundEvent = null;
+  s.roundEvent2 = null;
+  s.eventNext = null;
   s.requests = { ...s.requests, pending: [], round: [] };
   s.social = { done: [...(s.social?.done ?? [])], round: [] };
   // opportunities expire
@@ -824,6 +850,8 @@ export function startRound(state: GameState): GameState {
   const evId = chooseEvent(s, h);
   if (evId) {
     s.event = buildEvent(s, evId, h);
+    const second = secondEvent(s, evId, h);
+    if (second) s.eventNext = { id: second, at: Math.min(T.breaking.latest, Math.round((s.event.at + T.breaking.gap) * 100) / 100) };
     const m = MILESTONES.find((x) => x.via === evId);
     if (m) {
       reach(s, m.id, lines);
@@ -912,7 +940,8 @@ export function startRound(state: GameState): GameState {
 
   // 9. requests: characters who arrive during the six months (v4)
   const reqs = chooseRequests(s, h);
-  const base0 = s.event ? (s.event.at < 0.5 ? 0.74 : 0.2) : 0.25 + random(h) * 0.4;
+  // with two Breaking news, the request comes first, early in the six months (chooseRequests keeps one)
+  const base0 = s.eventNext ? T.breaking.requestAt : s.event ? (s.event.at < 0.5 ? 0.74 : 0.2) : 0.25 + random(h) * 0.4;
   reqs.forEach((r, i) => {
     const at = Math.min(0.92, base0 + i * 0.12);
     s.requests.pending.push({ id: r.id, at });
@@ -974,7 +1003,7 @@ function chooseRequests(s: GameState, h: RngHolder): RequestCard[] {
   if (s.round < R.firstRound) return [];
   const answered = new Set(s.requests.done.map((d) => d.id));
   // never a request that would prepare for the threat striking this very round
-  const elig = REQUESTS.filter((r) => !answered.has(r.id) && holds(s, r.when) && !(s.event && r.prepares === s.event.id));
+  const elig = REQUESTS.filter((r) => !answered.has(r.id) && holds(s, r.when) && !(s.event && r.prepares === s.event.id) && !(s.eventNext && r.prepares === s.eventNext.id));
   for (const r of elig) if (r.opportunity && s.requests.opened[r.id] === undefined) s.requests.opened[r.id] = s.round;
   const open = elig.filter((r) => !r.opportunity || s.round - s.requests.opened[r.id] < r.opportunity.window);
   const total = s.requests.done.length;
@@ -982,7 +1011,9 @@ function chooseRequests(s: GameState, h: RngHolder): RequestCard[] {
   const follow = open.filter((r) => r.followup);
   if (follow.length && total < R.maxPerGame) out.push(follow[0]);
   const regular = open.filter((r) => !r.followup);
-  if (!regular.length || total + out.length >= R.maxPerGame) return out;
+  // two Breaking news this round: fewer interruptions (one request at most)
+  const most = s.eventNext ? T.breaking.requestsWithTwo : Infinity;
+  if (!regular.length || total + out.length >= R.maxPerGame || out.length >= most) return out;
   const fresh = new Set(s.milestones.filter((m) => m.round === s.round).map((m) => m.id));
   const priority = regular.filter((r) => preparesNow(s, r) || (r.priority !== false && r.when?.milestone !== undefined && fresh.has(r.when.milestone)));
   const behind = total + out.length < Math.floor(s.round * R.minRate);
@@ -1147,7 +1178,13 @@ export function resolveEvent(state: GameState, choice?: string): GameState {
     if (ev.id === 'theft' && s.coalition >= 1) openOpportunity(s, 'attribution');
   }
   s.event = null;
-  s.roundEvent = { id: ev.id, title: ev.title, prepared: ev.prepared, choice: choice ?? null, at: ev.at, region: ev.region };
+  const rec = { id: ev.id, title: ev.title, prepared: ev.prepared, choice: choice ?? null, at: ev.at, region: ev.region };
+  if (s.roundEvent) s.roundEvent2 = rec;
+  else s.roundEvent = rec;
+  // the round's second Breaking news, read from the state as it is now (no draw from the game's generator)
+  const next = s.eventNext;
+  s.eventNext = null;
+  if (next && ripe(s, next.id as ThreatId)) s.event = buildEvent(s, next.id, null, next.at);
   return s;
 }
 
@@ -1522,6 +1559,7 @@ function record(s: GameState): RoundRecord {
     voices: s.voices,
     leak: s.leak,
     event: s.roundEvent,
+    event2: s.roundEvent2,
     changes: s.changes,
     decisions: s.played,
     letter: s.letters.find((l) => l.round === s.round && l.slot !== 'end')?.id ?? null,
@@ -1583,9 +1621,10 @@ export function committeeVote(s: GameState): CommitteeVote | null {
     slow += 1;
     reasons.push('Europe’s call for a pause, joined by other capitals: +1 to slow down');
   }
-  if (lowEnd(s.confidence) < V.doubtBelow) {
+  // the fears of misalignment need a public reason beyond the memo: an AI incident this game (CFG's warning shot)
+  if (lowEnd(s.confidence) < V.doubtBelow && s.threats.incident.struck) {
     slow += 1;
-    reasons.push(`Nobody outside the labs can vouch for the AI (${GAUGE_LABEL.confidence} verified below ${V.doubtBelow}): +1 to slow down`);
+    reasons.push(`An AI incident, and nobody outside the labs can vouch for the AI (${GAUGE_LABEL.confidence} verified below ${V.doubtBelow}): +1 to slow down`);
   }
   if (zoneOf(s.cooperation) === 'rupture') {
     slow -= 1;
@@ -2100,8 +2139,10 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
       detail: r.leak.readable || s.phase === 'ended' ? r.leak.advice : LEAK_REDACTED_ADVICE,
       prov: storyBasis(r.leak.basis),
     });
-  const ev = r.event ?? (pending ? { id: pending.id, title: pending.title, prepared: pending.prepared, choice: null, at: pending.at, region: pending.region } : null);
-  if (ev) {
+  // the round's Breaking news (two at most): those resolved, then the one on screen now
+  const evs = [r.event, r.event2].filter((x): x is EventRecord => !!x);
+  if (pending && !evs.some((x) => x.id === pending.id)) evs.push({ id: pending.id, title: pending.title, prepared: pending.prepared, choice: null, at: pending.at, region: pending.region });
+  for (const ev of evs) {
     const detail = r.changes.filter((c) => c.cause === ev.title && !c.by).map((c) => c.text);
     out.push({
       ...base,

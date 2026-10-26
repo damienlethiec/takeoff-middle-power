@@ -29,7 +29,7 @@ function finish(s: GameState): GameState {
   let n = s;
   for (;;) {
     if (n.phase === 'ended') return n;
-    if (n.event) n = resolveEvent(n, n.event.options[n.event.options.length - 1]?.id);
+    while (n.event) n = resolveEvent(n, n.event.options[n.event.options.length - 1]?.id);
     while (request(n)) n = answerRequest(n, 'right').state;
     const e = endRound(n);
     n = e.state;
@@ -43,7 +43,7 @@ function midGame(seed: number): GameState {
   let s = createInitialState(seed);
   for (let r = 1; r <= 3; r++) s = endRound(nextRound(s)).state;
   s = startRound(s);
-  if (s.event) s = resolveEvent(s, s.event.options[s.event.options.length - 1]?.id);
+  while (s.event) s = resolveEvent(s, s.event.options[s.event.options.length - 1]?.id);
   return s;
 }
 

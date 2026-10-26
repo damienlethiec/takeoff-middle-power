@@ -5,13 +5,16 @@
 //   s = startRound(s)        Influence arrives; AI capabilities rise at the hidden pace; cooperation and cohesion
 //                            drift; the labs' reports raise what they claim about AI safety (what is verified does
 //                            not move); AI 2027 milestones are reached in order; threats grow (public values only);
-//                            maybe one event (s.event); headlines, voices, a leak every two or three rounds, maybe a
+//                            maybe one event (s.event; v4: a second, s.eventNext, when a scenario event took the
+//                            slot and the AI incident or bioweapon uplift is due: never more than two); headlines, voices, a leak every two or three rounds, maybe a
 //                            friend's letter (letters(s): friend, mood, postcard); cards arrive.
 //   If this round has a letter with postcard: true, the UI shows it full screen before the clock starts.
 //   The UI plays the six months (about 8 s): feed(s) gives the round's items with their `at`; they appear in the
 //   news feed and on the map as the clock passes them.
-//   if s.event: the clock stops at event.at for its Breaking news screen →
-//   s = resolveEvent(s, choice?)   (choice required when event.options is non-empty: silicon blackmail)
+//   while s.event: the clock stops at event.at for its Breaking news screen →
+//   s = resolveEvent(s, choice?)   (choice required when event.options is non-empty: silicon blackmail, the chip-tool
+//                                   and open-model bans); resolving the first builds the round's second, if any, from
+//                                   the state then, later in the six months (requests come before both)
 //   while request(s): a character arrives at its `at`, the clock stops →
 //   { state: s } = answerRequest(s, 'left' | 'right')   (the cost is in the answer, sometimes Influence)
 //   The clock stops ("What changed" tops the feed); when the player asks for the decisions:

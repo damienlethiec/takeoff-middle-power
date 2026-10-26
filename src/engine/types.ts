@@ -375,12 +375,24 @@ export interface CardOdds {
   why: string[];
 }
 
+/** A Breaking news once resolved (for the feed and the history). */
+export interface EventRecord {
+  id: EventId;
+  title: string;
+  prepared: boolean | null;
+  choice: string | null;
+  at: number;
+  region: RegionId;
+}
+
 export interface RoundRecord {
   round: number;
   headlines: MapItem[];
   voices: MapItem[];
   leak: Leak | null;
-  event: { id: EventId; title: string; prepared: boolean | null; choice: string | null; at: number; region: RegionId } | null;
+  event: EventRecord | null;
+  /** v4: a second Breaking news this round (a threat that was due while a scenario event took the first slot). */
+  event2?: EventRecord | null;
   changes: Change[];
   decisions: Pick[];
   letter: string | null;
@@ -454,8 +466,13 @@ export interface GameState {
   jobShocks: number;
   /** This round's event, until resolved. */
   event: PendingEvent | null;
+  /** v4: this round's second Breaking news, still to come: it is built (its preparation and impacts read from the
+   *  state then) when the first is resolved, and comes at `at`. */
+  eventNext: { id: EventId; at: number } | null;
   /** This round's event once resolved (for the feed). */
-  roundEvent: RoundRecord['event'];
+  roundEvent: EventRecord | null;
+  /** This round's second event once resolved. */
+  roundEvent2: EventRecord | null;
   /** This round's map content and leak. */
   headlines: MapItem[];
   voices: MapItem[];

@@ -52,7 +52,7 @@ From top to bottom:
 1. **Influence arrives** and is announced with its reasons.
 2. **The clock runs** (about 8 seconds at ×1). Headlines, AI 2027 milestones, threats, public voices, a leak every two or three rounds, a friend's letter (after its postcard) appear in the feed and as icons in their region's group on the map. Threat icons grow in three stages where they would strike.
 3. **A request may arrive** (at most one a round, two when a follow-up is due): the clock stops, the character's card opens, the player answers, the clock resumes.
-4. **Breaking news may strike**: the clock stops for its screen (impact before → after, prepared or not, an "Already real" fact), then resumes.
+4. **Breaking news may strike**: the clock stops for its screen (impact before → after, prepared or not, an "Already real" fact), then resumes. Two at most a round, one after the other: when a scenario event (a milestone's threat, the memo, a job shock, a crisis) comes, the AI incident or bioweapon uplift can still strike later in the same six months; such a round has one request at most, before them.
 5. **The clock stops.** "What changed" (the three biggest changes with their cause) tops the feed. Nothing opens by itself; the dock offers "Make my decisions".
 6. **Decisions** (below), then **consequences**: the gauges move and show their change, the decisions enter the feed with what they changed, and the next six months begin.
 7. The game ends at the **tipping point** (capabilities 80, never before round 6) or after **round 10** (H2 2031; 12 rounds to H2 2032 until 26 Oct): "See how it ends".

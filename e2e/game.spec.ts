@@ -536,6 +536,52 @@ test.describe('key interactions', () => {
     expect(s.errors).toEqual([]);
   });
 
+  test('two Breaking news in one round come one after the other, and the clock resumes (seed 15, H2 2029: the memo, then an AI incident)', async ({ page }) => {
+    const s = await boot(page, '?skipintro&notutorial&seed=15');
+    await freeze(page);
+    const breaking = new Map<string, string[]>();
+    let reached = false;
+    for (let step = 0; step < 900 && !reached; step++) {
+      const d = dialog(page);
+      if (await d.count()) {
+        if ((await d.getAttribute('aria-label')) === 'Breaking news') {
+          const date = (await page.locator('#date').textContent()) ?? '';
+          breaking.set(date, [...(breaking.get(date) ?? []), ((await d.locator('h2').first().textContent()) ?? '').trim()]);
+        }
+        await closeDialog(page);
+        await advance(page, 300, false);
+        continue;
+      }
+      if (await decisions(page).count()) {
+        await decisions(page).getByRole('button', { name: 'Play no card' }).click();
+        await advance(page, 300, false);
+        continue;
+      }
+      const next = dockButton(page, /^Make my (last )?decisions/);
+      if (await next.count()) {
+        // the six months of H2 2029 are over (the takeoff comes this round): the feed lists both Breaking news
+        if ((await page.locator('#date').textContent()) === 'H2 2029') {
+          await expect(page.locator('#feed-now .k-event')).toHaveCount(2);
+          reached = true;
+          continue;
+        }
+        await next.click();
+        await advance(page, 300, false);
+        continue;
+      }
+      if ((await page.locator('#phase').textContent()) === 'Clock running') await expect(page.locator('#play')).toBeEnabled();
+      await advance(page, 300, false);
+    }
+    expect(reached).toBe(true);
+    const two = breaking.get('H2 2029') ?? [];
+    expect(two).toHaveLength(2);
+    expect(two[0]).toMatch(/memo/i);
+    expect(two[1]).toMatch(/AI tries to escape/i); // the AI incident
+    // never more than two a round
+    for (const titles of breaking.values()) expect(titles.length).toBeLessThanOrEqual(2);
+    expect(s.errors).toEqual([]);
+  });
+
   test('the tutorial shows coach marks once, and can be turned off', async ({ page }) => {
     const s = await boot(page, '?skipintro&seed=4');
     await advance(page, 400);

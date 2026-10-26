@@ -43,7 +43,7 @@ describe('request answers before answering', () => {
       for (let r = 0; r < 10 && s.phase === 'play'; r++) {
         s = startRound(s);
         for (let g = 0; g < 6; g++) {
-          if (s.event) s = resolveEvent(s, s.event.options[0]?.id);
+          while (s.event) s = resolveEvent(s, s.event.options[0]?.id);
           const v = request(s);
           if (!v) break;
           for (const a of [v.left, v.right]) {
@@ -57,7 +57,7 @@ describe('request answers before answering', () => {
           numeric += out.outcome.chips.filter((c) => /\d/.test(c.text)).length;
           s = out.state;
         }
-        if (s.event) s = resolveEvent(s, s.event.options[0]?.id);
+        while (s.event) s = resolveEvent(s, s.event.options[0]?.id);
         s = endRound(s).state;
       }
     }

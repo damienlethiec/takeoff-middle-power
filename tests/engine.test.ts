@@ -56,7 +56,7 @@ describe('creation and the clock', () => {
     let s = freeze(createInitialState(3));
     for (let i = 0; i < T.rounds; i++) {
       s = freeze(startRound(s));
-      if (s.event) s = freeze(resolveEvent(s, s.event.options[0]?.id));
+      while (s.event) s = freeze(resolveEvent(s, s.event.options[0]?.id));
       s = freeze(answerAll(s));
       hand(s);
       gauges(s);
@@ -298,7 +298,7 @@ describe('threats and events', () => {
           expect(before[id].stage).toBe(3);
           expect(before[id].imminentSince).not.toBeNull();
         }
-        if (s.event) s = resolveEvent(s, s.event.options[0]?.id);
+        while (s.event) s = resolveEvent(s, s.event.options[0]?.id);
         s = answerAll(s);
         const e = endRound(s);
         s = e.state;
@@ -321,12 +321,49 @@ describe('threats and events', () => {
     expect(resolveEvent(prepared).cooperation - prepared.cooperation).toBe(T.threats.theft.prepared.cooperation);
   });
 
+  it('two Breaking news at most a round: a second only for the AI incident or bioweapon uplift, after a scenario event, later in the six months, with one request at most before them', () => {
+    let twos = 0;
+    const seconds = new Set<string>();
+    for (const seed of SEEDS.slice(0, 80)) {
+      let s = createInitialState(seed);
+      for (let i = 0; i < T.rounds; i++) {
+        s = startRound(s);
+        const first = s.event;
+        const next = s.eventNext;
+        if (next) {
+          twos++;
+          expect(first).not.toBeNull();
+          expect(['incident', 'bio']).toContain(next.id);
+          expect(['incident', 'bio', 'blackmail', 'ransomware']).not.toContain(first!.id);
+          expect(next.at).toBeGreaterThan(first!.at);
+          expect(s.requests.round.length).toBeLessThanOrEqual(T.breaking.requestsWithTwo);
+          for (const q of s.requests.round) expect(q.at).toBeLessThan(first!.at);
+        }
+        let n = 0;
+        while (s.event) {
+          n++;
+          if (n === 2) seconds.add(s.event.id);
+          s = resolveEvent(s, s.event.options[0]?.id);
+        }
+        expect(n).toBeLessThanOrEqual(T.breaking.max);
+        s = answerAll(s);
+        const e = endRound(s);
+        if (next && e.state.history.at(-1)!.event2) expect(e.state.history.at(-1)!.event2!.id).toBe(next.id);
+        s = e.state;
+        if (e.outcome === 'ended') break;
+      }
+    }
+    // the crowded late rounds no longer starve the warning shots
+    expect(twos).toBeGreaterThan(5);
+    expect(seconds.has('incident')).toBe(true);
+  });
+
   it('a Breaking news screen shows each change as before → after, without hidden values', () => {
     for (const seed of SEEDS.slice(0, 60)) {
       let s = createInitialState(seed);
       for (let i = 0; i < T.rounds; i++) {
         s = startRound(s);
-        if (s.event) {
+        while (s.event) {
           for (const imp of s.event.impacts) expect(`${imp.before}${imp.after}`).toMatch(/^\w+$/);
           expect(s.event.impacts.some((x) => x.label.toLowerCase().includes('true'))).toBe(false);
           s = resolveEvent(s, s.event.options[0]?.id);
@@ -439,7 +476,7 @@ describe('threats and events', () => {
           expect(soft.cohesion - s.cohesion).toBe(T.jobShocks.softened);
           break;
         }
-        if (s.event) s = resolveEvent(s, s.event.options[0]?.id);
+        while (s.event) s = resolveEvent(s, s.event.options[0]?.id);
         s = answerAll(s);
         const e = endRound(s);
         s = e.state;
@@ -721,9 +758,13 @@ describe('endings', () => {
     expect(slow.committee).toMatchObject({ slowdown: 6, outcome: 'slowdown' });
     expect(slow.flags).toContain('committee_slowdown');
     expect(ENDING_BY_ID[slow.ending!].world).toBe('pause');
-    // doubt counts: what is verified below the bar adds a vote; open rupture takes one away
-    expect(committeeVote({ ...fresh(1), ...memo, confidence: { truth: 30, estimate: 60, margin: 35 } } as GameState)!.slowdown).toBe(6);
-    expect(committeeVote({ ...fresh(1), ...memo, cooperation: 20, confidence: { truth: 30, estimate: 60, margin: 35 } } as GameState)!.slowdown).toBe(5);
+    // doubt counts after an AI incident: what is verified below the bar adds a vote; open rupture takes one away
+    const blind = { ...fresh(1), ...memo, confidence: { truth: 30, estimate: 60, margin: 35 } } as GameState;
+    const incident = { ...blind.threats, incident: { ...blind.threats.incident, struck: true } };
+    expect(committeeVote(blind)!.slowdown).toBe(5); // nothing verified, but no public reason to doubt beyond the memo
+    expect(committeeVote({ ...blind, threats: incident })!.slowdown).toBe(6);
+    expect(committeeVote({ ...blind, threats: incident })!.reasons.some((r) => /AI incident/.test(r))).toBe(true);
+    expect(committeeVote({ ...blind, threats: incident, cooperation: 20 })!.slowdown).toBe(5);
     const v = ending(slow);
     expect(v.committee).toMatchObject({ outcome: 'slowdown', shift: T.committee.slowdown.cooperation });
     expect(v.committee!.reasons.length).toBe(2);

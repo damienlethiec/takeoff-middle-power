@@ -157,7 +157,7 @@ describe('requests in a game', () => {
     let checked = 0;
     for (let i = 0; i < T.rounds && checked < 4; i++) {
       s = startRound(s);
-      if (s.event) s = resolveEvent(s, s.event.options[0]?.id);
+      while (s.event) s = resolveEvent(s, s.event.options[0]?.id);
       while (request(s)) {
         const v = request(freeze(s))!;
         for (const a of [v.left, v.right]) for (const c of a.chips) expect(c.text).not.toMatch(/true|truth/i);

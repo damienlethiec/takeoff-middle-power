@@ -497,6 +497,8 @@ export class App {
     this.follow = 'clock';
     this.from = { ...this.to };
     this.setPhase('Clock running');
+    // a second Breaking news this round (v4): it comes later in the six months, on its own screen
+    if (this.s.event) this.eventShown = false;
     this.eventBusy = false;
     // the clock was running when this fired: always resume, and redraw the pause button (enabled again)
     if (this.clockActive) this.running = true;
