@@ -16,5 +16,5 @@ export const CHARACTERS: Record<CharacterId, Character> = {
   lea: { id: 'lea', name: 'Léa', role: 'Your friend in Lyon, a translator', region: 'eu' },
   mother: { id: 'mother', name: 'Your mother', role: 'A retired nurse in Lyon', region: 'eu' },
   malik: { id: 'malik', name: 'Malik', role: 'Your old flatmate, an engineer at an AI lab in San Francisco', region: 'us' },
-  ai: { id: 'ai', name: 'Agent', role: 'OpenBrain’s frontier model, speaking for itself', region: 'us' },
+  ai: { id: 'ai', name: 'Agent', role: 'OpenBrain’s most advanced AI, speaking for itself', region: 'us' },
 };

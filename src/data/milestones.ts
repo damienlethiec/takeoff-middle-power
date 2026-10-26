@@ -93,7 +93,7 @@ export const MILESTONES: MilestoneDef[] = [
     id: 'self_improving',
     at: AT.self_improving,
     region: 'us',
-    headline: '“A country of geniuses in a datacenter”: AI now does most of OpenBrain’s research.',
+    headline: '“A country of geniuses in a data centre”: AI now does most of OpenBrain’s research.',
     basis: ai2027('June 2027: Self-improving AI'),
   },
   {
