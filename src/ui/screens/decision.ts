@@ -110,7 +110,8 @@ export async function showDecision(e: EngineApi, s: GameState, date: string): Pr
       ${pv.ok ? '' : `<p class="bad-text">${esc(pv.reason ?? '')}</p>`}
       <ul class="imps">${pv.impacts.length ? pv.impacts.map(impactLine).join('') : '<li class="imp flat">No gauge moves right away.</li>'}</ul>
       ${pv.notes.length ? `<ul class="notes">${pv.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
-      <p class="pv-k">Heading line</p>
+      <p class="pv-k">If AI tipped now</p>
+      ${pv.worldAfter !== pv.worldBefore ? `<p class="pv-world"><b>${esc(pv.worldBefore)} → ${esc(pv.worldAfter)}</b><span class="sr-only">: the world would change.</span></p>` : ''}
       ${pv.headingAfter === pv.headingBefore ? `<p class="hl">${esc(pv.headingAfter)}</p>` : `<p class="hl was"><span class="sr-only">Before: </span>${esc(pv.headingBefore)}</p><p class="hl"><span class="sr-only">After: </span>${esc(pv.headingAfter)}</p>`}
       <p class="pv-left">Influence left: <b class="num">${pv.influenceAfter}</b></p>`;
   };
@@ -130,7 +131,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string): Pr
     } else {
       picks.push({ id: c.id as Pick['id'], ...(c.options.length ? { option: c.options[0].id } : {}) });
       const pv = e.preview(s, picks);
-      announce(`Selected ${c.title}. ${pv.impacts.map((x) => `${x.label} ${x.before} to ${x.after}`).join(', ')}. ${picks.length < 2 ? 'You can add a second card, or' : ''} Tab to Confirm.`);
+      announce(`Selected ${c.title}. ${pv.impacts.map((x) => `${x.label} ${x.before} to ${x.after}`).join(', ')}.${pv.worldAfter !== pv.worldBefore ? ` The world would turn from ${pv.worldBefore} to ${pv.worldAfter}.` : ''} ${picks.length < 2 ? 'You can add a second card, or' : ''} Tab to Confirm.`);
     }
     render(id);
   });

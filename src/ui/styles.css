@@ -179,14 +179,55 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .g-markers li.no { color: var(--crit-text); }
 .g-markers li.yes { color: var(--good); }
 .g-aiPower .g-val { color: var(--cap); }
-.heading { background: var(--deck-2); border: 1px solid var(--align); border-radius: 12px; padding: 9px 12px; }
-.heading.flash { animation: gflash 1.2s ease; }
-.heading { padding: 7px 12px; display: flex; gap: 4px 18px; flex-wrap: wrap; align-items: baseline; }
-.heading p { margin: 0; font-size: 14px; line-height: 1.45; }
-.heading b { color: var(--align); }
-.hy { color: var(--mute); }
-.hm { display: inline-block; font-family: var(--f-data); font-size: 10.5px; border-radius: 4px; padding: 0 5px; margin-left: 2px; border: 1px solid; }
+/* the "If AI tipped now" band */
+.outlook { position: relative; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) minmax(0, 1fr); background: var(--deck-2); border: 1px solid var(--align); border-radius: 12px; padding: 7px 4px; }
+.outlook.flash { animation: gflash 1.2s ease; }
+.ol-body { display: contents; }
+.ol-col { padding: 0 12px; min-width: 0; }
+.ol-col + .ol-col { border-left: 1px solid var(--rule); }
+.ol-k { margin: 0 0 3px; font-family: var(--f-data); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.ol-chipline { margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ol-one { display: none; font-size: 13px; }
+.ol-mean { margin: 3px 0 0; font-size: 13px; line-height: 1.35; }
+.ol-whatis { padding: 0 2px; font-size: 13px; color: var(--align); }
+.wchip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 10px 1px 7px; border: 1.5px solid currentColor; font-family: var(--f-display); font-weight: 800; font-size: 17px; letter-spacing: .04em; line-height: 1.3; background: color-mix(in srgb, currentColor 14%, transparent); white-space: nowrap; }
+.wchip .ico { width: 15px; height: 15px; }
+.w-pause { color: var(--align); }
+.w-race { color: var(--cap); }
+.w-rupture { color: var(--crit-text); }
+.w-plateau_open, .w-plateau_labs { color: var(--concern); }
+.ol-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.ol-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px auto auto; gap: 8px; align-items: center; font-size: 13px; }
+.ol-what { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ol-net { color: var(--mute); font-size: 11.5px; }
+.ol-you { color: var(--mute); white-space: nowrap; }
+.ol-you b { color: var(--ink); font-weight: 600; }
+.mbar { position: relative; height: 8px; border-radius: 4px; background: var(--night); }
+.mb-band { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: color-mix(in srgb, var(--align) 35%, transparent); border: 1px dashed color-mix(in srgb, var(--align) 75%, transparent); }
+.mb-dot { position: absolute; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--ink); }
+.k-cohesion .mb-dot { background: var(--concern); } .k-confidence .mb-dot { background: var(--align); } .k-cooperation .mb-dot { background: var(--ink); }
+.mb-bar { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); }
+.mb-bar.floor { background: repeating-linear-gradient(var(--ink) 0 2px, transparent 2px 4px); }
+.ol-alt p { margin: 0; font-size: 13px; line-height: 1.4; }
+.ol-alt .wchip { font-size: 14px; padding: 0 8px 0 5px; margin-right: 2px; }
+.ol-toggle { display: none; }
+.outlook .heading-why { grid-column: 1 / -1; margin: 5px 12px 0; }
+.pv-world { margin: 0 0 4px; font-size: 15px; color: var(--align); }
+.hm { display: inline-block; font-family: var(--f-data); font-size: 10.5px; border-radius: 4px; padding: 0 5px; margin-left: 2px; border: 1px solid; white-space: nowrap; }
 .hm.yes { color: var(--good); } .hm.no { color: var(--crit-text); } .hm.maybe { color: var(--warn); }
+/* the five worlds dialog */
+.modal.worlds { max-width: 680px; }
+.wd { margin: 14px 0; display: grid; gap: 6px; }
+.wd-k { margin: 6px 0 0; font-family: var(--f-data); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--mute); }
+.wd-zones { display: grid; grid-template-columns: 30fr 30fr 40fr; gap: 4px; }
+.wd-plat { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.wd-z { display: grid; gap: 1px; border: 1.5px solid currentColor; border-radius: 8px; padding: 6px 8px; background: color-mix(in srgb, currentColor 10%, var(--night)); }
+.wd-z b { font-size: 14px; } .wd-z small { color: var(--ink); font-size: 12px; }
+.wd-z.here { box-shadow: 0 0 0 2px var(--ink); }
+.wd-here { font-style: normal; font-family: var(--f-data); font-size: 10.5px; color: var(--ink); }
+.worlds-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.wl h3 { margin: 0 0 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.wl p { margin: 0 0 3px; font-size: 14px; }
 .heading-why { font-size: 12.5px !important; color: var(--mute); }
 .heading-why:empty { display: none; }
 
@@ -492,6 +533,8 @@ body.ended { overflow: auto; }
   .inf-why { display: none; }
   .panel { grid-template-columns: 1fr 1fr; }
   .g-pair { grid-column: 1 / -1; }
+  .outlook { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+  .ol-alt { grid-column: 1 / -1; border-left: 0 !important; border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 6px; }
 }
 @media (max-width: 860px), (max-height: 640px) {
   .game { height: auto; min-height: 100dvh; grid-template-rows: auto auto auto auto; }
@@ -523,6 +566,14 @@ body.ended { overflow: auto; }
   .g-val { font-size: 20px; }
   .g-delta { min-width: 0; font-size: 11px; }
   .g-info { width: 26px; height: 26px; }
+  .outlook { grid-template-columns: minmax(0, 1fr); padding: 6px 0; }
+  .ol-col + .ol-col { border-left: 0; border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 6px; }
+  .ol-k { padding-right: 70px; }
+  .outlook.collapsed .ol-mean, .outlook.collapsed .ol-goal, .outlook.collapsed .ol-alt { display: none; }
+  .outlook.collapsed .ol-one { display: inline; }
+  .ol-toggle { display: inline-flex; position: absolute; top: 5px; right: 8px; padding: 3px 9px; }
+  .ol-row { grid-template-columns: minmax(0, 1fr) 56px auto auto; gap: 6px; font-size: 12px; }
+  .wchip { font-size: 15px; }
   .threat-btn { padding: 3px 7px 3px 4px; }
   .threat-btn .tb-txt b { font-size: 11px; }
   .threat-btn small { font-size: 9.5px; }

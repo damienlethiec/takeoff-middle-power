@@ -799,7 +799,10 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
   let cost = 0;
   for (const p of picks) {
     const why = blocked(s, p.id);
-    if (why) return { ok: false, reason: why, cost, influenceAfter: s.influence, impacts: [], notes: [], headingBefore: heading(base).text, headingAfter: heading(base).text };
+    if (why) {
+      const h = heading(base);
+      return { ok: false, reason: why, cost, influenceAfter: s.influence, impacts: [], notes: [], headingBefore: h.text, headingAfter: h.text, worldBefore: h.name, worldAfter: h.name };
+    }
     const def = cardDef(p.id);
     const choice = def.options ? (p.option ?? def.options[0].id) : undefined;
     cost += cardCost(p.id, s.uses[p.id] ?? 0);
@@ -827,6 +830,8 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
     notes,
     headingBefore: heading(base).text,
     headingAfter: heading(s).text,
+    worldBefore: heading(base).name,
+    worldAfter: heading(s).name,
   };
 }
 
@@ -907,19 +912,49 @@ export function heading(s: GameState): HeadingView {
   const world = projectedWorld(s);
   const w = T.worlds[world];
   const def = WORLDS[world];
-  const d = shown(s, w.decides);
-  const n = shown(s, w.net);
   const met = (x: { low: number; high: number }, bar: number) => (x.low >= bar ? 'yes' : x.high < bar ? 'no' : 'maybe') as 'yes' | 'no' | 'maybe';
+  const og = (key: GaugeKey, bar: number): HeadingView['decides'] => {
+    const x = shown(s, key);
+    const value = key === 'confidence' ? (audited(s) ? s.confidence.truth : s.confidence.estimate) : s[key];
+    return { key, label: GAUGE_LABEL[key], bar, you: x.text, value, low: clamp(x.low), high: clamp(x.high), met: met(x, bar) };
+  };
+  const decides = og(w.decides, w.target);
+  const net = og(w.net, w.floor);
   const plateau = world === 'plateau_open' || world === 'plateau_labs';
   const name = def.name;
-  const text = `Heading: ${name}${plateau ? ' (AI is stalling)' : ''}. Goal: ${GAUGE_LABEL[w.decides]} ${w.target} (you: ${d.text}). Keep ${GAUGE_LABEL[w.net]} above ${w.floor} (you: ${n.text}).`;
-  return {
-    world,
-    name,
-    decides: { key: w.decides, label: GAUGE_LABEL[w.decides], target: w.target, you: d.text, met: met(d, w.target) },
-    net: { key: w.net, label: GAUGE_LABEL[w.net], floor: w.floor, you: n.text, met: met(n, w.floor) },
-    text,
-  };
+  const text = `${plateau ? 'If AI stalls' : 'If AI tipped now'}: ${name}. To end well: ${decides.label} ${w.target} (you: ${decides.you}) and ${net.label} ${w.floor} or more (you: ${net.you}).`;
+  return { world, name, plateau, meaning: def.meaning, basis: def.basis, decides, net, alt: alternative(s, world, decides, net), text };
+}
+
+/** "Or change course": the nearest other world, from public values, only when it is within reach and would help. */
+function alternative(s: GameState, world: WorldId, d: HeadingView['decides'], n: HeadingView['net']): HeadingView['alt'] {
+  if (s.tipping || s.phase !== 'play') return null;
+  if (d.met === 'yes' && n.met === 'yes') return null;
+  const coop = s.cooperation;
+  const near = (bar: number) => bar - coop > 0 && bar - coop <= T.outlook.altGap;
+  if (world === 'race' && near(T.zones.pause)) {
+    const p = T.worlds.pause;
+    return {
+      world: 'pause',
+      name: WORLDS.pause.name,
+      text: `Push ${GAUGE_LABEL.cooperation} to ${T.zones.pause} or more (you: ${coop}) to reach a Pause, where ${GAUGE_LABEL[p.decides]} ${p.target} is enough.`,
+    };
+  }
+  if (world === 'rupture' && d.met !== 'yes' && near(T.zones.race)) {
+    const r = T.worlds.race;
+    return {
+      world: 'race',
+      name: WORLDS.race.name,
+      text: `Lift ${GAUGE_LABEL.cooperation} to ${T.zones.race} or more (you: ${coop}) to turn the Rupture into a Race, where ${GAUGE_LABEL[r.decides]} ${r.target} and ${GAUGE_LABEL[r.net]} ${r.floor} decide.`,
+    };
+  }
+  if (world === 'plateau_labs' && !s.europeAiLocked && s.hand.includes('open_models') && s.threats.blackmail.stage > 0 && !s.threats.blackmail.struck)
+    return {
+      world: 'plateau_open',
+      name: WORLDS.plateau_open.name,
+      text: `Fund open models to make Europe’s AI Open: the same bar, and the big labs lose their hold on Europe.`,
+    };
+  return null;
 }
 
 /**
@@ -962,7 +997,7 @@ export function gauges(s: GameState): GaugeView[] {
       value: key === 'confidence' ? (isAudit ? s.confidence.truth : s.confidence.estimate) : s[key],
       margin: key === 'confidence' && !isAudit ? s.confidence.margin : 0,
       audited: isAudit,
-      target: key === 'aiPower' ? T.tippingAt : hd.decides.key === key ? hd.decides.target : hd.net.key === key ? hd.net.floor : null,
+      target: key === 'aiPower' ? T.tippingAt : hd.decides.key === key ? hd.decides.bar : hd.net.key === key ? hd.net.bar : null,
       targetKind: key === 'aiPower' ? 'tipping' : hd.decides.key === key ? 'goal' : hd.net.key === key ? 'floor' : null,
       markers,
     };

@@ -21,6 +21,8 @@ import { showIntro } from './screens/intro';
 import { showJournal } from './screens/journal';
 import { showLetters } from './screens/letters';
 import { showReport } from './screens/report';
+import { showWorlds } from './screens/worlds';
+import { outlookHtml } from './outlook';
 
 const ROUND_MS = 8000;
 const KEYS: GaugeKey[] = ['aiPower', 'cooperation', 'confidence', 'cohesion'];
@@ -502,7 +504,11 @@ export class App {
           </div>
           ${gauge('cooperation', 'cooperation')}${gauge('cohesion', 'cohesion')}
         </section>
-        <section class="heading" data-coach="heading" aria-label="Heading line"><p id="heading-text"></p><p class="heading-why" id="heading-why"></p></section>
+        <section class="outlook collapsed" data-coach="heading" aria-labelledby="ol-h" id="outlook">
+          <div class="ol-body" id="ol-body"></div>
+          <button type="button" class="ol-toggle btn-quiet small" aria-expanded="false" aria-controls="outlook">More<span class="sr-only"> about where the world is heading</span></button>
+          <p class="heading-why" id="heading-why"></p>
+        </section>
         <section class="theatre" aria-labelledby="map-h">
           <h2 class="sr-only" id="map-h" tabindex="-1">World map</h2>
           <div class="mapwrap" id="mapwrap" data-coach="map"></div>
@@ -522,6 +528,16 @@ export class App {
     };
     $('#play', this.root).addEventListener('click', () => this.setRunning(!this.running));
     $('#help-btn', this.root).addEventListener('click', () => this.openHelp());
+    $('#outlook', this.root).addEventListener('click', (ev) => {
+      if ((ev.target as HTMLElement).closest('[data-worlds]')) this.openFromMap(() => showWorlds(this.e.heading(this.s).world));
+    });
+    const tog = $<HTMLButtonElement>('.ol-toggle', this.root);
+    tog.addEventListener('click', () => {
+      const sec = $('#outlook', this.root);
+      const open = sec.classList.toggle('collapsed') === false;
+      tog.setAttribute('aria-expanded', String(open));
+      tog.firstChild!.textContent = open ? 'Less' : 'More';
+    });
     $('#journal-btn', this.root).addEventListener('click', () => this.openJournal());
     this.root.querySelectorAll<HTMLButtonElement>('.speed button').forEach((b) => b.addEventListener('click', () => this.setSpeed(Number(b.dataset.speed) as 1 | 2)));
     this.root.querySelectorAll<HTMLButtonElement>('.g-info').forEach((b) =>
@@ -681,18 +697,21 @@ export class App {
 
   private renderHeading() {
     const h = this.e.heading(this.s);
-    const el = $('#heading-text', this.root);
-    const mark = (m: 'yes' | 'no' | 'maybe') => (m === 'yes' ? '<span class="hm yes">on track</span>' : m === 'no' ? '<span class="hm no">short</span>' : '<span class="hm maybe">uncertain</span>');
-    const html = `<b>Heading: ${esc(h.name)}.</b> Goal: ${esc(h.decides.label.replace(' in AI', ''))} ${h.decides.target} <span class="hy">(you: ${esc(h.decides.you)})</span> ${mark(h.decides.met)} · Keep ${esc(h.net.label.replace(' in AI', ''))} above ${h.net.floor} <span class="hy">(you: ${esc(h.net.you)})</span> ${mark(h.net.met)}`;
-    if (el.dataset.sig !== h.text) {
-      const changed = !!el.dataset.sig;
-      el.dataset.sig = h.text;
-      el.innerHTML = html;
-      el.setAttribute('aria-label', h.text);
+    const body = $('#ol-body', this.root);
+    const html = outlookHtml(h);
+    if (body.dataset.sig !== html) {
+      const changed = !!body.dataset.sig && body.dataset.sig2 !== h.text;
+      body.dataset.sig = html;
+      body.dataset.sig2 = h.text;
+      // keep focus on the "What is…" button across re-renders
+      const hadFocus = body.contains(document.activeElement);
+      body.innerHTML = html;
+      if (hadFocus) body.querySelector<HTMLElement>('[data-worlds]')?.focus({ preventScroll: true });
       if (changed) {
-        el.parentElement!.classList.remove('flash');
-        void el.parentElement!.offsetWidth;
-        el.parentElement!.classList.add('flash');
+        const sec = $('#outlook', this.root);
+        sec.classList.remove('flash');
+        void sec.offsetWidth;
+        sec.classList.add('flash');
       }
     }
     $('#heading-why', this.root).textContent = this.headingWhy;

@@ -174,7 +174,7 @@ test.describe('key interactions', () => {
     await dockButton(page, /^See what changed/).click();
     const r = dialog(page);
     await expect(r.getByRole('heading', { name: 'Six months in review' })).toBeVisible();
-    await expect(r.locator('.heading-line')).toHaveText(/^Heading: /);
+    await expect(r.locator('.heading-line')).toHaveText(/^If AI (tipped now|stalls): /);
     await page.keyboard.press('Escape');
     await advance(page, 300);
     await expect(dockButton(page, /^Make my decisions/)).toBeFocused();
@@ -194,7 +194,7 @@ test.describe('key interactions', () => {
     await talks.click();
     await expect(talks).toHaveAttribute('aria-pressed', 'true');
     await expect(d.locator('.imps .imp').first()).toHaveText(/^US–China cooperation \d+ → \d+/);
-    await expect(d.getByText('Heading line')).toBeVisible();
+    await expect(d.locator('.pv-k', { hasText: 'If AI tipped now' })).toBeVisible();
     // nothing committed yet
     expect(Number(await page.locator('#inf-v').textContent())).toBe(inf);
     await d.getByRole('button', { name: /^AI Office capacity/ }).click();

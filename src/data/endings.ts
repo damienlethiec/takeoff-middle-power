@@ -25,6 +25,11 @@ export interface WorldDef {
   badMeans: string;
   good: EndingId;
   bad: EndingId;
+  /** One plain sentence on what this world means, for the "If AI tipped now" band. */
+  meaning: string;
+  /** Two or three short sentences for the "What is a race?" dialog. */
+  explain: string;
+  basis: Basis;
 }
 
 export const WORLDS: Record<WorldId, WorldDef> = {
@@ -35,6 +40,10 @@ export const WORLDS: Record<WorldId, WorldDef> = {
     badMeans: 'A pause nobody can verify, or that society rejects',
     good: 'licensed_utopia',
     bad: 'unstable_pause',
+    meaning: 'Washington and Beijing agree to slow down and check each other’s AI before going further.',
+    explain:
+      'After a scare, the superpowers sign a deal: slow down, license the most powerful models, inspect each other. It holds only if the checks can be trusted and people accept the rules.',
+    basis: cfg('Diplomacy: a crisis galvanises cooperation; a licensing treaty with IAEA-style audits, or only a bilateral pact'),
   },
   race: {
     id: 'race',
@@ -43,6 +52,10 @@ export const WORLDS: Record<WorldId, WorldDef> = {
     badMeans: 'Untrustworthy AI, or people losing their grip on an AI-run economy',
     good: 'cognitive_revolution',
     bad: 'loss_of_control',
+    meaning: 'Washington and Beijing race to deploy self-improving AI, each afraid to fall behind.',
+    explain:
+      'Each side backs its AI champion and lets AI take over its own development. “The race for supremacy overrides safety concerns.” It ends well only if these AIs truly do what we intend.',
+    basis: cfg('Take-off: “AI systems take over their own development”; “The race for supremacy overrides safety concerns”'),
   },
   rupture: {
     id: 'rupture',
@@ -51,6 +64,10 @@ export const WORLDS: Record<WorldId, WorldDef> = {
     badMeans: 'No strong Europe to mediate, or an AI incident that escalates',
     good: 'multipolar_world',
     bad: 'hot_war',
+    meaning: 'The superpowers stop talking: chips become weapons and nobody can check what the other builds.',
+    explain:
+      'AI becomes the ultimate national security asset. “No one can verify what anyone else is doing”, and chip controls turn into weapons. Only a strong, united Europe can mediate before it turns to war.',
+    basis: cfg('Arms race: “No one can verify what anyone else is doing”; “Control over chips becomes a geopolitical weapon”'),
   },
   plateau_open: {
     id: 'plateau_open',
@@ -59,6 +76,10 @@ export const WORLDS: Record<WorldId, WorldDef> = {
     badMeans: 'Powerful tools in everyone’s hands, misused or unreliable',
     good: 'bright_winter',
     bad: 'decentralised_mayhem',
+    meaning: 'AI stops improving fast, and open models anyone can run spread through Europe.',
+    explain:
+      'AI hits a wall and never learns to improve itself. The tools that exist spread widely, run by many hands. Good if society copes with misuse; bad if criminals and chaos win.',
+    basis: cfg('Plateau: data wall, funding drought, miniaturisation and open models'),
   },
   plateau_labs: {
     id: 'plateau_labs',
@@ -67,6 +88,10 @@ export const WORLDS: Record<WorldId, WorldDef> = {
     badMeans: 'A few labs hold the keys and nobody can check them',
     good: 'agent_economy',
     bad: 'silicon_blackmail',
+    meaning: 'AI stops improving fast, and a few big labs run the tools Europe depends on.',
+    explain:
+      'AI hits a wall, but computing power stays scarce and a few companies end up running everything. Good if Europe holds together and keeps its say; bad if the labs can lean on it.',
+    basis: cfg('Big AI: compute as the bottleneck, consolidation; US firms threaten to cut service to the EU'),
   },
 };
 

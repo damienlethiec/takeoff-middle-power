@@ -277,13 +277,36 @@ export interface GaugeView {
   markers: { threat: ThreatId; text: string; prepared: boolean }[];
 }
 
+/** One gauge in the "If AI tipped now" band: what it must reach, where the player is (public values only). */
+export interface OutlookGauge {
+  key: GaugeKey;
+  label: string;
+  /** The deciding gauge's target, or the safety net's floor. */
+  bar: number;
+  /** "62 ± 15", "58", or "60 (audited)". */
+  you: string;
+  /** The value shown, and the band it may lie in (equal to it for every gauge but AI safety). */
+  value: number;
+  low: number;
+  high: number;
+  met: 'yes' | 'no' | 'maybe';
+}
+
 export interface HeadingView {
   world: WorldId;
   /** "Pause", "Race", "Rupture", "Plateau, open models", "Plateau, big labs" */
   name: string;
-  decides: { key: GaugeKey; label: string; target: number; you: string; met: 'yes' | 'no' | 'maybe' };
-  net: { key: GaugeKey; label: string; floor: number; you: string; met: 'yes' | 'no' | 'maybe' };
-  /** Full sentence, e.g. "Heading: Race. Goal: Confidence 75 (you: 62 ± 15). Keep Cohesion above 55 (you: 58)." */
+  /** True when AI is projected to stall: the band reads "If AI stalls" instead of "If AI tipped now". */
+  plateau: boolean;
+  /** One plain sentence on what this world means. */
+  meaning: string;
+  basis: Basis;
+  /** What decides whether this world ends well (its target) and the safety net (its floor). */
+  decides: OutlookGauge;
+  net: OutlookGauge;
+  /** The nearest other world and what it takes, only when it is within reach and would help. */
+  alt: { world: WorldId; name: string; text: string } | null;
+  /** Full sentence, e.g. "If AI tipped now: Race. To end well: AI safety 75 (you: 62 ± 15) and Social cohesion 55 or more (you: 58)." */
   text: string;
 }
 
@@ -342,6 +365,9 @@ export interface PreviewView {
   notes: string[];
   headingBefore: string;
   headingAfter: string;
+  /** World names before and after ("Race" → "Pause"); equal when the world does not change. */
+  worldBefore: string;
+  worldAfter: string;
 }
 
 export interface AdvisorView {

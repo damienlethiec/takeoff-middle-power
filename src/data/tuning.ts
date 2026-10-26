@@ -47,6 +47,9 @@ export const TUNING = {
    *  left to the tipping point is (gap / last rise) × these factors. Low under 1 because AI speeds up AI. */
   eta: { low: 0.6, high: 1.1 },
 
+  /** "Or change course" in the band: another world is offered only when the cooperation gap is this small. */
+  outlook: { altGap: 15 },
+
   influence: { base: 2, highCohesion: 60, lowCohesion: 35, coalitionLevel: 2, cap: 10, minIncome: 1 },
 
   zones: { pause: 60, race: 30 },

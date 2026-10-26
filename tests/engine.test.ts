@@ -411,15 +411,28 @@ describe('hidden values never leak', () => {
 describe('heading, report, letters', () => {
   it('the heading line names the world, the goal and the safety net', () => {
     const s = fresh(1, { cooperation: 50, cohesion: 58, confidence: { truth: 60, estimate: 62, margin: 15 } });
-    expect(heading(s).text).toBe('Heading: Race. Goal: AI safety 75 (you: 62 ± 15). Keep Social cohesion above 55 (you: 58).');
+    expect(heading(s).text).toBe('If AI tipped now: Race. To end well: AI safety 75 (you: 62 ± 15) and Social cohesion 55 or more (you: 58).');
+    expect(heading(s).meaning).toMatch(/race/i);
+    expect(heading(s).basis.kind).toBe('cfg');
+    expect(heading(s).decides).toMatchObject({ key: 'confidence', bar: 75, low: 47, high: 77, met: 'maybe' });
     expect(heading({ ...s, cooperation: 65 }).world).toBe('pause');
     expect(heading({ ...s, cooperation: 20 }).world).toBe('rupture');
+  });
+
+  it('offers another course only when it is within reach and would help', () => {
+    const s = fresh(1, { round: 4, aiPower: 50, lastRise: 8, cooperation: 52, cohesion: 58, confidence: { truth: 60, estimate: 62, margin: 15 } });
+    expect(heading(s).alt).toMatchObject({ world: 'pause' });
+    expect(heading(s).alt!.text).toBe('Push US–China cooperation to 60 or more (you: 52) to reach a Pause, where AI safety 65 is enough.');
+    expect(heading({ ...s, cooperation: 40 }).alt).toBeNull();
+    expect(heading({ ...s, confidence: { truth: 90, estimate: 90, margin: 5 } }).alt).toBeNull();
+    expect(heading({ ...s, cooperation: 25, cohesion: 60 }).alt).toMatchObject({ world: 'race' });
+    expect(heading({ ...s, cooperation: 70 }).alt).toBeNull();
   });
 
   it('turns to a plateau when the visible AI power cannot reach the tipping point', () => {
     const s = fresh(1, { round: 9, aiPower: 50, lastRise: 4 });
     expect(heading(s).world).toBe('plateau_labs');
-    expect(heading({ ...s, europeAi: 'open' }).text).toMatch(/^Heading: Plateau, open models \(AI is stalling\)/);
+    expect(heading({ ...s, europeAi: 'open' }).text).toMatch(/^If AI stalls: Plateau, open models\./);
   });
 
   it('the report lists at most three changes, each with its cause', () => {
