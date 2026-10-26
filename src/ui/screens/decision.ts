@@ -72,14 +72,15 @@ function summaryHtml(pv: PreviewView | null, picks: number): string {
     ${world}</div>`;
 }
 
-export async function showDecision(e: EngineApi, s: GameState, date: string): Promise<DecisionResult> {
+/** `onOpen` runs once the screen is up (the tutorial's tips about Influence and the cards, stacked over it). */
+export async function showDecision(e: EngineApi, s: GameState, date: string, onOpen?: () => Promise<void>): Promise<DecisionResult> {
   const hand = e.hand(s);
   const adv = e.advisor(s);
   const picks: Pick[] = [];
   const m = openModal(
     `<div class="dec-head">
        <div><div class="dateline">${esc(date)} · Your decisions</div><h2>Play your cards</h2></div>
-       <p class="dec-inf" aria-live="off"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">Influence<br/>left</span></p>
+       <p class="dec-inf" aria-live="off" data-coach="dec-influence"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">Influence<br/>left</span></p>
      </div>
      <section class="advisor" aria-labelledby="adv-h"><span class="ava" aria-hidden="true">CS</span><div><h3 id="adv-h">Your chief of staff</h3><p>${esc(adv.text)}</p></div></section>
      <ul class="hand" aria-label="Your cards" data-coach="hand"></ul>
@@ -179,7 +180,10 @@ export async function showDecision(e: EngineApi, s: GameState, date: string): Pr
 
   render();
   const first = adv.recommend ?? hand.find((c) => c.playable)?.id ?? hand[0]?.id;
-  requestAnimationFrame(() => (handEl.querySelector<HTMLElement>(`[data-card="${first}"]`) ?? handEl.querySelector<HTMLElement>('.pcard'))?.focus({ preventScroll: true }));
+  requestAnimationFrame(() => {
+    (handEl.querySelector<HTMLElement>(`[data-card="${first}"]`) ?? handEl.querySelector<HTMLElement>('.pcard'))?.focus({ preventScroll: true });
+    if (onOpen) requestAnimationFrame(() => void onOpen());
+  });
 
   const a = await m.result;
   m.close();

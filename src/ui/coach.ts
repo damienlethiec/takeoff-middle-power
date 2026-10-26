@@ -1,12 +1,14 @@
 // The tutorial: short coach marks, one at a time, each the first time its part of the screen matters.
 // Each is a small dialog placed next to what it explains (focus moves in, Escape or Enter closes it).
-// It can be switched off (here or in Help); every tip triggered stays readable in Help.
+// It can be switched off (here or in Help); every tip stays readable in Help.
+// v4: its own storage key. The previews share one origin with v3 (and main), so a player who had turned v3's
+// tips off never saw v4's: that is why the first-run tutorial seemed gone.
 
 import { TIPS, type TipId } from '../data/copy';
 import { esc } from './format';
-import { openModal } from './modal';
+import { modalOpen, openModal } from './modal';
 
-const KEY = 'takeoff.v3.tutorial';
+const KEY = 'takeoff.v4.tutorial';
 
 export class Coach {
   private seen = new Set<TipId>();
@@ -38,20 +40,27 @@ export class Coach {
   }
 
   /** Show a tip once (if the tutorial is on); records it for Help either way. */
+  /** Has this tip been shown (or logged) already in this game? */
+  has(id: TipId): boolean {
+    return this.seen.has(id);
+  }
+
   async show(id: TipId, round: number, root: ParentNode): Promise<void> {
     if (this.seen.has(id)) return;
     this.seen.add(id);
     const tip = TIPS[id];
     this.log.push({ round, title: tip.title, text: tip.text });
     if (!this.enabled) return;
-    const anchor = root.querySelector<HTMLElement>(`[data-coach="${tip.anchor}"]`);
+    // the anchor may sit in the page or in an open dialog (the decision screen)
+    const anchor = root.querySelector<HTMLElement>(`[data-coach="${tip.anchor}"]`) ?? document.querySelector<HTMLElement>(`.overlay:not(.leaving) [data-coach="${tip.anchor}"]`);
     anchor?.classList.add('coach-target');
     const m = openModal(
       `<div class="dateline">Tip</div>
        <h2>${esc(tip.title)}</h2>
        <p class="coach-text">${esc(tip.text)}</p>
        <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">Got it <kbd>Enter</kbd></button><button type="button" class="btn-link" data-action="off">Turn off tips</button></div>`,
-      { cls: 'coach', overlayCls: 'coach-ov', describedBy: '.coach-text' },
+      // over a dialog already open (the decision screen), the tip stacks on it instead of closing it
+      { cls: 'coach', overlayCls: 'coach-ov', describedBy: '.coach-text', stacked: modalOpen() },
     );
     this.position(m.el, anchor);
     const a = await m.result;

@@ -446,6 +446,9 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .intro .logo { font-size: 40px; }
 .intro h2 { font-size: 48px; }
 .intro p { font-size: 17px; }
+.intro-lea { display: flex; gap: 14px; align-items: flex-start; margin: 14px 0; padding: 12px 14px; border-left: 3px solid var(--warn); background: rgba(255, 255, 255, .04); border-radius: 6px; }
+.intro-lea .lea-face { width: 60px; height: 60px; flex: none; }
+.intro-lea p { margin: 0 0 6px; }
 .stakes { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 8px; }
 .stakes li { font-family: var(--f-display); font-weight: 600; font-size: 24px; letter-spacing: .02em; padding-left: 18px; border-left: 3px solid var(--align); }
 .credits { font-size: 13px !important; color: var(--mute); }

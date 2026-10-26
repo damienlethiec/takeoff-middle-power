@@ -1,7 +1,8 @@
-// The two intro screens: the world today, then you and your goal. Skip goes straight to round 1.
+// The two intro screens: the world today, then you, your goal and your friend Léa. Skip goes straight to round 1.
 
 import { CREDITS, INTRO } from '../../data/copy';
 import { esc, factBox } from '../format';
+import { leaPortrait } from '../lea';
 import { openModal } from '../modal';
 
 export async function showIntro(): Promise<void> {
@@ -15,6 +16,7 @@ export async function showIntro(): Promise<void> {
         <h2 tabindex="-1" data-autofocus>${esc(sc.title)}</h2>
         ${sc.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}
         ${sc.stakes ? `<ul class="stakes">${sc.stakes.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
+        ${sc.lea ? `<div class="intro-lea">${leaPortrait('hopeful', 'Léa')}<div>${sc.lea.map((p) => `<p>${esc(p)}</p>`).join('')}</div></div>` : ''}
         ${sc.fact ? factBox(sc.fact) : ''}
         ${last ? `<p class="credits">${esc(CREDITS)}</p>` : ''}
         <div class="row-btns">

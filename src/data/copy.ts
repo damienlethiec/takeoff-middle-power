@@ -53,6 +53,8 @@ export interface IntroScreen {
   title: string;
   paragraphs: string[];
   stakes?: string[];
+  /** Léa, introduced with her portrait (v4). */
+  lea?: string[];
   fact?: Fact;
 }
 
@@ -76,6 +78,10 @@ export const INTRO: IntroScreen[] = [
       'Your goal: when AI reaches the tipping point, have AI we can trust, superpowers who talk, and a society that holds. The calmer the world, the easier a good ending.',
       'Twelve rounds of six months, from 2027 to 2032. Each round, watch the world move, then play as many cards as your Influence allows.',
     ],
+    lea: [
+      'Your friend Léa, a translator in Lyon, writes to you every few months.',
+      'She is not a minister or an expert. Her letters show you what the world’s choices do to people like her: her job, her family, her city.',
+    ],
     fact: {
       text: 'Since August 2025, makers of new general-purpose AI models offered in the EU must follow EU rules. From August 2026, the European Commission can enforce them, with fines.',
       source: SOURCES.gpaiGuidelines,
@@ -86,21 +92,24 @@ export const INTRO: IntroScreen[] = [
 export const CREDITS =
   'Built on the AI 2027 scenario and CFG’s Advanced AI: Possible Futures. OpenBrain, DeepCent and every event after today are fiction.';
 
-/** Coach marks: each shown once, the first time it matters, pointing at `anchor` (a data-coach value). */
+/** Coach marks: each shown once, the first time its part of the screen appears, pointing at `anchor` (a data-coach
+ *  value). Round 1 is guided in this order: the gauges, the outlook, the map, the news, Léa, the first request,
+ *  then Influence and the cards. Later ones come the first time they appear. All stay readable in Help. */
 export const TIPS = {
-  clock: { anchor: 'clock', title: 'The AI clock', text: 'AI capabilities rise every round. At 80, AI can improve itself: the tipping point, and the game ends. The world you have shaped by then decides the ending.' },
-  influence: { anchor: 'influence', title: 'Influence', text: 'Your one resource. You earn some every round; the counter shows how much next round, and why.' },
-  heading: { anchor: 'heading', title: 'If AI tipped now', text: 'Where the world is going and what will decide it. Keep the goal gauge above its target and the other above its floor.' },
+  clock: { anchor: 'clock', title: 'AI capabilities: the clock', text: 'AI capabilities rise every round. At 80, AI can improve itself: the tipping point, and the game ends. The world you have shaped by then decides the ending.' },
+  safety: { anchor: 'confidence', title: 'AI safety: the race against the clock', text: 'Does AI do what we intend? The number is what the labs report; the truth is never higher and could be as low as the bottom of the band. Safety must keep up with capabilities.' },
+  heading: { anchor: 'heading', title: 'If AI tipped now', text: 'Where the world would land if AI tipped today, and what decides whether it ends well: one gauge must reach its goal, another must stay above its floor.' },
+  map: { anchor: 'map', title: 'The world map', text: 'Six months play out here: headlines pop up where they happen, people speak up, threats grow as icons. Space pauses the clock.' },
+  feed: { anchor: 'feed', title: 'The news', text: 'Everything that happens appears here as it happens. Click an item to see it on the map. At the end of the six months, what changed sits on top.' },
+  lea: { anchor: 'lea', title: 'A letter from Léa', text: 'Léa wrote to you from Lyon. Open her portrait on the map to read it: she tells you what the world’s choices do to people like her.' },
+  request: { anchor: 'map', title: 'A request', text: 'Someone needs an answer from you. Answering is free of Influence: the cost is in the answer. Click an answer, swipe the card, or press ← → (once to look, twice to answer).' },
+  influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round (the counter at the top shows how much next round, and why) and spend it on policies. Play as many cards as it covers, or save it.' },
+  firstCard: { anchor: 'hand', title: 'Your cards', text: 'Every card helps something and costs something: green chips go up, red chips go down. Click cards to select them: the bar at the bottom shows their combined effect. Details tells you more.' },
   zones: { anchor: 'cooperation', title: 'US–China cooperation', text: 'Pause 60+, Race 30–59, Rupture below 30. The calmer the zone at the tipping point, the lower the bar for a good ending.' },
-  margin: { anchor: 'confidence', title: 'It could be lower', text: 'The number is what the labs report. The real value is never higher, and it could be as low as the bottom of the band. To be sure, lift the low end above the target: oversight does that.' },
-  firstCard: { anchor: 'hand', title: 'Your cards', text: 'Green chips go up, red chips go down. Every card helps something and costs something. Click a card to select it: the bar at the bottom shows what it would change. Details tells you more.' },
-  twoCards: { anchor: 'hand', title: 'As many cards as you can afford', text: 'You can play several cards in a round, each once, as long as your Influence covers them. Saving Influence is a choice too.' },
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages where they would strike. Open one to see which card protects against it.' },
   breaking: { anchor: 'map', title: 'Breaking news', text: 'When a threat strikes, it hits your gauges. Being prepared makes the difference.' },
-  badge: { anchor: 'badge', title: 'Europe’s AI', text: 'Open or Dependent: does Europe run its own models? If AI never reaches the tipping point, this badge decides the kind of world.' },
-  request: { anchor: 'map', title: 'A request', text: 'Someone needs an answer from you. Answering is free of Influence: the cost is in the answer. Click an answer, swipe the card, or press ← → (once to look, twice to answer).' },
-  feed: { anchor: 'feed', title: 'The news', text: 'Everything that happens appears here as it happens. Click an item to see it on the map. At the end of the six months, what changed sits on top.' },
   leak: { anchor: 'map', title: 'A leak', text: 'Leaks show the gap between what labs say and the truth. Oversight (AI Office, inspections, audits) lets you read them.' },
+  badge: { anchor: 'badge', title: 'Europe’s AI', text: 'Open or Dependent: does Europe run its own models? If AI never reaches the tipping point, this badge decides the kind of world.' },
 } as const;
 export type TipId = keyof typeof TIPS;
 

@@ -7,7 +7,7 @@
 import type { EngineApi } from '../engine/api';
 import type { FeedItem, GameState, GaugeKey, LeaMood, MapItem, Pick, RequestView, ThreatView } from '../engine/types';
 import { CARD_BY_ID } from '../data/cards';
-import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, marginText } from '../data/copy';
+import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, TIPS, marginText } from '../data/copy';
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
 import { Coach } from './coach';
 import { $, ICON, esc, signed } from './format';
@@ -150,13 +150,15 @@ export class App {
     announce(
       `${date} begins, round ${s.round} of 12. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${letter ? ' Léa wrote to you: her portrait is over Lyon on the map.' : ''}${s.round === 1 ? ' Press question mark for help.' : ''}`,
     );
-    // the tutorial, at first use
-    if (s.round === 1) {
-      await this.coach.show('clock', 1, this.root);
-      await this.coach.show('influence', 1, this.root);
+    // the tutorial: round 1 is guided, one coach mark at a time, each pointing at its part of the screen
+    // (the gauges, the outlook, the map, the news, Léa's first letter); later parts get theirs when they first appear
+    for (const id of ['clock', 'safety', 'heading', 'map', 'feed'] as const) await this.coach.show(id, s.round, this.root);
+    if (letter) {
+      this.map.leaButton?.setAttribute('data-coach', 'lea');
+      await this.coach.show('lea', s.round, this.root);
     }
-    if (s.round === 2) await this.coach.show('zones', 2, this.root);
-    if (s.round === 3 || s.europeAi === 'open') await this.coach.show('badge', s.round, this.root);
+    if (s.round >= 2) await this.coach.show('zones', s.round, this.root);
+    if (s.round >= 3 || s.europeAi === 'open' || this.e.heading(s).plateau) await this.coach.show('badge', s.round, this.root);
 
     this.beginClock();
     await new Promise<void>((r) => (this.clockDone = r));
@@ -166,9 +168,6 @@ export class App {
     this.map.setThreats(this.prevThreats);
     this.feedDone = true;
     this.renderAll();
-    if (this.s.round === 1) await this.coach.show('heading', 1, this.root);
-    if (this.s.round === 1) await this.coach.show('feed', 1, this.root);
-    if (this.s.round === 2) await this.coach.show('margin', 2, this.root);
 
     // the clock stops: the player takes the lead
     let picks: Pick[] | null = null;
@@ -181,9 +180,11 @@ export class App {
     while (!picks) {
       await this.dock(lastWords, [{ id: 'decide', label: decideLabel, primary: true }]);
       this.setPhase('Your decisions');
-      await this.coach.show('firstCard', this.s.round, this.root);
-      if (this.s.round >= 2) await this.coach.show('twoCards', this.s.round, this.root);
-      const d = await showDecision(this.e, this.s, date);
+      // Influence and the cards are explained over the decision screen, the first time it opens
+      const d = await showDecision(this.e, this.s, date, async () => {
+        await this.coach.show('influence', this.s.round, this.root);
+        await this.coach.show('firstCard', this.s.round, this.root);
+      });
       if (d.kind === 'map') continue;
       picks = d.picks;
     }
@@ -467,7 +468,7 @@ export class App {
 
   private openHelp() {
     this.openFromMap(() =>
-      showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on), shortcuts: shortcutsOn(), onShortcuts: (on) => setSingleKeyShortcuts(on), tips: this.coach.log }),
+      showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on), shortcuts: shortcutsOn(), onShortcuts: (on) => setSingleKeyShortcuts(on), tips: Object.values(TIPS).map((t) => ({ round: 0, title: t.title, text: t.text })) }),
     );
   }
   /** A feed item shown on the map: its threat icon, Léa or the leak lights up, or its banner comes back where it happened. */
