@@ -18,6 +18,8 @@ export interface MilestoneDef {
   via?: ThreatId;
   region: RegionId;
   headline: string;
+  /** When Europe was prepared for the threat that reaches it (the theft cut short). */
+  headlinePrepared?: string;
   effect?: { key: GaugeKey | 'margin'; amount: number; cause: string };
   basis: Basis;
 }
@@ -43,7 +45,7 @@ export const MILESTONES: MilestoneDef[] = [
     at: AT.ai_takes_jobs,
     region: 'us',
     headline: 'A cheap AI assistant hits the market. Junior programmers are the first to feel it.',
-    effect: { key: 'cohesion', amount: FX.ai_takes_jobs, cause: 'protests against AI spread to European cities' },
+    effect: { key: 'cohesion', amount: FX.ai_takes_jobs, cause: 'anti-AI protests in Washington find echoes in European cities' },
     basis: ai2027('Late 2026: AI Takes Some Jobs'),
   },
   {
@@ -60,6 +62,7 @@ export const MILESTONES: MilestoneDef[] = [
     via: 'theft',
     region: 'cn',
     headline: 'Model weights stolen from OpenBrain: the theft took under two hours.',
+    headlinePrepared: 'A theft of OpenBrain’s model weights is cut short; part of the model gets out.',
     basis: ai2027('February 2027: China Steals Agent-2'),
   },
   {

@@ -137,7 +137,7 @@ describe('Influence', () => {
     const after = playCard(flex, { id: 'flexicurity' });
     const inc = nextIncome(after);
     expect(inc.next).toBe(1);
-    expect(inc.reasons.join(' ')).toContain('Flexicurity reform');
+    expect(inc.reasons.join(' ')).toContain('Back flexicurity in member states');
   });
 
   it('never pays less than the minimum', () => {
@@ -187,15 +187,23 @@ describe('cards', () => {
     expect(hand(next).find((c) => c.id === 'talks')!.reason).toMatch(/rest/);
   });
 
-  it('inspections climb three levels with their names, narrow the margin and cost Cooperation', () => {
+  it('inspections: European testing first; the accord only after a crisis or in a pause, and it helps cooperation', () => {
     let s = fresh(1);
-    expect(hand(s).find((c) => c.id === 'inspections')!.title).toBe('Offer to host inspections');
+    expect(hand(s).find((c) => c.id === 'inspections')!.title).toBe('Test the labs’ models in Europe');
     const a = play(s, { id: 'inspections' });
     expect(a.inspections).toBe(1);
     expect(a.confidence.margin).toBeLessThan(s.confidence.margin);
-    expect(a.cooperation - s.cooperation).toBe(T.cards.inspections.cooperation);
-    s = nextRound(endRound(a).state);
-    expect(hand(s).find((c) => c.id === 'inspections')!.title).toBe('Inspection accord');
+    expect(a.confidence.estimate).toBe(s.confidence.estimate);
+    expect(a.cooperation).toBe(s.cooperation);
+    s = { ...nextRound(endRound(a).state), influence: 10, cooperation: 50 };
+    const accord = hand(s).find((c) => c.id === 'inspections')!;
+    expect(accord.title).toBe('Inspection accord');
+    expect(accord.playable).toBe(false);
+    expect(accord.reason).toMatch(/deal first/);
+    const pause = { ...s, cooperation: 62 };
+    const b = play(pause, { id: 'inspections' });
+    expect(b.cooperation - pause.cooperation).toBe(T.cards.inspections.cooperation[1]);
+    expect(nextIncome(b).reasons.join(' ')).toMatch(/Push for inspections −1/);
   });
 
   it('AI Office capacity halves the margin', () => {
@@ -231,23 +239,38 @@ describe('cards', () => {
     expect(play({ ...b, influence: 10 }, { id: 'weight_security' }).europeAi).toBe('dependent');
   });
 
-  it('the ASML lever offers two concessions, both costing Cooperation', () => {
+  it('the ASML lever offers two concessions; Washington answers with a chip-tool ban', () => {
     const s = fresh(1, { hand: ['asml'] });
     expect(() => playCard(s, { id: 'asml' })).toThrow();
     const safety = play(s, { id: 'asml', option: 'safety' });
     const access = play(s, { id: 'asml', option: 'access' });
-    expect(safety.confidence.estimate).toBeGreaterThan(s.confidence.estimate);
+    expect(safety.confidence.margin).toBeLessThan(s.confidence.margin);
+    expect(safety.flags).toContain('us_chip_threat');
+    const next = startRound(endRound(answerAll(safety)).state);
+    expect(next.event?.id).toBe('chip_ban');
+    expect(next.event!.options.map((o) => o.id)).toEqual(['comply', 'protest']);
+    const protest = resolveEvent(next, 'protest');
+    expect(protest.threats.blackmail.stage).toBeGreaterThanOrEqual(1);
+    expect(protest.flags).toEqual(expect.arrayContaining(['chip_ban_done', 'chip_ban_protest']));
+    const comply = resolveEvent(next, 'comply');
+    expect(comply.cohesion - next.cohesion).toBe(T.events.chipBan.comply.cohesion);
     expect(access.cohesion - s.cohesion).toBe(T.cards.asml.access.cohesion);
     expect(safety.cooperation - s.cooperation).toBe(T.cards.asml.cooperation);
   });
 
-  it('the human oversight mandate creates the silicon blackmail threat while Europe is Dependent', () => {
+  it('the human oversight mandate: labs withhold models (Dependent, silicon blackmail) unless Europe funded its own', () => {
     const s = fresh(1, { hand: ['oversight_mandate'] });
     const a = play(s, { id: 'oversight_mandate' });
     expect(a.threats.blackmail.stage).toBe(1);
-    expect(a.aiPower - s.aiPower).toBe(T.cards.oversight_mandate.aiPower);
-    const open = play({ ...s, europeAi: 'open' }, { id: 'oversight_mandate' });
-    expect(open.threats.blackmail.stage).toBe(0);
+    expect(a.aiPower).toBe(s.aiPower);
+    // Open thanks to others' models: they are withheld, Europe turns Dependent and the threat appears
+    const borrowed = play({ ...s, europeAi: 'open' }, { id: 'oversight_mandate' });
+    expect(borrowed.europeAi).toBe('dependent');
+    expect(borrowed.threats.blackmail.stage).toBe(1);
+    // Open with models Europe funded itself: it stays Open, no threat
+    const own = play({ ...s, europeAi: 'open', uses: { open_models: 1 } }, { id: 'oversight_mandate' });
+    expect(own.europeAi).toBe('open');
+    expect(own.threats.blackmail.stage).toBe(0);
   });
 
   it('spent cards leave the hand', () => {
@@ -282,7 +305,7 @@ describe('threats and events', () => {
     }
   });
 
-  it('model theft: unprepared it speeds AI up and wrecks Cooperation; prepared it fails', () => {
+  it('model theft: unprepared it speeds AI up and wrecks Cooperation; prepared it is cut short', () => {
     const base = ripe(fresh(1, { round: 5, aiPower: 50, jobShocks: 1, milestones: MILESTONES.slice(0, 4).map((m) => ({ id: m.id, round: 1 })) }), 'theft');
     const s = startRound(base);
     expect(s.event?.id).toBe('theft');
@@ -345,6 +368,60 @@ describe('threats and events', () => {
     const after = resolveEvent(hit!);
     expect(after.cooperation - hit!.cooperation).toBe(T.threats.incident.prepared.cooperation);
     expect(hand(after).find((c) => c.id === 'summit')?.expiresIn).toBe(2);
+  });
+
+  it('an unprepared AI incident still opens the summit; Europe leads it only when prepared', () => {
+    const s = ripe(
+      fresh(1, { round: 7, aiPower: 64, jobShocks: 2, confidence: { truth: 20, estimate: 30, margin: 12 }, milestones: MILESTONES.slice(0, 6).map((m) => ({ id: m.id, round: 1 })) }),
+      'incident',
+    );
+    let hit: GameState | null = null;
+    for (let k = 0; k < 30 && !hit; k++) {
+      const x = startRound({ ...s, rng: s.rng + k });
+      if (x.event?.id === 'incident') hit = x;
+    }
+    expect(hit!.event!.prepared).toBe(false);
+    const after = answerAll(resolveEvent(hit!));
+    expect(after.cooperation - hit!.cooperation).toBeGreaterThanOrEqual(T.threats.incident.unprepared.cooperation - 2);
+    const summit = playCard({ ...after, influence: 10 }, { id: 'summit' });
+    expect(summit.cooperation - after.cooperation).toBe(T.cards.summit.cooperationFollow);
+  });
+
+  it('partial protection: weight security cuts the theft short, the AI Office softens opaque reasoning', () => {
+    const theft = ripe(fresh(1, { round: 5, aiPower: 50, jobShocks: 1, uses: { weight_security: 1 }, milestones: MILESTONES.slice(0, 4).map((m) => ({ id: m.id, round: 1 })) }), 'theft');
+    const t = startRound(theft);
+    expect(t.event!.title).toBe('Theft of model weights cut short');
+    expect(t.headlines.map((h) => h.text).join(' ')).toMatch(/cut short/);
+    const r = resolveEvent(t);
+    expect(r.aiPower - t.aiPower).toBe(T.threats.theft.prepared.aiPower);
+    const opaque = ripe(fresh(1, { round: 5, aiPower: 50, uses: { ai_office: 1 }, confidence: { truth: 50, estimate: 70, margin: 10 }, milestones: MILESTONES.slice(0, 5).map((m) => ({ id: m.id, round: 1 })) }), 'opaque');
+    const o = startRound(opaque);
+    expect(o.event?.id).toBe('opaque');
+    expect(o.event!.prepared).toBe(true);
+    expect(resolveEvent(o).confidence.margin).toBeGreaterThan(o.confidence.margin);
+  });
+
+  it('crises that are not threats come once: Taiwan in a rupture, the open-model ban for an Open Europe', () => {
+    const theft = { ...fresh(1).threats.theft, stage: 3 as const, struck: true, struckRound: 2 };
+    const rupture = fresh(1, { round: 6, aiPower: 55, cooperation: 20, jobShocks: 1, flags: ['chip_ban_done'], threats: { ...fresh(1).threats, theft } });
+    const t = startRound(rupture);
+    expect(t.event?.id).toBe('taiwan');
+    expect(t.event!.prepared).toBeNull();
+    const after = resolveEvent(t);
+    expect(after.flags).toContain('taiwan_done');
+    const open = fresh(1, { round: 6, aiPower: 58, cooperation: 50, europeAi: 'open', jobShocks: 1, milestones: MILESTONES.slice(0, 7).map((m) => ({ id: m.id, round: 1 })) });
+    const o = startRound(open);
+    expect(o.event?.id).toBe('open_ban');
+    expect(resolveEvent(o, 'join').europeAi).toBe('dependent');
+    expect(resolveEvent(o, 'keep').flags).toContain('open_ban_keep');
+  });
+
+  it('a licensing treaty arrives only within a pause, after a tested deal', () => {
+    const s = fresh(1, { round: 6, cooperation: 65, inspections: 2 });
+    const n = startRound(endRound(answerAll(s)).state);
+    expect(n.hand).toContain('licensing_treaty');
+    const ready = { ...answerAll(n.event ? resolveEvent(n, n.event.options[0]?.id) : n), influence: 10 };
+    expect(hand({ ...ready, cooperation: 50 }).find((c) => c.id === 'licensing_treaty')!.reason).toMatch(/Only in a pause/);
   });
 
   it('job shocks hit Cohesion, softened by flexicurity', () => {

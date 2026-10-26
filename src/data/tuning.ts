@@ -84,19 +84,30 @@ export const TUNING = {
 
   /** Card effects. Costs per level for cards with levels. */
   cards: {
-    talks: { cost: 1, cooperation: 8, cohesion: -2, uses: 3, rest: 1 },
-    inspections: { cost: [2, 2, 3], estimate: 8, truth: 6, margin: -4, cooperation: -4, uses: 3 },
+    talks: { cost: 1, cooperation: 6, cohesion: -2, uses: 3, rest: 1 },
+    /** Level 1 (EU testing of the models sold in Europe) from round 1; the accord and the joint inspectorate only
+     *  after an AI incident, the summit, or with US–China cooperation in the Pause zone. Cooperation per level (0
+     *  for the first: Europe tests at home); hidden `truth` per level (inspectors inside the labs, under a deal, can
+     *  demand fixes); Influence lost the next round from the accord on. */
+    inspections: { cost: [2, 3, 3], margin: -8, cooperation: [0, 3, 3], truth: [0, 3, 3], influence: -1, uses: 3 },
     ai_office: { cost: 2, marginFactor: 0.5, cohesion: -1, inspectionsBonus: -2 },
-    alignment: { cost: 2, truth: 6, estimate: 2, cohesion: -1, uses: 3 },
-    coalition: { cost: [2, 2, 3], cooperation: 6, cohesion: -1, uses: 3 },
+    /** Hidden gain `truth`, plus `accessTruth` once the inspection accord (`accessInspections`) opens the labs. */
+    alignment: { cost: 2, truth: 3, accessTruth: 4, accessInspections: 2, estimate: 2, cohesion: -1, uses: 3 },
+    coalition: { cost: [2, 2, 3], cooperation: 3, cohesion: -1, uses: 3 },
     audit: { cost: 1, rounds: 2, uses: 2 },
-    asml: { cost: 2, safety: { estimate: 10, truth: 8 }, access: { cohesion: 8 }, cooperation: -12, uses: 2, arrivesAt: 35 },
+    asml: { cost: 2, safety: { margin: -8 }, access: { cohesion: 6 }, cooperation: -2, uses: 2, arrivesAt: 35 },
     weight_security: { cost: 1, cohesion: -2 },
-    open_models: { cost: 2, cohesion: 6, estimate: -6, truth: -6 },
+    open_models: { cost: 2, cohesion: 6, arrivesRound: 2 },
     flexicurity: { cost: 3, cohesion: 10, influence: -1, rounds: 2 },
     cyber_shield: { cost: 2, cohesion: 3, influence: -1, rounds: 2 },
-    oversight_mandate: { cost: 2, cohesion: 6, aiPower: -2, arrivesRound: 6 },
-    summit: { cost: 1, cooperation: 10, estimate: 5, truth: 5, rounds: 2 },
+    oversight_mandate: { cost: 2, cohesion: 6, arrivesRound: 6 },
+    cern_ai: { cost: 3, margin: -8, cohesion: -3, arrivesRound: 3 },
+    chip_verification: { cost: 3, cooperation: 4, margin: -3, influence: -1, arrivesAt: 50 },
+    /** Only with US–China cooperation in the Pause zone (`zones.pause`). */
+    licensing_treaty: { cost: 3, margin: -6, truth: 6, cooperation: 3, cohesion: -2 },
+    biosecurity: { cost: 2, cooperation: 3, cohesion: -1 },
+    /** Opens after any AI incident: `cooperation` when Europe was prepared (it leads), `cooperationFollow` otherwise. */
+    summit: { cost: 1, cooperation: 10, cooperationFollow: 5, margin: -5, truth: 4, rounds: 2 },
     attribution: { cost: 1, cooperation: 5, rounds: 2 },
     /** AI 2027, October 2027: after the memo leaks, Europe calls for a pause with other capitals. Beijing joins
      *  (cooperation), Washington calls it betrayal (Influence next round); one vote toward slowing down. */
@@ -108,9 +119,11 @@ export const TUNING = {
 
   threats: {
     /** Theft pressure = AI power + (50 − Cooperation) × coopWeight. Stages at these pressures. */
-    theft: { coopWeight: 0.4, stages: [28, 33, 38], unprepared: { aiPower: 5, cooperation: -15 }, prepared: { cooperation: -3 } },
-    /** Opaque reasoning: AI power stages, after the theft. */
-    opaque: { stages: [45, 48, 51], marginFactor: 1.5 },
+    /** Prepared (weight security) cuts the theft short: part of the model gets out (partial protection). */
+    theft: { coopWeight: 0.4, stages: [28, 33, 38], unprepared: { aiPower: 5, cooperation: -15 }, prepared: { aiPower: 2, cooperation: -6 } },
+    /** Opaque reasoning: AI power stages, after the theft. The uncertainty grows by `marginFactor`, by
+     *  `preparedFactor` with the AI Office's testers (they test behaviour; nobody can read the reasoning). */
+    opaque: { stages: [45, 48, 51], marginFactor: 1.5, preparedFactor: 1.2 },
     /** AI incident: AI power stages, after opaque reasoning; strike chance per round at stage 3 depends on hidden safety. */
     incident: {
       stages: [52, 57, 62],
@@ -119,15 +132,39 @@ export const TUNING = {
       chanceMin: 0.08,
       chanceMax: 0.85,
       chanceCenter: 60,
-      unprepared: { estimate: -10, cohesion: -5 },
+      /** Unprepared, fear still drives some talks (CFG: the warning shot galvanises cooperation). */
+      unprepared: { estimate: -10, cohesion: -5, cooperation: 3 },
       prepared: { cooperation: 10 },
-      needs: { coalition: 1, inspections: 2 },
+      needs: { coalition: 1, inspections: 1 },
     },
-    /** Ransomware pressure = AI power × powerWeight + 25 if Europe's AI is Open. */
-    ransomware: { powerWeight: 0.5, openBonus: 25, stages: [32, 37, 42], unprepared: { cohesion: -15 }, prepared: { cohesion: -3 } },
+    /** Ransomware pressure = AI power × powerWeight + openBonus if Europe's AI is Open (closed models are misused
+     *  too: a Dependent Europe meets it from about AI capabilities 53). */
+    ransomware: { powerWeight: 0.6, openBonus: 15, stages: [32, 37, 42], unprepared: { cohesion: -15 }, prepared: { cohesion: -3 } },
     /** Silicon blackmail: appears with the oversight mandate while Dependent, grows one stage a round. */
     blackmail: { holdFirm: { cohesion: -10 } },
+    /** Bioweapon uplift (AI 2027, July 2027; CFG, Take-off): AI capabilities stages after the cheap remote worker,
+     *  `openBonus` more if Europe's AI is Open. Unprepared: a lockdown scare; prepared (the biosecurity pact): fear
+     *  shared, a little cooperation. */
+    bio: { stages: [70, 73, 76], openBonus: 3, unprepared: { cohesion: -6 }, prepared: { cohesion: -1 } },
   },
+
+  /** Breaking news that are not threats (CFG, AI 2027). Each comes once. */
+  events: {
+    /** Washington blocks European chip-tool sales to China (CFG, Arms race): after the ASML lever, or in the Rupture
+     *  zone once the theft struck. Comply: lost exports, Beijing sees Europe join the blockade. Protest: Washington
+     *  threatens to withdraw its AI from Europe (the silicon blackmail threat appears or grows). */
+    chipBan: { comply: { cohesion: -4, cooperation: -3 } },
+    /** A Taiwan Strait crisis: in the Rupture zone once the theft struck, from AI capabilities `from`. */
+    taiwan: { from: 50, cooperation: -5, cohesion: -4, aiPower: -2 },
+    /** Washington and Beijing ban open models above a size (CFG): when Europe's AI is Open, from AI capabilities
+     *  `from`, outside the Rupture zone. Join: Europe's AI → Dependent, open developers leave. Keep open: cooperation,
+     *  and the ransomware threat grows a stage. */
+    openBan: { from: 55, join: { cohesion: -2 }, keep: { cooperation: -4 } },
+  },
+
+  /** The geopolitics milestone (AI 2027, August 2027): Five Eyes allies get privileged access. A coalition below
+   *  level `holds` (Canada not yet in) wavers: Influence lost at once. */
+  fiveEyes: { holds: 2, influence: -2 },
 
   /** The misalignment memo leaks to the press (AI 2027, September–October 2027): Breaking news in the first round
    *  with AI capabilities `at` or more, after the geopolitics milestone (so always at or before the tipping point).
@@ -142,7 +179,7 @@ export const TUNING = {
    *  Slowing down moves the final US–China cooperation by `slowdown.cooperation` and the true AI safety by
    *  `slowdown.truth` (outside researchers brought in, Agent-4 shut down); racing on moves cooperation by
    *  `race.cooperation` (China's offer of a pause refused). */
-  committee: { base: 4, needed: 6, doubtBelow: 50, slowdown: { cooperation: 10, truth: 6 }, race: { cooperation: -4 } },
+  committee: { base: 4, needed: 6, doubtBelow: 50, slowdown: { cooperation: 10, truth: 8 }, race: { cooperation: -4 } },
 
   /** Leaks: every two or three rounds, readable with enough oversight. */
   leaks: { firstRound: 2, gapMin: 2, gapMax: 3, levels: [1, 1, 2, 2, 3, 3] },

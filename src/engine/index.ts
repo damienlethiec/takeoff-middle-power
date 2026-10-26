@@ -16,6 +16,7 @@ import { EVENTS, THREAT_BY_ID, THREATS } from '../data/threats';
 import { JOB_SHOCK_PLACE, SOCIAL_BY_ID, SOCIAL_EVENTS, SOCIAL_WORD, WORKER_ANSWERS, type SocialEventDef } from '../data/social';
 import { TUNING as T } from '../data/tuning';
 import type { EngineApi } from './api';
+import { ai2027 } from '../data/basis';
 import { random, randomInt, seedToRng, weightedOrder, weightedPick, type RngHolder } from './rng';
 import type {
   AdvisorView,
@@ -67,7 +68,7 @@ import type {
 const clone = <S>(s: S): S => structuredClone(s);
 const clamp = (x: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, x));
 const signed = (x: number) => (x > 0 ? `+${x}` : x < 0 ? `−${Math.abs(x)}` : '0');
-const THREAT_IDS: ThreatId[] = ['theft', 'opaque', 'incident', 'ransomware', 'blackmail'];
+const THREAT_IDS: ThreatId[] = ['theft', 'opaque', 'incident', 'ransomware', 'blackmail', 'bio'];
 
 /** The year a round falls in: rounds 1–2 are 2027, … rounds 9–10 are 2031. */
 export function yearOf(round: number): number {
@@ -423,6 +424,7 @@ function threatStages(s: GameState) {
   set('opaque', stageOf(s.aiPower, TT.opaque.stages));
   if (reached(s, 'superhuman_coder') || s.threats.opaque.struck) set('incident', stageOf(s.aiPower, TT.incident.stages));
   set('ransomware', stageOf(s.aiPower * TT.ransomware.powerWeight + (s.europeAi === 'open' ? TT.ransomware.openBonus : 0), TT.ransomware.stages));
+  if (reached(s, 'cheap_remote_worker')) set('bio', stageOf(s.aiPower + (s.europeAi === 'open' ? TT.bio.openBonus : 0), TT.bio.stages));
   const b = s.threats.blackmail;
   if (b.stage > 0 && b.stage < 3 && !b.struck && s.arrivals.oversight_mandate !== s.round) set('blackmail', (b.stage + 1) as 1 | 2 | 3);
 }
@@ -440,6 +442,8 @@ export function isPrepared(s: GameState, id: ThreatId): boolean {
       return used(s, 'cyber_shield') || s.flags.includes('ransomware_ready');
     case 'blackmail':
       return s.europeAi === 'open';
+    case 'bio':
+      return used(s, 'biosecurity');
   }
 }
 
@@ -465,7 +469,9 @@ function reachMilestones(s: GameState, out: MapItem[]) {
 function reach(s: GameState, id: MilestoneId, out: MapItem[]) {
   const m = MILESTONE_BY_ID[id];
   s.milestones.push({ id, round: s.round });
-  out.push({ id: `m_${id}`, round: s.round, region: m.region, text: m.headline, at: 0, basis: m.basis });
+  const text = m.headlinePrepared && m.via && s.event?.id === m.via && s.event.prepared ? m.headlinePrepared : m.headline;
+  out.push({ id: `m_${id}`, round: s.round, region: m.region, text, at: 0, basis: m.basis });
+  if (id === 'geopolitics') fiveEyes(s, out);
   if (m.effect) {
     const a = snap(s);
     const key = m.effect.key === 'confidence' ? 'estimate' : m.effect.key;
@@ -477,6 +483,27 @@ function reach(s: GameState, id: MilestoneId, out: MapItem[]) {
   }
 }
 
+/**
+ * AI 2027, August 2027: Washington gives its Five Eyes allies privileged access to its AI. A middle-power coalition
+ * that has not yet brought Canada in wavers (the UK is tempted away): Influence lost at once. Always a headline.
+ */
+function fiveEyes(s: GameState, out: MapItem[]) {
+  out.push({
+    id: 'm_five_eyes',
+    round: s.round,
+    region: 'us',
+    text: 'Washington shares its AI secrets with London and Ottawa. Brussels is not told.',
+    at: 0,
+    basis: ai2027('August 2027: The Geopolitics of Superintelligence (the US will “give their Five Eyes allies useful information”)'),
+  });
+  const F = T.fiveEyes;
+  if (s.coalition >= 1 && s.coalition < F.holds) {
+    const before = s.influence;
+    s.influence = clamp(s.influence + F.influence, 0, T.influence.cap);
+    s.changes.push({ round: s.round, key: 'influence', text: `Influence ${before} → ${s.influence}`, cause: 'London is tempted by Washington’s offer: your coalition wavers', tone: -1 });
+  }
+}
+
 /** The effects an event would have, given the state now (and the player's choice for silicon blackmail). */
 function eventFx(s: GameState, id: EventId, choice?: string | null): Fx[] {
   const TT = T.threats;
@@ -484,19 +511,23 @@ function eventFx(s: GameState, id: EventId, choice?: string | null): Fx[] {
   switch (id) {
     case 'theft':
       return prepared
-        ? [{ key: 'cooperation', amount: TT.theft.prepared.cooperation }]
+        ? [
+            { key: 'aiPower', amount: TT.theft.prepared.aiPower },
+            { key: 'cooperation', amount: TT.theft.prepared.cooperation },
+          ]
         : [
             { key: 'aiPower', amount: TT.theft.unprepared.aiPower },
             { key: 'cooperation', amount: TT.theft.unprepared.cooperation },
           ];
     case 'opaque':
-      return prepared ? [] : [{ key: 'marginMul', amount: TT.opaque.marginFactor }];
+      return [{ key: 'marginMul', amount: prepared ? TT.opaque.preparedFactor : TT.opaque.marginFactor }];
     case 'incident':
       return prepared
         ? [{ key: 'cooperation', amount: TT.incident.prepared.cooperation }]
         : [
             { key: 'estimate', amount: TT.incident.unprepared.estimate },
             { key: 'cohesion', amount: TT.incident.unprepared.cohesion },
+            { key: 'cooperation', amount: TT.incident.unprepared.cooperation },
           ];
     case 'ransomware':
       return [{ key: 'cohesion', amount: prepared ? TT.ransomware.prepared.cohesion : TT.ransomware.unprepared.cohesion }];
@@ -508,8 +539,31 @@ function eventFx(s: GameState, id: EventId, choice?: string | null): Fx[] {
       return [{ key: 'cohesion', amount: prepared ? T.jobShocks.softened : T.jobShocks.hit }];
     case 'memo':
       return [{ key: 'cohesion', amount: T.memo.cohesion }, ...(prepared ? [] : [{ key: 'margin' as const, amount: T.memo.obsoleteMargin }])];
+    case 'bio':
+      return [{ key: 'cohesion', amount: prepared ? TT.bio.prepared.cohesion : TT.bio.unprepared.cohesion }];
+    case 'chip_ban':
+      // protesting costs a threat (resolveEvent), complying costs exports and Beijing's goodwill
+      return choice === 'protest' ? [] : [
+        { key: 'cohesion', amount: E.chipBan.comply.cohesion },
+        { key: 'cooperation', amount: E.chipBan.comply.cooperation },
+      ];
+    case 'taiwan':
+      return [
+        { key: 'cooperation', amount: E.taiwan.cooperation },
+        { key: 'cohesion', amount: E.taiwan.cohesion },
+        { key: 'aiPower', amount: E.taiwan.aiPower },
+      ];
+    case 'open_ban':
+      return choice === 'keep'
+        ? [{ key: 'cooperation', amount: E.openBan.keep.cooperation }]
+        : [
+            { key: 'europeAi', amount: 0, set: 'dependent' },
+            { key: 'cohesion', amount: E.openBan.join.cohesion },
+          ];
   }
 }
+
+const E = T.events;
 
 const isThreat = (id: EventId): id is ThreatId => (THREAT_IDS as string[]).includes(id);
 
@@ -518,14 +572,44 @@ const isThreat = (id: EventId): id is ThreatId => (THREAT_IDS as string[]).inclu
 function eventPrepared(s: GameState, id: EventId): boolean {
   if (isThreat(id)) return isPrepared(s, id);
   if (id === 'memo') return s.inspections >= T.memo.seesFrontier;
-  return used(s, 'flexicurity');
+  if (id === 'job_shock_1' || id === 'job_shock_2') return used(s, 'flexicurity');
+  return false;
 }
+
+/** Events nobody can prepare for (a choice, or a crisis that simply happens) show no "prepared" line. */
+const NO_PREP: EventId[] = ['chip_ban', 'taiwan', 'open_ban'];
 
 /** The cards that prepare Europe for an event (or would have). */
 function eventPreparedBy(id: EventId): CardId[] {
   if (isThreat(id)) return THREAT_BY_ID[id].protectedBy;
   if (id === 'memo') return ['inspections'];
-  return ['flexicurity'];
+  if (id === 'job_shock_1' || id === 'job_shock_2') return ['flexicurity'];
+  return [];
+}
+
+/** The two answers of an event that asks for a choice, with what each does (from TUNING). */
+function eventOptions(s: GameState, id: EventId, prepared: boolean): { id: string; label: string; detail: string }[] {
+  const ch = (x: number) => signed(x);
+  if (id === 'blackmail' && !prepared)
+    return [
+      { id: 'give_in', label: 'Give in', detail: 'Drop the rules that angered them. Europe’s AI is locked to Dependent: you can no longer fund open models.' },
+      { id: 'hold_firm', label: 'Hold firm', detail: `Keep the rules and ride out the disruption as services go dark: ${GAUGE_LABEL.cohesion} ${ch(T.threats.blackmail.holdFirm.cohesion)}.` },
+    ];
+  if (id === 'chip_ban')
+    return [
+      { id: 'comply', label: 'Comply', detail: `Toolmakers lose their Chinese orders and Beijing sees Europe join the blockade: ${GAUGE_LABEL.cohesion} ${ch(E.chipBan.comply.cohesion)}, ${GAUGE_LABEL.cooperation} ${ch(E.chipBan.comply.cooperation)}.` },
+      {
+        id: 'protest',
+        label: 'Protest',
+        detail: s.europeAi === 'open' ? 'Washington threatens to withdraw American AI from Europe; Europe’s own open models blunt the threat.' : 'Washington threatens to withdraw American AI from Europe: the silicon blackmail threat grows.',
+      },
+    ];
+  if (id === 'open_ban')
+    return [
+      { id: 'join', label: 'Join the ban', detail: `Europe stops publishing large open models. Europe’s AI turns Dependent; open developers leave: ${GAUGE_LABEL.cohesion} ${ch(E.openBan.join.cohesion)}.` },
+      { id: 'keep', label: 'Keep them open', detail: `Washington and Beijing call Europe the leak: ${GAUGE_LABEL.cooperation} ${ch(E.openBan.keep.cooperation)}, and the ransomware threat grows.` },
+    ];
+  return [];
 }
 
 function buildEvent(s: GameState, id: EventId, h: RngHolder): PendingEvent {
@@ -534,24 +618,19 @@ function buildEvent(s: GameState, id: EventId, h: RngHolder): PendingEvent {
   const preparedBy = eventPreparedBy(id);
   const after = clone(s);
   applyFx(after, eventFx(s, id, 'hold_firm'));
-  const options =
-    id === 'blackmail' && !prepared
-      ? [
-          { id: 'give_in', label: 'Give in', detail: 'Drop the mandate’s teeth. Europe’s AI is locked to Dependent: you can no longer fund open models.' },
-          { id: 'hold_firm', label: 'Hold firm', detail: `Keep the mandate and ride out the disruption: ${GAUGE_LABEL.cohesion} ${signed(T.threats.blackmail.holdFirm.cohesion)}.` },
-        ]
-      : [];
+  const options = eventOptions(s, id, prepared);
+  const noPrep = NO_PREP.includes(id);
   return {
     id,
     round: s.round,
     at: 0.35 + random(h) * 0.3,
     region: def.region,
-    title: def.title,
-    headline: def.headline,
+    title: prepared && def.titlePrepared ? def.titlePrepared : def.title,
+    headline: prepared && def.headlinePrepared ? def.headlinePrepared : def.headline,
     scene: prepared ? def.scene.prepared : def.scene.unprepared,
-    prepared,
+    prepared: noPrep ? null : prepared,
     preparedBy,
-    preparedText: prepared ? def.preparedText : def.unpreparedText,
+    preparedText: noPrep ? '' : prepared ? def.preparedText : def.unpreparedText,
     impacts: options.length ? [] : impacts(snap(s), snap(after)),
     options,
     fact: def.fact,
@@ -568,6 +647,8 @@ function chooseEvent(s: GameState, h: RngHolder): EventId | null {
   const J = T.jobShocks.at;
   if (s.jobShocks === 0 && s.aiPower >= J[0] && reached(s, 'ai_takes_jobs')) return 'job_shock_1';
   if (s.jobShocks === 1 && s.aiPower >= J[1] && reached(s, 'cheap_remote_worker')) return 'job_shock_2';
+  const crisis = crisisEvent(s);
+  if (crisis) return crisis;
   if (ripe(s, 'incident')) {
     const I = T.threats.incident;
     const p = clamp(I.chanceBase + (I.chanceCenter - s.confidence.truth) * I.chancePerPoint, I.chanceMin, I.chanceMax);
@@ -575,6 +656,17 @@ function chooseEvent(s: GameState, h: RngHolder): EventId | null {
   }
   if (ripe(s, 'blackmail')) return 'blackmail';
   if (ripe(s, 'ransomware')) return 'ransomware';
+  if (ripe(s, 'bio')) return 'bio';
+  return null;
+}
+
+/** The scenarios' crises that are not threats, each once a game (checked before the AI incident's draw). */
+function crisisEvent(s: GameState): EventId | null {
+  const once = (id: EventId) => !s.flags.includes(`${id}_done`);
+  const zone = zoneOf(s.cooperation);
+  if (once('chip_ban') && (s.flags.includes('us_chip_threat') || (zone === 'rupture' && s.threats.theft.struck))) return 'chip_ban';
+  if (once('taiwan') && zone === 'rupture' && s.threats.theft.struck && s.aiPower >= E.taiwan.from) return 'taiwan';
+  if (once('open_ban') && s.europeAi === 'open' && zone !== 'rupture' && s.aiPower >= E.openBan.from) return 'open_ban';
   return null;
 }
 
@@ -630,7 +722,14 @@ function arrive(s: GameState) {
     const a = c.arrives;
     if ('opportunity' in a) continue;
     if (s.arrivals[c.id] !== undefined) continue;
-    if (('round' in a && s.round >= a.round) || ('aiPower' in a && s.aiPower >= a.aiPower) || ('threatSeen' in a && s.threats[a.threatSeen].stage > 0) || ('jobShock' in a && s.jobShocks >= a.jobShock))
+    if (
+      ('round' in a && s.round >= a.round) ||
+      ('aiPower' in a && s.aiPower >= a.aiPower) ||
+      ('threatSeen' in a && s.threats[a.threatSeen].stage > 0) ||
+      ('jobShock' in a && s.jobShocks >= a.jobShock) ||
+      ('milestone' in a && reached(s, a.milestone)) ||
+      ('pauseDeal' in a && zoneOf(s.cooperation) === 'pause' && (used(s, 'summit') || s.inspections >= 2))
+    )
       add(c.id);
   }
 }
@@ -1005,6 +1104,11 @@ export function resolveEvent(state: GameState, choice?: string): GameState {
     // the leak goes public: Washington forms the Oversight Committee, Europe may call for a pause
     if (!s.flags.includes('memo_public')) s.flags.push('memo_public');
     openOpportunity(s, 'pause_call');
+  } else if (!isThreat(ev.id)) {
+    // the crises that are not threats: each comes once, and the answer is remembered (flags, for the news)
+    s.flags.push(`${ev.id}_done`, ...(choice ? [`${ev.id}_${choice}`] : []));
+    if (ev.id === 'chip_ban' && choice === 'protest') grow(s, 'blackmail');
+    if (ev.id === 'open_ban' && choice === 'keep') grow(s, 'ransomware');
   } else {
     const t = s.threats[ev.id];
     t.struck = true;
@@ -1016,12 +1120,20 @@ export function resolveEvent(state: GameState, choice?: string): GameState {
       s.hand = s.hand.filter((c) => c !== 'open_models');
     }
     // opportunities born of a crisis
-    if (ev.id === 'incident' && ev.prepared) openOpportunity(s, 'summit');
+    if (ev.id === 'incident') openOpportunity(s, 'summit');
     if (ev.id === 'theft' && s.coalition >= 1) openOpportunity(s, 'attribution');
   }
   s.event = null;
   s.roundEvent = { id: ev.id, title: ev.title, prepared: ev.prepared, choice: choice ?? null, at: ev.at, region: ev.region };
   return s;
+}
+
+/** A threat grows one stage (never past imminent, never once struck). */
+function grow(s: GameState, id: ThreatId) {
+  const st = s.threats[id];
+  if (st.struck || st.stage >= 3) return;
+  st.stage = (st.stage + 1) as 1 | 2 | 3;
+  if (st.stage === 3) st.imminentSince = s.round;
 }
 
 function openOpportunity(s: GameState, id: 'summit' | 'attribution' | 'pause_call') {
@@ -1036,6 +1148,10 @@ function cardDef(id: CardId): CardDef {
   return CARD_BY_ID[id];
 }
 
+/** The superpowers let European inspectors in only after a scare or within a pause (AI 2027 keeps allies out of the
+ *  loop; CFG discusses verification after the warning shot). */
+const inspectionDeal = (s: GameState) => s.threats.incident.struck || used(s, 'summit') || zoneOf(s.cooperation) === 'pause';
+
 /** Why a card cannot be played now, or null. */
 function blocked(s: GameState, id: CardId): string | null {
   if (s.phase !== 'play') return 'The game is over.';
@@ -1045,6 +1161,8 @@ function blocked(s: GameState, id: CardId): string | null {
   if ((s.uses[id] ?? 0) >= cardUses(id)) return 'Already used up.';
   if (id === 'open_models' && s.europeAiLocked) return 'Locked: Europe gave in to the labs.';
   if ((s.restUntil[id] ?? 0) >= s.round) return 'The envoys need a round of rest.';
+  if (id === 'inspections' && (s.uses.inspections ?? 0) >= 1 && !inspectionDeal(s)) return 'An accord needs a deal first: an AI incident, the summit, or US–China cooperation 60+.';
+  if (id === 'licensing_treaty' && zoneOf(s.cooperation) !== 'pause') return `Only in a pause: US–China cooperation ${T.zones.pause} or more.`;
   if (s.played.some((p) => p.id === id)) return 'Already played this round.';
   const cost = cardCost(id, s.uses[id] ?? 0);
   if (cost > s.influence) return `Not enough Influence: costs ${cost}, you have ${s.influence}.`;
@@ -1053,27 +1171,33 @@ function blocked(s: GameState, id: CardId): string | null {
 
 function cardFx(s: GameState, p: Pick): Fx[] {
   const C = T.cards;
+  // called once the use is counted: the level just played (0 for the first)
+  const level = Math.max(0, (s.uses[p.id] ?? 1) - 1);
   switch (p.id) {
     case 'talks':
       return [
         { key: 'cooperation', amount: C.talks.cooperation },
         { key: 'cohesion', amount: C.talks.cohesion },
       ];
-    case 'inspections':
+    case 'inspections': {
+      // verification is what makes a deal possible: cooperation 0 for Europe's own testing, + from the accord
+      const coop = C.inspections.cooperation[Math.min(level, C.inspections.cooperation.length - 1)];
+      const truth = C.inspections.truth[Math.min(level, C.inspections.truth.length - 1)];
       return [
-        { key: 'truth', amount: C.inspections.truth },
-        { key: 'estimate', amount: C.inspections.estimate },
         { key: 'margin', amount: C.inspections.margin + (used(s, 'ai_office') ? C.ai_office.inspectionsBonus : 0) },
-        { key: 'cooperation', amount: C.inspections.cooperation },
+        ...(coop ? [{ key: 'cooperation' as const, amount: coop }] : []),
+        ...(truth ? [{ key: 'truth' as const, amount: truth }] : []),
       ];
+    }
     case 'ai_office':
       return [
         { key: 'marginMul', amount: C.ai_office.marginFactor },
         { key: 'cohesion', amount: C.ai_office.cohesion },
       ];
     case 'alignment':
+      // published research helps a little; with an inspection accord, European teams work inside the labs
       return [
-        { key: 'truth', amount: C.alignment.truth },
+        { key: 'truth', amount: C.alignment.truth + (s.inspections >= C.alignment.accessInspections ? C.alignment.accessTruth : 0) },
         { key: 'estimate', amount: C.alignment.estimate },
         { key: 'cohesion', amount: C.alignment.cohesion },
       ];
@@ -1086,12 +1210,7 @@ function cardFx(s: GameState, p: Pick): Fx[] {
       return [];
     case 'asml':
       return [
-        ...(p.option === 'access'
-          ? [{ key: 'cohesion' as const, amount: C.asml.access.cohesion }]
-          : [
-              { key: 'truth' as const, amount: C.asml.safety.truth },
-              { key: 'estimate' as const, amount: C.asml.safety.estimate },
-            ]),
+        p.option === 'access' ? { key: 'cohesion', amount: C.asml.access.cohesion } : { key: 'margin', amount: C.asml.safety.margin },
         { key: 'cooperation', amount: C.asml.cooperation },
       ];
     case 'weight_security':
@@ -1103,24 +1222,47 @@ function cardFx(s: GameState, p: Pick): Fx[] {
       return [
         { key: 'europeAi', amount: 0, set: 'open' },
         { key: 'cohesion', amount: C.open_models.cohesion },
-        { key: 'estimate', amount: C.open_models.estimate },
-        { key: 'truth', amount: C.open_models.truth },
       ];
     case 'flexicurity':
       return [{ key: 'cohesion', amount: C.flexicurity.cohesion }];
     case 'cyber_shield':
       return [{ key: 'cohesion', amount: C.cyber_shield.cohesion }];
     case 'oversight_mandate':
+      // some labs withhold their newest models, open ones included (Meta, 2024): unless Europe runs models it funded
+      // itself, it leans on the big labs that stay
+      return [{ key: 'cohesion', amount: C.oversight_mandate.cohesion }, ...(used(s, 'open_models') ? [] : [{ key: 'europeAi' as const, amount: 0, set: 'dependent' as const }])];
+    case 'cern_ai':
       return [
-        { key: 'cohesion', amount: C.oversight_mandate.cohesion },
-        { key: 'aiPower', amount: C.oversight_mandate.aiPower },
+        { key: 'margin', amount: C.cern_ai.margin },
+        { key: 'cohesion', amount: C.cern_ai.cohesion },
       ];
-    case 'summit':
+    case 'chip_verification':
       return [
-        { key: 'cooperation', amount: C.summit.cooperation },
+        { key: 'cooperation', amount: C.chip_verification.cooperation },
+        { key: 'margin', amount: C.chip_verification.margin },
+      ];
+    case 'licensing_treaty':
+      // in a pause, the treaty binds both superpowers' labs: licensed, audited
+      return [
+        { key: 'margin', amount: C.licensing_treaty.margin },
+        { key: 'truth', amount: C.licensing_treaty.truth },
+        { key: 'cooperation', amount: C.licensing_treaty.cooperation },
+        { key: 'cohesion', amount: C.licensing_treaty.cohesion },
+      ];
+    case 'biosecurity':
+      return [
+        { key: 'cooperation', amount: C.biosecurity.cooperation },
+        { key: 'cohesion', amount: C.biosecurity.cohesion },
+      ];
+    case 'summit': {
+      // Europe leads the summit when its testers and coalition were ready for the incident, else it follows
+      const leads = !!s.threats.incident.prepared;
+      return [
+        { key: 'cooperation', amount: leads ? C.summit.cooperation : C.summit.cooperationFollow },
+        { key: 'margin', amount: C.summit.margin },
         { key: 'truth', amount: C.summit.truth },
-        { key: 'estimate', amount: C.summit.estimate },
       ];
+    }
     case 'attribution':
       return [{ key: 'cooperation', amount: C.attribution.cooperation }];
     case 'pause_call':
@@ -1148,6 +1290,15 @@ export function playCard(state: GameState, p: Pick): GameState {
       break;
     case 'inspections':
       s.inspections += 1;
+      // from the accord on, Washington and Beijing make Europe pay for letting foreigners in
+      if (n >= 1) s.penalties.push({ round: s.round + 1, amount: C.inspections.influence, card: 'inspections' });
+      break;
+    case 'asml':
+      // Washington will not let Europe set terms: it answers with its own chip-tool ban (CFG, Arms race)
+      if (!s.flags.includes('us_chip_threat')) s.flags.push('us_chip_threat');
+      break;
+    case 'chip_verification':
+      s.penalties.push({ round: s.round + 1, amount: C.chip_verification.influence, card: 'chip_verification' });
       break;
     case 'coalition':
       s.coalition += 1;
@@ -1167,7 +1318,7 @@ export function playCard(state: GameState, p: Pick): GameState {
       delete s.opportunities.pause_call;
       break;
     case 'oversight_mandate':
-      if (s.europeAi === 'dependent' && s.threats.blackmail.stage === 0) s.threats.blackmail.stage = 1;
+      if (s.europeAi === 'dependent' && s.threats.blackmail.stage === 0 && !s.threats.blackmail.struck) s.threats.blackmail.stage = 1;
       break;
     case 'summit':
     case 'attribution':
@@ -1244,13 +1395,22 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
   const notes: string[] = [];
   for (const p of picks) {
     const def = cardDef(p.id);
-    if (def.protects) notes.push(`Protects against ${THREAT_BY_ID[def.protects].name.replace(/^(\w)(?=[a-z])/, (x) => x.toLowerCase())}${p.id === 'inspections' || p.id === 'coalition' ? ' (with a coalition and the inspection accord)' : ''}.`);
+    if (def.protects) notes.push(`Protects against ${THREAT_BY_ID[def.protects].name.replace(/^(\w)(?=[a-z])/, (x) => x.toLowerCase())}${p.id === 'inspections' || p.id === 'coalition' ? ' (a coalition and European model testing together)' : p.id === 'weight_security' || p.id === 'ai_office' ? ' (in part)' : ''}.`);
     if (p.id === 'audit') notes.push(`Shows the true ${GAUGE_LABEL.confidence} for ${T.cards.audit.rounds} rounds.`);
     if (p.id === 'alignment') notes.push('Most of the gain is real safety that the estimate does not show.');
     if (p.id === 'flexicurity') notes.push(`Softens job shocks. Influence ${signed(T.cards.flexicurity.influence)} for the next ${T.cards.flexicurity.rounds} rounds.`);
     if (p.id === 'cyber_shield') notes.push(`Influence ${signed(T.cards.cyber_shield.influence)} for the next ${T.cards.cyber_shield.rounds} rounds.`);
-    if (p.id === 'oversight_mandate' && base.europeAi === 'dependent') notes.push('The big labs will push back: a silicon blackmail threat appears.');
     if (p.id === 'open_models') notes.push('Ransomware gets easier: that threat grows faster.');
+    if (p.id === 'oversight_mandate')
+      notes.push(
+        used(base, 'open_models')
+          ? 'Some labs keep their newest models out of Europe; Europe’s own open models keep it Open.'
+          : 'Some labs keep their newest models out of Europe: Europe’s AI turns Dependent, and the big labs threaten to pull out (silicon blackmail).',
+      );
+    if (p.id === 'asml') notes.push('Washington will answer with a ban on European chip-tool sales to China.');
+    if (p.id === 'inspections' && (base.uses.inspections ?? 0) >= 1) notes.push(`Influence ${signed(T.cards.inspections.influence)} next round: the superpowers resist letting foreigners in.`);
+    if (p.id === 'chip_verification') notes.push(`Influence ${signed(T.cards.chip_verification.influence)} next round: both capitals distrust it at first.`);
+    if (p.id === 'alignment' && base.inspections < T.cards.alignment.accessInspections) notes.push('With an inspection accord, your teams would work inside the labs and count for more.');
     if (p.id === 'coalition' && base.coalition + 1 === T.influence.coalitionLevel) notes.push('Allies share the load: Influence +1 every round from now on.');
     if (p.id === 'talks') notes.push('The envoys rest next round.');
     if (p.id === 'pause_call') notes.push(`One more vote to slow down in Washington’s oversight committee. Influence ${signed(T.cards.pause_call.influence)} next round.`);
@@ -1511,7 +1671,7 @@ export function threats(s: GameState): ThreatView[] {
       ifUnprepared: t.ifUnprepared,
       ifPrepared: t.ifPrepared,
       protectedBy: t.protectedBy,
-      protectedByNames: t.protectedBy.map((c) => (c === 'inspections' ? 'Inspection accord (level 2)' : CARD_BY_ID[c].name)).join(' and '),
+      protectedByNames: t.protectedBy.map((c) => (c === 'inspections' ? CARD_BY_ID.inspections.levels![0] : CARD_BY_ID[c].name)).join(' and '),
       gauge: t.gauge,
     };
   });
@@ -1587,7 +1747,9 @@ export function advisor(s: GameState): AdvisorView {
         else if (i.key === 'cohesion') parts.coh += d * w.coh;
         else if (i.key === 'europeAi') parts.coh += (i.after === 'Open' ? 1 : -1) * (plateau ? 4 : 0.5);
       }
-      if (cv.id === 'alignment') parts.conf += 4 * w.conf;
+      if (cv.id === 'alignment') parts.conf += (s.inspections >= T.cards.alignment.accessInspections ? 4 : 1.5) * w.conf;
+      if (cv.id === 'licensing_treaty' || cv.id === 'summit') parts.conf += 2 * w.conf;
+      if (pv.worldAfter !== pv.worldBefore && pv.worldAfter === WORLDS.pause.name) parts.coop += 6;
       if (cv.id === 'flexicurity' && s.jobShocks < 2) parts.coh += 6 * w.coh;
       if (cv.id === 'flexicurity' || cv.id === 'cyber_shield') parts.coh -= 2;
       if (cv.id === 'audit') parts.conf += s.confidence.margin >= 12 ? 3 * w.conf : -1;
@@ -1595,7 +1757,7 @@ export function advisor(s: GameState): AdvisorView {
       if (cv.id === 'coalition' && s.coalition === 1) parts.coop += 3;
       if (cv.opportunity) parts.opportunity += 2;
       for (const t of seen) {
-        const protects = t.protectedBy.includes(cv.id) && !(cv.id === 'coalition' && s.coalition >= 1) && !(cv.id === 'inspections' && s.inspections >= 2);
+        const protects = t.protectedBy.includes(cv.id) && !(cv.id === 'coalition' && s.coalition >= 1) && !(cv.id === 'inspections' && s.inspections >= 1);
         if (protects) {
           parts.threat += t.stage * (t.id === 'incident' ? 2 : 4) + (t.certainty === 'likely' ? 2 : 0);
           threat = threat && threat.stage >= t.stage ? threat : t;
@@ -1721,7 +1883,7 @@ export function ending(s: GameState): EndingView {
   for (const t of THREATS) {
     const st = s.threats[t.id];
     if (st.struck && st.prepared === false && t.id !== 'blackmail' && cf.length < 3)
-      cf.push(`The ${t.name.replace(/^(\w)(?=[a-z])/, (x) => x.toLowerCase())} caught Europe unprepared. ${t.protectedBy.map((x) => (x === 'inspections' ? 'the inspection accord' : CARD_BY_ID[x].name)).join(' and ')} would have changed that.`);
+      cf.push(`The ${t.name.replace(/^(\w)(?=[a-z])/, (x) => x.toLowerCase())} caught Europe unprepared. ${t.protectedBy.map((x) => (x === 'inspections' ? 'testing the labs’ models in Europe' : CARD_BY_ID[x].name)).join(' and ')} would have changed that.`);
   }
   if (!s.tipping && world !== 'plateau_open' && !s.europeAiLocked && T.worlds.plateau_open.decides === w.decides)
     cf.push('Funding open models would have made this a plateau with open models: same bar, but no silicon blackmail.');
@@ -1739,7 +1901,7 @@ export function ending(s: GameState): EndingView {
     name: t.name,
     struck: s.threats[t.id].struck,
     prepared: s.threats[t.id].struck ? s.threats[t.id].prepared : isPrepared(s, t.id),
-    by: t.protectedBy.map((x) => (x === 'inspections' ? 'Inspection accord' : CARD_BY_ID[x].name)).join(' and '),
+    by: t.protectedBy.map((x) => (x === 'inspections' ? CARD_BY_ID.inspections.levels![0] : CARD_BY_ID[x].name)).join(' and '),
   }));
   return {
     id: s.ending,

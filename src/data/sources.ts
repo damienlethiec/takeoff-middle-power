@@ -39,6 +39,11 @@ export const SOURCES = {
     url: 'https://digital-strategy.ec.europa.eu/en/news/eu-allocates-eu1455-million-boost-european-cybersecurity-including-hospitals-and-healthcare',
   },
   aiActArt14: { label: 'EU AI Act, Article 14: Human oversight', url: 'https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-14' },
+  aiAct: { label: 'Regulation (EU) 2024/1689 (the AI Act), Official Journal of the EU, 12 Jul 2024', url: 'https://eur-lex.europa.eu/eli/reg/2024/1689/oj' },
+  dojDing: {
+    label: 'US Department of Justice (N.D. Cal.), Former Google engineer found guilty of economic espionage and theft of confidential AI technology (29 Jan 2026)',
+    url: 'https://www.justice.gov/usao-ndca/pr/former-google-engineer-found-guilty-economic-espionage-and-theft-confidential-ai',
+  },
   euAttribution2021: {
     label: 'Council of the EU, Declaration on malicious cyber activities from China (19 Jul 2021)',
     url: 'https://www.consilium.europa.eu/ga/press/press-releases/2021/07/19/declaration-by-the-high-representative-on-behalf-of-the-eu-urging-china-to-take-action-against-malicious-cyber-activities-undertaken-from-its-territory/',

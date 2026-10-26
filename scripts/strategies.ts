@@ -27,6 +27,15 @@ export interface PlayedGame {
   requests: number;
 }
 
+/** An event's answer: silicon blackmail by the strategy's own rule; other choices (the chip-tool ban, the open-model
+ *  ban) at random for the random player, else the first option (the cautious one). */
+function eventChoice(s: GameState, strat: Strategy, r: RngHolder): string | undefined {
+  const opts = s.event!.options;
+  if (!opts.length) return undefined;
+  if (s.event!.id === 'blackmail') return strat.blackmail(s, r);
+  return strat.name === 'random' ? pick(r, opts).id : opts[0].id;
+}
+
 const playableIds = (s: GameState) => hand(s).filter((c) => c.playable).map((c) => c.id);
 
 /** The state without its past rounds, for read-only views (previews, the advisor, request cards): they never read
@@ -46,7 +55,7 @@ export function playGame(seed: number, strat: Strategy, recent?: string[]): Play
     for (;;) {
       const q = request(lite(s));
       const evFirst = s.event && (!q || s.event.at <= q.at);
-      if (evFirst) s = resolveEvent(s, s.event!.options.length ? strat.blackmail(s, r) : undefined);
+      if (evFirst) s = resolveEvent(s, eventChoice(s, strat, r));
       else if (q) {
         s = answerRequest(s, strat.answer(s, q, r)).state;
         requests++;
@@ -182,14 +191,16 @@ export const thoughtful: Strategy = {
         else if (i.key === 'cohesion') v += d * w.coh;
         else if (i.key === 'europeAi') v += (i.after === 'Open' ? 1 : -1) * (plateau ? 4 : 0.5);
       }
-      if (id === 'alignment') v += 4 * w.conf; // the card says the real gain is larger than shown
+      if (id === 'alignment') v += (s.inspections >= 2 ? 4 : 1.5) * w.conf; // the card says the real gain is larger than shown, more with an accord
+      if (id === 'licensing_treaty' || id === 'summit') v += 2 * w.conf; // real safety up (not shown)
+      if (pv.worldAfter !== pv.worldBefore) v += pv.worldAfter === 'Pause' ? 6 : pv.worldBefore === 'Pause' ? -6 : 0; // the committee's vote, a zone
       if (id === 'flexicurity' && s.jobShocks < 2) v += 6 * w.coh; // softens the next job shock
       if (id === 'flexicurity' || id === 'cyber_shield') v -= 2;
       if (id === 'audit') v += conf.margin >= 12 ? 3 * w.conf : -1;
       if (id === 'oversight_mandate' && s.europeAi === 'dependent') v -= plateau ? 4 : 2;
       if (id === 'coalition' && s.coalition === 1) v += 3; // Influence +1 a round from level 2
       for (const t of seen) {
-        const protects = t.protectedBy.includes(id) && !(id === 'coalition' && s.coalition >= 1) && !(id === 'inspections' && s.inspections >= 2);
+        const protects = t.protectedBy.includes(id) && !(id === 'coalition' && s.coalition >= 1) && !(id === 'inspections' && s.inspections >= 1);
         if (protects) v += t.stage * (t.id === 'incident' ? 2 : 4) + (t.certainty === 'likely' ? 2 : 0);
       }
       if (id === 'open_models' && seen.some((t) => t.id === 'blackmail')) v += 8;
@@ -219,7 +230,7 @@ export const cooperationOnly: Strategy = {
     const ok = new Set(playableIds(s));
     const out: Pick[] = [];
     let budget = s.influence;
-    for (const id of ['summit', 'attribution', 'talks', 'coalition'] as CardId[]) {
+    for (const id of ['summit', 'attribution', 'pause_call', 'talks', 'coalition'] as CardId[]) {
       const c = hand(s).find((x) => x.id === id);
       if (c && ok.has(id) && c.cost <= budget) {
         out.push({ id });

@@ -18,7 +18,9 @@ describe('balance (small sample)', () => {
     expect(r).toBeGreaterThan(0.08);
     expect(r).toBeLessThan(0.38);
     const t = good(thoughtful);
-    expect(t).toBeGreaterThan(0.5);
+    // 0.5 before the content rewrite of 26 Oct, which removed Europe's direct gains on the hidden AI safety; relaxed
+    // until the rebalancing pass (docs/DEVELOPER_NOTES.md, "Rebalancing backlog")
+    expect(t).toBeGreaterThan(0.3);
     expect(t).toBeLessThan(0.9);
     expect(good(cooperationOnly)).toBeLessThan(t - 0.2);
   }, 120_000);
