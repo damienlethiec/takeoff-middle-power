@@ -22,7 +22,7 @@ import {
   zoneOf,
 } from '../src/engine/index';
 import type { GameState } from '../src/engine/types';
-import { freeze, fresh, nextRound, passive, play, playGame, randomStrategy, thoughtful } from './helpers';
+import { answerAll, freeze, fresh, nextRound, passive, play, playGame, randomStrategy, thoughtful } from './helpers';
 
 const SEEDS = Array.from({ length: 120 }, (_, i) => 500 + i);
 
@@ -53,6 +53,7 @@ describe('creation and the clock', () => {
     for (let i = 0; i < 12; i++) {
       s = freeze(startRound(s));
       if (s.event) s = freeze(resolveEvent(s, s.event.options[0]?.id));
+      s = freeze(answerAll(s));
       hand(s);
       gauges(s);
       heading(s);
@@ -267,6 +268,7 @@ describe('threats and events', () => {
           expect(before[id].imminentSince).not.toBeNull();
         }
         if (s.event) s = resolveEvent(s, s.event.options[0]?.id);
+        s = answerAll(s);
         const e = endRound(s);
         s = e.state;
         if (e.outcome === 'ended') break;
@@ -298,6 +300,7 @@ describe('threats and events', () => {
           expect(s.event.impacts.some((x) => x.label.toLowerCase().includes('true'))).toBe(false);
           s = resolveEvent(s, s.event.options[0]?.id);
         }
+        s = answerAll(s);
         const e = endRound(s);
         s = e.state;
         if (e.outcome === 'ended') break;
@@ -352,6 +355,7 @@ describe('threats and events', () => {
           break;
         }
         if (s.event) s = resolveEvent(s, s.event.options[0]?.id);
+        s = answerAll(s);
         const e = endRound(s);
         s = e.state;
         if (e.outcome === 'ended') break;
@@ -518,7 +522,7 @@ describe('endings', () => {
   });
 
   it('the reveal gives the band the player saw and names what widened it', () => {
-    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less certain (±15 → ±30)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
+    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, requests: [], values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less certain (±15 → ±30)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
     const v = ending(ended({ ...tip, history, cooperation: 45, cohesion: 60, confidence: { truth: 48, estimate: 71, margin: 30 } }));
     expect(v.reveal).toMatchObject({ low: 41, high: 100, truth: 48, audited: false });
     expect(v.reveal.widened[0]).toBe('Opaque reasoning doubled your uncertainty (±15 → ±30).');

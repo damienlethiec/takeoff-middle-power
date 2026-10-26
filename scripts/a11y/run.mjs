@@ -119,8 +119,8 @@ async function playRun(browser, base, run) {
       // pause while exploring with the keyboard (the page clock runs in real time meanwhile)
       // the pause button, from the keyboard (Space would press whatever button has focus)
       const toggle = async () => {
-        if (await tabTo(page, '#play')) await press('Enter');
-        else fail('could not Tab to the pause button');
+        if ((await tabTo(page, '#play', { max: 150 })) || (await tabTo(page, '#play', { back: true, max: 150 }))) await press('Enter');
+        else fail(`could not Tab to the pause button (focus: ${await focused(page)}, disabled: ${await page.evaluate(() => document.querySelector("#play")?.disabled)}, phase: ${await phase()}, overlay: ${await page.evaluate(() => document.querySelector(".overlay")?.className)})`);
       };
       const explore = async (fn) => {
         const was = (await phase()) === 'Clock running';
@@ -222,6 +222,26 @@ async function playRun(browser, base, run) {
       if (once('trap-breaking')) await checkTrap('breaking');
       const choice = await page.evaluate((m) => !!document.querySelector(`${m} .choice`), MODAL);
       if (!(await tabTo(page, choice ? '.choice' : '[data-primary]'))) fail('breaking: could not reach its button');
+      await press('Enter');
+    } else if (screen === 'request') {
+      await audit('request');
+      if (once('trap-request')) await checkTrap('request');
+      log.push(`  request: ${await evalText(`${MODAL} h2`)}`);
+      const named = await page.evaluate(() => [...document.querySelectorAll('.ans')].every((b) => /Will change|No visible change/.test(b.textContent ?? '')));
+      if (!named) fail('request: an answer button does not say what it moves');
+      // the first arrow looks, the second answers
+      // look at the answer that does not have focus yet (Tabbing onto an answer is looking at it already)
+      const onLeft = await page.evaluate(() => !!document.activeElement?.classList.contains('ans-left'));
+      const onRight = await page.evaluate(() => !!document.activeElement?.classList.contains('ans-right'));
+      await press(onLeft ? 'ArrowRight' : onRight ? 'ArrowLeft' : once('req-left') ? 'ArrowLeft' : 'ArrowRight');
+      await advance(page, 150);
+      if (!(await focusIs('.ans'))) fail(`request: the first arrow did not move focus to an answer (${await focused(page)})`);
+      const side = await page.evaluate(() => (document.activeElement?.classList.contains('ans-left') ? 'ArrowLeft' : 'ArrowRight'));
+      await press(side);
+      await advance(page, 500);
+      if (!(await focusIs('[data-primary]'))) fail(`request: focus did not move to Continue after answering (${await focused(page)})`);
+      if (!/You answered/.test(await said())) fail('request: the answer was not announced');
+      await audit('request-outcome');
       await press('Enter');
     } else if (screen === 'decision') {
       await audit('decision');

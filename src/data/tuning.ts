@@ -50,6 +50,11 @@ export const TUNING = {
   /** "Or change course" in the band: another world is offered only when the cooperation gap is this small. */
   outlook: { altGap: 15 },
 
+  /** Requests (v4): characters who arrive during the six months. 6 to 10 a game, at most one a round
+   *  (two when a follow-up is due). `chance` is the share of other rounds that get one; `minRate` keeps the
+   *  count up (a request is forced when fewer than round × minRate have come). */
+  requests: { maxPerGame: 10, chance: 0.6, minRate: 0.6, firstRound: 1 },
+
   influence: { base: 2, highCohesion: 60, lowCohesion: 35, coalitionLevel: 2, cap: 10, minIncome: 1 },
 
   zones: { pause: 60, race: 30 },

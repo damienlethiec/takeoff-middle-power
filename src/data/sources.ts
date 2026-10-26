@@ -43,4 +43,18 @@ export const SOURCES = {
     label: 'Council of the EU, Declaration on malicious cyber activities from China (19 Jul 2021)',
     url: 'https://www.consilium.europa.eu/ga/press/press-releases/2021/07/19/declaration-by-the-high-representative-on-behalf-of-the-eu-urging-china-to-take-action-against-malicious-cyber-activities-undertaken-from-its-territory/',
   },
+  // requests (v4, from the hybrid; checked there, see docs/V4_BUILD_NOTES.md)
+  aisiNetwork: { label: 'International Network of AI Safety Institutes, mission statement (Nov 2024)', url: 'https://www.nist.gov/document/international-network-ai-safety-institutes-mission-statement' },
+  seoulCommitments: { label: 'UK Government, Frontier AI Safety Commitments, AI Seoul Summit (May 2024)', url: 'https://gov.uk/government/news/historic-first-as-companies-spanning-north-america-asia-europe-and-middle-east-agree-safety-commitments-on-development-of-ai' },
+  sullivanNuclear: { label: 'Jake Sullivan, press gaggle after the Biden–Xi meeting (Nov 2024)', url: 'https://www.presidency.ucsb.edu/node/375223' },
+  chinaWaico: { label: 'China’s Ministry of Foreign Affairs, speech on global AI governance (Jul 2025)', url: 'https://www.fmprc.gov.cn/eng/wjb/zzjg_663340/jks_665232/jkxw_665234/202507/t20250730_11679453.html' },
+  alignmentFaking: { label: 'Anthropic, Alignment faking in large language models (Dec 2024)', url: 'https://www.anthropic.com/research/alignment-faking' },
+  openaiScheming: { label: 'OpenAI and Apollo Research, Detecting and reducing scheming (Sept 2025)', url: 'https://openai.com/index/detecting-and-reducing-scheming-in-ai-models/' },
+  asmlCnbc: { label: 'CNBC, Inside ASML (2022)', url: 'https://www.cnbc.com/2022/03/23/inside-asml-the-company-advanced-chipmakers-use-for-euv-lithography.html' },
+  dutchDuv: { label: 'CNBC, Dutch to restrict chip tech exports to China (Mar 2023)', url: 'https://www.cnbc.com/2023/03/09/dutch-to-restrict-semiconductor-tech-exports-to-china-joining-us.html' },
+  bisChips: { label: 'US Commerce Department (BIS), export controls on advanced computing (Oct 2022)', url: 'https://democrats-science.house.gov/download/20221007_bis-press-release_advanced-computing-and-semiconductor-manufacturing-controls_final&download=1' },
+  gpaiCode: { label: 'European Commission, The General-Purpose AI Code of Practice (July 2025)', url: 'https://digital-strategy.ec.europa.eu/en/policies/contents-code-gpai' },
+  investAi: { label: 'European Commission, InvestAI: €200 billion for AI (Feb 2025)', url: 'https://digital-strategy.ec.europa.eu/en/news/eu-launches-investai-initiative-mobilise-eu200-billion-investment-artificial-intelligence' },
+  egfBelgan: { label: 'European Parliament, EGF support for BelGaN workers (Oct 2025)', url: 'https://data.europarl.europa.eu/distribution/doc/TA-10-2025-0220_en.pdf' },
+  metaEu: { label: 'Axios, Meta won’t offer future multimodal AI models in EU (Jul 2024)', url: 'https://www.axios.com/2024/07/17/meta-future-multimodal-ai-models-eu' },
 } satisfies Record<string, Source>;

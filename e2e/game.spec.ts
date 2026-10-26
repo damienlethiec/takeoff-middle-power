@@ -24,9 +24,16 @@ async function boot(page: Page, query: string): Promise<Session> {
   return session;
 }
 
-/** Advance the fake clock in 100 ms jumps (the game caps a frame at 100 ms). */
-async function advance(page: Page, ms: number) {
-  for (let t = 0; t < ms; t += 100) await page.clock.fastForward(100);
+/** Advance the fake clock in 100 ms jumps (the game caps a frame at 100 ms). Requests that arrive are answered (left). */
+async function advance(page: Page, ms: number, answer = true) {
+  for (let t = 0; t < ms; t += 100) {
+    await page.clock.fastForward(100);
+    if (answer && t % 500 === 0 && (await page.locator('.req-card.asking').count())) {
+      await page.locator('.req-card.asking .ans-left').click();
+      await page.clock.fastForward(400);
+      await page.getByRole('button', { name: /^Back to the six months/ }).click();
+    }
+  }
 }
 const dialog = (page: Page) => page.locator('.overlay:not(.leaving) [role="dialog"]').last();
 const dockButton = (page: Page, name: RegExp) => page.locator('.dock:not([hidden])').getByRole('button', { name });
@@ -39,7 +46,7 @@ async function checkText(page: Page, s: Session) {
 
 /** Play until the end screen. Returns what happened on the way. */
 async function playToEnd(page: Page, s: Session) {
-  const seen = { decisions: 0, played: [] as string[], breaking: 0, rounds: 0 };
+  const seen = { decisions: 0, played: [] as string[], breaking: 0, rounds: 0, requests: 0 };
   await page.getByRole('button', { name: '×2' }).click();
   for (let step = 0; step < 900; step++) {
     if (await page.locator('.ending-page').count()) return seen;
@@ -57,13 +64,18 @@ async function playToEnd(page: Page, s: Session) {
           await page.keyboard.press('Tab'); // off the card: Enter now confirms
           await d.getByRole('button', { name: /^Confirm/ }).click();
         } else await d.getByRole('button', { name: 'Play no card' }).click();
+      } else if (await d.locator('.req-card.asking').count()) {
+        seen.requests++;
+        await d.locator('.ans').nth(seen.requests % 2).click();
+        await expect(d.locator('.reaction')).toBeVisible();
+        await d.getByRole('button', { name: /^Back to the six months/ }).click();
       } else if (name === 'Breaking news') {
         seen.breaking++;
         const choice = d.locator('.choice').first();
         if (await choice.count()) await choice.click();
         else await page.keyboard.press('Enter');
       } else await page.keyboard.press('Enter'); // tips, letters
-      await advance(page, 300);
+      await advance(page, 300, false);
       continue;
     }
     const decide = dockButton(page, /^Make my (last )?decisions/);
@@ -80,7 +92,7 @@ async function playToEnd(page: Page, s: Session) {
       continue;
     }
     if (step % 5 === 0) await checkText(page, s);
-    await advance(page, 800);
+    await advance(page, 800, false);
   }
   throw new Error('the game did not reach its end screen');
 }

@@ -56,6 +56,20 @@ try {
         }
           await choice.click();
         } else await page.keyboard.press('Enter');
+      } else if (c.includes('request')) {
+        if (await has(`${modal} .req-card.asking`)) {
+          if (!taken.has('request')) {
+            taken.add('request');
+            await shot('request');
+          }
+          await page.click(`${modal} .ans-right`);
+          await advance(page, 500);
+          if (!taken.has('request-outcome')) {
+            taken.add('request-outcome');
+            await shot('request-outcome');
+          }
+        }
+        await page.keyboard.press('Enter');
       } else if (c.includes('card-details')) {
         await page.keyboard.press('Escape');
       } else if (c.includes('decision')) {

@@ -1,6 +1,6 @@
 // Shared helpers for the engine tests.
 
-import { createInitialState, endRound, playCard, resolveEvent, startRound } from '../src/engine/index';
+import { answerRequest, createInitialState, endRound, playCard, request, resolveEvent, startRound } from '../src/engine/index';
 import type { GameState, Pick } from '../src/engine/types';
 import { playGame, thoughtful, randomStrategy, passive } from '../scripts/strategies';
 
@@ -15,10 +15,11 @@ export function freeze<T>(x: T): T {
   return x;
 }
 
-/** Start the next round and resolve its event (default choice: hold firm). */
-export function nextRound(s: GameState, choice = 'hold_firm'): GameState {
+/** Start the next round, resolve its event (default choice: hold firm) and answer its requests (default: left). */
+export function nextRound(s: GameState, choice = 'hold_firm', side: 'left' | 'right' = 'left'): GameState {
   let n = startRound(s);
   if (n.event) n = resolveEvent(n, n.event.options.length ? choice : undefined);
+  while (request(n)) n = answerRequest(n, side).state;
   return n;
 }
 
@@ -44,4 +45,11 @@ export function fresh(seed = 1, patch: Partial<GameState> = {}): GameState {
 
 export function play(s: GameState, ...picks: Pick[]): GameState {
   return picks.reduce((x, p) => playCard(x, p), s);
+}
+
+/** Answer every request still waiting this round (default: left). */
+export function answerAll(s: GameState, side: 'left' | 'right' = 'left'): GameState {
+  let n = s;
+  while (request(n)) n = answerRequest(n, side).state;
+  return n;
 }

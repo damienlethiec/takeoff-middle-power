@@ -3,6 +3,8 @@
 // The round flow is documented at the top of api.ts; rules and numbers in docs/DEVELOPER_NOTES.md.
 
 import { CARD_BY_ID, CARDS, cardCost, cardUses, type CardDef } from '../data/cards';
+import { CHARACTERS } from '../data/characters';
+import { REQUEST_BY_ID, REQUESTS } from '../data/requests';
 import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, marginText } from '../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../data/endings';
 import { LEA_END, LEA_END_BASIS, LEA_END_MOOD, LEA_R1, LEA_R4, LEA_R8, type LetterDef } from '../data/lea';
@@ -15,7 +17,15 @@ import type { EngineApi } from './api';
 import { pick, random, randomInt, seedToRng, shuffle, weightedPick, type RngHolder } from './rng';
 import type {
   AdvisorView,
+  Answer,
+  AnswerView,
   CardId,
+  Condition,
+  ReqEffects,
+  RequestCard,
+  RequestOutcome,
+  RequestView,
+  Side,
   CardView,
   Change,
   Chip,
@@ -222,6 +232,8 @@ export function createInitialState(seed: number): GameState {
     played: [],
     history: [],
     letters: [],
+    flags: [],
+    requests: { done: [], pending: [], round: [], later: [], opened: {} },
     tipping: null,
     ending: null,
     finalCooperation: null,
@@ -301,7 +313,7 @@ export function isPrepared(s: GameState, id: ThreatId): boolean {
     case 'incident':
       return s.coalition >= T.threats.incident.needs.coalition && s.inspections >= T.threats.incident.needs.inspections;
     case 'ransomware':
-      return used(s, 'cyber_shield');
+      return used(s, 'cyber_shield') || s.flags.includes('ransomware_ready');
     case 'blackmail':
       return s.europeAi === 'open';
   }
@@ -475,6 +487,7 @@ export function startRound(state: GameState): GameState {
   s.voices = [];
   s.leak = null;
   s.roundEvent = null;
+  s.requests = { ...s.requests, pending: [], round: [] };
   // opportunities expire
   for (const [id, until] of Object.entries(s.opportunities) as [CardId, number][]) {
     if (until < s.round) {
@@ -486,6 +499,13 @@ export function startRound(state: GameState): GameState {
   const inc = nextIncome(s, s.round);
   s.influence = Math.min(T.influence.cap, s.influence + inc.next);
   s.roundStart = { aiPower: s.aiPower, cooperation: s.cooperation, estimate: s.confidence.estimate, margin: s.confidence.margin, cohesion: s.cohesion, influence: s.influence };
+  // delayed consequences of earlier answers
+  for (const l of s.requests.later.filter((x) => x.round === s.round)) {
+    const a = snap(s);
+    applyFx(s, reqFx(l.effects));
+    recordChanges(s, a, snap(s), l.why);
+  }
+  s.requests.later = s.requests.later.filter((x) => x.round > s.round);
 
   // 2. six months: AI power rises, the race heats up, the labs report
   const r = rise(s, h);
@@ -568,8 +588,195 @@ export function startRound(state: GameState): GameState {
 
   // 8. cards that arrive now
   arrive(s);
+
+  // 9. requests: characters who arrive during the six months (v4)
+  const reqs = chooseRequests(s, h);
+  const base0 = s.event ? (s.event.at < 0.5 ? 0.74 : 0.2) : 0.25 + random(h) * 0.4;
+  reqs.forEach((r, i) => {
+    const at = Math.min(0.92, base0 + i * 0.12);
+    s.requests.pending.push({ id: r.id, at });
+    s.requests.round.push({ id: r.id, at, side: null });
+  });
   s.rng = h.rng;
   return s;
+}
+
+// ---------------------------------------------------------------- requests (v4)
+
+function reqFx(e: ReqEffects): Fx[] {
+  const fx: Fx[] = [];
+  if (e.ai) fx.push({ key: 'aiPower', amount: e.ai });
+  if (e.coop) fx.push({ key: 'cooperation', amount: e.coop });
+  if (e.conf) fx.push({ key: 'estimate', amount: e.conf });
+  if (e.truth) fx.push({ key: 'truth', amount: e.truth });
+  if (e.margin) fx.push({ key: 'margin', amount: e.margin });
+  if (e.cohesion) fx.push({ key: 'cohesion', amount: e.cohesion });
+  return fx;
+}
+
+/** Does a request's condition hold now? */
+export function holds(s: GameState, c?: Condition): boolean {
+  if (!c) return true;
+  const ok = (x: number | undefined, test: (x: number) => boolean) => x === undefined || test(x);
+  if (!ok(c.minRound, (x) => s.round >= x) || !ok(c.maxRound, (x) => s.round <= x)) return false;
+  if (!ok(c.minAi, (x) => s.aiPower >= x) || !ok(c.maxAi, (x) => s.aiPower <= x)) return false;
+  if (!ok(c.minCoop, (x) => s.cooperation >= x) || !ok(c.maxCoop, (x) => s.cooperation <= x)) return false;
+  if (!ok(c.minCohesion, (x) => s.cohesion >= x) || !ok(c.maxCohesion, (x) => s.cohesion <= x)) return false;
+  if (c.milestone && !reached(s, c.milestone)) return false;
+  if (c.beforeMilestone && reached(s, c.beforeMilestone)) return false;
+  if (c.flags && !c.flags.every((f) => s.flags.includes(f))) return false;
+  if (c.notFlags && c.notFlags.some((f) => s.flags.includes(f))) return false;
+  if (c.badge && s.europeAi !== c.badge) return false;
+  if (!ok(c.minCoalition, (x) => s.coalition >= x) || !ok(c.maxCoalition, (x) => s.coalition <= x)) return false;
+  if (!ok(c.minInspections, (x) => s.inspections >= x) || !ok(c.maxInspections, (x) => s.inspections <= x)) return false;
+  if (c.threat) {
+    const t = s.threats[c.threat.id];
+    if (c.threat.minStage !== undefined && t.stage < c.threat.minStage) return false;
+    if (c.threat.maxStage !== undefined && t.stage > c.threat.maxStage) return false;
+    if (c.threat.struck !== undefined && t.struck !== c.threat.struck) return false;
+    if (c.threat.prepared !== undefined && (t.struck ? !!t.prepared : isPrepared(s, c.threat.id)) !== c.threat.prepared) return false;
+  }
+  return true;
+}
+
+/** Is this request's threat growing and Europe not ready for it? */
+const preparesNow = (s: GameState, r: RequestCard) => !!r.prepares && s.threats[r.prepares].stage >= 1 && !s.threats[r.prepares].struck && !isPrepared(s, r.prepares);
+
+/**
+ * This round's requests: a follow-up when one is due, then at most one other, chosen first among those tied to
+ * a milestone reached this round or a threat growing now, else at random among the eligible ones (so each game
+ * differs). Rounds without a request stay common; the count is kept between 6 and 10 a game.
+ */
+function chooseRequests(s: GameState, h: RngHolder): RequestCard[] {
+  const R = T.requests;
+  if (s.round < R.firstRound) return [];
+  const answered = new Set(s.requests.done.map((d) => d.id));
+  // never a request that would prepare for the threat striking this very round
+  const elig = REQUESTS.filter((r) => !answered.has(r.id) && holds(s, r.when) && !(s.event && r.prepares === s.event.id));
+  for (const r of elig) if (r.opportunity && s.requests.opened[r.id] === undefined) s.requests.opened[r.id] = s.round;
+  const open = elig.filter((r) => !r.opportunity || s.round - s.requests.opened[r.id] < r.opportunity.window);
+  const total = s.requests.done.length;
+  const out: RequestCard[] = [];
+  const follow = open.filter((r) => r.followup);
+  if (follow.length && total < R.maxPerGame) out.push(follow[0]);
+  const regular = open.filter((r) => !r.followup);
+  if (!regular.length || total + out.length >= R.maxPerGame) return out;
+  const fresh = new Set(s.milestones.filter((m) => m.round === s.round).map((m) => m.id));
+  const priority = regular.filter((r) => preparesNow(s, r) || (r.when?.milestone !== undefined && fresh.has(r.when.milestone)));
+  const behind = total + out.length < Math.floor(s.round * R.minRate);
+  const roll = random(h);
+  if (!priority.length && !behind && roll >= R.chance) return out;
+  const pool = priority.length ? priority : regular;
+  const id = weightedPick(h, Object.fromEntries(pool.map((r) => [r.id, r.weight ?? 1])) as Record<string, number>);
+  out.push(REQUEST_BY_ID[id]);
+  return out;
+}
+
+function applyAnswer(s: GameState, a: Answer) {
+  applyFx(s, [...reqFx(a.effects), ...(a.badge ? [{ key: 'europeAi' as const, amount: 0, set: a.badge }] : [])]);
+  for (const f of a.set ?? []) if (!s.flags.includes(f)) s.flags.push(f);
+  const level = (id: 'coalition' | 'inspections', n: number) => {
+    s[id] = Math.min(cardUses(id), s[id] + n);
+    s.uses[id] = Math.min(cardUses(id), (s.uses[id] ?? 0) + n);
+    if ((s.uses[id] ?? 0) >= cardUses(id)) s.hand = s.hand.filter((c) => c !== id);
+  };
+  if (a.coalition) level('coalition', a.coalition);
+  if (a.inspections) level('inspections', a.inspections);
+  for (const t of a.grow ?? []) {
+    const st = s.threats[t];
+    if (st.struck || st.stage >= 3) continue;
+    st.stage = (st.stage + 1) as 1 | 2 | 3;
+    if (st.stage === 3) st.imminentSince = s.round;
+  }
+  if (a.later) s.requests.later.push({ round: s.round + a.later.rounds, effects: a.later.effects, why: a.later.why });
+}
+
+const answerCause = (r: RequestCard, a: Answer) => `${CHARACTERS[r.character].name}: “${a.label}”`;
+
+/** Chips for what an answer changes, in public values only, plus what it does beyond the gauges. */
+function answerChips(before: GameState, after: GameState, a: Answer): Chip[] {
+  const out: Chip[] = [];
+  for (const i of impacts(snap(before), snap(after))) {
+    if (i.key === 'influence') continue;
+    const d = Number(i.after) - Number(i.before);
+    if (i.key === 'margin') out.push({ text: `${GAUGE_LABEL.confidence}: ${d > 0 ? 'less' : 'more'} certain`, tone: d > 0 ? 'down' : 'up' });
+    else if (i.key === 'europeAi') out.push({ text: `Europe’s AI → ${i.after}`, tone: i.tone > 0 ? 'up' : 'down' });
+    else if (i.key === 'aiPower') out.push({ text: `${i.label} ${signed(d)}`, tone: d > 0 ? 'down' : 'up' });
+    else out.push({ text: `${i.label} ${signed(d)}`, tone: d > 0 ? 'up' : 'down' });
+  }
+  if ((a.effects.truth ?? 0) > 0) out.push({ text: 'Real safety: more than shown', tone: 'up' });
+  if (a.coalition && after.coalition > before.coalition) out.push({ text: 'A partner joins the coalition', tone: 'up' });
+  if (a.inspections && after.inspections > before.inspections) out.push({ text: 'Inspections: one level up', tone: 'up' });
+  for (const t of a.grow ?? []) if (!before.threats[t].struck && before.threats[t].stage < 3) out.push({ text: `${THREAT_BY_ID[t].name} grows`, tone: 'down' });
+  if (a.later) {
+    const e = a.later.effects;
+    const parts = [e.cohesion ? `${GAUGE_LABEL.cohesion} ${signed(e.cohesion)}` : '', e.coop ? `${GAUGE_LABEL.cooperation} ${signed(e.coop)}` : '', e.ai ? `${GAUGE_LABEL.aiPower} ${signed(e.ai)}` : '', e.margin ? `${GAUGE_LABEL.confidence}: ${e.margin > 0 ? 'less' : 'more'} certain` : '', e.conf ? `${GAUGE_LABEL.confidence} ${signed(e.conf)}` : ''].filter(Boolean);
+    const bad = (e.cohesion ?? 0) < 0 || (e.coop ?? 0) < 0 || (e.margin ?? 0) > 0 || (e.ai ?? 0) > 0 || (e.conf ?? 0) < 0;
+    if (parts.length) out.push({ text: `Later: ${parts.join(', ')}`, tone: bad ? 'down' : 'up' });
+  }
+  return out;
+}
+
+function answerView(s: GameState, r: RequestCard, side: Side): AnswerView {
+  const a = r[side];
+  const pub = publicCopy(s);
+  const after = clone(pub);
+  applyAnswer(after, a);
+  const chips = answerChips(pub, after, a);
+  const w0 = heading(pub).name;
+  const w1 = heading(after).name;
+  return {
+    side,
+    label: a.label,
+    chips,
+    words: chips.length ? `Will change: ${chips.map((c) => c.text).join(', ')}` : 'No visible change',
+    why: a.why ?? null,
+    tag: a.tag ?? null,
+    world: w0 !== w1 ? `${w0} → ${w1}` : null,
+  };
+}
+
+export function request(s: GameState): RequestView | null {
+  const p = s.requests.pending[0];
+  if (!p) return null;
+  const r = REQUEST_BY_ID[p.id];
+  const kind: RequestView['kind'] = r.followup ? 'followup' : r.opportunity ? 'opportunity' : preparesNow(s, r) ? 'prepares' : 'request';
+  return {
+    id: r.id,
+    character: CHARACTERS[r.character],
+    text: r.text,
+    kind,
+    threat: r.prepares ?? null,
+    threatName: r.prepares ? THREAT_BY_ID[r.prepares].name : null,
+    left: answerView(s, r, 'left'),
+    right: answerView(s, r, 'right'),
+    learnMore: r.learnMore,
+    basis: r.basis,
+    at: p.at,
+    index: s.requests.round.findIndex((x) => x.id === r.id) + 1,
+    count: s.requests.round.length,
+  };
+}
+
+export function answerRequest(state: GameState, side: Side): { state: GameState; outcome: RequestOutcome } {
+  const p = state.requests.pending[0];
+  if (!p) throw new Error('no request to answer');
+  const s = clone(state);
+  const r = REQUEST_BY_ID[p.id];
+  const a = r[side];
+  const before = clone(s);
+  applyAnswer(s, a);
+  recordChanges(s, snap(before), snap(s), answerCause(r, a), 'request');
+  s.requests.pending.shift();
+  s.requests.done.push({ id: r.id, round: s.round, side });
+  s.requests.round = s.requests.round.map((x) => (x.id === r.id ? { ...x, side } : x));
+  const pubBefore = publicCopy(before);
+  const pubAfter = clone(pubBefore);
+  applyAnswer(pubAfter, a);
+  const notes: string[] = [];
+  if (a.later) notes.push(`In ${a.later.rounds === 1 ? 'six months' : `${a.later.rounds * 6} months`}: ${a.later.why}.`);
+  if (a.badge && before.europeAiLocked && a.badge === 'open') notes.push('Europe’s AI stays Dependent: Europe gave in to the labs.');
+  return { state: s, outcome: { reaction: a.reaction, chips: answerChips(pubBefore, pubAfter, a), notes } };
 }
 
 /** Apply this round's event (with the player's choice for silicon blackmail). */
@@ -619,6 +826,7 @@ function cardDef(id: CardId): CardDef {
 function blocked(s: GameState, id: CardId): string | null {
   if (s.phase !== 'play') return 'The game is over.';
   if (s.event) return 'Deal with the breaking news first.';
+  if (s.requests.pending.length) return 'Answer the request first.';
   if (!s.hand.includes(id)) return 'Not in your hand.';
   if ((s.uses[id] ?? 0) >= cardUses(id)) return 'Already used up.';
   if (id === 'open_models' && s.europeAiLocked) return 'Locked: Europe gave in to the labs.';
@@ -852,6 +1060,7 @@ function record(s: GameState): RoundRecord {
     decisions: s.played,
     letter: s.letters.find((l) => l.round === s.round && l.slot !== 'end')?.id ?? null,
     values: publicValues(s),
+    requests: s.requests.round,
   };
 }
 
@@ -865,6 +1074,7 @@ const publicValues = (s: GameState): PublicValues => ({
 
 export function endRound(state: GameState): { state: GameState; outcome: 'next' | 'ended' } {
   if (state.event) throw new Error('resolve the event first');
+  if (state.requests.pending.length) throw new Error('answer the requests first');
   const s = clone(state);
   s.history.push(record(s));
   if (s.tipping || s.round >= T.rounds) {
@@ -1368,6 +1578,22 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
       tone: ev.prepared ? 1 : -1,
     });
   }
+  for (const q of r.requests ?? []) {
+    const card = REQUEST_BY_ID[q.id];
+    const ch = CHARACTERS[card.character];
+    const a = q.side ? card[q.side] : null;
+    const detail = a ? r.changes.filter((c) => c.by === 'request' && c.cause === answerCause(card, a)).map((c) => c.text) : [];
+    out.push({
+      ...base,
+      id: `q_${q.id}`,
+      at: q.at,
+      kind: 'request',
+      label: `Request · ${ch.name}`,
+      text: card.text,
+      detail: a ? `You answered “${a.label}”${detail.length ? `: ${detail.join(', ')}` : ''}.` : null,
+      region: ch.region,
+    });
+  }
   out.sort((a, b) => a.at - b.at);
   // the player's decisions, after the six months, with what they changed
   const earlier = s.history.filter((x) => x.round < r.round).flatMap((x) => x.decisions);
@@ -1411,6 +1637,8 @@ export const engine: EngineApi = {
   createInitialState,
   startRound,
   resolveEvent,
+  request,
+  answerRequest,
   endRound,
   hand,
   playCard,

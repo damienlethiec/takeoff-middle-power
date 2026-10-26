@@ -4,7 +4,7 @@
 // It talks to the engine only through EngineApi.
 
 import type { EngineApi } from '../engine/api';
-import type { FeedItem, GameState, GaugeKey, LeaMood, MapItem, Pick, ThreatView } from '../engine/types';
+import type { FeedItem, GameState, GaugeKey, LeaMood, MapItem, Pick, RequestView, ThreatView } from '../engine/types';
 import { CARD_BY_ID } from '../data/cards';
 import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, marginText } from '../data/copy';
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
@@ -20,6 +20,7 @@ import { showBadge, showGaugeHelp, showLeak, showThreat } from './screens/info';
 import { showIntro } from './screens/intro';
 import { showLetters } from './screens/letters';
 import { showWorlds } from './screens/worlds';
+import { showRequest } from './screens/request';
 import { outlookHtml } from './outlook';
 import { Feed } from './feed';
 
@@ -163,6 +164,7 @@ export class App {
     this.feedDone = true;
     this.renderAll();
     if (this.s.round === 1) await this.coach.show('heading', 1, this.root);
+    if (this.s.round === 1) await this.coach.show('feed', 1, this.root);
     if (this.s.round === 2) await this.coach.show('margin', 2, this.root);
 
     // the clock stops: the player takes the lead
@@ -274,6 +276,11 @@ export class App {
       void this.tipWhilePaused('leak');
     }
     const ev = s.event;
+    const q = this.e.request(s);
+    if (q && this.t >= q.at && (!ev || this.eventShown || q.at < ev.at)) {
+      void this.fireRequest(q);
+      return;
+    }
     if (ev && !this.eventShown && this.t >= ev.at) {
       void this.fireEvent();
       return;
@@ -343,6 +350,36 @@ export class App {
     this.map.setThreats(this.prevThreats);
     this.renderAll(true);
     await this.coach.show('breaking', this.s.round, this.root);
+    this.follow = 'clock';
+    this.from = { ...this.to };
+    this.setPhase('Clock running');
+    this.eventBusy = false;
+  }
+
+  /** A character arrives with a request: the clock stops until the player answers (free of Influence). */
+  private async fireRequest(v: RequestView) {
+    this.eventBusy = true;
+    const date = this.e.dateLabel(this.s.round);
+    this.setPhase('A request');
+    this.shown = { ...this.to };
+    this.renderGauges();
+    const pin = `rq_${v.id}`;
+    this.map.showItem(pin, v.character.region, `${v.character.name} has a request`, 'headline');
+    this.renderClock();
+    await this.coach.show('request', this.s.round, this.root);
+    await showRequest(v, date, (side) => {
+      const r = this.e.answerRequest(this.s, side);
+      this.s = r.state;
+      this.from = { ...this.shown };
+      this.to = this.vals();
+      this.follow = 'tween';
+      this.prevThreats = this.e.threats(this.s);
+      this.map.setThreats(this.prevThreats);
+      this.renderAll(true);
+      return r.outcome;
+    });
+    this.map.hideItem(pin);
+    this.renderAll();
     this.follow = 'clock';
     this.from = { ...this.to };
     this.setPhase('Clock running');

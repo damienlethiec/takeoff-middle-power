@@ -82,6 +82,155 @@ export interface Chip {
   tone: 'up' | 'down';
 }
 
+// ---------------------------------------------------------------- requests (v4, from the hybrid)
+
+export type CharacterId = 'us_envoy' | 'cn_delegate' | 'openbrain_ceo' | 'researcher' | 'union' | 'open_source' | 'security' | 'partner' | 'journalist' | 'lea' | 'ai';
+export type Side = 'left' | 'right';
+
+export interface Character {
+  id: CharacterId;
+  name: string;
+  role: string;
+  /** where they speak from on the map */
+  region: RegionId;
+}
+
+/** One fact behind a request, shown under "Learn more". Real-world facts cite a primary source. */
+export interface LearnMore {
+  text: string;
+  source: Source;
+}
+
+/** What an answer changes. `truth` moves the hidden true AI safety and is never shown as a number. */
+export interface ReqEffects {
+  ai?: number;
+  coop?: number;
+  /** the AI safety estimate (what the labs and testers report) */
+  conf?: number;
+  /** the uncertainty: negative narrows it (oversight), positive widens it */
+  margin?: number;
+  cohesion?: number;
+  /** hidden: the true AI safety */
+  truth?: number;
+}
+
+/** All listed conditions must hold. */
+export interface Condition {
+  minRound?: number;
+  maxRound?: number;
+  minAi?: number;
+  maxAi?: number;
+  minCoop?: number;
+  maxCoop?: number;
+  minCohesion?: number;
+  maxCohesion?: number;
+  /** reached (in AI 2027's order) */
+  milestone?: MilestoneId;
+  /** not reached yet */
+  beforeMilestone?: MilestoneId;
+  flags?: string[];
+  notFlags?: string[];
+  badge?: EuropeAi;
+  minCoalition?: number;
+  maxCoalition?: number;
+  minInspections?: number;
+  maxInspections?: number;
+  threat?: { id: ThreatId; minStage?: 0 | 1 | 2 | 3; maxStage?: 0 | 1 | 2 | 3; struck?: boolean; prepared?: boolean };
+}
+
+/** One answer of a request. */
+export interface Answer {
+  /** ≤ 5 words */
+  label: string;
+  effects: ReqEffects;
+  /** flags set by this answer (protections and follow-ups) */
+  set?: string[];
+  /** Europe's AI badge after this answer */
+  badge?: EuropeAi;
+  /** coalition level +n (the coalition card moves up a level too) */
+  coalition?: number;
+  /** inspection level +n (the inspections card moves up a level too) */
+  inspections?: number;
+  /** threats that grow one stage */
+  grow?: ThreatId[];
+  /** a delayed cost or gain, applied at the start of a later round */
+  later?: { rounds: number; effects: ReqEffects; why: string };
+  /** a short reason for the main cost (≤ 8 words) */
+  why?: string;
+  tag?: 'safety' | 'claim';
+  /** the character's one-line reaction */
+  reaction: string;
+}
+
+export interface RequestCard {
+  id: string;
+  character: CharacterId;
+  /** the request, ≤ 40 words, in the character's voice */
+  text: string;
+  left: Answer;
+  right: Answer;
+  when?: Condition;
+  basis: Basis;
+  learnMore: LearnMore;
+  /** the threat this request relates to: drawn first while that threat is growing */
+  prepares?: ThreatId;
+  /** a follow-up to an earlier answer ("I warned you"): shown as soon as its condition holds */
+  followup?: boolean;
+  /** an opportunity: available only for `window` rounds after its condition first holds */
+  opportunity?: { window: number };
+  /** draw weight (default 1) */
+  weight?: number;
+}
+
+export interface RequestState {
+  /** every answer so far, in order */
+  done: { id: string; round: number; side: Side }[];
+  /** this round's requests still to answer, with when they come during the six months (0–1) */
+  pending: { id: string; at: number }[];
+  /** this round's requests, answered or not (for the feed) */
+  round: { id: string; at: number; side: Side | null }[];
+  /** delayed effects of earlier answers */
+  later: { round: number; effects: ReqEffects; why: string }[];
+  /** the round each opportunity's window opened */
+  opened: Record<string, number>;
+}
+
+/** An answer as the player sees it before choosing: visible effects only (never the hidden truth as a number). */
+export interface AnswerView {
+  side: Side;
+  label: string;
+  chips: Chip[];
+  /** the chips in words, for the button's accessible name */
+  words: string;
+  why: string | null;
+  tag: 'safety' | 'claim' | null;
+  /** "Race → Pause" when the world would change, else null */
+  world: string | null;
+}
+
+export interface RequestView {
+  id: string;
+  character: Character;
+  text: string;
+  kind: 'request' | 'followup' | 'opportunity' | 'prepares';
+  threat: ThreatId | null;
+  threatName: string | null;
+  left: AnswerView;
+  right: AnswerView;
+  learnMore: LearnMore;
+  basis: Basis;
+  at: number;
+  /** 1-based position among this round's requests, and how many there are */
+  index: number;
+  count: number;
+}
+
+export interface RequestOutcome {
+  reaction: string;
+  chips: Chip[];
+  notes: string[];
+}
+
 // ---------------------------------------------------------------- state
 
 export interface ThreatState {
@@ -179,6 +328,8 @@ export interface RoundRecord {
   letter: string | null;
   /** Public values at the end of the round (after decisions), for the gauges' sparklines. */
   values: PublicValues;
+  /** The round's requests and the answers given. */
+  requests: { id: string; at: number; side: Side | null }[];
 }
 
 export interface PublicValues {
@@ -253,6 +404,9 @@ export interface GameState {
   played: Pick[];
   history: RoundRecord[];
   letters: LetterRecord[];
+  /** Flags set by answers to requests (protections and follow-ups). */
+  flags: string[];
+  requests: RequestState;
   tipping: { round: number } | null;
   ending: EndingId | null;
   /** Cooperation zone at the end (after the small suspense draw at the tipping point). */

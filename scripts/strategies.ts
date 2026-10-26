@@ -2,9 +2,10 @@
 // A strategy only reads what the UI shows: the hand, the gauges (estimate ± margin), the heading line,
 // the threats and the advisor. Never the hidden truth or the pace.
 
-import { advisor, createInitialState, endRound, gauges, hand, heading, playCard, preview, resolveEvent, startRound, threats } from '../src/engine/index';
+import { GAUGE_LABEL } from '../src/data/copy';
+import { advisor, answerRequest, createInitialState, endRound, gauges, hand, heading, playCard, preview, request, resolveEvent, startRound, threats } from '../src/engine/index';
 import { pick, randomInt, seedToRng, type RngHolder } from '../src/engine/rng';
-import type { CardId, GameState, Pick } from '../src/engine/types';
+import type { CardId, GameState, Pick, RequestView, Side } from '../src/engine/types';
 
 export interface Strategy {
   name: string;
@@ -12,6 +13,8 @@ export interface Strategy {
   decide: (s: GameState, r: RngHolder) => Pick[];
   /** Answer to silicon blackmail. */
   blackmail: (s: GameState, r: RngHolder) => 'give_in' | 'hold_firm';
+  /** Answer to a request (v4). */
+  answer: (s: GameState, v: RequestView, r: RngHolder) => Side;
 }
 
 export interface PlayedGame {
@@ -19,6 +22,8 @@ export interface PlayedGame {
   plays: CardId[];
   /** Rounds where the player wanted a card but could not afford it. */
   shortages: number;
+  /** Requests answered (v4). */
+  requests: number;
 }
 
 const playableIds = (s: GameState) => hand(s).filter((c) => c.playable).map((c) => c.id);
@@ -28,9 +33,19 @@ export function playGame(seed: number, strat: Strategy): PlayedGame {
   let s = createInitialState(seed);
   const plays: CardId[] = [];
   let shortages = 0;
+  let requests = 0;
   for (let guard = 0; guard < 20; guard++) {
     s = startRound(s);
-    if (s.event) s = resolveEvent(s, s.event.options.length ? strat.blackmail(s, r) : undefined);
+    // the six months in order: requests and the event come at their time
+    for (;;) {
+      const q = request(s);
+      const evFirst = s.event && (!q || s.event.at <= q.at);
+      if (evFirst) s = resolveEvent(s, s.event!.options.length ? strat.blackmail(s, r) : undefined);
+      else if (q) {
+        s = answerRequest(s, strat.answer(s, q, r)).state;
+        requests++;
+      } else break;
+    }
     const want = strat.decide(s, r);
     for (const p of want.slice(0, 2)) {
       const c = hand(s).find((x) => x.id === p.id);
@@ -46,13 +61,38 @@ export function playGame(seed: number, strat: Strategy): PlayedGame {
     s = end.state;
     if (end.outcome === 'ended') break;
   }
-  return { final: s, plays, shortages };
+  return { final: s, plays, shortages, requests };
+}
+
+/** What a request's answer would move, read from its chips (what the player sees). */
+function chipValue(v: RequestView, side: Side, w: { coop: number; conf: number; coh: number; ai?: number }): number {
+  let x = 0;
+  for (const c of v[side].chips) {
+    const m = /^(.+?) ([+−])(\d+)$/.exec(c.text);
+    if (m) {
+      const d = (m[2] === '−' ? -1 : 1) * Number(m[3]);
+      if (m[1] === GAUGE_LABEL.cooperation) x += d * w.coop;
+      else if (m[1] === GAUGE_LABEL.confidence) x += d * w.conf;
+      else if (m[1] === GAUGE_LABEL.cohesion) x += d * w.coh;
+      else if (m[1] === GAUGE_LABEL.aiPower) x -= d * (w.ai ?? 0.3);
+      continue;
+    }
+    const sign = c.tone === 'up' ? 1 : -1;
+    if (/certain/.test(c.text)) x += sign * 4 * w.conf;
+    else if (/Real safety/.test(c.text)) x += 4 * w.conf;
+    else if (/grows/.test(c.text)) x -= 3;
+    else if (/^Later/.test(c.text)) x += sign * 2;
+    else if (/Europe’s AI/.test(c.text)) x += sign * 0.5;
+    else x += sign * 1.5;
+  }
+  return x;
 }
 
 export const passive: Strategy = {
   name: 'passive',
   decide: () => [],
   blackmail: () => 'give_in',
+  answer: () => 'left',
 };
 
 export const randomStrategy: Strategy = {
@@ -73,6 +113,7 @@ export const randomStrategy: Strategy = {
     return out;
   },
   blackmail: (_s, r) => pick(r, ['give_in', 'hold_firm'] as const),
+  answer: (_s, _v, r) => pick(r, ['left', 'right'] as const),
 };
 
 /**
@@ -82,22 +123,36 @@ export const randomStrategy: Strategy = {
  * public preview (before → after), adds what the card texts say (protection against a visible threat,
  * hidden safety gains, Influence lost later), and plays the best one or two per Influence spent.
  */
+/** The thoughtful player's weights: how far each gauge is from what the world it aims for needs (public values). */
+function thoughtfulWeights(s: GameState) {
+  const g = Object.fromEntries(gauges(s).map((x) => [x.key, x]));
+  const conf = g.confidence;
+  const low = conf.value - conf.margin;
+  const hd = heading(s);
+  const plateau = hd.world === 'plateau_open' || hd.world === 'plateau_labs';
+  const coop = s.cooperation;
+  const pausePath = !plateau && (coop >= 40 || hd.world === 'pause');
+  const k = (x: number) => Math.max(0.05, Math.min(1.5, x));
+  const w = plateau
+    ? { coop: 0.05, conf: k((46 - low) / 8), coh: k((70 - s.cohesion) / 8) }
+    : pausePath
+      ? { coop: k((70 - coop) / 8), conf: k((71 - low) / 6), coh: k((56 - s.cohesion) / 6) }
+      : { coop: k((40 - coop) / 6), conf: k((81 - low) / 6), coh: k((64 - s.cohesion) / 6) };
+  return { w, conf, plateau };
+}
+
+/** Requests: the answer whose visible effects help most the world it aims for. */
+const thoughtfulAnswer = (s: GameState, v: RequestView): Side => {
+  const { w } = thoughtfulWeights(s);
+  return chipValue(v, 'right', w) > chipValue(v, 'left', w) ? 'right' : 'left';
+};
+
 export const thoughtful: Strategy = {
   name: 'thoughtful',
+  answer: thoughtfulAnswer,
   decide: (s) => {
     const cards = hand(s).filter((c) => c.playable);
-    const g = Object.fromEntries(gauges(s).map((x) => [x.key, x]));
-    const conf = g.confidence;
-    const low = conf.value - conf.margin;
-    const hd = heading(s);
-    const plateau = hd.world === 'plateau_open' || hd.world === 'plateau_labs';
-    const coop = s.cooperation;
-    const pausePath = !plateau && (coop >= 40 || hd.world === 'pause');
-    const k = (x: number) => Math.max(0.05, Math.min(1.5, x));
-    let w = { coop: 0.05, conf: 0.05, coh: 0.05 };
-    if (plateau) w = { coop: 0.05, conf: k((46 - low) / 8), coh: k((70 - s.cohesion) / 8) };
-    else if (pausePath) w = { coop: k((70 - coop) / 8), conf: k((71 - low) / 6), coh: k((56 - s.cohesion) / 6) };
-    else w = { coop: k((40 - coop) / 6), conf: k((81 - low) / 6), coh: k((64 - s.cohesion) / 6) };
+    const { w, conf, plateau } = thoughtfulWeights(s);
     const seen = threats(s).filter((t) => !t.struck && !t.prepared && t.stage >= 1);
     const score = (id: CardId, option?: string) => {
       const pv = preview(s, [{ id, ...(option ? { option } : {}) }]);
@@ -159,6 +214,7 @@ export const cooperationOnly: Strategy = {
     return out;
   },
   blackmail: () => 'hold_firm',
+  answer: (_s, v) => (chipValue(v, 'right', { coop: 1, conf: 0.1, coh: 0.1 }) > chipValue(v, 'left', { coop: 1, conf: 0.1, coh: 0.1 }) ? 'right' : 'left'),
 };
 
 /** Follows the chief of staff's recommendation every round (one card). */
@@ -169,6 +225,7 @@ export const advised: Strategy = {
     return a.recommend ? [{ id: a.recommend, ...(a.option ? { option: a.option } : {}) }] : [];
   },
   blackmail: () => 'hold_firm',
+  answer: thoughtfulAnswer,
 };
 
 
@@ -207,5 +264,6 @@ export const homeFirst: Strategy = {
     return out;
   },
   blackmail: () => 'hold_firm',
+  answer: (_s, v) => (chipValue(v, 'right', { coop: 0.05, conf: 0.4, coh: 1 }) > chipValue(v, 'left', { coop: 0.05, conf: 0.4, coh: 1 }) ? 'right' : 'left'),
 };
 export const STRATEGIES = [passive, randomStrategy, thoughtful, cooperationOnly, homeFirst, advised];

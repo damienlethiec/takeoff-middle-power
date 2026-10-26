@@ -95,6 +95,8 @@ export const TIPS = {
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages where they would strike. Open one to see which card protects against it.' },
   breaking: { anchor: 'map', title: 'Breaking news', text: 'When a threat strikes, it hits your gauges. Being prepared makes the difference.' },
   badge: { anchor: 'badge', title: 'Europe’s AI', text: 'Open or Dependent: does Europe run its own models? If AI never reaches the tipping point, this badge decides the kind of world.' },
+  request: { anchor: 'map', title: 'A request', text: 'Someone needs an answer from you. Answering is free of Influence: the cost is in the answer. Click an answer, swipe the card, or press ← → (once to look, twice to answer).' },
+  feed: { anchor: 'feed', title: 'The news', text: 'Everything that happens appears here as it happens. Click an item to see it on the map. At the end of the six months, what changed sits on top.' },
   leak: { anchor: 'map', title: 'A leak', text: 'Leaks show the gap between what labs say and the truth. Oversight (AI Office, inspections, audits) lets you read them.' },
 } as const;
 export type TipId = keyof typeof TIPS;
@@ -106,6 +108,7 @@ export const HELP = {
     ['Escape', 'Close a window'],
     ['?', 'Open this help'],
     ['N', 'Jump to the news feed'],
+    ['← →', 'In a request: look at an answer, press again to answer'],
   ] as [string, string][],
   rules: [
     'AI capabilities rise every round. At 80, AI improves itself: the tipping point (never before round 6), and the game ends. If it never gets there, the game ends after round 12.',
