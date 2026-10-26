@@ -1,8 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// End-to-end test: builds the game, serves it on port 5175 and plays whole games in Chromium.
+// End-to-end test: builds the game, serves it on port 5175 (E2E_PORT to change it) and plays whole games in Chromium.
 // The page clock is faked (page.clock), so a 16-quarter game takes seconds, not minutes.
-const PORT = 5175;
+const PORT = Number(process.env.E2E_PORT) || 5175;
 
 export default defineConfig({
   testDir: 'e2e',

@@ -47,6 +47,17 @@ async function freeze(page: Page) {
     }
   }
 }
+/** Let the page's time run in small steps until the check passes (needed once the time is frozen). */
+async function until(page: Page, check: () => Promise<unknown>, ms = 3000) {
+  for (let t = 0; ; t += 50) {
+    try {
+      return await check();
+    } catch (e) {
+      if (t >= ms) throw e;
+    }
+    await page.clock.fastForward(50);
+  }
+}
 const dialog = (page: Page) => page.locator('.overlay:not(.leaving) [role="dialog"]').last();
 const dockButton = (page: Page, name: RegExp) => page.locator('.dock:not([hidden])').getByRole('button', { name });
 /** The decisions, drawn in place of the map and the feed (not a dialog). */
@@ -60,7 +71,9 @@ async function checkText(page: Page, s: Session) {
 
 /** Answer whatever dialog is open: a request (by click), Breaking news (its first choice), a tip or anything else (Enter). */
 async function closeDialog(page: Page, side: 'left' | 'right' = 'left') {
-  // a tip may stack over a request (it points at the request card): close the tip first
+  // a tip may stack over a request (it points at the request card, a couple of frames after it opens):
+  // let it arrive, then close the tip first. The game's clock is stopped while a dialog is open.
+  await page.clock.fastForward(100);
   if (await page.locator('.overlay.coach-ov:not(.leaving)').count()) {
     await page.keyboard.press('Enter');
     return 'tip';
@@ -69,7 +82,7 @@ async function closeDialog(page: Page, side: 'left' | 'right' = 'left') {
   if (await d.locator('.req-card.asking').count()) {
     // the tip can still arrive while we click: then close it on the next pass
     if (!(await d.locator(`.ans-${side}`).click({ timeout: 3000 }).then(() => true, () => false))) return 'retry';
-    await expect(d.locator('.reaction')).toBeVisible();
+    await until(page, () => expect(d.locator('.reaction')).toBeVisible({ timeout: 100 }));
     await d.getByRole('button', { name: /^Back to the six months/ }).click();
     return 'request';
   }
@@ -446,6 +459,8 @@ test.describe('key interactions', () => {
     // replaced the tip, whose promise never settled, and the clock stayed stopped with the pause button disabled
     await page.setViewportSize({ width: 390, height: 844 });
     const s = await boot(page, '?skipintro&seed=4');
+    // the page's time moves only when the test advances it: nothing can open while the test is clicking
+    await freeze(page);
     const seen = { requests: 0, leaks: 0 };
     let leakDue = false;
     for (let step = 0; step < 400 && (await page.locator('#date').textContent()) !== 'H1 2028'; step++) {

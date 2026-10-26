@@ -14,6 +14,27 @@ async function boot(page: Page, query: string, errors: string[]) {
   await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ contentType: 'text/css', body: '' }));
   await page.clock.install();
   await page.goto(query);
+  await freeze(page);
+}
+
+/**
+ * Stop the page's time: from here on it moves only when the test advances it, so no request can open while the
+ * test is clicking. On a busy machine the target can pass before the call lands, so retry further ahead.
+ */
+async function freeze(page: Page) {
+  for (let ahead = 20; ; ahead *= 2) {
+    try {
+      return await page.clock.pauseAt((await page.evaluate(() => Date.now())) + ahead);
+    } catch (e) {
+      if (ahead > 2000 || !/to the past/.test(String(e))) throw e;
+    }
+  }
+}
+
+/** Reload, and keep the page's time stopped. */
+async function reload(page: Page) {
+  await page.reload();
+  await freeze(page);
 }
 
 const dialog = (page: Page) => page.locator('.overlay:not(.leaving) [role="dialog"]').last();
@@ -25,15 +46,26 @@ async function advance(page: Page, ms: number) {
   for (let t = 0; t < ms; t += 100) await page.clock.fastForward(100);
 }
 
+/** The page's time is stopped: let it run in small steps until the check passes (an animation, a focus move). */
+async function until(page: Page, check: () => Promise<unknown>, ms = 3000) {
+  for (let t = 0; ; t += 50) {
+    try {
+      return await check();
+    } catch (e) {
+      if (t >= ms) throw e;
+    }
+    await page.clock.fastForward(50);
+  }
+}
+
 /** One step of play: answer a dialog, make the decisions (the first card, or none), or let the clock run. */
 async function step(page: Page) {
   const d = dialog(page);
   if (await d.count()) {
     if (await d.locator('.req-card.asking').count()) {
-      if (await d.locator('.ans-left').click({ timeout: 3000 }).then(() => true, () => false)) {
-        await expect(d.locator('.reaction')).toBeVisible();
-        await d.getByRole('button', { name: /^Back to the six months/ }).click();
-      }
+      await d.locator('.ans-left').click();
+      await until(page, () => expect(d.locator('.reaction')).toBeVisible({ timeout: 100 }));
+      await d.getByRole('button', { name: /^Back to the six months/ }).click();
     } else if (await d.locator('.choice').count()) await d.locator('.choice').first().click();
     else await page.keyboard.press('Enter');
     return advance(page, 300);
@@ -72,11 +104,12 @@ test.describe('save and resume', () => {
     expect(before?.state.round).toBe(3);
     const date = (await page.locator('#date').textContent())!.trim();
 
-    await page.reload();
+    await reload(page);
     const go = dialog(page).getByRole('button', { name: `Continue your game (${date}, round 3)` });
-    await expect(go).toBeFocused();
+    await until(page, () => expect(go).toBeFocused({ timeout: 100 }));
     await expect(dialog(page).getByRole('button', { name: 'New game' })).toBeVisible();
     await go.click();
+    await page.clock.fastForward(300); // the title's dialog leaves; the clock does not run on by itself
     await expect(page.locator('#round-of')).toContainText('Round 3 of 12');
     await expect(page.locator('#date')).toHaveText(date);
     // nothing was applied twice, and the earlier rounds are back in the feed
@@ -89,7 +122,7 @@ test.describe('save and resume', () => {
     for (let i = 0; i < 900 && !(await page.locator('.ending-page').count()); i++) await step(page);
     await expect(page.locator('.ending-page')).toBeVisible();
     expect(await saved(page)).toBeNull();
-    await page.reload();
+    await reload(page);
     await expect(page.getByRole('button', { name: /^Continue your game/ })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
@@ -101,16 +134,17 @@ test.describe('save and resume', () => {
     const first = await saved(page);
     expect(first?.state.round).toBe(1);
 
-    await page.reload();
+    await reload(page);
     await dialog(page).getByRole('button', { name: 'New game' }).click();
     const confirm = dialog(page);
     await expect(confirm.getByRole('heading', { name: 'Start over?' })).toBeVisible();
     await expect(confirm).toContainText('Your current game will be lost.');
-    await expect(confirm.getByRole('button', { name: 'Cancel' })).toBeFocused();
+    await until(page, () => expect(confirm.getByRole('button', { name: 'Cancel' })).toBeFocused({ timeout: 100 }));
     await page.keyboard.press('Escape');
-    await expect(dialog(page).getByRole('button', { name: /^Continue your game/ })).toBeFocused();
+    await until(page, () => expect(dialog(page).getByRole('button', { name: /^Continue your game/ })).toBeFocused({ timeout: 100 }));
     await dialog(page).getByRole('button', { name: 'New game' }).click();
     await dialog(page).getByRole('button', { name: 'Start over' }).click();
+    await page.clock.fastForward(300);
     await expect(page.locator('#round-of')).toContainText('Round 1 of 12');
     await advance(page, 400);
     const second = await saved(page);
@@ -118,7 +152,7 @@ test.describe('save and resume', () => {
     expect(JSON.stringify(second)).not.toBe(JSON.stringify(first));
 
     await page.evaluate((k) => localStorage.setItem(k, '{"v":1,"stage":"round","state":{"round":'), KEY);
-    await page.reload();
+    await reload(page);
     await expect(page.locator('#round-of')).toContainText('Round 1 of 12');
     await expect(page.getByRole('button', { name: /^Continue your game/ })).toHaveCount(0);
     expect(errors).toEqual([]);
