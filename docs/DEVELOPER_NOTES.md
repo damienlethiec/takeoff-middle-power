@@ -142,6 +142,17 @@ Only `rounds` changed (12 → 10); every other number as in the table above. Bef
 
 What moved: a slow pace never reaches the tipping point in ten rounds (AI capabilities end around 56–64), and its plateau worlds are easy (advised and saver win 100% of their slow games); a steady pace now tips around round 9.5, a fast one around 7.2, so tipping worlds come late and leave less time to prepare (advised wins 3% of steady games, 0% of fast ones). Slow games stop at AI 2027's *alignment inconclusive* or *national security* milestone (the order holds; the later ones are simply not reached).
 
+### Rebalancing backlog (owner's decision, 26 Oct: rebalance at the end, not now)
+
+Ideas kept for the final pass, in this order, each checked with `npm run sim` at 100 games:
+
+1. **Speed AI capabilities up a little** so a steady pace tips around rounds 7–8 (today ~9.5) and a slow pace gets close to the tipping point by the end; keep "never before round 6".
+2. **Make plateau worlds harder** (slow-pace games that end by timeout in H2 2031): today advised and saver win all of them.
+3. Then check that **home-first** (−15 pts) and **saver** (−10 pts) fall clearly below thoughtful again, and that every ending stays ≥ 2% (*The race pays off* is at the edge).
+4. Restore the requests test's "rounds without a request" floor from 8% to 10%.
+5. Watch random (15–30%): it sat at the floor (15%) before the switch to ten rounds.
+6. Run the a11y harness (`npm run a11y`) once at the end: its seeded games (3, 4, 9) now play different draws.
+
 ## Final simulation (2,000 games per strategy)
 
 | Strategy | Good endings | Notes |
