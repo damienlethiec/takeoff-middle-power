@@ -1,29 +1,14 @@
-// The wall screen: a dot-matrix world (data from the first prototype) drawn in SVG,
-// with Europe, the US and China lit, coalition partners that join around Europe,
-// pulsing labs, the US–China tension arc, event pins and concern bubbles (they explain, they pay nothing).
-// Pressure you can feel (v2): protests over Europe grow with public pressure, the arc thickens and reddens
-// with tension, glitches appear with misuse. Léa is an HTML button laid over Lyon (44 px target).
+// The wall screen: a dot-matrix world (data from the first prototype) drawn in SVG, with Europe, the US and
+// China lit, coalition partners that join around Europe, pulsing labs and the US–China arc (thin and calm when
+// they cooperate, thick and red when they break apart). Everything the player can act on sits on top as real
+// HTML buttons placed over their spot: threat icons that grow in three stages, Europe's AI badge, Léa over
+// Lyon and the round's leak. Headlines and public voices appear as banners where they happen.
 
-import type { RegionId } from '../engine/types';
+import type { EuropeAi, LeaMood, RegionId, ThreatView } from '../engine/types';
+import { THREAT_BY_ID } from '../data/threats';
+import { esc, ICON } from './format';
+import { leaPortrait } from './lea';
 import { MAPDATA } from './mapdata';
-
-const REGION_NAME: Record<RegionId, string> = { eu: 'Europe', us: 'the United States', cn: 'China' };
-
-/** A button made of SVG (a <button> cannot live inside an <svg>): focusable, named, Enter and Space activate it. */
-function svgButton(g: SVGGElement, label: string, activate: () => void) {
-  g.setAttribute('role', 'button');
-  g.setAttribute('tabindex', '0');
-  g.setAttribute('aria-label', label);
-  g.addEventListener('click', activate);
-  g.addEventListener('keydown', (e) => {
-    const k = (e as KeyboardEvent).key;
-    if (k === 'Enter' || k === ' ') {
-      e.preventDefault();
-      e.stopPropagation(); // Space must not also pause the clock
-      activate();
-    }
-  });
-}
 
 const NS = 'http://www.w3.org/2000/svg';
 const VB = { x: 14, y: 0, w: 210, h: 68 };
@@ -123,27 +108,33 @@ const LABS: { region: RegionId; lon: number; lat: number; name: string }[] = [
   { region: 'cn', lon: 114.1, lat: 22.6, name: '' },
 ];
 const LYON = { lon: 4.85, lat: 45.76 };
-/** Where protests gather as public pressure rises, in order of appearance. */
-const PROTESTS: { lon: number; lat: number }[] = [
-  { lon: 2.35, lat: 48.85 }, // Paris
-  { lon: 13.4, lat: 52.5 }, // Berlin
-  { lon: -3.7, lat: 40.4 }, // Madrid
-  { lon: 12.5, lat: 41.9 }, // Rome
-  { lon: 21, lat: 52.2 }, // Warsaw
-  { lon: 4.35, lat: 50.85 }, // Brussels
-  { lon: 16.4, lat: 48.2 }, // Vienna
-  { lon: 18, lat: 59.3 }, // Stockholm
-];
-/** Where misuse shows up (hospitals, grids, banks), in order of appearance. */
-const GLITCHES: { lon: number; lat: number }[] = [
-  { lon: -87.6, lat: 41.9 }, // Chicago
-  { lon: 8.7, lat: 50.1 }, // Frankfurt
-  { lon: 37.6, lat: 55.7 }, // Moscow
-  { lon: 72.8, lat: 19 }, // Mumbai
-  { lon: -99.1, lat: 19.4 }, // Mexico City
-  { lon: 3.4, lat: 14 }, // the Sahel's grids
-  { lon: 121.5, lat: 31.2 }, // Shanghai
-];
+/** Where public voices are heard, per region. */
+const VOICE_SPOTS: Record<RegionId, { lon: number; lat: number }[]> = {
+  eu: [
+    { lon: 4.9, lat: 52.4 },
+    { lon: 13.4, lat: 52.5 },
+    { lon: -3.7, lat: 40.4 },
+    { lon: 21, lat: 52.2 },
+    { lon: 12.5, lat: 41.9 },
+    { lon: 18, lat: 59.3 },
+  ],
+  us: [
+    { lon: -122.3, lat: 47.6 },
+    { lon: -77, lat: 38.9 },
+  ],
+  cn: [
+    { lon: 114.1, lat: 22.6 },
+    { lon: 119.4, lat: 34.6 },
+  ],
+};
+/** Where headline banners stack, per region (the top of the map above each). */
+const BANNER_SPOT: Record<RegionId, { lon: number; lat: number }> = {
+  us: { lon: -100, lat: 64 },
+  eu: { lon: 14, lat: 70 },
+  cn: { lon: 108, lat: 60 },
+};
+const BADGE_SPOT = { lon: -11, lat: 37 };
+const LEAK_SPOT = { lon: -82, lat: 29 };
 
 function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}, parent?: Element): SVGElementTagNameMap[K] {
   const e = document.createElementNS(NS, tag);
@@ -153,92 +144,64 @@ function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, 
 }
 
 export interface MapView {
-  capability: number;
-  tension: number;
-  verification: number;
+  aiPower: number;
+  cooperation: number;
   coalition: number;
-  publicPressure: number;
-  misuse?: number;
+  europeAi: EuropeAi;
 }
 
-/** Protest markers for a level of public pressure (0 below 20, up to 8). */
-export const protestCount = (pressure: number) => Math.max(0, Math.min(PROTESTS.length, Math.floor((pressure - 10) / 10)));
-/** Glitch markers for a level of misuse risk (0 below 22, up to 7). */
-export const glitchCount = (misuse: number) => Math.max(0, Math.min(GLITCHES.length, Math.floor((misuse - 10) / 12)));
-
+const STAGE_SIZE = ['', 'st1', 'st2', 'st3'];
 let mapIds = 0;
 
 export class WorldMap {
   readonly svg: SVGSVGElement;
-  private layers: Record<'land' | 'arc' | 'labs' | 'pressure' | 'pins' | 'pings' | 'bubbles' | 'labels', SVGGElement>;
+  private layers: Record<'land' | 'arc' | 'labs' | 'labels' | 'fx', SVGGElement>;
   private zonePaths = {} as Record<Zone, SVGPathElement>;
   private arc!: SVGPathElement;
   private arcGlow!: SVGPathElement;
-  private arcLabel!: SVGTextElement;
-  private labDots: SVGGElement[] = [];
-  private bubbles = new Map<string, SVGGElement>();
-  private onBubble?: (id: string, region: RegionId, node: SVGGElement) => void;
   private container: HTMLElement;
-  /** Léa's button, laid over Lyon (null on a decorative map). */
+  /** HTML layer over the SVG: buttons and banners placed at a longitude and latitude. */
+  private overlay: HTMLElement;
+  private placed = new Map<HTMLElement, { lon: number; lat: number }>();
+  private threatBtns = new Map<string, HTMLButtonElement>();
+  private banners: Record<RegionId, HTMLElement>;
+  /** On small screens, headlines and voices scroll in a strip under the map instead. */
+  private ticker: HTMLElement;
   leaButton: HTMLButtonElement | null = null;
-  private concernPop: HTMLElement | null = null;
-  private shown = { protests: -1, glitches: -1 };
-  /** Text alternative of the map for screen readers (null on a decorative map). */
+  badgeButton: HTMLButtonElement | null = null;
+  leakButton: HTMLButtonElement | null = null;
   private summary: HTMLElement | null = null;
-  private summaryParts = { state: '', events: [] as string[] };
+  private summaryParts = { state: '', threats: '' };
   onLea?: () => void;
+  onBadge?: () => void;
+  onLeak?: () => void;
+  onThreat?: (id: ThreatView['id'], btn: HTMLButtonElement) => void;
 
-  constructor(container: HTMLElement, opts: { decorative?: boolean; onBubble?: (id: string, region: RegionId, node: SVGGElement) => void } = {}) {
-    this.onBubble = opts.onBubble;
+  constructor(container: HTMLElement, opts: { decorative?: boolean } = {}) {
     this.container = container;
     const g = grid();
-    const svg = el('svg', { viewBox: `${VB.x} ${VB.y} ${VB.w} ${VB.h}`, preserveAspectRatio: 'xMidYMid meet', class: 'worldmap' });
-    if (opts.decorative) svg.setAttribute('aria-hidden', 'true');
-    else {
-      // a group, not an image: it holds Léa's pin, event pins and concern bubbles, which are buttons.
-      // Its description is a text summary of what the map shows, kept up to date by update().
-      svg.setAttribute('role', 'group');
-      svg.setAttribute('tabindex', '-1');
-      svg.setAttribute('aria-label', 'Map of the world: the United States, Europe and China, with the tension between the US and China, public pressure and misuse');
-      this.summary = document.createElement('p');
-      this.summary.className = 'sr-only map-summary';
-      this.summary.id = `map-summary-${++mapIds}`;
-      svg.setAttribute('aria-describedby', this.summary.id);
-    }
+    const svg = el('svg', { viewBox: `${VB.x} ${VB.y} ${VB.w} ${VB.h}`, preserveAspectRatio: 'xMidYMid meet', class: 'worldmap', 'aria-hidden': 'true', focusable: 'false' });
     const defs = el('defs', {}, svg);
     defs.innerHTML = `
       <pattern id="sea" width="3" height="3" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r=".17" class="sea-dot"/></pattern>
-      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>
-      <linearGradient id="arcgrad" x1="0" x2="1"><stop offset="0" stop-color="var(--cap)"/><stop offset=".5" stop-color="var(--arc-mid, var(--cap))"/><stop offset="1" stop-color="var(--rival)"/></linearGradient>`;
-    defs.setAttribute('aria-hidden', 'true');
-    el('rect', { x: -60, y: -60, width: 360, height: 220, fill: 'url(#sea)', 'aria-hidden': 'true' }, svg);
-    // the drawing is described in words by the summary, so only the pins and bubbles are exposed
-    const hide = { 'aria-hidden': 'true' };
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>`;
+    el('rect', { x: -60, y: -60, width: 360, height: 220, fill: 'url(#sea)' }, svg);
     this.layers = {
-      land: el('g', { class: 'm-land', ...hide }, svg),
-      arc: el('g', { class: 'm-arc', ...hide }, svg),
-      labs: el('g', { class: 'm-labs', ...hide }, svg),
-      labels: el('g', { class: 'm-labels', ...hide }, svg),
-      pressure: el('g', { class: 'm-pressure', ...hide }, svg),
-      pins: el('g', { class: 'm-pins' }, svg),
-      pings: el('g', { class: 'm-pings', ...hide }, svg),
-      bubbles: el('g', { class: 'm-bubbles' }, svg),
+      land: el('g', { class: 'm-land' }, svg),
+      arc: el('g', { class: 'm-arc' }, svg),
+      labs: el('g', { class: 'm-labs' }, svg),
+      labels: el('g', { class: 'm-labels' }, svg),
+      fx: el('g', { class: 'm-fx' }, svg),
     };
     (Object.keys(g.paths) as Zone[]).forEach((z) => {
       this.zonePaths[z] = el('path', { d: g.paths[z], class: `zone z-${z}` }, this.layers.land);
     });
-
-    // tension arc: from the US over Europe to China
     const a = geo(ANCHOR.us.lon, ANCHOR.us.lat);
     const b = geo(ANCHOR.cn.lon, ANCHOR.cn.lat);
     const cx = (a.x + b.x) / 2;
-    const cy = -14;
-    const d = `M${a.x} ${a.y} Q${cx} ${cy} ${b.x} ${b.y}`;
+    const d = `M${a.x} ${a.y} Q${cx} -14 ${b.x} ${b.y}`;
     this.arcGlow = el('path', { d, class: 'arc-glow', filter: 'url(#glow)' }, this.layers.arc);
     this.arc = el('path', { d, class: 'arc' }, this.layers.arc);
-    const peakY = 0.25 * a.y + 0.5 * cy + 0.25 * b.y;
-    this.arcLabel = el('text', { x: cx + 18, y: peakY + 1.2, class: 'arc-label' }, opts.decorative ? undefined : this.layers.arc);
-
     LABS.forEach((l) => {
       const p = geo(l.lon, l.lat);
       const gl = el('g', { class: `lab lab-${l.region}`, transform: `translate(${p.x} ${p.y})` }, this.layers.labs);
@@ -248,9 +211,7 @@ export class WorldMap {
         const t = el('text', { x: l.region === 'us' ? 1.6 : -1.6, y: -1.4, class: `lab-name ${l.region === 'us' ? '' : 'end'}` }, gl);
         t.textContent = l.name;
       }
-      this.labDots.push(gl);
     });
-
     if (!opts.decorative) {
       const label = (text: string, lon: number, lat: number, cls: string) => {
         const p = geo(lon, lat);
@@ -258,25 +219,48 @@ export class WorldMap {
         t.textContent = text;
       };
       label('UNITED STATES', -100, 33, 'l-us');
-      label('EUROPE', 20, 43.5, 'l-eu');
+      label('EUROPE', 26, 50, 'l-eu');
       label('CHINA', 100, 28.5, 'l-cn');
-      PARTNERS.forEach((p) => label(p.name, p.lon + (p.zone === 'kr' ? -3 : p.zone === 'jp' ? 4.5 : p.zone === 'no' ? -6 : p.zone === 'uk' ? -8.5 : 0), p.lat + (p.zone === 'no' ? -2.5 : p.zone === 'uk' ? 0.5 : p.zone === 'kr' ? 4.5 : 3.6), `l-partner l-${p.zone}`));
+      PARTNERS.forEach((p) =>
+        label(p.name, p.lon + (p.zone === 'kr' ? -3 : p.zone === 'jp' ? 4.5 : p.zone === 'no' ? -6 : p.zone === 'uk' ? -8.5 : 0), p.lat + (p.zone === 'no' ? -2.5 : p.zone === 'uk' ? 0.5 : p.zone === 'kr' ? 4.5 : 3.6), `l-partner l-${p.zone}`),
+      );
     }
     container.appendChild(svg);
-    if (!opts.decorative) {
-      // Léa lives in Lyon: a real button laid over the map (its tag hangs below the city), at least 44 px tall
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'lea-btn';
-      b.setAttribute('aria-label', 'Léa, in Lyon: read her letters');
-      b.innerHTML = '<span class="lea-tag"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4.5" width="15" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 5.5l7 5.5 7-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Léa<i class="lea-new" hidden>new</i></span>';
-      b.addEventListener('click', () => this.onLea?.());
-      container.appendChild(b);
-      this.leaButton = b;
-    }
-    if (this.summary) container.appendChild(this.summary);
     this.svg = svg;
-    // fit the core band to the box, and show more of the world when the box is taller
+    this.overlay = document.createElement('div');
+    this.overlay.className = 'm-over';
+    container.appendChild(this.overlay);
+    this.ticker = document.createElement('div');
+    this.ticker.className = 'mticker';
+    this.ticker.setAttribute('aria-hidden', 'true');
+    if (!opts.decorative) container.after(this.ticker);
+    this.banners = { us: this.mk('div', 'banners b-us'), eu: this.mk('div', 'banners b-eu'), cn: this.mk('div', 'banners b-cn') };
+    for (const r of ['us', 'eu', 'cn'] as RegionId[]) {
+      this.banners[r].setAttribute('aria-hidden', 'true');
+      this.place(this.banners[r], BANNER_SPOT[r]);
+    }
+    if (!opts.decorative) {
+      this.summary = document.createElement('p');
+      this.summary.className = 'sr-only map-summary';
+      this.summary.id = `map-summary-${++mapIds}`;
+      container.appendChild(this.summary);
+      // Europe's AI badge, Léa and the leak: real buttons laid over the map
+      this.badgeButton = this.mk('button', 'badge-btn') as HTMLButtonElement;
+      this.badgeButton.type = 'button';
+      this.badgeButton.dataset.coach = 'badge';
+      this.badgeButton.addEventListener('click', () => this.onBadge?.());
+      this.place(this.badgeButton, BADGE_SPOT);
+      this.leaButton = this.mk('button', 'lea-btn') as HTMLButtonElement;
+      this.leaButton.type = 'button';
+      this.leaButton.addEventListener('click', () => this.onLea?.());
+      this.place(this.leaButton, LYON);
+      this.setLea('hopeful', false);
+      this.leakButton = this.mk('button', 'leak-btn') as HTMLButtonElement;
+      this.leakButton.type = 'button';
+      this.leakButton.hidden = true;
+      this.leakButton.addEventListener('click', () => this.onLeak?.());
+      this.place(this.leakButton, LEAK_SPOT);
+    }
     const fit = () => {
       const w = container.clientWidth;
       const h = container.clientHeight;
@@ -290,14 +274,21 @@ export class WorldMap {
         vh = ch;
         vw = ch * aspect;
       }
-      const cx = (CORE.x0 + CORE.x1) / 2;
+      const mid = (CORE.x0 + CORE.x1) / 2;
       const coreMid = (CORE.y0 + CORE.y1) / 2;
       const y0 = Math.max(-3, Math.min(coreMid - vh * 0.4, Math.max(-3, 86 - vh)));
-      svg.setAttribute('viewBox', `${(cx - vw / 2).toFixed(2)} ${y0.toFixed(2)} ${vw.toFixed(2)} ${vh.toFixed(2)}`);
-      this.placeLea();
+      svg.setAttribute('viewBox', `${(mid - vw / 2).toFixed(2)} ${y0.toFixed(2)} ${vw.toFixed(2)} ${vh.toFixed(2)}`);
+      this.layout();
     };
-    new ResizeObserver(fit).observe(container);
+    if (typeof ResizeObserver === 'function') new ResizeObserver(fit).observe(container);
     fit();
+  }
+
+  private mk(tag: string, cls: string): HTMLElement {
+    const e = document.createElement(tag);
+    e.className = cls;
+    this.overlay.appendChild(e);
+    return e;
   }
 
   /** Where a map point lands in the container, in px (the SVG is scaled to fit, centred). */
@@ -309,230 +300,188 @@ export class WorldMap {
     return { x: (w - vw * k) / 2 + (p.x - vx) * k, y: (h - vh * k) / 2 + (p.y - vy) * k };
   }
 
-  private placeLea() {
-    if (!this.leaButton) return;
-    const p = this.toPx(geo(LYON.lon, LYON.lat));
-    this.leaButton.style.left = `${p.x.toFixed(1)}px`;
-    this.leaButton.style.top = `${p.y.toFixed(1)}px`;
+  private place(e: HTMLElement, at: { lon: number; lat: number }) {
+    this.placed.set(e, at);
+    this.position(e, at);
+  }
+  private position(e: HTMLElement, at: { lon: number; lat: number }) {
+    const p = this.toPx(geo(at.lon, at.lat));
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    // every overlay is centred on its spot: keep it whole inside the map
+    const hw = Math.min(w / 2, (e.offsetWidth || 0) / 2 + 4);
+    const isVoice = e.classList.contains('voice');
+    const hh = (e.offsetHeight || 0) / (isVoice || e.classList.contains('banners') ? 1 : 2) + 4;
+    const top = isVoice ? Math.max(hh + 6, Math.min(h - 4, p.y)) : e.classList.contains('banners') ? Math.max(6, Math.min(h - hh, p.y)) : Math.max(hh, Math.min(h - hh, p.y));
+    e.style.left = `${Math.max(hw, Math.min(w - hw, p.x)).toFixed(1)}px`;
+    e.style.top = `${top.toFixed(1)}px`;
+  }
+  private layout() {
+    for (const [e, at] of this.placed) {
+      if (!e.isConnected) this.placed.delete(e);
+      else this.position(e, at);
+    }
   }
 
-  /** Léa has a message the player has not read yet: a "new" tag on her button (in words, not only a glow). */
-  setLeaUnread(on: boolean) {
-    if (!this.leaButton) return;
-    this.leaButton.classList.toggle('unread', on);
-    this.leaButton.querySelector<HTMLElement>('.lea-new')!.hidden = !on;
-    this.leaButton.setAttribute('aria-label', `Léa, in Lyon: read her letters${on ? ' (new letter)' : ''}`);
+  /** Léa's portrait over Lyon, with her mood and a "new" tag (in words, not only a glow). */
+  setLea(mood: LeaMood, unread: boolean) {
+    const b = this.leaButton;
+    if (!b) return;
+    b.innerHTML = `${leaPortrait(mood)}<span class="lea-tag">Léa${unread ? '<i class="lea-new">new</i>' : ''}</span>`;
+    b.classList.toggle('unread', unread);
+    b.setAttribute('aria-label', `Léa, in Lyon: read her letters${unread ? ' (new letter)' : ''}`);
   }
 
-  private drawPressure(protests: number, glitches: number, pressure: number) {
-    if (protests === this.shown.protests && glitches === this.shown.glitches) {
-      this.svg.style.setProperty('--protest-k', String(0.8 + pressure / 120));
+  setBadge(ai: EuropeAi) {
+    const b = this.badgeButton;
+    if (!b) return;
+    const word = ai === 'open' ? 'Open' : 'Dependent';
+    if (b.dataset.v === ai) return;
+    b.dataset.v = ai;
+    b.className = `badge-btn ${ai}`;
+    b.innerHTML = `<span class="badge-k">Europe’s AI</span><b>${word}</b>`;
+    b.setAttribute('aria-label', `Europe’s AI: ${word}. What this means`);
+  }
+
+  /** The round's leak: an envelope over the US labs, readable or redacted. */
+  setLeak(leak: { readable: boolean } | null) {
+    const b = this.leakButton;
+    if (!b) return;
+    b.hidden = !leak;
+    if (!leak) return;
+    b.innerHTML = `${ICON.leak}<span>${leak.readable ? 'Leak' : 'Leak · redacted'}</span>`;
+    b.setAttribute('aria-label', leak.readable ? 'A leak from inside the labs: read it' : 'A leak from inside the labs, redacted: what it means');
+    this.layout();
+  }
+
+  /** Threat icons where they would strike: bigger at each stage, green with a check once prepared. */
+  setThreats(views: ThreatView[]) {
+    const live = new Set<string>();
+    for (const t of views.filter((x) => !x.struck && x.stage > 0)) {
+      live.add(t.id);
+      let b = this.threatBtns.get(t.id);
+      if (!b) {
+        b = this.mk('button', 'threat-btn') as HTMLButtonElement;
+        b.type = 'button';
+        b.dataset.threat = t.id;
+        b.addEventListener('click', () => this.onThreat?.(t.id, b!));
+        this.threatBtns.set(t.id, b);
+        const w = THREAT_BY_ID[t.id].where;
+        this.place(b, { lon: w.lon, lat: w.lat });
+      }
+      const sig = `${t.stage}:${t.prepared}`;
+      if (b.dataset.sig === sig) continue;
+      const grew = b.dataset.sig && Number(b.dataset.sig.split(':')[0]) < t.stage;
+      b.dataset.sig = sig;
+      b.className = `threat-btn ${STAGE_SIZE[t.stage]} ${t.prepared ? 'prepared' : ''} ${grew ? 'grew' : ''}`;
+      b.innerHTML = `<span class="tb-ico">${t.prepared ? ICON.check : ICON.alert}</span><span class="tb-txt"><b>${esc(t.name)}</b><small>${esc(t.stageWord)}${t.certainty === 'possible' ? ' · possible' : ''}${t.prepared ? ' · prepared' : ''}</small></span>`;
+      b.setAttribute('aria-label', `Threat: ${t.name}, ${t.stageWord.toLowerCase()}${t.certainty === 'possible' ? ', possible' : ''}, ${t.prepared ? 'prepared' : 'not prepared'}. What it is and what protects against it`);
+    }
+    for (const [id, b] of this.threatBtns) {
+      if (live.has(id)) continue;
+      if (b.contains(document.activeElement)) this.container.closest('.game')?.querySelector<HTMLElement>('#map-h')?.focus();
+      b.remove();
+      this.threatBtns.delete(id);
+    }
+    this.summaryParts.threats = views.filter((x) => !x.struck && x.stage > 0).length
+      ? ` Threats on the map: ${views
+          .filter((x) => !x.struck && x.stage > 0)
+          .map((x) => `${x.name} (${x.stageWord.toLowerCase()}, ${x.prepared ? 'prepared' : 'not prepared'})`)
+          .join('; ')}.`
+      : ' No threat on the map yet.';
+    this.writeSummary();
+  }
+
+  threatButton(id: string) {
+    return this.threatBtns.get(id) ?? null;
+  }
+
+  /** A headline banner or a public voice where it happens (decorative: the live region reads it). */
+  showItem(id: string, region: RegionId, text: string, kind: 'headline' | 'voice' | 'breaking') {
+    const tk = document.createElement('p');
+    tk.className = `tk k-${kind} r-${region}`;
+    tk.dataset.item = id;
+    tk.innerHTML = `<span class="bn-k">${kind === 'voice' ? 'Heard' : kind === 'breaking' ? 'Breaking' : 'Headline'}</span>${esc(text)}`;
+    this.ticker.prepend(tk);
+    while (this.ticker.childElementCount > 2) this.ticker.lastElementChild!.remove();
+    if (kind === 'voice') {
+      const spots = VOICE_SPOTS[region];
+      const h = [...id].reduce((a, c) => a + c.charCodeAt(0), 0);
+      const v = this.mk('div', 'voice');
+      v.dataset.item = id;
+      v.setAttribute('aria-hidden', 'true');
+      v.textContent = text;
+      this.place(v, spots[h % spots.length]);
+      requestAnimationFrame(() => this.position(v, spots[h % spots.length]));
       return;
     }
-    const layer = this.layers.pressure;
-    // markers already shown stay put; new ones arrive, gone ones leave
-    layer.querySelectorAll('.protest').forEach((g, i) => i >= protests && g.remove());
-    layer.querySelectorAll('.glitch').forEach((g, i) => i >= glitches && g.remove());
-    for (let i = layer.querySelectorAll('.protest').length; i < protests; i++) {
-      const p = geo(PROTESTS[i].lon, PROTESTS[i].lat);
-      const g = el('g', { class: 'protest', transform: `translate(${p.x} ${p.y})` }, layer);
-      const inner = el('g', { class: 'protest-in' }, g);
-      el('circle', { r: 2.3, class: 'protest-ring' }, inner);
-      el('path', { d: 'M0 1V-1.8', class: 'protest-stick' }, inner);
-      el('rect', { x: -1.6, y: -3.3, width: 3.2, height: 2, rx: 0.3, class: 'protest-sign' }, inner);
-    }
-    for (let i = layer.querySelectorAll('.glitch').length; i < glitches; i++) {
-      const p = geo(GLITCHES[i].lon, GLITCHES[i].lat);
-      const g = el('g', { class: 'glitch', transform: `translate(${p.x} ${p.y})`, style: `--gd:${(i * 0.37) % 1.3}s` }, layer);
-      el('path', { d: 'M-1.4 -1.4h1.6v.8h1.2v1.6h-.9v.8h-1.9v-1.1h-.6z', class: 'glitch-a' }, g);
-      el('path', { d: 'M.2 -1.9h1.3v.7h-1.3zM-1.9 .5h.8v.7h-.8z', class: 'glitch-b' }, g);
-    }
-    this.shown = { protests, glitches };
-    this.svg.style.setProperty('--protest-k', String(0.8 + pressure / 120));
+    const b = document.createElement('div');
+    b.className = `banner ${kind}`;
+    b.dataset.item = id;
+    b.innerHTML = `<span class="bn-k">${kind === 'breaking' ? 'Breaking' : 'Headline'}</span>${esc(text)}`;
+    const box = this.banners[region];
+    box.prepend(b);
+    while (box.childElementCount > 2) box.lastElementChild!.remove();
+    this.position(box, BANNER_SPOT[region]);
+  }
+
+  hideItem(id: string) {
+    this.overlay.querySelectorAll<HTMLElement>(`.banner[data-item="${CSS.escape(id)}"], .voice[data-item="${CSS.escape(id)}"]`).forEach((e) => {
+      e.classList.add('out');
+      setTimeout(() => e.remove(), 400);
+    });
+  }
+
+  clearItems() {
+    this.overlay.querySelectorAll('.banner, .voice').forEach((e) => e.remove());
+    this.ticker.replaceChildren();
+  }
+
+  /** An event bursts where it happens (a short ring; without motion, a steady highlight that fades). */
+  burst(region: RegionId) {
+    const a = geo(ANCHOR[region].lon, ANCHOR[region].lat);
+    const g = el('g', { class: `burst burst-${region}`, transform: `translate(${a.x} ${a.y})` }, this.layers.fx);
+    el('circle', { r: 6, class: 'burst-ring' }, g);
+    el('circle', { r: 2.2, class: 'burst-core' }, g);
+    setTimeout(() => g.remove(), 1600);
   }
 
   update(v: MapView) {
-    // labs pulse faster and brighter as capability rises
-    const dur = Math.max(0.7, 2.8 - v.capability / 40);
-    this.svg.style.setProperty('--lab-dur', `${dur.toFixed(2)}s`);
-    this.svg.style.setProperty('--cap-glow', String(Math.min(1, 0.25 + v.capability / 100)));
-    this.svg.style.setProperty('--eu-glow', String(Math.min(1, 0.35 + v.verification / 90)));
-    // tension: amber → red, thin → thick, slow → fast
-    const t = Math.max(0, Math.min(1, (v.tension - 25) / 50));
+    // labs pulse faster as AI power rises
+    this.svg.style.setProperty('--lab-dur', `${Math.max(0.7, 2.8 - v.aiPower / 40).toFixed(2)}s`);
+    this.svg.style.setProperty('--cap-glow', String(Math.min(1, 0.25 + v.aiPower / 100)));
+    // the US–China arc: calm and thin when they cooperate, thick and red when they break apart
+    const t = Math.max(0, Math.min(1, (70 - v.cooperation) / 55));
     const width = 0.35 + t * 2.1;
     this.arc.style.strokeWidth = String(width);
     this.arcGlow.style.strokeWidth = String(width * 2.6);
-    this.svg.style.setProperty('--arc-mid', t > 0.45 ? 'var(--rival)' : 'var(--cap)');
-    this.svg.classList.toggle('arc-hot', v.tension >= 60);
-    const misuse = v.misuse ?? 0;
-    const protests = protestCount(v.publicPressure);
-    const glitches = glitchCount(misuse);
-    this.drawPressure(protests, glitches, v.publicPressure);
+    this.svg.classList.toggle('arc-hot', v.cooperation < 30);
+    this.svg.classList.toggle('arc-calm', v.cooperation >= 60);
     this.svg.style.setProperty('--arc-op', String(0.35 + t * 0.65));
-    this.svg.style.setProperty('--arc-dur', `${(3.2 - t * 2.4).toFixed(2)}s`);
-    this.arcLabel.textContent = `US–China tension ${Math.round(v.tension)}`;
-    this.arcLabel.classList.toggle('hot', v.tension >= 60);
     PARTNERS.forEach((p) => {
       const on = v.coalition >= p.level;
       this.zonePaths[p.zone].classList.toggle('joined', on);
-      const lbl = this.layers.labels.querySelector(`.l-${p.zone}`);
-      lbl?.classList.toggle('joined', on);
+      this.layers.labels.querySelector(`.l-${p.zone}`)?.classList.toggle('joined', on);
     });
+    this.setBadge(v.europeAi);
     if (this.summary) {
-      const tension = Math.round(v.tension);
       const joined = PARTNERS.filter((p) => v.coalition >= p.level).map((p) => p.name);
-      const waiting = PARTNERS.filter((p) => v.coalition < p.level).map((p) => p.name);
-      const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0]);
+      const zone = v.cooperation >= 60 ? 'cooperating (Pause)' : v.cooperation >= 30 ? 'racing (Race)' : 'breaking apart (Rupture)';
       this.summaryParts.state =
-        `US–China tension ${tension} out of 100${tension >= 60 ? ', high' : ''}. ` +
-        (joined.length ? `Standing with Europe: ${list(joined)}.` : 'No partner stands with Europe yet.') +
-        (waiting.length ? ` Not yet: ${list(waiting)}.` : '') +
-        ` The labs, OpenBrain in the US and DeepCent in China, are at capability ${Math.round(v.capability)}.` +
-        ` Public pressure ${Math.round(v.publicPressure)}: ${protests ? `protests in ${protests} European ${protests > 1 ? 'cities' : 'city'}` : 'no protests'}.` +
-        (glitches ? ` Misuse risk ${Math.round(misuse)}: ${glitches} AI-enabled attack${glitches > 1 ? 's' : ''} on the map.` : '');
+        `Map of the world. The US and China are ${zone}. ` +
+        (joined.length ? `Standing with Europe: ${joined.join(', ')}.` : 'No partner stands with Europe yet.') +
+        ` Europe’s AI: ${v.europeAi === 'open' ? 'Open' : 'Dependent'}. Léa lives in Lyon.`;
       this.writeSummary();
     }
   }
 
   private writeSummary() {
     if (!this.summary) return;
-    const ev = this.summaryParts.events;
-    const text = `${this.summaryParts.state}${ev.length ? ` Events pinned on the map: ${ev.join('; ')}.` : ''}`;
+    const text = `${this.summaryParts.state}${this.summaryParts.threats}`;
     if (this.summary.textContent !== text) this.summary.textContent = text;
   }
 
-  private randomCell(region: RegionId) {
-    const g = grid();
-    const pool = g.cells[region].filter((c) => {
-      const lat = MAPDATA.lat0 - c.y * MAPDATA.step;
-      const lon = MAPDATA.lon0 + c.x * MAPDATA.step;
-      if (region === 'us') return lat < 48 && lon > -124;
-      if (region === 'cn') return lon > 98 && lat < 42;
-      // Europe, away from Léa's button over Lyon
-      return lat < 56 && lon > -5 && lon < 26 && !(Math.abs(lon - LYON.lon) < 8 && lat > LYON.lat - 9 && lat < LYON.lat + 3);
-    });
-    return pool[Math.floor(Math.random() * pool.length)] ?? geo(ANCHOR[region].lon, ANCHOR[region].lat);
-  }
-
-  /** A concern bubble: a button that explains what worries people there (it pays nothing). */
-  spawnBubble(id: string, region: RegionId) {
-    const c = this.randomCell(region);
-    const g = el('g', { class: 'bubble', transform: `translate(${c.x} ${c.y})` }, this.layers.bubbles);
-    const inner = el('g', { class: 'bubble-in' }, g);
-    el('circle', { cy: -3.4, r: 3.4, class: 'bubble-hit' }, inner);
-    el('circle', { cy: -3.6, r: 3.6, class: 'focus-ring' }, inner);
-    el('path', { d: 'M-2.8 -6.3h5.6a1 1 0 0 1 1 1v3.2a1 1 0 0 1 -1 1h-2.2L0 0l-1-1.1h-1.8a1 1 0 0 1 -1 -1v-3.2a1 1 0 0 1 1 -1z', class: 'bubble-pin' }, inner);
-    const t = el('text', { y: -3.05, class: 'bubble-t' }, inner);
-    t.textContent = '…';
-    svgButton(g, `Public concern in ${REGION_NAME[region]}: read what worries people`, () => this.onBubble?.(id, region, g));
-    this.bubbles.set(id, g);
-  }
-
-  /** The concern bubbles still on the map, oldest first (unread ones first). */
-  liveBubbles(): string[] {
-    const ids = [...this.bubbles.keys()];
-    return [...ids.filter((i) => !this.bubbles.get(i)!.classList.contains('read')), ...ids.filter((i) => this.bubbles.get(i)!.classList.contains('read'))];
-  }
-  bubbleNode(id: string) {
-    return this.bubbles.get(id);
-  }
-
-  /** The bubble has been read: it says so (a check mark, and in its name) and shows the concern beside it. */
-  readBubble(id: string, region: RegionId, text: string) {
-    const g = this.bubbles.get(id);
-    if (!g) return;
-    g.classList.add('read');
-    g.querySelector('.bubble-t')!.textContent = '✓';
-    g.setAttribute('aria-label', `Public concern in ${REGION_NAME[region]}, read: ${text}`);
-    this.showConcern(g, text);
-  }
-
-  /** The concern's words next to its bubble (screen readers hear it through the live region and the bubble's name). */
-  private showConcern(g: SVGGElement, text: string) {
-    this.closeConcern();
-    const pop = document.createElement('div');
-    pop.className = 'concern-pop';
-    pop.setAttribute('aria-hidden', 'true');
-    pop.dataset.for = [...this.bubbles.entries()].find(([, n]) => n === g)?.[0] ?? '';
-    pop.textContent = text;
-    const m = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(g.getAttribute('transform') ?? '');
-    const p = m ? this.toPx({ x: Number(m[1]), y: Number(m[2]) - 7 }) : { x: 0, y: 0 };
-    const w = this.container.clientWidth;
-    pop.style.left = `${Math.max(8, Math.min(w - 248, p.x - 120)).toFixed(0)}px`;
-    // above the bubble, or below it when there is no room above
-    const below = p.y < 96;
-    const base = m && below ? this.toPx({ x: Number(m[1]), y: Number(m[2]) + 1 }) : p;
-    pop.classList.toggle('below', below);
-    pop.style.top = `${Math.max(8, below ? base.y : p.y - 8).toFixed(0)}px`;
-    this.container.appendChild(pop);
-    this.concernPop = pop;
-  }
-
-  /** Close the concern shown beside its bubble; returns whether one was open. */
-  closeConcern(): boolean {
-    const had = !!this.concernPop;
-    this.concernPop?.remove();
-    this.concernPop = null;
-    return had;
-  }
-
-  /** A bubble leaves the map (its time is up, or the quarter's clock ended). */
-  popBubble(id: string) {
-    const g = this.bubbles.get(id);
-    if (!g) return;
-    this.bubbles.delete(id);
-    if (this.concernPop?.dataset.for === id) this.closeConcern();
-    const hadFocus = g.contains(document.activeElement);
-    g.classList.add('faded');
-    g.style.pointerEvents = 'none';
-    g.removeAttribute('tabindex');
-    g.setAttribute('aria-hidden', 'true');
-    // a keyboard player keeps their place: on to the next bubble, or back to the map
-    if (hadFocus) ((this.bubbles.values().next().value as SVGGElement | undefined) ?? this.svg).focus({ preventScroll: true });
-    setTimeout(() => g.remove(), 450);
-  }
-
-  clearBubbles() {
-    for (const id of [...this.bubbles.keys()]) this.popBubble(id);
-    this.closeConcern();
-  }
-
-  ping(region: RegionId, kind: 'news' | 'note') {
-    const c = kind === 'note' ? geo(ANCHOR[region].lon + 6, ANCHOR[region].lat - 4) : this.randomCell(region);
-    const g = el('g', { class: `ping ping-${kind} ping-${region}`, transform: `translate(${c.x} ${c.y})` }, this.layers.pings);
-    el('circle', { r: 3 }, g);
-    el('circle', { r: 0.6, class: 'ping-core' }, g);
-    setTimeout(() => g.remove(), 1800);
-  }
-
-  /** Pin an event where it happened. With `onOpen`, the pin is a button that shows the event again. */
-  addEventPin(region: RegionId, title: string, quarterLabel: string, onOpen?: () => void) {
-    this.layers.pins.querySelectorAll('.evpin.active').forEach((p) => p.classList.remove('active'));
-    const a = geo(ANCHOR[region].lon, ANCHOR[region].lat);
-    const offset = this.layers.pins.querySelectorAll(`.evpin-${region}`).length;
-    const x = a.x + offset * 3.2;
-    const y = a.y - 2 - (offset % 2) * 1.5;
-    const g = el('g', { class: `evpin evpin-${region} active`, transform: `translate(${x} ${y})` }, this.layers.pins);
-    el('circle', { cy: -2.4, r: 3.4, class: 'pin-hit' }, g);
-    el('circle', { cy: -2.4, r: 3.6, class: 'focus-ring' }, g);
-    el('circle', { r: 4.2, class: 'evpin-ring' }, g);
-    el('path', { d: 'M0 0 L-1.5 -2.6 L1.5 -2.6Z', class: 'evpin-stem' }, g);
-    el('rect', { x: -1.6, y: -5.6, width: 3.2, height: 3.2, rx: 0.5, class: 'evpin-head' }, g);
-    const bang = el('text', { y: -3.35, class: 'evpin-bang' }, g);
-    bang.textContent = '!';
-    const lbl = el('text', { y: -6.6, class: 'evpin-label' }, g);
-    lbl.textContent = title;
-    const q = el('text', { y: 2.6, class: 'evpin-q' }, g);
-    q.textContent = quarterLabel;
-    // setAttribute takes plain text: escaping here would make screen readers read "&#39;".
-    if (onOpen) svgButton(g, `${title}, ${quarterLabel}`, onOpen);
-    else g.setAttribute('aria-label', `${title}, ${quarterLabel}`);
-    for (const t of [bang, lbl, q]) t.setAttribute('aria-hidden', 'true');
-    this.summaryParts.events.push(`${title} (${REGION_NAME[region]}, ${quarterLabel})`);
-    this.writeSummary();
-  }
-
-  settlePins() {
-    this.layers.pins.querySelectorAll('.evpin.active').forEach((p) => p.classList.remove('active'));
+  get summaryId() {
+    return this.summary?.id ?? '';
   }
 }

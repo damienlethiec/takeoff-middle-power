@@ -1,0 +1,82 @@
+// The tutorial: short coach marks, one at a time, each the first time its part of the screen matters.
+// Each is a small dialog placed next to what it explains (focus moves in, Escape or Enter closes it).
+// It can be switched off (here or in Help); every tip triggered stays readable in the journal.
+
+import { TIPS, type TipId } from '../data/copy';
+import { esc } from './format';
+import { openModal } from './modal';
+
+const KEY = 'takeoff.v3.tutorial';
+
+export class Coach {
+  private seen = new Set<TipId>();
+  readonly log: { round: number; title: string; text: string }[] = [];
+  enabled: boolean;
+
+  constructor(off = false) {
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem(KEY);
+    } catch {
+      /* storage blocked: tips stay on for this page */
+    }
+    this.enabled = !off && stored !== 'off';
+  }
+
+  setEnabled(on: boolean) {
+    this.enabled = on;
+    try {
+      localStorage.setItem(KEY, on ? 'on' : 'off');
+    } catch {
+      /* storage blocked */
+    }
+  }
+
+  reset() {
+    this.seen.clear();
+    this.log.length = 0;
+  }
+
+  /** Show a tip once (if the tutorial is on); records it for the journal either way. */
+  async show(id: TipId, round: number, root: ParentNode): Promise<void> {
+    if (this.seen.has(id)) return;
+    this.seen.add(id);
+    const tip = TIPS[id];
+    this.log.push({ round, title: tip.title, text: tip.text });
+    if (!this.enabled) return;
+    const anchor = root.querySelector<HTMLElement>(`[data-coach="${tip.anchor}"]`);
+    anchor?.classList.add('coach-target');
+    const m = openModal(
+      `<div class="dateline">Tip</div>
+       <h2>${esc(tip.title)}</h2>
+       <p class="coach-text">${esc(tip.text)}</p>
+       <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">Got it <kbd>Enter</kbd></button><button type="button" class="btn-link" data-action="off">Turn off tips</button></div>`,
+      { cls: 'coach', overlayCls: 'coach-ov', describedBy: '.coach-text' },
+    );
+    this.position(m.el, anchor);
+    const a = await m.result;
+    anchor?.classList.remove('coach-target');
+    if (a === 'off') this.setEnabled(false);
+  }
+
+  /** Next to the anchor when there is room, else centred (small screens). */
+  private position(box: HTMLElement, anchor: HTMLElement | null) {
+    if (!anchor || window.innerWidth < 700) return;
+    const r = anchor.getBoundingClientRect();
+    const w = Math.min(340, window.innerWidth - 24);
+    box.style.position = 'fixed';
+    box.style.width = `${w}px`;
+    box.style.margin = '0';
+    const right = r.right + 14 + w < window.innerWidth;
+    const left = r.left - 14 - w > 0;
+    const top = Math.max(12, Math.min(window.innerHeight - 260, r.top));
+    if (right) box.style.left = `${r.right + 14}px`;
+    else if (left) box.style.left = `${r.left - 14 - w}px`;
+    else {
+      box.style.left = `${Math.max(12, Math.min(window.innerWidth - w - 12, r.left))}px`;
+      box.style.top = `${Math.min(window.innerHeight - 240, r.bottom + 12)}px`;
+      return;
+    }
+    box.style.top = `${top}px`;
+  }
+}

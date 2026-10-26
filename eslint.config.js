@@ -15,7 +15,7 @@ export default tseslint.config(
   },
   {
     // the accessibility check (scripts/a11y) is plain Node; its page.evaluate callbacks run in the browser
-    files: ['scripts/a11y/**/*.mjs'],
+    files: ['scripts/**/*.mjs'],
     languageOptions: {
       globals: Object.fromEntries(
         ['process', 'console', 'setTimeout', 'fetch', 'URL', 'document', 'window', 'getComputedStyle'].map((g) => [g, 'readonly']),
