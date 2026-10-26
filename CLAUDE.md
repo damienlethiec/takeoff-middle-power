@@ -39,7 +39,7 @@ npm run a11y      # axe on every screen + whole games played with the keyboard a
 - Hidden values (the true AI safety, the AI pace) never appear in visible deltas, previews, the heading line, the pace hint or the advisor (tests check this by varying the truth); only what is verified and what the labs claim are shown, and advisor text contains no numbers. Only the independent audit card shows the truth, by the player's choice.
 - Keep player text short and plain: card texts ≤ 25 words; requests ≤ 40 words, answer labels ≤ 5 words (tests enforce them). Every request answer costs something visible, no answer widens AI safety's uncertainty, and no request duplicates a policy card.
 - Changes to Louis's cards or events are flagged as "Changed from Louis's draft" in the spec.
-- **Fonts stay on Google Fonts** (team decision, 25 Oct): don't self-host them; the production CSP allows `fonts.googleapis.com` and `fonts.gstatic.com` only.
+- **Fonts are self-hosted** via Fontsource npm packages (`src/ui/fonts.css`; team decision of 26 Oct, for GDPR): the production CSP has `font-src 'self'` and the game makes no third-party request. Never load fonts or anything else from a CDN.
 - **Security**: content is static, but treat every string reaching `innerHTML` as untrusted: escape it, render only http(s) URLs as links, keep `rel="noopener"` on `target="_blank"`. CI permissions stay least-privilege and third-party actions stay pinned to commit SHAs. See `docs/AUDIT.md`.
 
 ## Accessibility (required for every UI change)

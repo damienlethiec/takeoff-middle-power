@@ -1,3 +1,4 @@
+import './ui/fonts.css';
 import './ui/styles.css';
 import { engine } from './engine';
 import { App } from './ui/app';

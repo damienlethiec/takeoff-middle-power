@@ -2,14 +2,14 @@
 import { defineConfig, type Plugin } from 'vite';
 
 // Content-Security-Policy for the production build. GitHub Pages cannot send headers, so it goes in a
-// <meta> tag (which cannot carry frame-ancestors). Build only: the dev server needs its HMR client and
-// lets test harnesses stub the fonts. 'unsafe-inline' styles are needed for the style="" attributes
-// in the string templates; scripts stay strictly same-origin.
+// <meta> tag (which cannot carry frame-ancestors). Build only: the dev server needs its HMR client.
+// Fonts are self-hosted (Fontsource, npm), so no third-party origin is allowed anywhere. 'unsafe-inline'
+// styles are needed for the style="" attributes in the string templates; scripts stay strictly same-origin.
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
   "img-src 'self' data:",
   "connect-src 'self'",
   "object-src 'none'",
