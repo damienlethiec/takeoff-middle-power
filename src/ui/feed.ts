@@ -4,7 +4,7 @@
 // player's decisions with what they changed. At the end of the six months, "What changed" (the three biggest
 // changes with their cause) sits at the top. Two tabs: "This round" and "Earlier" (earlier rounds by date).
 // Items are real buttons: clicking one highlights it on the map; clicking a map pin highlights its item here.
-// On small screens the feed is a sheet under the map that shows the latest item until it is expanded.
+// On phones the feed sits under the map with all of this round's items; tablets and desktops keep it beside the map.
 // Announcements stay with the app (it already announces each item once, politely).
 
 import type { Change, FeedItem, FeedRound } from '../engine/types';
@@ -34,7 +34,6 @@ export class Feed {
   private now: HTMLElement;
   private past: HTMLElement;
   private tabs: HTMLButtonElement[];
-  private toggle: HTMLButtonElement;
   private rounds: FeedRound[] = [];
   private shownSig = '-';
   private pastSig = '-';
@@ -53,7 +52,6 @@ export class Feed {
           <button type="button" role="tab" id="feed-tab-now" aria-selected="true" aria-controls="feed-now">This round</button>
           <button type="button" role="tab" id="feed-tab-past" aria-selected="false" aria-controls="feed-past" tabindex="-1">Earlier</button>
         </div>
-        <button type="button" class="feed-toggle btn-quiet small" aria-expanded="false" aria-controls="feed-now feed-past">All news</button>
       </div>
       <div class="feed-panel" role="tabpanel" id="feed-now" aria-labelledby="feed-tab-now" tabindex="0"></div>
       <div class="feed-panel" role="tabpanel" id="feed-past" aria-labelledby="feed-tab-past" tabindex="0" hidden></div>`;
@@ -61,7 +59,6 @@ export class Feed {
     this.now = host.querySelector('#feed-now')!;
     this.past = host.querySelector('#feed-past')!;
     this.tabs = [...host.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
-    this.toggle = host.querySelector('.feed-toggle')!;
     this.tabs.forEach((t, i) => {
       t.addEventListener('click', () => this.select(i));
       t.addEventListener('keydown', (ev) => {
@@ -71,11 +68,6 @@ export class Feed {
         this.select(n);
         this.tabs[n].focus();
       });
-    });
-    this.toggle.addEventListener('click', () => {
-      const open = host.classList.toggle('expanded');
-      this.toggle.setAttribute('aria-expanded', String(open));
-      this.toggle.textContent = open ? 'Fewer' : 'All news';
     });
     host.addEventListener('click', (ev) => {
       const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('.fd-item');

@@ -523,7 +523,7 @@ export class App {
       .join('')}</div>`;
     // narrow screens: the bar sits between the map and the news, so it never covers the top of the feed
     const feed = this.root.querySelector('#feed');
-    if (feed && matchMedia('(max-width: 860px), (max-height: 640px)').matches) feed.before(d);
+    if (feed && matchMedia('(max-width: 767px), (max-height: 640px)').matches) feed.before(d);
     else this.root.querySelector('.stage')?.after(d);
     d.hidden = false;
     this.root.querySelector('.game')?.classList.add('docked');

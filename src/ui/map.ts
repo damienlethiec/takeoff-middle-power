@@ -49,6 +49,8 @@ function zoneOf(code: string, i: number, j: number): Zone {
     case 'J':
       return lon < 130 ? 'kr' : 'jp';
     case 'E':
+      // the data's "E" also covers Greenland, French Guiana and the Caucasus: Europe's colour is for Europe only
+      if (lon < -30 || lat < 34 || lon > 41) return 'other';
       if (lon >= -6.8 && lon <= 2.2 && lat >= 49.6 && lat <= 59.5) return 'uk';
       if (lat >= 57.5 && lat <= 71.5 && lon >= 4 && (lon < 11.8 + (lat - 58.5) * 0.85 || (lat >= 69 && lon < 31))) return 'no';
       return 'eu';

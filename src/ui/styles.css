@@ -131,7 +131,6 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .feed-tabs [role="tab"] { background: transparent; border: 0; border-radius: 6px; padding: 4px 9px; font-size: 12.5px; color: var(--mute); min-height: 30px; }
 .feed-tabs [role="tab"][aria-selected="true"] { background: var(--deck-2); color: var(--ink); font-weight: 600; }
 .feed-tabs [role="tab"]:focus-visible { outline-offset: -2px; }
-.feed-toggle { display: none; }
 .feed-panel { overflow: auto; padding: 6px 8px 10px; flex: 1; min-height: 0; }
 .feed-panel:focus-visible { outline-offset: -3px; }
 .feed-date { margin: 6px 2px 4px; font-family: var(--f-data); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--mute); }
@@ -692,7 +691,8 @@ body.ended { overflow: auto; }
 @media (max-width: 960px) {
   .panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 860px), (max-height: 640px) {
+/* phones (and very short windows): the feed goes under the map; tablets keep it as a column on the right */
+@media (max-width: 767px), (max-height: 640px) {
   .decide { grid-template-columns: minmax(0, 1fr); }
   .dk-main .hand { overflow: visible; flex: none; }
   .dk-bar .dec-btns { flex-wrap: wrap; }
@@ -701,13 +701,8 @@ body.ended { overflow: auto; }
   .stage { grid-template-rows: auto auto; }
   .theatre { grid-template-columns: minmax(0, 1fr); }
   .mapwrap { height: 52vh; min-height: 300px; }
-  .feed-toggle { display: inline-flex; }
-  .feed-tabs { margin-left: 0; }
-  .feed-head { flex-wrap: wrap; }
-  .feed-toggle { margin-left: auto; }
-  /* half open by default: the latest two items under the map; "All news" opens the rest */
-  .feed:not(.expanded) .fd-list li:nth-child(n+3), .feed:not(.expanded) .feed-round:nth-child(n+2), .feed:not(.expanded) .feed-date { display: none; }
-  .feed:not(.expanded) .feed-panel { overflow: visible; }
+  /* under the map, all of this round's items show (the page scrolls); Earlier stays a tab */
+  .feed-panel { overflow: visible; }
   .dock { position: sticky; bottom: 8px; z-index: 5; box-shadow: 0 -6px 20px rgba(0, 0, 0, .45); }
   .keys-hint { display: none; }
 }
