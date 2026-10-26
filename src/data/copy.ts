@@ -95,11 +95,13 @@ export const CREDITS =
 
 /** Coach marks: each shown once, pointing at `anchor` (data-coach values, space-separated: all are highlighted),
  *  only when it is on screen. In `text`, a new line starts a paragraph and **x** is bold (rendered by tipHtml).
- *  At most four before the first decision (the race, the world, where it is heading, Influence); after that,
+ *  Before the first decision: one per gauge, where the world is heading, then Influence; after that,
  *  only what does not explain itself, the first time it appears. All are listed in Help. */
 export const TIPS = {
-  race: { anchor: 'clock confidence', title: 'The race', text: '**AI capabilities** rise every round; at 80, AI starts improving itself: the tipping point, where the world’s ending is decided.\n**AI safety** is how sure we are that AI does what we intend: the labs report a number, but only the verified part (solid) counts; the hatched part is unchecked. Inspections and audits grow it. Keep safety ahead.' },
-  world: { anchor: 'cooperation cohesion', title: 'The superpowers and Europe', text: '**US–China cooperation** sets the kind of world: Pause 60+, Race 30–59, Rupture below 30.\n**Social cohesion** is whether Europe holds together: jobs, trust, safety from misuse.' },
+  capabilities: { anchor: 'clock', title: 'AI capabilities', text: '**AI capabilities** rise every round: this is the clock. At 80 comes the tipping point, where AI improves itself: your choices by then decide the ending.' },
+  safety: { anchor: 'confidence', title: 'AI safety', text: '**AI safety**: the solid part is verified, the hatched part is only what the labs claim. Only the verified part counts: inspections and audits grow it.' },
+  cooperation: { anchor: 'cooperation', title: 'US–China cooperation', text: '**US–China cooperation** sets the kind of world at the tipping point. Pause 60+, Race 30–59, Rupture below 30: the calmer, the easier a good ending.' },
+  cohesion: { anchor: 'cohesion', title: 'Social cohesion', text: '**Social cohesion** is whether Europe holds together: jobs, trust, safety from misuse. If it falls too low, even a calm world ends badly.' },
   outlook: { anchor: 'heading', title: 'Where the world is heading', text: 'If AI tipped now, this is the world you would get and what it needs to end well. Each round is six months from 2027; the game ends at the tipping point, or after 12 rounds.' },
   influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.' },
   request: { anchor: 'request', title: 'A request', text: 'Someone needs an answer. Look at an answer first (click it, or press ← → once), then answer (again). It is free of Influence: the cost is in the answer.' },

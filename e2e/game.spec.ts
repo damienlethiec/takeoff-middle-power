@@ -487,16 +487,17 @@ test.describe('key interactions', () => {
   test('the tutorial shows coach marks once, and can be turned off', async ({ page }) => {
     const s = await boot(page, '?skipintro&seed=4');
     await advance(page, 400);
-    const tip = page.getByRole('dialog', { name: /The race/ });
+    const tip = page.getByRole('dialog', { name: /AI capabilities/ });
     await expect(tip).toBeVisible();
-    // the tip points at both gauges it explains
-    await expect(page.locator('.coach-target')).toHaveCount(2);
+    // one tip per gauge: it points at its own gauge only
+    await expect(page.locator('.coach-target')).toHaveCount(1);
+    await expect(page.locator('.gauge.g-aiPower.coach-target')).toHaveCount(1);
     await tip.getByRole('button', { name: 'Turn off tips' }).click();
     await advance(page, 400);
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.locator('.coach-target')).toHaveCount(0);
     await page.keyboard.press('?');
-    await expect(dialog(page).locator('details.older')).toContainText('The race');
+    await expect(dialog(page).locator('details.older')).toContainText('Social cohesion');
     await expect(dialog(page).getByRole('checkbox', { name: /Show tips/ })).not.toBeChecked();
     expect(s.errors).toEqual([]);
   });

@@ -150,10 +150,10 @@ export class App {
     announce(
       `${date} begins, round ${s.round} of 12. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${letter ? ' Léa wrote to you: her letter is in the news.' : ''}${s.round === 1 ? ' Press question mark for help.' : ''}`,
     );
-    // the tutorial: at most four tips before the first decision (the race, the world, where it is heading, then
-    // Influence on the decision view); later, only what does not explain itself, the first time it appears.
+    // the tutorial: one tip per gauge, then where the world is heading, then Influence on the decision view;
+    // later, only what does not explain itself, the first time it appears.
     // A tip whose part of the screen is not visible waits (it is tried again next round).
-    for (const id of ['race', 'world', 'outlook'] as const) await this.coach.show(id, s.round, this.root);
+    for (const id of ['capabilities', 'safety', 'cooperation', 'cohesion', 'outlook'] as const) await this.coach.show(id, s.round, this.root);
     // Europe's AI is always on the line now: its tip comes once the first decisions are made
     if (s.round >= 2) await this.coach.show('badge', s.round, this.root);
 
