@@ -5,7 +5,7 @@
 // It talks to the engine only through EngineApi.
 
 import type { EngineApi } from '../engine/api';
-import type { FeedItem, GameState, GaugeKey, LeaMood, MapItem, Pick, RequestView, ThreatView } from '../engine/types';
+import type { FeedItem, GameState, GaugeKey, LeaMood, MapItem, Pick, PreviewView, RequestView, ThreatView } from '../engine/types';
 import { CARD_BY_ID } from '../data/cards';
 import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, TIPS, marginText } from '../data/copy';
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
@@ -14,7 +14,7 @@ import { $, ICON, esc, signed } from './format';
 import { WorldMap } from './map';
 import { modalOpen, setFocusFallback, wait } from './modal';
 import { showBreaking } from './screens/breaking';
-import { showDecision } from './screens/decision';
+import { showDecision } from './screens/decide';
 import { renderEnding } from './screens/ending';
 import { showHelp } from './screens/help';
 import { showBadge, showGaugeHelp, showLeak, showThreat } from './screens/info';
@@ -180,11 +180,19 @@ export class App {
     while (!picks) {
       await this.dock(lastWords, [{ id: 'decide', label: decideLabel, primary: true }]);
       this.setPhase('Your decisions');
-      // Influence and the cards are explained over the decision screen, the first time it opens
-      const d = await showDecision(this.e, this.s, date, async () => {
-        await this.coach.show('influence', this.s.round, this.root);
-        await this.coach.show('firstCard', this.s.round, this.root);
+      // the cards take the map's place; Influence and the cards are explained the first time they show
+      const game = this.root.querySelector('.game');
+      game?.classList.add('deciding');
+      const d = await showDecision(this.e, this.s, date, {
+        host: $('#decide', this.root),
+        onPreview: (pv) => this.setPreview(pv),
+        onOpen: async () => {
+          await this.coach.show('influence', this.s.round, this.root);
+          await this.coach.show('firstCard', this.s.round, this.root);
+        },
       });
+      game?.classList.remove('deciding');
+      if (!this.root.contains(document.activeElement)) tryFocus($('#map-h', this.root));
       if (d.kind === 'map') continue;
       picks = d.picks;
     }
@@ -555,10 +563,10 @@ export class App {
     const tip = this.e.gauges(this.s).find((g) => g.key === 'aiPower')?.target ?? 80;
     const gauge = (k: GaugeKey, coach: string) => `
       <section class="gauge g-${k}" data-key="${k}" data-coach="${coach}" aria-labelledby="gn-${k}">
-        <div class="g-top"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-val num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
+        <div class="g-top"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-val num" aria-hidden="true"></span><span class="g-after num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
           <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(GAUGE_LABEL[k])}" aria-describedby="gd-${k}">?</button></div>
         <div class="g-subrow" aria-hidden="true"><p class="g-sub">${esc(GAUGE_SUB[k])}</p><svg class="spark" viewBox="0 0 48 16" preserveAspectRatio="none"><title>History since 2027</title><polyline points=""/></svg></div>
-        <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? `<i class="g-tipzone"></i><span class="g-tick" style="left:${tip}%">${tip}</span>` : ''}<i class="g-band"></i><i class="g-fill"></i><i class="g-target"></i><span class="g-target-l"></span></div>
+        <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? `<i class="g-tipzone"></i><span class="g-tick" style="left:${tip}%">${tip}</span>` : ''}<i class="g-band"></i><i class="g-fill"></i><i class="g-ghost" hidden></i><i class="g-target"></i><span class="g-target-l"></span></div>
         ${k === 'cooperation' ? '<div class="g-zones" aria-hidden="true"><span>Rupture</span><span>Race</span><span>Pause</span></div>' : ''}
         ${k === 'aiPower' ? `<p class="g-tipline" aria-hidden="true"><span class="long">${esc(TIPPING_LINE(tip))}</span><span class="short">${tip} = the tipping point</span></p><p class="g-eta" aria-hidden="true"></p>` : ''}
         <ul class="g-markers"></ul>
@@ -599,6 +607,7 @@ export class App {
           <h2 class="sr-only" id="map-h" tabindex="-1">World map</h2>
           <div class="mapwrap" id="mapwrap" data-coach="map"></div>
           <aside class="feed" id="feed" aria-labelledby="feed-h" data-coach="feed"></aside>
+          <div class="decide" id="decide" hidden></div>
         </section>
       </main>
       <section class="dock" aria-label="Your move" hidden></section>
@@ -823,12 +832,48 @@ export class App {
     this.map?.update({ aiPower: this.shown.aiPower, cooperation: this.shown.cooperation, coalition: this.s.coalition, europeAi: this.s.europeAi });
   }
 
+  /** The decisions' preview: the selected cards' effect on the real gauges and in the outlook (public values). */
+  private pv: PreviewView | null = null;
+  private setPreview(pv: PreviewView | null) {
+    this.pv = pv;
+    this.renderGaugePreview();
+    this.renderHeading();
+  }
+
+  /** Each gauge the selection moves shows where it would go: "→ 55" by its value and a ghost mark on its bar. */
+  private renderGaugePreview() {
+    const imp = this.pv?.ok ? this.pv.impacts : [];
+    for (const k of KEYS) {
+      const box = this.root.querySelector<HTMLElement>(`.gauge[data-key="${k}"]`);
+      if (!box) continue;
+      const i = imp.find((x) => x.key === k);
+      const m = k === 'confidence' ? imp.find((x) => x.key === 'margin') : undefined;
+      const after = box.querySelector<HTMLElement>('.g-after')!;
+      const ghost = box.querySelector<HTMLElement>('.g-ghost')!;
+      const tone = (t: number) => (t > 0 ? 'good' : t < 0 ? 'bad' : 'flat');
+      const parts: string[] = [];
+      if (i) parts.push(`<span class="${tone(i.tone)}">→ ${esc(i.after)}</span>`);
+      if (m) parts.push(`<span class="${tone(m.tone)}">low → ${esc(m.after)}</span>`);
+      after.innerHTML = parts.join(' ');
+      box.classList.toggle('previewing', parts.length > 0);
+      const v = i ? Number.parseFloat(i.after) : NaN;
+      ghost.hidden = !Number.isFinite(v);
+      if (Number.isFinite(v)) {
+        ghost.style.left = `${Math.max(0, Math.min(100, v))}%`;
+        ghost.className = `g-ghost ${tone(i!.tone)}`;
+      }
+    }
+  }
+
   private renderHeading() {
-    const h = this.e.heading(this.s);
+    const now = this.e.heading(this.s);
+    // while the player selects cards, the outlook shows where they would take the world
+    const pv = this.pv?.ok ? this.pv : null;
+    const h = pv ? pv.outlookAfter : now;
     const body = $('#ol-body', this.root);
-    const html = outlookHtml(h);
+    const html = outlookHtml(h, pv ? now : undefined);
     if (body.dataset.sig !== html) {
-      const changed = !!body.dataset.sig && body.dataset.sig2 !== h.text;
+      const changed = !pv && !!body.dataset.sig && body.dataset.sig2 !== h.text;
       body.dataset.sig = html;
       body.dataset.sig2 = h.text;
       // keep focus on the "What is…" button across re-renders
@@ -845,10 +890,12 @@ export class App {
     $('#heading-why', this.root).textContent = this.headingWhy;
     // Europe's AI badge lives in the outlook (v4)
     const badge = $('#ol-badge', this.root);
-    if (badge.dataset.v !== this.s.europeAi) {
+    const ai = pv?.impacts.some((i) => i.key === 'europeAi') ? (this.s.europeAi === 'open' ? 'dependent' : 'open') : this.s.europeAi;
+    const bsig = `${this.s.europeAi}>${ai}`;
+    if (badge.dataset.v !== bsig) {
       const hadFocus = badge.contains(document.activeElement);
-      badge.dataset.v = this.s.europeAi;
-      badge.innerHTML = badgeHtml(this.s.europeAi);
+      badge.dataset.v = bsig;
+      badge.innerHTML = badgeHtml(ai, this.s.europeAi);
       if (hadFocus) badge.querySelector<HTMLElement>('[data-badge]')?.focus({ preventScroll: true });
     }
   }

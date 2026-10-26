@@ -1,17 +1,27 @@
-// The decision screen (v4): the chief of staff's line, a grid of cards that show everything needed to decide
-// (name, Influence cost, effect chips, what it protects against, one line of text, level), and a bar fixed at
-// the bottom with the combined effect of the selected cards (each gauge before → after, the world change)
-// and Confirm. Clicking a card toggles it (as many as Influence allows). Each card has a Details button that
-// opens a dialog with the full proposal, the real-world example and cost, and its levels.
-// Cards are toggle buttons (aria-pressed). Nothing is committed until Confirm.
+// The decisions (v4, lot 2): the card grid takes the map's place on the main screen while the gauges and the
+// outlook stay in view, with a compact list of the active threats where the news feed was. Selecting cards
+// previews their effect on the real gauges and in the outlook (the app draws it, from the preview this module
+// hands over), so there is no separate combined-effect bar: only a Confirm row with the Influence left and
+// the preview's notes. Clicking a card toggles it (as many as Influence allows); Details opens a dialog with
+// the full proposal, the real-world example and cost, and its levels. Nothing is committed until Confirm.
+// Cards are toggle buttons (aria-pressed); Escape goes back to the map.
 
 import type { EngineApi } from '../../engine/api';
-import type { CardView, GameState, Pick, PreviewView } from '../../engine/types';
+import type { CardView, GameState, Pick, PreviewView, ThreatView } from '../../engine/types';
 import { announce } from '../a11y';
-import { ICON, chips, esc, factBox, impactLine } from '../format';
-import { openModal } from '../modal';
+import { ICON, chips, esc, factBox } from '../format';
+import { modalOpen, openModal } from '../modal';
 
 export type DecisionResult = { kind: 'play'; picks: Pick[] } | { kind: 'map' };
+
+export interface DecisionView {
+  /** Where the panel is drawn (in place of the map and the feed). */
+  host: HTMLElement;
+  /** Show the selection's effect on the real gauges and in the outlook (null: no selection, clear it). */
+  onPreview(pv: PreviewView | null): void;
+  /** Runs once the panel is up (the tutorial's tips about Influence and the cards). */
+  onOpen?: () => Promise<void>;
+}
 
 const lc = (x: string) => x.replace(/^(\w)(?=[a-z])/, (c) => c.toLowerCase());
 
@@ -37,7 +47,7 @@ function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: 
   </li>`;
 }
 
-/** The full card, over the decision screen. Resolves 'toggle' when the player selects or removes it there. */
+/** The full card in a dialog. Resolves 'toggle' when the player selects or removes it there. */
 async function showDetails(c: CardView, selected: boolean, canSelect: boolean): Promise<string> {
   const m = openModal(
     `<div class="dateline">Card · ${c.cost} Influence${c.level ? ` · level ${c.level} of ${c.levels!.length}` : ''}</div>
@@ -54,57 +64,61 @@ async function showDetails(c: CardView, selected: boolean, canSelect: boolean): 
        ${selected ? '<button type="button" class="btn-quiet" data-action="toggle">Remove this card</button>' : canSelect ? '<button type="button" class="btn-quiet" data-action="toggle">Select this card</button>' : ''}
        <button type="button" class="btn-primary" data-primary data-escape data-action="ok">Back to the cards <kbd>Esc</kbd></button>
      </div>`,
-    { cls: 'info card-details', label: c.title, describedBy: '.proposal', stacked: true },
+    { cls: 'info card-details', label: c.title, describedBy: '.proposal' },
   );
   return m.result;
 }
 
-/** The combined effect of the selected cards, for the bar at the bottom. */
-function summaryHtml(pv: PreviewView | null, picks: number): string {
-  if (!pv) return '<p class="muted dec-hint">Pick as many cards as your Influence allows: their combined effect shows here before you commit.</p>';
-  const world =
-    pv.worldAfter !== pv.worldBefore
-      ? `<p class="pv-world"><span class="pv-wk">If AI tipped now</span> <b>${esc(pv.worldBefore)} → ${esc(pv.worldAfter)}</b></p>`
-      : `<p class="pv-world same"><span class="pv-wk">If AI tipped now</span> still ${esc(pv.worldAfter)}</p>`;
-  return `<h3 class="dec-k">If you confirm <span class="sr-only">${picks === 1 ? 'this card' : `these ${picks} cards`}</span></h3>
-    ${pv.ok ? '' : `<p class="bad-text">${esc(pv.reason ?? '')}</p>`}
-    <div class="dec-line"><ul class="imps compact">${pv.impacts.length ? pv.impacts.map(impactLine).join('') : '<li class="imp flat">No gauge moves right away.</li>'}</ul>
-    ${world}</div>`;
+/** The active threats beside the grid: stage, whether Europe is prepared, and what protects against each. */
+function threatsHtml(list: ThreatView[], covering: Map<string, string>): string {
+  const live = list.filter((t) => t.stage > 0 && !t.struck);
+  if (!live.length) return '<p class="muted small">No threat on the map yet.</p>';
+  return `<ul class="dk-thr">${live
+    .map((t) => {
+      const by = covering.get(t.id);
+      const ok = t.prepared || !!by;
+      return `<li class="${ok ? 'yes' : 'no'}${by && !t.prepared ? ' soon' : ''}">
+        <span class="dk-thr-ico">${ok ? ICON.check : ICON.alert}</span>
+        <span class="dk-thr-b"><b>${esc(t.name)}</b> <small>${esc(t.stageWord)}${t.certainty === 'possible' ? ' · possible' : ''}</small>
+          <span class="dk-thr-p">${t.prepared ? 'Prepared' : by ? `Prepared if you confirm (${esc(by)})` : `Not prepared · protects: ${esc(t.protectedByNames)}`}</span></span>
+      </li>`;
+    })
+    .join('')}</ul>`;
 }
 
-/** `onOpen` runs once the screen is up (the tutorial's tips about Influence and the cards, stacked over it). */
-export async function showDecision(e: EngineApi, s: GameState, date: string, onOpen?: () => Promise<void>): Promise<DecisionResult> {
+export async function showDecision(e: EngineApi, s: GameState, date: string, view: DecisionView): Promise<DecisionResult> {
   const hand = e.hand(s);
   const adv = e.advisor(s);
+  const threats = e.threats(s);
   const picks: Pick[] = [];
-  const m = openModal(
-    `<div class="dec-head">
-       <div><div class="dateline">${esc(date)} · Your decisions</div><h2>Play your cards</h2></div>
-       <p class="dec-inf" aria-live="off" data-coach="dec-influence"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">Influence<br/>left</span></p>
-     </div>
-     <section class="advisor" aria-labelledby="adv-h"><span class="ava" aria-hidden="true">CS</span><div><h3 id="adv-h">Your chief of staff</h3><p>${esc(adv.text)}</p></div></section>
-     <ul class="hand" aria-label="Your cards" data-coach="hand"></ul>
-     <div class="dec-bar">
-       <section class="dec-sum" id="dec-sum" aria-label="Combined effect"></section>
-       <p class="dec-notes" id="dec-notes"></p>
-       <div class="dec-btns">
-         <button type="button" class="btn-quiet" data-action="map" data-escape>Back to the map</button>
-         <button type="button" class="btn-quiet" data-action="none" id="dec-none">Play no card</button>
-         <button type="button" class="btn-primary" data-primary data-action="confirm" id="dec-ok"></button>
-       </div>
-     </div>`,
-    { cls: 'decision', label: 'Your decisions', keep: true },
-  );
-  const handEl = m.el.querySelector<HTMLElement>('.hand')!;
-  const sumEl = m.el.querySelector<HTMLElement>('#dec-sum')!;
-  const notesEl = m.el.querySelector<HTMLElement>('#dec-notes')!;
-  /** The combined effect, and its notes beside the buttons (one line each where the screen has room). */
-  const showSummary = () => {
-    const pv = picks.length ? e.preview(s, picks) : null;
-    sumEl.innerHTML = summaryHtml(pv, picks.length);
-    notesEl.textContent = pv?.notes.join(' ') ?? '';
-  };
-  const ok = m.el.querySelector<HTMLButtonElement>('#dec-ok')!;
+  const host = view.host;
+  host.innerHTML = `
+    <section class="dk-main" aria-labelledby="dk-h">
+      <header class="dk-head">
+        <div class="dk-title"><div class="dateline">${esc(date)} · Your decisions</div><h2 id="dk-h" tabindex="-1">Play your cards</h2></div>
+        <p class="dk-adv"><span class="ava" aria-hidden="true">CS</span><span><b>Your chief of staff:</b> ${esc(adv.text)}</span></p>
+      </header>
+      <ul class="hand" aria-label="Your cards" data-coach="hand"></ul>
+      <div class="dk-bar">
+        <p class="dec-inf" data-coach="dec-influence"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">Influence left</span></p>
+        <p class="dec-notes" id="dec-notes" aria-live="off"></p>
+        <div class="dec-btns">
+          <button type="button" class="btn-quiet" data-action="map">Back to the map <kbd>Esc</kbd></button>
+          <button type="button" class="btn-quiet" data-action="none">Play no card</button>
+          <button type="button" class="btn-primary" data-action="confirm" id="dec-ok"></button>
+        </div>
+      </div>
+    </section>
+    <aside class="dk-side" aria-labelledby="dk-th">
+      <h3 class="dk-side-h" id="dk-th">Active threats</h3>
+      <div id="dk-threats"></div>
+      <p class="dk-side-note muted small">Your selection shows on the gauges above and in the outlook.</p>
+    </aside>`;
+  host.hidden = false;
+  const handEl = host.querySelector<HTMLElement>('.hand')!;
+  const notesEl = host.querySelector<HTMLElement>('#dec-notes')!;
+  const thrEl = host.querySelector<HTMLElement>('#dk-threats')!;
+  const ok = host.querySelector<HTMLButtonElement>('#dec-ok')!;
 
   /** The hand as it would be after the picks so far: what is still affordable, what is locked. */
   const views = () => {
@@ -117,22 +131,34 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, onO
     };
   };
 
+  const showPreview = () => {
+    const pv = picks.length ? e.preview(s, picks) : null;
+    view.onPreview(pv);
+    notesEl.innerHTML = pv ? (pv.ok ? esc(pv.notes.join(' ')) : `<span class="bad-text">${esc(pv.reason ?? '')}</span>`) : '<span class="muted">Select cards: their effect shows on the gauges and in the outlook before you confirm.</span>';
+    const covering = new Map<string, string>();
+    for (const p of picks) {
+      const c = hand.find((x) => x.id === p.id);
+      if (c?.protects) covering.set(c.protects, c.title);
+    }
+    thrEl.innerHTML = threatsHtml(threats, covering);
+  };
+
   const render = (refocus?: string) => {
     const { after, cards } = views();
     handEl.innerHTML = cards.length
       ? cards.map((c) => cardHtml(c, picks.some((p) => p.id === c.id), adv.recommend === c.id, picks.find((p) => p.id === c.id)?.option)).join('')
       : '<li class="muted">No cards in your hand.</li>';
-    m.el.querySelector('#dec-inf')!.innerHTML = picks.length ? `${after.influence}<small> of ${s.influence}</small>` : String(after.influence);
+    host.querySelector('#dec-inf')!.innerHTML = picks.length ? `${after.influence}<small> of ${s.influence}</small>` : String(after.influence);
     const cost = picks.reduce((a, p) => a + (hand.find((c) => c.id === p.id)?.cost ?? 0), 0);
-    ok.innerHTML = picks.length ? `Confirm ${picks.length === 1 ? 'this card' : `these ${picks.length} cards`} (${cost} Influence) <kbd>Enter</kbd>` : 'Pick a card first';
+    ok.innerHTML = picks.length ? `Confirm ${picks.length === 1 ? '1 card' : `${picks.length} cards`} <small>(${cost} Influence)</small>` : 'Pick a card first';
     ok.disabled = !picks.length;
-    showSummary();
+    showPreview();
     handEl.querySelectorAll<HTMLInputElement>('input[type=radio]').forEach((r) =>
       r.addEventListener('change', () => {
         const id = r.name.replace(/^opt-/, '');
         const p = picks.find((x) => x.id === id);
         if (p) p.option = r.value;
-        showSummary();
+        showPreview();
       }),
     );
     if (refocus) handEl.querySelector<HTMLElement>(refocus)?.focus({ preventScroll: true });
@@ -143,7 +169,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, onO
     const i = picks.findIndex((p) => p.id === id);
     if (i >= 0) {
       picks.splice(i, 1);
-      announce(`Removed ${c.title}. ${picks.length ? `${picks.length} card selected.` : 'No card selected.'}`);
+      announce(`Removed ${c.title}. ${picks.length ? `${picks.length} card${picks.length > 1 ? 's' : ''} selected.` : 'No card selected.'}`);
       return true;
     }
     const v = views().cards.find((x) => x.id === id);
@@ -153,9 +179,8 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, onO
     }
     picks.push({ id: c.id as Pick['id'], ...(c.options.length ? { option: c.options[0].id } : {}) });
     const pv = e.preview(s, picks);
-    const after = { influence: pv.influenceAfter };
     announce(
-      `Selected ${c.title}. ${pv.impacts.map((x) => `${x.label} ${x.before} to ${x.after}`).join(', ')}.${pv.worldAfter !== pv.worldBefore ? ` The world would turn from ${pv.worldBefore} to ${pv.worldAfter}.` : ''} ${after.influence > 0 ? 'You can add another card, or' : ''} Tab to Confirm.`,
+      `Selected ${c.title}. ${pv.impacts.map((x) => `${x.label} ${x.before} to ${x.after}`).join(', ')}.${pv.worldAfter !== pv.worldBefore ? ` The world would turn from ${pv.worldBefore} to ${pv.worldAfter}.` : ''} ${pv.influenceAfter > 0 ? 'You can add another card, or' : ''} Tab to Confirm.`,
     );
     return true;
   };
@@ -180,13 +205,27 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, onO
 
   render();
   const first = adv.recommend ?? hand.find((c) => c.playable)?.id ?? hand[0]?.id;
+  const focusFirst = () => (handEl.querySelector<HTMLElement>(`[data-card="${first}"]`) ?? handEl.querySelector<HTMLElement>('.pcard') ?? host.querySelector<HTMLElement>('#dk-h'))?.focus({ preventScroll: true });
   requestAnimationFrame(() => {
-    (handEl.querySelector<HTMLElement>(`[data-card="${first}"]`) ?? handEl.querySelector<HTMLElement>('.pcard'))?.focus({ preventScroll: true });
-    if (onOpen) requestAnimationFrame(() => void onOpen());
+    focusFirst();
+    void view.onOpen?.().then(() => {
+      if (!host.contains(document.activeElement)) focusFirst();
+    });
   });
+  announce(`Your decisions, ${date}. ${hand.length} cards. ${adv.text}`);
 
-  const a = await m.result;
-  m.close();
+  const a = await new Promise<string>((resolve) => {
+    host.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((b) => b.addEventListener('click', () => resolve(b.dataset.action!)));
+    host.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && !modalOpen()) {
+        ev.preventDefault();
+        resolve('map');
+      }
+    });
+  });
+  view.onPreview(null);
+  host.hidden = true;
+  host.innerHTML = '';
   if (a === 'map') return { kind: 'map' };
   if (a === 'none') return { kind: 'play', picks: [] };
   return { kind: 'play', picks };

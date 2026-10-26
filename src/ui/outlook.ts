@@ -33,29 +33,39 @@ function mini(g: OutlookGauge, kind: 'goal' | 'floor'): string {
   return `<span class="mbar k-${g.key}" aria-hidden="true">${band}<i class="mb-dot" style="left:${pct(g.value)}"></i><i class="mb-bar ${kind}" style="left:${pct(g.bar)}"></i></span>`;
 }
 
-function row(g: OutlookGauge, kind: 'goal' | 'floor'): string {
+const hm = (m: OutlookGauge['met']) => `<span class="hm ${m}">${STATUS[m]}</span>`;
+
+/** One goal line. With `p` (the same gauge before the selected cards), it shows the change: "you 57 → 65", "short → on track". */
+function row(g: OutlookGauge, kind: 'goal' | 'floor', p?: OutlookGauge): string {
   const words = kind === 'goal' ? `${g.label} ${g.bar} or more` : `${g.label} at least ${g.bar}`;
-  return `<li class="ol-row">
+  const was = p && p.key === g.key && p.bar === g.bar ? p : null;
+  const youMoved = was && was.you !== g.you;
+  const metMoved = was && was.met !== g.met;
+  return `<li class="ol-row${youMoved || metMoved ? ' moved' : ''}">
     <span class="ol-what">${kind === 'goal' ? '' : '<span class="ol-net">Safety net</span> '}${esc(g.label)} <b class="num">${g.bar}</b></span>
     ${mini(g, kind)}
-    <span class="ol-you">you <b class="num">${esc(g.you)}</b></span>
-    <span class="hm ${g.met === 'yes' ? 'yes' : g.met === 'no' ? 'no' : 'maybe'}">${STATUS[g.met]}</span>
-    <span class="sr-only">${esc(words)}: you have ${esc(g.you)}, ${STATUS[g.met]}.</span>
+    <span class="ol-you">you ${youMoved ? `<span class="num">${esc(was.you)}</span> → ` : ''}<b class="num">${esc(g.you)}</b></span>
+    <span class="hm-wrap">${metMoved ? `${hm(was.met)} → ` : ''}${hm(g.met)}</span>
+    <span class="sr-only">${esc(words)}: you ${youMoved ? `would have ${esc(g.you)} instead of ${esc(was.you)}` : `have ${esc(g.you)}`}, ${metMoved ? `${STATUS[was.met]} would become ${STATUS[g.met]}` : STATUS[g.met]}.</span>
   </li>`;
 }
 
-/** The band's inner HTML (the section and its toggle are built once by the app). */
-export function outlookHtml(h: HeadingView): string {
+/**
+ * The outlook's inner HTML (the section, its badge and its toggle are built once by the app). With `before`
+ * (decisions: `h` is the outlook if the selected cards are confirmed), it shows what would change.
+ */
+export function outlookHtml(h: HeadingView, before?: HeadingView): string {
   const one = `${h.decides.label} ${h.decides.bar}: you ${h.decides.you}, ${STATUS[h.decides.met]}`;
+  const turned = before && before.world !== h.world;
   return `
     <div class="ol-col ol-world">
-      <h2 class="ol-k" id="ol-h">${h.plateau ? 'If AI stalls' : 'If AI tipped now'}</h2>
-      <p class="ol-chipline">${worldChip(h.world, h.name)}<span class="ol-one" aria-hidden="true">${esc(one)}</span></p>
+      <h2 class="ol-k" id="ol-h">${h.plateau ? 'If AI stalls' : 'If AI tipped now'}${before ? '<span class="ol-if"> · if you confirm</span>' : ''}</h2>
+      <p class="ol-chipline">${turned ? `${worldChip(before.world, before.name)}<span class="ol-arrow" aria-hidden="true">→</span><span class="sr-only"> would turn to </span>` : ''}${worldChip(h.world, h.name)}<span class="ol-one" aria-hidden="true">${esc(one)}</span></p>
       <p class="ol-mean">${esc(h.meaning)}</p>
     </div>
     <div class="ol-col ol-goal">
       <h3 class="ol-k">To end well here</h3>
-      <ul class="ol-rows">${row(h.decides, 'goal')}${row(h.net, 'floor')}</ul>
+      <ul class="ol-rows">${row(h.decides, 'goal', before?.decides)}${row(h.net, 'floor', before?.net)}</ul>
     </div>
     ${
       h.alt
@@ -66,7 +76,8 @@ export function outlookHtml(h: HeadingView): string {
 }
 
 /** Europe's AI badge (v4: in the outlook, no longer on the map): Open or Dependent, a button that explains it. */
-export function badgeHtml(ai: 'open' | 'dependent'): string {
-  const word = ai === 'open' ? 'Open' : 'Dependent';
-  return `<button type="button" class="badge-btn ${ai}" data-badge data-coach="badge"><span class="badge-k">Europe’s AI</span> <b>${word}</b><span class="sr-only">: what this means</span></button>`;
+export function badgeHtml(ai: 'open' | 'dependent', from?: 'open' | 'dependent'): string {
+  const word = (x: string) => (x === 'open' ? 'Open' : 'Dependent');
+  const moved = from && from !== ai ? `<span class="badge-was">${word(from)} →</span> ` : '';
+  return `<button type="button" class="badge-btn ${ai}" data-badge data-coach="badge"><span class="badge-k">Europe’s AI</span> ${moved}<b>${word(ai)}</b>${moved ? '<span class="sr-only"> if you confirm</span>' : ''}<span class="sr-only">: what this means</span></button>`;
 }

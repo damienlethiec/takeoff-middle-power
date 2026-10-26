@@ -1053,7 +1053,7 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
     const why = blocked(s, p.id);
     if (why) {
       const h = heading(base);
-      return { ok: false, reason: why, cost, influenceAfter: s.influence, impacts: [], notes: [], headingBefore: h.text, headingAfter: h.text, worldBefore: h.name, worldAfter: h.name };
+      return { ok: false, reason: why, cost, influenceAfter: s.influence, impacts: [], notes: [], headingBefore: h.text, headingAfter: h.text, worldBefore: h.name, worldAfter: h.name, outlookAfter: h };
     }
     const def = cardDef(p.id);
     const choice = def.options ? (p.option ?? def.options[0].id) : undefined;
@@ -1084,6 +1084,7 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
     headingAfter: heading(s).text,
     worldBefore: heading(base).name,
     worldAfter: heading(s).name,
+    outlookAfter: heading(s),
   };
 }
 

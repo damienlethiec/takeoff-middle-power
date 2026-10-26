@@ -534,6 +534,8 @@ export interface PreviewView {
   /** World names before and after ("Race" → "Pause"); equal when the world does not change. */
   worldBefore: string;
   worldAfter: string;
+  /** The outlook ("If AI tipped now") after these cards, in public values: for the preview in the outlook column. */
+  outlookAfter: HeadingView;
 }
 
 export interface AdvisorView {
