@@ -49,7 +49,7 @@ From top to bottom:
 ## A round (six months)
 
 1. **Influence arrives** and is announced with its reasons.
-2. **The clock runs** (about 8 seconds at ×1). Headlines, AI 2027 milestones, threats, public voices, a leak every two or three rounds, Léa's letter (rounds 1, 4, 8) appear in the feed and as icons in their region's group on the map. Threat icons grow in three stages where they would strike.
+2. **The clock runs** (about 8 seconds at ×1). Headlines, AI 2027 milestones, threats, public voices, a leak every two or three rounds, a friend's letter (after its postcard) appear in the feed and as icons in their region's group on the map. Threat icons grow in three stages where they would strike.
 3. **A request may arrive** (at most one a round, two when a follow-up is due): the clock stops, the character's card opens, the player answers, the clock resumes.
 4. **Breaking news may strike**: the clock stops for its screen (impact before → after, prepared or not, an "Already real" fact), then resumes.
 5. **The clock stops.** "What changed" (the three biggest changes with their cause) tops the feed. Nothing opens by itself; the dock offers "Make my decisions".
@@ -60,7 +60,7 @@ From top to bottom:
 
 A character arrives during the six months with a short request (≤ 40 words) and two answers (left and right; no fixed convention on which side goes along). Answering is **free of Influence: the cost is in the answer**, and both answers cost something visible (a gauge, a growing threat, Europe's AI, the coalition, or a delayed effect announced on the card).
 
-- **Characters** (all fictional; OpenBrain and DeepCent are AI 2027's): Dana Whitfield (US envoy), Li Wen (China's delegate in Geneva), Marcus Hale (OpenBrain's CEO), Dr Ines Moreau (independent evaluator), Katrin Vogel (union leader), Tomas Novak (open-model collective), General Aurélie Brandt (EU cyber and intelligence), Minister Hana Sato (Japan and the middle powers), Sam Okafor (journalist), Léa, and "Agent", OpenBrain's frontier model speaking for itself.
+- **Characters** (all fictional; OpenBrain and DeepCent are AI 2027's): Dana Whitfield (US envoy), Li Wen (China's delegate in Geneva), Marcus Hale (OpenBrain's CEO), Dr Ines Moreau (independent evaluator), Katrin Vogel (union leader), Tomas Novak (open-model collective), General Aurélie Brandt (EU cyber and intelligence), Minister Hana Sato (Japan and the middle powers), Sam Okafor (journalist), the three friends back home (Léa, your mother, Malik), and "Agent", OpenBrain's frontier model speaking for itself.
 - **Which comes**: first a request tied to a milestone reached this round or to a growing threat, else a seeded draw; 6 to 10 a game; never the same one twice. Three **follow-ups** come back on an earlier answer ("I warned you").
 - **On the card**: the character's portrait, name and role, the request, "Free of Influence", the two answers with their effects as chips (+ / − and words), "If AI tipped now" when an answer would change the world, and **Learn more** (a sourced fact or the scenario passage it echoes).
 - **Answering**: click an answer, swipe the card, or press ← / → once to look (the answer is highlighted and announced) and again to answer. The character reacts, with what changed. Requests and answers stay in the feed.
@@ -78,7 +78,7 @@ A character arrives during the six months with a short request (≤ 40 words) an
 
 ## The news feed
 
-- **This round**: every item as it appears, newest first, each a button with an icon and a type ("Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Request · Li Wen", "Letter from Léa, your friend in Lyon", "Strike · Paris, France · in this story", "Your decision"), and what it changed.
+- **This round**: every item as it appears, newest first, each a button with an icon and a type ("Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Request · Li Wen", "Letter from Malik, your old flatmate in San Francisco", "Strike · Paris, France · in this story", "Your decision"), and what it changed.
 - **Social events**: one or two a round, different each game, in a European city: strikes, protests, scandals, layoffs (the two job shocks too) and good news, each with a headline, one line on why it matters (a real precedent, or the scenario it echoes) and what it changed. Bad news comes more often when Social cohesion is low or AI capabilities high.
 - **What changed** tops it when the six months end; **Earlier** holds past rounds by date, each with its own "What changed".
 - Choosing an item shows it on the map (its threat lights up, or its region's group opens with the item highlighted); choosing a map item highlights it here. **N** jumps to the feed.
@@ -88,13 +88,23 @@ A character arrives during the six months with a short request (≤ 40 words) an
 A dot-matrix world centred on the US–Europe–China band (Europe's colour covers Europe only), with the labs pulsing faster as capabilities rise, coalition partners lighting up around Europe (briefly brighter as each joins), protests over European cities and Europe's dots dimming as Social cohesion falls, and a soft ripple from the labs when AI capabilities jump.
 
 - **Threat icons** where the threat would strike, larger at each stage, green with a check once Europe is prepared; each opens what protects Europe.
-- **Groups**: the round's items as small icons by type, one group per region (the US, Europe, China) with a count. Hover or click opens its list (Tab goes into it, Escape closes it). Léa's letter is an envelope, first in Europe's group; the leak is in the US group and opens from there. While a request is open, the character's group is marked "Request".
+- **Groups**: the round's items as small icons by type, one group per region (the US, Europe, China) with a count. Hover or click opens its list (Tab goes into it, Escape closes it). A friend's letter is an envelope, first in its region's group (Europe for Léa and your mother, the US for Malik); the leak is in the US group and opens from there. While a request is open, the character's group is marked "Request".
 - **Social events** join Europe's group with an icon by kind (a briefcase for jobs, a picket sign, a megaphone, an alarm, a spark for good news) and a mark at their city: bad news is a hotspot that pulses gently (steady with reduced motion), good news glows.
 - Only the newest headline shows briefly as a banner by its group.
 
-## Léa
+## Friends back home (26 Oct)
 
-Introduced on the intro's second screen with her portrait: your friend, a translator in Lyon, who writes every few months. Her letters (rounds 1, 4 and 8, in several variants, and one at the end) appear **in full in the feed** with her small portrait; the first opens "Dear old friend, it’s Léa". She also brings three requests about her own life.
+Léa used to be the game's human heart; she had become one feed item among others. Team decision of 26 October: **three friends back home**, each the human face of one part of the world, introduced on the intro's second screen with their portraits ("the people you're doing this for", one line each):
+
+- **Léa**, your old friend, a translator in Lyon: her job, the fear of being replaced → **Social cohesion**. Her letters are v3's, kept.
+- **Your mother**, a retired nurse in Lyon who still helps at her old hospital: AI arriving in the wards, trust, then a near miss or an inspection → **AI safety as lived**.
+- **Malik**, your old flatmate, an engineer at an AI lab in San Francisco: he sees progress from inside (→ **AI capabilities**), lives the US–China rivalry up close (a Chinese colleague without a visa, chips under guard, fear of conflict → **US–China cooperation**), and left Europe because it had no job like his (→ **Europe's AI**). The honest pro-AI voice: not a villain, not naive.
+
+**Letters.** Seven a game at most, one a round, each **opening its round full screen as a postcard** before the clock starts, then kept in full in the feed with the friend's small portrait and in their region's map group (Malik's in the US group): round 1 Léa, 2 Malik, 3 your mother, 5 Léa, 6 Malik, 7 your mother, 9 Léa (`letters.schedule`; a game that tips early sees fewer). Each letter comes from a pool picked by the world's **visible** state (Léa: job shocks and Social cohesion, flexicurity; Malik: US–China cooperation, Europe's AI, whether AI 2027's self-improving AI is reached; your mother: what is verified about AI safety, whether the labs have declared their model aligned), with variants drawn from the seed. Letters **move no gauge** and never hint at the true AI safety or the pace. First person, short, no policy words, no numbers, signed "L.", "Love, Mum", "M.".
+
+**Epilogues.** The end screen has "Back home": one short epilogue per friend (≤ 35 words) for each of the ten endings, with their mood. It replaces Léa's last letter.
+
+**Requests.** Léa keeps her three; your mother brings two (back her old hospital's AI triage pilot; make hospitals report near misses) and Malik two (fast-track visas for AI researchers such as his Chinese colleague; welcome his lab's Paris office, which would bring him home but make Europe's AI Dependent).
 
 ## Tutorial
 
