@@ -1,0 +1,519 @@
+import { describe, expect, it } from 'vitest';
+import { CARDS } from '../src/data/cards';
+import { MILESTONES } from '../src/data/milestones';
+import { TUNING as T } from '../src/data/tuning';
+import {
+  advisor,
+  createInitialState,
+  dateLabel,
+  endRound,
+  ending,
+  gauges,
+  hand,
+  heading,
+  letters,
+  nextIncome,
+  playCard,
+  preview,
+  report,
+  resolveEvent,
+  startRound,
+  threats,
+  zoneOf,
+} from '../src/engine/index';
+import type { GameState } from '../src/engine/types';
+import { freeze, fresh, nextRound, passive, play, playGame, randomStrategy, thoughtful } from './helpers';
+
+const SEEDS = Array.from({ length: 120 }, (_, i) => 500 + i);
+
+describe('creation and the clock', () => {
+  it('is deterministic for a seed', () => {
+    expect(createInitialState(7)).toEqual(createInitialState(7));
+    const a = playGame(7, randomStrategy).final;
+    const b = playGame(7, randomStrategy).final;
+    expect(a).toEqual(b);
+  });
+
+  it('starts where the spec says', () => {
+    const s = createInitialState(1);
+    expect(s.round).toBe(0);
+    expect(s.europeAi).toBe('dependent');
+    expect(s.influence).toBe(T.start.influence);
+    expect(['slow', 'steady', 'fast']).toContain(s.pace);
+  });
+
+  it('labels rounds as half-years from H1 2027 to H2 2032', () => {
+    expect(dateLabel(1)).toBe('H1 2027');
+    expect(dateLabel(2)).toBe('H2 2027');
+    expect(dateLabel(12)).toBe('H2 2032');
+  });
+
+  it('never mutates its input', () => {
+    let s = freeze(createInitialState(3));
+    for (let i = 0; i < 12; i++) {
+      s = freeze(startRound(s));
+      if (s.event) s = freeze(resolveEvent(s, s.event.options[0]?.id));
+      hand(s);
+      gauges(s);
+      heading(s);
+      threats(s);
+      report(s);
+      advisor(s);
+      preview(s, hand(s).filter((c) => c.playable).slice(0, 2).map((c) => ({ id: c.id, option: c.options[0]?.id })));
+      const c = hand(s).find((x) => x.playable);
+      if (c) s = freeze(playCard(s, { id: c.id, option: c.options[0]?.id }));
+      const e = endRound(s);
+      s = freeze(e.state);
+      if (e.outcome === 'ended') break;
+    }
+    expect(s.phase).toBe('ended');
+    ending(s);
+  });
+
+  it('games last 12 rounds, or end at the tipping point from round 6 on', () => {
+    for (const seed of SEEDS) {
+      const f = playGame(seed, passive).final;
+      expect(f.phase).toBe('ended');
+      if (f.tipping) {
+        expect(f.tipping.round).toBeGreaterThanOrEqual(T.earliestTipping);
+        expect(f.aiPower).toBeGreaterThanOrEqual(T.tippingAt);
+        expect(f.round).toBe(f.tipping.round);
+      } else expect(f.round).toBe(T.rounds);
+    }
+  });
+
+  it('reaches AI 2027 milestones strictly in the scenario’s order', () => {
+    const order = MILESTONES.map((m) => m.id);
+    for (const seed of SEEDS)
+      for (const st of [passive, seed % 3 ? randomStrategy : thoughtful]) {
+        const f = playGame(seed, st).final;
+        const ids = f.milestones.map((m) => m.id);
+        expect(ids).toEqual(order.slice(0, ids.length));
+        if (f.tipping) expect(ids.at(-1)).toBe('tipping_point');
+      }
+  }, 60_000);
+
+  it('keeps the true Confidence inside estimate ± margin', () => {
+    for (const seed of SEEDS.slice(0, 40)) {
+      let s = createInitialState(seed);
+      for (let i = 0; i < 12; i++) {
+        s = nextRound(s);
+        const c = s.confidence;
+        expect(Math.abs(c.estimate - c.truth)).toBeLessThanOrEqual(c.margin);
+        const p = randomStrategy.decide(s, { rng: seed + i });
+        for (const x of p) if (hand(s).find((h) => h.id === x.id)?.playable) s = playCard(s, x);
+        const cc = s.confidence;
+        expect(Math.abs(cc.estimate - cc.truth)).toBeLessThanOrEqual(cc.margin);
+        const e = endRound(s);
+        s = e.state;
+        if (e.outcome === 'ended') break;
+      }
+    }
+  });
+});
+
+describe('Influence', () => {
+  it('earns +2 base, +1 with Cohesion 60+, −1 below 35, +1 with coalition level 2, capped at 10', () => {
+    const s = fresh(1, { cohesion: 50, coalition: 0, penalties: [] });
+    expect(nextIncome(s).next).toBe(2);
+    expect(nextIncome({ ...s, cohesion: 60 }).next).toBe(3);
+    expect(nextIncome({ ...s, cohesion: 34 }).next).toBe(1);
+    expect(nextIncome({ ...s, cohesion: 60, coalition: 2 }).next).toBe(4);
+    expect(nextIncome({ ...s, cohesion: 60, coalition: 2 }).reasons.join(' ')).toMatch(/public backs you.*Allies/i);
+    const rich = { ...s, influence: 9, cohesion: 70, coalition: 2 };
+    expect(startRound(endRound(rich).state).influence).toBe(10);
+  });
+
+  it('flexicurity and the cyber shield cost Influence for two rounds, shown with their reason', () => {
+    let s = fresh(1, { cohesion: 50 });
+    s = play(s, { id: 'talks' });
+    const flex = { ...s, hand: [...s.hand, 'flexicurity' as const] };
+    const after = playCard(flex, { id: 'flexicurity' });
+    const inc = nextIncome(after);
+    expect(inc.next).toBe(1);
+    expect(inc.reasons.join(' ')).toContain('Flexicurity reform');
+  });
+
+  it('never pays less than the minimum', () => {
+    const s = fresh(1, { cohesion: 20, penalties: [{ round: 2, amount: -1, card: 'flexicurity' }, { round: 2, amount: -1, card: 'cyber_shield' }] });
+    expect(nextIncome(s).next).toBe(T.influence.minIncome);
+  });
+});
+
+describe('cards', () => {
+  it('round 1 offers three cards; others arrive when the story makes them relevant', () => {
+    const s = fresh(1);
+    expect(s.hand).toEqual(['talks', 'inspections', 'ai_office']);
+    expect(hand(s).every((c) => c.isNew)).toBe(true);
+  });
+
+  it('every card helps something and costs something visible', () => {
+    for (const c of CARDS) {
+      expect(c.ups.length, c.id).toBeGreaterThan(0);
+      expect(c.downs.length, c.id).toBeGreaterThan(0);
+      const cost = T.cards[c.id].cost;
+      for (const x of typeof cost === 'number' ? [cost] : cost) expect(x).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('allows up to two cards a round, never the same card twice', () => {
+    let s = fresh(1);
+    s = play(s, { id: 'talks' });
+    expect(hand(s).find((c) => c.id === 'talks')!.reason).toMatch(/Already played|rest/);
+    s = play(s, { id: 'ai_office' });
+    expect(hand(s).find((c) => c.id === 'inspections')!.reason).toMatch(/Two cards/);
+    expect(() => playCard(s, { id: 'inspections' })).toThrow();
+  });
+
+  it('refuses a card you cannot afford', () => {
+    const s = fresh(1, { influence: 1 });
+    expect(hand(s).find((c) => c.id === 'ai_office')!.playable).toBe(false);
+    expect(hand(s).find((c) => c.id === 'ai_office')!.reason).toMatch(/Not enough Influence/);
+  });
+
+  it('diplomatic talks: Cooperation up, Cohesion down, then a round of rest', () => {
+    const s = fresh(1);
+    const a = play(s, { id: 'talks' });
+    expect(a.cooperation - s.cooperation).toBe(T.cards.talks.cooperation);
+    expect(a.cohesion - s.cohesion).toBe(T.cards.talks.cohesion);
+    const next = nextRound(endRound(a).state);
+    expect(hand(next).find((c) => c.id === 'talks')!.reason).toMatch(/rest/);
+  });
+
+  it('inspections climb three levels with their names, narrow the margin and cost Cooperation', () => {
+    let s = fresh(1);
+    expect(hand(s).find((c) => c.id === 'inspections')!.title).toBe('Offer to host inspections');
+    const a = play(s, { id: 'inspections' });
+    expect(a.inspections).toBe(1);
+    expect(a.confidence.margin).toBeLessThan(s.confidence.margin);
+    expect(a.cooperation - s.cooperation).toBe(T.cards.inspections.cooperation);
+    s = nextRound(endRound(a).state);
+    expect(hand(s).find((c) => c.id === 'inspections')!.title).toBe('Inspection accord');
+  });
+
+  it('AI Office capacity halves the margin', () => {
+    const s = fresh(1);
+    const a = play(s, { id: 'ai_office' });
+    expect(a.confidence.margin).toBe(Math.max(T.confidence.minMargin, Math.round(s.confidence.margin * T.cards.ai_office.marginFactor)));
+  });
+
+  it('the coalition gives +1 Influence a round from level 2', () => {
+    const s = fresh(1, { hand: ['talks', 'coalition'], coalition: 1, cohesion: 50 });
+    expect(nextIncome(s).next).toBe(2);
+    expect(nextIncome(play(s, { id: 'coalition' })).next).toBe(3);
+  });
+
+  it('an independent audit shows the true Confidence for two rounds', () => {
+    const s = fresh(1, { hand: ['audit'], confidence: { truth: 50, estimate: 60, margin: 12 } });
+    const a = play(s, { id: 'audit' });
+    const g = gauges(a).find((x) => x.key === 'confidence')!;
+    expect(g.audited).toBe(true);
+    expect(g.value).toBe(50);
+    expect(g.margin).toBe(0);
+    const b = nextRound(endRound(a).state);
+    expect(gauges(b).find((x) => x.key === 'confidence')!.audited).toBe(true);
+    const c = nextRound(endRound(b).state);
+    expect(gauges(c).find((x) => x.key === 'confidence')!.audited).toBe(false);
+  });
+
+  it('Europe’s AI: open models make it Open, weight security makes it Dependent again', () => {
+    const s = fresh(1, { hand: ['open_models', 'weight_security'] });
+    const a = play(s, { id: 'open_models' });
+    expect(a.europeAi).toBe('open');
+    const b = nextRound(endRound(a).state);
+    expect(play({ ...b, influence: 10 }, { id: 'weight_security' }).europeAi).toBe('dependent');
+  });
+
+  it('the ASML lever offers two concessions, both costing Cooperation', () => {
+    const s = fresh(1, { hand: ['asml'] });
+    expect(() => playCard(s, { id: 'asml' })).toThrow();
+    const safety = play(s, { id: 'asml', option: 'safety' });
+    const access = play(s, { id: 'asml', option: 'access' });
+    expect(safety.confidence.estimate).toBeGreaterThan(s.confidence.estimate);
+    expect(access.cohesion - s.cohesion).toBe(T.cards.asml.access.cohesion);
+    expect(safety.cooperation - s.cooperation).toBe(T.cards.asml.cooperation);
+  });
+
+  it('the human oversight mandate creates the silicon blackmail threat while Europe is Dependent', () => {
+    const s = fresh(1, { hand: ['oversight_mandate'] });
+    const a = play(s, { id: 'oversight_mandate' });
+    expect(a.threats.blackmail.stage).toBe(1);
+    expect(a.aiPower - s.aiPower).toBe(T.cards.oversight_mandate.aiPower);
+    const open = play({ ...s, europeAi: 'open' }, { id: 'oversight_mandate' });
+    expect(open.threats.blackmail.stage).toBe(0);
+  });
+
+  it('spent cards leave the hand', () => {
+    const s = fresh(1);
+    expect(play(s, { id: 'ai_office' }).hand).not.toContain('ai_office');
+  });
+});
+
+describe('threats and events', () => {
+  const ripe = (s: GameState, id: 'theft' | 'ransomware' | 'blackmail' | 'incident' | 'opaque'): GameState => ({
+    ...s,
+    threats: { ...s.threats, [id]: { ...s.threats[id], stage: 3, imminentSince: s.round } },
+  });
+
+  it('a threat strikes only after a round at the imminent stage', () => {
+    for (const seed of SEEDS.slice(0, 60)) {
+      let s = createInitialState(seed);
+      for (let i = 0; i < 12; i++) {
+        const before = s.threats;
+        s = startRound(s);
+        if (s.event && !s.event.id.startsWith('job_')) {
+          const id = s.event.id as keyof typeof before;
+          expect(before[id].stage).toBe(3);
+          expect(before[id].imminentSince).not.toBeNull();
+        }
+        if (s.event) s = resolveEvent(s, s.event.options[0]?.id);
+        const e = endRound(s);
+        s = e.state;
+        if (e.outcome === 'ended') break;
+      }
+    }
+  });
+
+  it('model theft: unprepared it speeds AI up and wrecks Cooperation; prepared it fails', () => {
+    const base = ripe(fresh(1, { round: 5, aiPower: 50, jobShocks: 1, milestones: MILESTONES.slice(0, 4).map((m) => ({ id: m.id, round: 1 })) }), 'theft');
+    const s = startRound(base);
+    expect(s.event?.id).toBe('theft');
+    expect(s.event!.prepared).toBe(false);
+    const after = resolveEvent(s);
+    expect(after.cooperation - s.cooperation).toBe(T.threats.theft.unprepared.cooperation);
+    expect(after.aiPower - s.aiPower).toBe(T.threats.theft.unprepared.aiPower);
+    expect(after.milestones.map((m) => m.id)).toContain('weight_theft');
+    const prepared = startRound({ ...base, uses: { weight_security: 1 } });
+    expect(prepared.event!.prepared).toBe(true);
+    expect(resolveEvent(prepared).cooperation - prepared.cooperation).toBe(T.threats.theft.prepared.cooperation);
+  });
+
+  it('a Breaking news screen shows each change as before → after, without hidden values', () => {
+    for (const seed of SEEDS.slice(0, 60)) {
+      let s = createInitialState(seed);
+      for (let i = 0; i < 12; i++) {
+        s = startRound(s);
+        if (s.event) {
+          for (const imp of s.event.impacts) expect(`${imp.before}${imp.after}`).toMatch(/^\w+$/);
+          expect(s.event.impacts.some((x) => x.label.toLowerCase().includes('true'))).toBe(false);
+          s = resolveEvent(s, s.event.options[0]?.id);
+        }
+        const e = endRound(s);
+        s = e.state;
+        if (e.outcome === 'ended') break;
+      }
+    }
+  });
+
+  it('silicon blackmail: give in locks Europe’s AI to Dependent; hold firm costs Cohesion; Open stands firm', () => {
+    const s = ripe(fresh(1, { round: 6, jobShocks: 1 }), 'blackmail');
+    const ev = startRound(s);
+    expect(ev.event?.id).toBe('blackmail');
+    expect(ev.event!.options.map((o) => o.id)).toEqual(['give_in', 'hold_firm']);
+    expect(() => resolveEvent(ev)).toThrow();
+    const given = resolveEvent(ev, 'give_in');
+    expect(given.europeAiLocked).toBe(true);
+    expect(given.hand).not.toContain('open_models');
+    const firm = resolveEvent(ev, 'hold_firm');
+    expect(firm.cohesion - ev.cohesion).toBe(T.threats.blackmail.holdFirm.cohesion);
+    const open = startRound({ ...s, europeAi: 'open' });
+    expect(open.event!.prepared).toBe(true);
+    expect(open.event!.options).toEqual([]);
+  });
+
+  it('a prepared AI incident opens the emergency summit for two rounds', () => {
+    const s = ripe(
+      fresh(1, { round: 7, aiPower: 64, jobShocks: 2, coalition: 1, inspections: 2, confidence: { truth: 20, estimate: 30, margin: 12 }, milestones: MILESTONES.slice(0, 6).map((m) => ({ id: m.id, round: 1 })) }),
+      'incident',
+    );
+    let hit: GameState | null = null;
+    for (let k = 0; k < 30 && !hit; k++) {
+      const x = startRound({ ...s, rng: s.rng + k });
+      if (x.event?.id === 'incident') hit = x;
+    }
+    expect(hit).not.toBeNull();
+    expect(hit!.event!.prepared).toBe(true);
+    const after = resolveEvent(hit!);
+    expect(after.cooperation - hit!.cooperation).toBe(T.threats.incident.prepared.cooperation);
+    expect(hand(after).find((c) => c.id === 'summit')?.expiresIn).toBe(2);
+  });
+
+  it('job shocks hit Cohesion, softened by flexicurity', () => {
+    for (const seed of SEEDS.slice(0, 30)) {
+      let s = createInitialState(seed);
+      for (let i = 0; i < 12; i++) {
+        s = startRound(s);
+        if (s.event?.id === 'job_shock_1') {
+          const r = resolveEvent(s);
+          expect(r.cohesion - s.cohesion).toBe(T.jobShocks.hit);
+          expect(r.jobShocks).toBe(1);
+          const soft = resolveEvent({ ...s, uses: { ...s.uses, flexicurity: 1 } });
+          expect(soft.cohesion - s.cohesion).toBe(T.jobShocks.softened);
+          break;
+        }
+        if (s.event) s = resolveEvent(s, s.event.options[0]?.id);
+        const e = endRound(s);
+        s = e.state;
+        if (e.outcome === 'ended') break;
+      }
+    }
+  });
+});
+
+describe('hidden values never leak', () => {
+  const twin = (s: GameState, truth: number): GameState => ({ ...s, confidence: { ...s.confidence, truth } });
+
+  it('previews, the heading line, the advisor and threat views do not depend on the true Confidence', () => {
+    for (const seed of SEEDS.slice(0, 40)) {
+      const s = { ...fresh(seed), confidence: { truth: 55, estimate: 60, margin: 10 }, hand: ['talks', 'inspections', 'ai_office', 'alignment'] as GameState['hand'] };
+      const a = twin(s, 51);
+      const b = twin(s, 69);
+      for (const id of ['inspections', 'alignment', 'ai_office'] as const) expect(preview(a, [{ id }])).toEqual(preview(b, [{ id }]));
+      expect(advisor(a)).toEqual(advisor(b));
+      expect(heading(a)).toEqual(heading(b));
+      expect(threats(a)).toEqual(threats(b));
+      expect(gauges(a)).toEqual(gauges(b));
+    }
+  });
+
+  it('the advisor never uses numbers', () => {
+    for (const seed of SEEDS.slice(0, 60)) {
+      let s = createInitialState(seed);
+      for (let i = 0; i < 12; i++) {
+        s = nextRound(s);
+        expect(advisor(s).text).not.toMatch(/\d/);
+        const e = endRound(s);
+        s = e.state;
+        if (e.outcome === 'ended') break;
+      }
+    }
+  });
+
+  it('alignment research previews only the estimate it moves', () => {
+    const s = fresh(1, { hand: ['alignment'], confidence: { truth: 50, estimate: 55, margin: 15 } });
+    const pv = preview(s, [{ id: 'alignment' }]);
+    expect(pv.impacts.find((i) => i.key === 'confidence')).toMatchObject({ before: '55', after: String(55 + T.cards.alignment.estimate) });
+    expect(pv.notes.join(' ')).toMatch(/real safety/i);
+  });
+});
+
+describe('heading, report, letters', () => {
+  it('the heading line names the world, the goal and the safety net', () => {
+    const s = fresh(1, { cooperation: 50, cohesion: 58, confidence: { truth: 60, estimate: 62, margin: 15 } });
+    expect(heading(s).text).toBe('Heading: Race. Goal: Confidence 75 (you: 62 ± 15). Keep Cohesion above 55 (you: 58).');
+    expect(heading({ ...s, cooperation: 65 }).world).toBe('pause');
+    expect(heading({ ...s, cooperation: 20 }).world).toBe('rupture');
+  });
+
+  it('turns to a plateau when the visible AI power cannot reach the tipping point', () => {
+    const s = fresh(1, { round: 9, aiPower: 50, lastRise: 4 });
+    expect(heading(s).world).toBe('plateau_labs');
+    expect(heading({ ...s, europeAi: 'open' }).text).toMatch(/^Heading: Plateau, open models \(AI is stalling\)/);
+  });
+
+  it('the report lists at most three changes, each with its cause', () => {
+    for (const seed of SEEDS.slice(0, 30)) {
+      let s = createInitialState(seed);
+      for (let i = 0; i < 12; i++) {
+        s = nextRound(s);
+        const r = report(s);
+        expect(r.changes.length).toBeLessThanOrEqual(3);
+        for (const c of r.changes) expect(c.cause.length).toBeGreaterThan(3);
+        const e = endRound(s);
+        s = e.state;
+        if (e.outcome === 'ended') break;
+      }
+    }
+  });
+
+  it('Léa writes at rounds 1, 4 and 8 and at the end, with variants across games', () => {
+    const ids = new Set<string>();
+    for (const seed of SEEDS.slice(0, 40)) {
+      const f = playGame(seed, randomStrategy).final;
+      const ls = letters(f);
+      const slots = ls.map((l) => l.slot);
+      expect(slots[0]).toBe('r1');
+      expect(slots.at(-1)).toBe('end');
+      expect(ls.at(-1)!.id).toMatch(new RegExp(`^end_${f.ending}_`));
+      ls.forEach((l) => ids.add(l.id));
+    }
+    expect([...ids].filter((i) => i.startsWith('r1_')).length).toBeGreaterThan(1);
+    expect([...ids].filter((i) => i.startsWith('r4_')).length).toBeGreaterThan(1);
+  });
+
+  it('leaks are readable only with enough oversight', () => {
+    let readable = 0;
+    let redacted = 0;
+    for (const seed of SEEDS.slice(0, 40)) {
+      for (const st of [passive, thoughtful]) {
+        const f = playGame(seed, st).final;
+        for (const l of f.leaks) {
+          if (st === passive) expect(l.readable).toBe(false);
+          if (l.readable) readable++;
+          else redacted++;
+        }
+      }
+    }
+    expect(readable).toBeGreaterThan(0);
+    expect(redacted).toBeGreaterThan(0);
+  });
+});
+
+describe('endings', () => {
+  const ended = (patch: Partial<GameState>) => {
+    const s = { ...fresh(1), ...patch };
+    const e = endRound(s);
+    expect(e.outcome).toBe('ended');
+    return e.state;
+  };
+  const tip = { tipping: { round: 9 }, round: 9, aiPower: 82 };
+
+  it('the cooperation zone at the tipping point picks the world; one gauge decides, the other is a safety net', () => {
+    const cases: [Partial<GameState>, string][] = [
+      [{ ...tip, cooperation: 75, cohesion: 50, confidence: { truth: 70, estimate: 70, margin: 5 } }, 'licensed_utopia'],
+      [{ ...tip, cooperation: 75, cohesion: 30, confidence: { truth: 70, estimate: 70, margin: 5 } }, 'unstable_pause'],
+      [{ ...tip, cooperation: 75, cohesion: 50, confidence: { truth: 50, estimate: 60, margin: 10 } }, 'unstable_pause'],
+      [{ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 80, estimate: 80, margin: 3 } }, 'cognitive_revolution'],
+      [{ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 62, estimate: 70, margin: 15 } }, 'loss_of_control'],
+      [{ ...tip, cooperation: 10, cohesion: 90, confidence: { truth: 70, estimate: 70, margin: 3 } }, 'multipolar_world'],
+      [{ ...tip, cooperation: 10, cohesion: 70, confidence: { truth: 70, estimate: 70, margin: 3 } }, 'hot_war'],
+      [{ round: 12, tipping: null, europeAi: 'open', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'bright_winter'],
+      [{ round: 12, tipping: null, europeAi: 'open', cohesion: 50, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'decentralised_mayhem'],
+      [{ round: 12, tipping: null, europeAi: 'dependent', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'agent_economy'],
+      [{ round: 12, tipping: null, europeAi: 'dependent', cohesion: 65, confidence: { truth: 30, estimate: 40, margin: 12 } }, 'silicon_blackmail'],
+    ];
+    for (const [patch, id] of cases) expect(ended(patch).ending, id).toBe(id);
+  });
+
+  it('decides on the true Confidence, and says so in one sentence', () => {
+    const s = ended({ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 62, estimate: 70, margin: 15 } });
+    const v = ending(s);
+    expect(v.sentence).toBe('The superpowers raced. Confidence was 62 (you saw 70 ± 15), below the 75 a race needs: loss of control.');
+    expect(v.reveal.truth).toBe(62);
+    expect(v.counterfactuals[0]).toMatch(/^With Cooperation at 60 or more at the tipping point/);
+  });
+
+  it('a safety net that fails is named', () => {
+    const v = ending(ended({ ...tip, cooperation: 75, cohesion: 30, confidence: { truth: 70, estimate: 70, margin: 5 } }));
+    expect(v.sentence).toMatch(/^The superpowers paused and Confidence reached 70, but Cohesion fell to 30, below the 45 a pause needs: unstable pause\.$/);
+  });
+
+  it('the suspense at the tipping point is never more than a few points', () => {
+    for (const seed of SEEDS) {
+      const f = playGame(seed, thoughtful).final;
+      if (f.tipping) expect(Math.abs(f.finalCooperation! - f.cooperation)).toBeLessThanOrEqual(T.tippingNoise);
+    }
+  });
+
+  it('every ending view is complete', () => {
+    for (const seed of SEEDS.slice(0, 50)) {
+      const v = ending(playGame(seed, randomStrategy).final);
+      expect(v.sentence).toMatch(/: [a-z].+\.$/);
+      expect(v.gauges).toHaveLength(4);
+      expect(v.lea.text.length).toBeGreaterThan(20);
+      expect(v.counterfactuals.length).toBeLessThanOrEqual(2);
+      expect(JSON.stringify(v)).not.toMatch(/undefined|NaN/);
+      expect(zoneOf(50)).toBe('race');
+    }
+  });
+});
