@@ -1,4 +1,4 @@
-// The "If AI tipped now" band under the gauges (v4). Left: the world chip and what it means, with a button
+// The "If AI tipped now" outlook (v4): a column left of the map on wide screens, a band above it below ~1200 px. Left: the world chip and what it means, with a button
 // that explains the five worlds. Middle: "To end well here", the deciding gauge against its target and the
 // safety net against its floor, each with a mini bar (estimate ± uncertainty for AI safety) and a status word.
 // Right: "Or change course", the nearest other world when it is within reach and would help.
@@ -51,7 +51,7 @@ export function outlookHtml(h: HeadingView): string {
     <div class="ol-col ol-world">
       <h2 class="ol-k" id="ol-h">${h.plateau ? 'If AI stalls' : 'If AI tipped now'}</h2>
       <p class="ol-chipline">${worldChip(h.world, h.name)}<span class="ol-one" aria-hidden="true">${esc(one)}</span></p>
-      <p class="ol-mean">${esc(h.meaning)} <button type="button" class="btn-link ol-whatis" data-worlds>${esc(whatIs(h))}</button></p>
+      <p class="ol-mean">${esc(h.meaning)}</p>
     </div>
     <div class="ol-col ol-goal">
       <h3 class="ol-k">To end well here</h3>
@@ -61,5 +61,12 @@ export function outlookHtml(h: HeadingView): string {
       h.alt
         ? `<div class="ol-col ol-alt"><h3 class="ol-k">Or change course</h3><p>${worldChip(h.alt.world, h.alt.name)} ${esc(h.alt.text)}</p></div>`
         : ''
-    }`;
+    }
+    <p class="ol-col ol-more"><button type="button" class="btn-link ol-whatis" data-worlds>${esc(whatIs(h))}</button></p>`;
+}
+
+/** Europe's AI badge (v4: in the outlook, no longer on the map): Open or Dependent, a button that explains it. */
+export function badgeHtml(ai: 'open' | 'dependent'): string {
+  const word = ai === 'open' ? 'Open' : 'Dependent';
+  return `<button type="button" class="badge-btn ${ai}" data-badge data-coach="badge"><span class="badge-k">Europe’s AI</span> <b>${word}</b><span class="sr-only">: what this means</span></button>`;
 }

@@ -226,11 +226,13 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .g-markers li.yes { color: var(--good); }
 .g-aiPower .g-val { color: var(--cap); }
 /* the "If AI tipped now" band */
-.outlook { position: relative; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) minmax(0, 1fr); background: var(--deck-2); border: 1px solid var(--align); border-radius: 12px; padding: 7px 4px; }
+.outlook { position: relative; background: var(--deck-2); border: 1px solid var(--align); border-radius: 12px; min-width: 0; }
 .outlook.flash { animation: gflash 1.2s ease; }
 .ol-body { display: contents; }
-.ol-col { padding: 0 12px; min-width: 0; }
-.ol-col + .ol-col { border-left: 1px solid var(--rule); }
+.ol-col { min-width: 0; }
+.ol-more { margin: 0; }
+.ol-badge { display: flex; }
+.outlook .badge-btn { transform: none; position: static; }
 .ol-k { margin: 0 0 3px; font-family: var(--f-data); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
 .ol-chipline { margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ol-one { display: none; font-size: 13px; }
@@ -257,7 +259,40 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .ol-alt p { margin: 0; font-size: 13px; line-height: 1.4; }
 .ol-alt .wchip { font-size: 14px; padding: 0 8px 0 5px; margin-right: 2px; }
 .ol-toggle { display: none; }
-.outlook .heading-why { grid-column: 1 / -1; margin: 5px 12px 0; }
+.outlook .heading-why { margin: 0; }
+/* wide screens: a column left of the map, its parts stacked */
+@media (min-width: 1200px) {
+  .stage { grid-template-columns: 268px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .panel { grid-column: 1 / -1; }
+  .outlook { display: flex; flex-direction: column; overflow: auto; padding: 4px 0; }
+  .ol-col, .ol-badge, .outlook .heading-why { padding: 9px 14px; }
+  .ol-col + .ol-col, .ol-badge, .outlook .heading-why { border-top: 1px solid var(--rule); }
+  .ol-col.ol-more { border-top: 0; padding-top: 0; }
+  .ol-rows { gap: 8px; }
+  .ol-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "what st" "bar bar" "you you"; gap: 3px 8px; }
+  .ol-row .ol-what { grid-area: what; white-space: normal; }
+  .ol-row .hm { grid-area: st; justify-self: end; }
+  .ol-row .mbar { grid-area: bar; }
+  .ol-row .ol-you { grid-area: you; white-space: normal; }
+  .ol-alt p { font-size: 13px; }
+  .outlook .badge-btn { flex-direction: row; gap: 8px; align-items: baseline; justify-content: flex-start; width: 100%; min-height: 40px; }
+}
+/* narrower screens: a band above the map; collapsed, one line (the world, its deciding gauge, Europe's AI, More) */
+@media (max-width: 1199.98px) {
+  .outlook { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; padding: 6px 0; }
+  .ol-world { order: 0; flex: 1 1 260px; }
+  .ol-badge { order: 1; padding: 0 8px; }
+  .ol-toggle { display: inline-flex; order: 2; margin-right: 10px; padding: 3px 9px; }
+  .ol-goal { order: 3; flex: 1 1 300px; }
+  .ol-alt { order: 4; flex: 1 1 260px; }
+  .ol-more { order: 5; flex: 1 1 100%; }
+  .outlook .heading-why { order: 6; flex: 1 1 100%; padding: 0 12px; }
+  .ol-col { padding: 0 12px; }
+  .ol-goal, .ol-alt { border-top: 1px solid var(--rule); padding-top: 6px; }
+  .ol-goal + .ol-alt { border-left: 1px solid var(--rule); }
+  .outlook.collapsed .ol-mean, .outlook.collapsed .ol-goal, .outlook.collapsed .ol-alt, .outlook.collapsed .ol-more { display: none; }
+  .outlook.collapsed .ol-one { display: inline; }
+}
 .pv-world { margin: 0 0 4px; font-size: 15px; color: var(--align); }
 .hm { display: inline-block; font-family: var(--f-data); font-size: 10.5px; border-radius: 4px; padding: 0 5px; margin-left: 2px; border: 1px solid; white-space: nowrap; }
 .hm.yes { color: var(--good); } .hm.no { color: var(--crit-text); } .hm.maybe { color: var(--warn); }
@@ -636,9 +671,9 @@ body.ended { overflow: auto; }
 @media (max-width: 1100px) {
   .inf-why { display: none; }
   .theatre { grid-template-columns: minmax(0, 1fr) 280px; }
+}
+@media (max-width: 960px) {
   .panel { grid-template-columns: 1fr 1fr; }
-  .outlook { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
-  .ol-alt { grid-column: 1 / -1; border-left: 0 !important; border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 6px; }
 }
 @media (max-width: 860px), (max-height: 640px) {
   .game { height: auto; min-height: 100dvh; grid-template-rows: auto auto auto auto; }
@@ -681,12 +716,11 @@ body.ended { overflow: auto; }
   .g-val { font-size: 20px; }
   .g-delta { min-width: 0; font-size: 11px; }
   .g-info { width: 26px; height: 26px; }
-  .outlook { grid-template-columns: minmax(0, 1fr); padding: 6px 0; }
-  .ol-col + .ol-col { border-left: 0; border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 6px; }
-  .ol-k { padding-right: 70px; }
-  .outlook.collapsed .ol-mean, .outlook.collapsed .ol-goal, .outlook.collapsed .ol-alt { display: none; }
-  .outlook.collapsed .ol-one { display: inline; }
-  .ol-toggle { display: inline-flex; position: absolute; top: 5px; right: 8px; padding: 3px 9px; }
+  .ol-goal + .ol-alt { border-left: 0; }
+  .outlook .badge-btn { padding: 2px 7px; }
+  .ol-world { flex: 1 1 0; }
+  .ol-badge { padding: 0 6px; }
+  .ol-toggle { margin-right: 8px; padding: 3px 7px; }
   .ol-row { grid-template-columns: minmax(0, 1fr) 56px auto auto; gap: 6px; font-size: 12px; }
   .wchip { font-size: 15px; }
   .threat-btn { padding: 3px 7px 3px 4px; }

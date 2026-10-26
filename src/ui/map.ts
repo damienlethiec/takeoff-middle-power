@@ -146,7 +146,6 @@ const BANNER_SPOT: Record<RegionId, { lon: number; lat: number }> = {
   eu: { lon: 14, lat: 70 },
   cn: { lon: 108, lat: 60 },
 };
-const BADGE_SPOT = { lon: -11, lat: 37 };
 const LEAK_SPOT = { lon: -82, lat: 29 };
 
 function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}, parent?: Element): SVGElementTagNameMap[K] {
@@ -244,12 +243,7 @@ export class WorldMap {
       this.summary.className = 'sr-only map-summary';
       this.summary.id = `map-summary-${++mapIds}`;
       container.appendChild(this.summary);
-      // Europe's AI badge, Léa and the leak: real buttons laid over the map
-      this.badgeButton = this.mk('button', 'badge-btn') as HTMLButtonElement;
-      this.badgeButton.type = 'button';
-      this.badgeButton.dataset.coach = 'badge';
-      this.badgeButton.addEventListener('click', () => this.onBadge?.());
-      this.place(this.badgeButton, BADGE_SPOT);
+      // Léa and the leak: real buttons laid over the map (v4: Europe's AI badge is in the outlook column)
       this.leaButton = this.mk('button', 'lea-btn') as HTMLButtonElement;
       this.leaButton.type = 'button';
       this.leaButton.addEventListener('click', () => this.onLea?.());

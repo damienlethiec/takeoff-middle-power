@@ -22,7 +22,7 @@ import { showIntro } from './screens/intro';
 import { showLetters } from './screens/letters';
 import { showWorlds } from './screens/worlds';
 import { showRequest } from './screens/request';
-import { outlookHtml } from './outlook';
+import { badgeHtml, outlookHtml } from './outlook';
 import { Feed } from './feed';
 
 const ROUND_MS = 8000;
@@ -589,6 +589,7 @@ export class App {
         </section>
         <section class="outlook collapsed" data-coach="heading" aria-labelledby="ol-h" id="outlook">
           <div class="ol-body" id="ol-body"></div>
+          <div class="ol-badge" id="ol-badge"></div>
           <button type="button" class="ol-toggle btn-quiet small" aria-expanded="false" aria-controls="outlook">More<span class="sr-only"> about where the world is heading</span></button>
           <p class="heading-why" id="heading-why"></p>
         </section>
@@ -607,7 +608,6 @@ export class App {
       this.markFeed((x) => x.kind === 'lea');
       this.openLea();
     };
-    this.map.onBadge = () => this.openFromMap(() => showBadge(this.s.europeAi, this.s.europeAiLocked));
     this.map.onLeak = () => {
       this.markFeed((x) => x.kind === 'leak');
       if (this.s.leak) this.openFromMap(() => showLeak(this.s.leak!, this.e.dateLabel(this.s.round)));
@@ -621,6 +621,7 @@ export class App {
     $('#help-btn', this.root).addEventListener('click', () => this.openHelp());
     $('#outlook', this.root).addEventListener('click', (ev) => {
       if ((ev.target as HTMLElement).closest('[data-worlds]')) this.openFromMap(() => showWorlds(this.e.heading(this.s).world));
+      if ((ev.target as HTMLElement).closest('[data-badge]')) this.openFromMap(() => showBadge(this.s.europeAi, this.s.europeAiLocked));
     });
     const tog = $<HTMLButtonElement>('.ol-toggle', this.root);
     tog.addEventListener('click', () => {
@@ -826,5 +827,13 @@ export class App {
       }
     }
     $('#heading-why', this.root).textContent = this.headingWhy;
+    // Europe's AI badge lives in the outlook (v4)
+    const badge = $('#ol-badge', this.root);
+    if (badge.dataset.v !== this.s.europeAi) {
+      const hadFocus = badge.contains(document.activeElement);
+      badge.dataset.v = this.s.europeAi;
+      badge.innerHTML = badgeHtml(this.s.europeAi);
+      if (hadFocus) badge.querySelector<HTMLElement>('[data-badge]')?.focus({ preventScroll: true });
+    }
   }
 }
