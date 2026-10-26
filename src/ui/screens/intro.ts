@@ -10,7 +10,7 @@ export async function showIntro(): Promise<void> {
     const last = i === INTRO.length - 1;
     const m = openModal(
       `<div class="intro-in">
-        <p class="intro-brand" aria-hidden="true"><span class="logo">TAKE<i>OFF</i></span><span class="sub">Middle Power</span></p>
+        <p class="intro-brand" aria-hidden="true"><span class="logo">TAKE<i>OFF</i></span><span class="sub">Europe’s Next Move</span></p>
         <div class="dateline">${i + 1} of ${INTRO.length}</div>
         <h2 tabindex="-1" data-autofocus>${esc(sc.title)}</h2>
         ${sc.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}

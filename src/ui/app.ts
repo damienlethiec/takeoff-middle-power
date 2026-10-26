@@ -557,7 +557,7 @@ export class App {
     this.root.innerHTML = `
     <div class="game">
       <header class="top">
-        <h1 class="brand" id="game-title" tabindex="-1"><span class="logo">TAKE<i>OFF</i></span><span class="sub">Middle Power</span></h1>
+        <h1 class="brand" id="game-title" tabindex="-1"><span class="logo">TAKE<i>OFF</i></span><span class="sub">Europe’s Next Move</span></h1>
         <div class="when"><span class="date"><span id="date" class="num"></span><span class="round-of" id="round-of"></span></span>
           <ol class="rounds" id="rounds" aria-label="Progress through the 12 rounds">${Array.from({ length: 12 }, (_, i) => `<li data-r="${i + 1}"><i></i></li>`).join('')}</ol></div>
         <div class="clockctl">
