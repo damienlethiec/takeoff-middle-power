@@ -62,7 +62,7 @@ async function playToEnd(page: Page, s: Session) {
         const choice = d.locator('.choice').first();
         if (await choice.count()) await choice.click();
         else await page.keyboard.press('Enter');
-      } else await page.keyboard.press('Enter'); // tips, the report, letters
+      } else await page.keyboard.press('Enter'); // tips, letters
       await advance(page, 300);
       continue;
     }
@@ -165,19 +165,24 @@ test.describe('key interactions', () => {
     expect(s.errors).toEqual([]);
   });
 
-  test('when the clock stops nothing opens by itself; the report and the decisions are on demand', async ({ page }) => {
+  test('when the clock stops nothing opens by itself; what changed tops the news feed; feed items show on the map', async ({ page }) => {
     const s = await boot(page, '?skipintro&notutorial&seed=4');
-    await advance(page, 10_000);
+    const feed = page.locator('.feed');
+    await advance(page, 1500);
+    // items appear while the clock runs
+    await expect(feed.locator('#feed-now .fd-item').first()).toBeVisible();
+    await advance(page, 8500);
     await expect(dockButton(page, /^Make my decisions/)).toBeVisible();
     await advance(page, 4000);
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await dockButton(page, /^See what changed/).click();
-    const r = dialog(page);
-    await expect(r.getByRole('heading', { name: 'Six months in review' })).toBeVisible();
-    await expect(r.locator('.heading-line')).toHaveText(/^If AI (tipped now|stalls): /);
-    await page.keyboard.press('Escape');
-    await advance(page, 300);
-    await expect(dockButton(page, /^Make my decisions/)).toBeFocused();
+    await expect(feed.locator('#feed-now .fd-sum-h')).toHaveText('What changed');
+    const item = feed.locator('#feed-now .fd-item').first();
+    await item.click();
+    await expect(item).toHaveAttribute('aria-pressed', 'true');
+    // earlier rounds live in their own tab
+    await feed.getByRole('tab', { name: 'Earlier' }).click();
+    await expect(feed.locator('#feed-past')).toBeVisible();
+    await expect(feed.locator('#feed-past')).toContainText('Earlier rounds appear here.');
     expect(s.errors).toEqual([]);
   });
 
@@ -248,8 +253,8 @@ test.describe('key interactions', () => {
     await tip.getByRole('button', { name: 'Turn off tips' }).click();
     await advance(page, 400);
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await page.keyboard.press('j');
-    await expect(dialog(page).getByText(/The AI clock:/)).toBeVisible();
+    await page.keyboard.press('?');
+    await expect(dialog(page).locator('details.older')).toContainText('The AI clock:');
     expect(s.errors).toEqual([]);
   });
 });

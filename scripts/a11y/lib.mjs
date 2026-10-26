@@ -86,9 +86,9 @@ export async function axe(page) {
 export const screenOf = (page) =>
   page.evaluate(() => {
     if (document.querySelector('.ending-page')) return 'ending';
-    const m = document.querySelector('.overlay:not(.leaving) .modal');
+    const m = document.querySelector('.overlay:not(.leaving):not([inert]) .modal');
     if (!m) return document.querySelector('.dock:not([hidden])') ? 'dock' : 'main';
-    for (const k of ['intro', 'coach', 'breaking', 'report', 'decision', 'letters', 'help', 'journal', 'info']) if (m.classList.contains(k)) return k;
+    for (const k of ['intro', 'coach', 'breaking', 'request', 'decision', 'card-details', 'worlds', 'letters', 'help', 'info']) if (m.classList.contains(k)) return k;
     return `modal:${m.className}`;
   });
 

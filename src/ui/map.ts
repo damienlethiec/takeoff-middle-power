@@ -108,6 +108,15 @@ const LABS: { region: RegionId; lon: number; lat: number; name: string }[] = [
   { region: 'cn', lon: 114.1, lat: 22.6, name: '' },
 ];
 const LYON = { lon: 4.85, lat: 45.76 };
+/** Cities where protests show when Social cohesion falls. */
+const PROTESTS = [
+  { lon: 2.35, lat: 48.86 }, // Paris
+  { lon: 13.4, lat: 52.52 }, // Berlin
+  { lon: -3.7, lat: 40.42 }, // Madrid
+  { lon: 12.5, lat: 41.9 }, // Rome
+  { lon: 21.0, lat: 52.23 }, // Warsaw
+  { lon: 4.9, lat: 52.37 }, // Amsterdam
+];
 /** Where public voices are heard, per region. */
 const VOICE_SPOTS: Record<RegionId, { lon: number; lat: number }[]> = {
   eu: [
@@ -163,13 +172,11 @@ export class WorldMap {
   private placed = new Map<HTMLElement, { lon: number; lat: number }>();
   private threatBtns = new Map<string, HTMLButtonElement>();
   private banners: Record<RegionId, HTMLElement>;
-  /** On small screens, headlines and voices scroll in a strip under the map instead. */
-  private ticker: HTMLElement;
   leaButton: HTMLButtonElement | null = null;
   badgeButton: HTMLButtonElement | null = null;
   leakButton: HTMLButtonElement | null = null;
   private summary: HTMLElement | null = null;
-  private summaryParts = { state: '', threats: '' };
+  private summaryParts = { state: '', threats: '', unrest: '' };
   onLea?: () => void;
   onBadge?: () => void;
   onLeak?: () => void;
@@ -221,10 +228,6 @@ export class WorldMap {
     this.overlay = document.createElement('div');
     this.overlay.className = 'm-over';
     container.appendChild(this.overlay);
-    this.ticker = document.createElement('div');
-    this.ticker.className = 'mticker';
-    this.ticker.setAttribute('aria-hidden', 'true');
-    if (!opts.decorative) container.after(this.ticker);
     this.banners = { us: this.mk('div', 'banners b-us'), eu: this.mk('div', 'banners b-eu'), cn: this.mk('div', 'banners b-cn') };
     for (const r of ['us', 'eu', 'cn'] as RegionId[]) {
       this.banners[r].setAttribute('aria-hidden', 'true');
@@ -386,12 +389,6 @@ export class WorldMap {
 
   /** A headline banner or a public voice where it happens (decorative: the live region reads it). */
   showItem(id: string, region: RegionId, text: string, kind: 'headline' | 'voice' | 'breaking') {
-    const tk = document.createElement('p');
-    tk.className = `tk k-${kind} r-${region}`;
-    tk.dataset.item = id;
-    tk.innerHTML = `<span class="bn-k">${kind === 'voice' ? 'Heard' : kind === 'breaking' ? 'Breaking' : 'Headline'}</span>${esc(text)}`;
-    this.ticker.prepend(tk);
-    while (this.ticker.childElementCount > 2) this.ticker.lastElementChild!.remove();
     if (kind === 'voice') {
       const spots = VOICE_SPOTS[region];
       const h = [...id].reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -422,17 +419,34 @@ export class WorldMap {
 
   clearItems() {
     this.overlay.querySelectorAll('.banner, .voice').forEach((e) => e.remove());
-    this.ticker.replaceChildren();
   }
 
   /** An event bursts where it happens (a short ring; without motion, a steady highlight that fades). */
-  burst(region: RegionId) {
+  burst(region: RegionId, calm = false) {
     const a = geo(ANCHOR[region].lon, ANCHOR[region].lat);
-    const g = el('g', { class: `burst burst-${region}`, transform: `translate(${a.x} ${a.y})` }, this.layers.fx);
+    const g = el('g', { class: `burst burst-${region}${calm ? ' calm' : ''}`, transform: `translate(${a.x} ${a.y})` }, this.layers.fx);
     el('circle', { r: 6, class: 'burst-ring' }, g);
     el('circle', { r: 2.2, class: 'burst-core' }, g);
     setTimeout(() => g.remove(), 1600);
   }
+
+  /** Protests over European cities when Social cohesion falls: a few dots at 1, more at 2 (they pulse gently, not with reduced motion). */
+  setUnrest(level: 0 | 1 | 2) {
+    if (this.unrest === level) return;
+    this.unrest = level;
+    this.layers.fx.querySelectorAll('.protest').forEach((e) => e.remove());
+    PROTESTS.slice(0, level === 0 ? 0 : level === 1 ? 3 : PROTESTS.length).forEach((c, i) => {
+      const p = geo(c.lon, c.lat);
+      const g = el('g', { class: 'protest', transform: `translate(${p.x} ${p.y})`, style: `--d:${(i * 0.37).toFixed(2)}s` }, this.layers.fx);
+      el('circle', { r: 1.9, class: 'protest-ring' }, g);
+      el('circle', { r: 0.6, class: 'protest-core' }, g);
+    });
+    if (this.summary) {
+      this.summaryParts.unrest = level ? ` Protests in ${level === 1 ? 'a few' : 'many'} European cities.` : '';
+      this.writeSummary();
+    }
+  }
+  private unrest: 0 | 1 | 2 = 0;
 
   update(v: MapView) {
     // labs pulse faster as AI power rises
@@ -457,7 +471,7 @@ export class WorldMap {
 
   private writeSummary() {
     if (!this.summary) return;
-    const text = `${this.summaryParts.state}${this.summaryParts.threats}`;
+    const text = `${this.summaryParts.state}${this.summaryParts.threats}${this.summaryParts.unrest}`;
     if (this.summary.textContent !== text) this.summary.textContent = text;
   }
 

@@ -12,7 +12,7 @@ import { advance, axe, focused, loadPlaywright, newPage, screenOf, settle, start
 
 const PORT = Number(process.env.A11Y_PORT ?? 5176);
 const SHOTS = process.env.A11Y_SHOTS;
-const MODAL = '.overlay:not(.leaving) .modal';
+const MODAL = '.overlay:not(.leaving):not([inert]) .modal';
 
 const RUNS = [
   { name: 'keyboard', seed: 9, viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference', intro: true, tutorial: true },
@@ -146,9 +146,15 @@ async function playRun(browser, base, run) {
       }
       if (done.has('main') && once('badge')) {
         await explore(async () => {
-          await openAndReturn('badge', '.badge-btn');
           await openAndReturn('gauge-help', '.g-info[data-info="confidence"]');
-          // help and journal by their shortcuts
+          // on small screens the band is collapsed: expand it with its button first
+          if (await page.evaluate(() => { const t = document.querySelector('.ol-toggle'); return !!t && t.checkVisibility() && t.getAttribute('aria-expanded') === 'false'; })) {
+            if (await tabTo(page, '.ol-toggle')) await press('Enter');
+            else fail('could not Tab to the band’s More button');
+          }
+          await openAndReturn('worlds', '[data-worlds]');
+          await openAndReturn('badge', '.badge-btn');
+          // the help by its shortcut, the news feed by N
           await press('Shift+Slash');
           await advance(page, 150);
           if ((await screenOf(page)) !== 'help') fail('? did not open the help');
@@ -158,13 +164,19 @@ async function playRun(browser, base, run) {
             await press('Escape');
             await advance(page, 300);
           }
-          await press('j');
+          await press('n');
           await advance(page, 150);
-          if ((await screenOf(page)) !== 'journal') fail('J did not open the journal');
+          if (!(await focusIs('.feed [role="tab"]'))) fail(`N did not move focus to the news feed (${await focused(page)})`);
           else {
-            await audit('journal');
-            await press('Escape');
-            await advance(page, 300);
+            await press('ArrowRight');
+            if (!(await focusIs('#feed-tab-past[aria-selected="true"]'))) fail('the feed tabs do not follow the arrow keys');
+            await press('ArrowLeft');
+            await audit('feed');
+            if (await tabTo(page, '.fd-item', { max: 6 })) {
+              await press('Enter');
+              await advance(page, 150);
+              if (!(await focusIs('.fd-item[aria-pressed="true"]')) && !(await page.evaluate(() => !!document.querySelector('.fd-item.on')))) fail('a feed item did not show as selected');
+            } else fail('could not Tab into the feed items');
           }
         });
         continue;
@@ -178,13 +190,9 @@ async function playRun(browser, base, run) {
       if (!(await focusIs('.dock [data-go].btn-primary'))) fail(`dock: the primary button did not take focus (${await focused(page)})`);
       if (once('dock-wait')) {
         await advance(page, 200);
-        if (!/Enter: Make my decisions|See what changed/.test(await said())) fail('the stopped clock was not announced');
+        if (!/Make my (last )?decisions/.test(await said())) fail('the stopped clock was not announced');
         await advance(page, 4000);
         if ((await screenOf(page)) !== 'dock') fail('something opened by itself after the clock stopped');
-        if (!(await tabTo(page, '.dock [data-go="report"]', { back: true }))) fail('could not reach See what changed');
-        await press('Enter');
-        await advance(page, 300);
-        continue;
       }
       await press('Enter');
       await advance(page, 300);
@@ -215,22 +223,25 @@ async function playRun(browser, base, run) {
       const choice = await page.evaluate((m) => !!document.querySelector(`${m} .choice`), MODAL);
       if (!(await tabTo(page, choice ? '.choice' : '[data-primary]'))) fail('breaking: could not reach its button');
       await press('Enter');
-    } else if (screen === 'report') {
-      await audit('report');
-      if (once('trap-report')) await checkTrap('report');
-      if (once('report-escape')) {
-        await press('Escape');
-        await advance(page, 300);
-        if ((await screenOf(page)) !== 'dock') fail('report: Escape did not return to the map');
-        continue;
-      }
-      await tabTo(page, '[data-primary]');
-      await press('Enter');
     } else if (screen === 'decision') {
       await audit('decision');
       if (!(await focusIs('.pcard'))) fail(`decision: focus is not on a card (${await focused(page)})`);
       if (once('trap-decision')) await checkTrap('decision');
       const target = await page.evaluate(() => document.querySelector('.pc-wrap:not(.locked) .pcard')?.dataset.card ?? null);
+      if (target && once('card-details')) {
+        // a card's details: a dialog over the decision screen; Escape returns to its Details button
+        if (!(await tabTo(page, `[data-details="${target}"]`))) fail('decision: could not Tab to Details');
+        await press('Enter');
+        await advance(page, 200);
+        if ((await screenOf(page)) !== 'card-details') fail('decision: Details did not open its dialog');
+        else {
+          await audit('card-details');
+          await checkTrap('card-details');
+          await press('Escape');
+          await advance(page, 300);
+          if (!(await focusIs(`[data-details="${target}"]`))) fail(`card details: focus did not return to Details (${await focused(page)})`);
+        }
+      }
       if (target) {
         if (!(await tabTo(page, `.pcard[data-card="${target}"]`)) && !(await tabTo(page, `.pcard[data-card="${target}"]`, { back: true }))) fail('decision: could not Tab to a card');
         await press('Enter');
@@ -246,7 +257,7 @@ async function playRun(browser, base, run) {
         log.push('  no card');
         await press('Enter');
       }
-    } else if (['letters', 'help', 'journal', 'info'].includes(screen)) {
+    } else if (['letters', 'help', 'info', 'worlds', 'card-details'].includes(screen)) {
       await press('Escape');
     } else {
       fail(`unexpected screen ${screen}`);

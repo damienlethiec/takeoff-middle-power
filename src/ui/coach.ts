@@ -1,6 +1,6 @@
 // The tutorial: short coach marks, one at a time, each the first time its part of the screen matters.
 // Each is a small dialog placed next to what it explains (focus moves in, Escape or Enter closes it).
-// It can be switched off (here or in Help); every tip triggered stays readable in the journal.
+// It can be switched off (here or in Help); every tip triggered stays readable in Help.
 
 import { TIPS, type TipId } from '../data/copy';
 import { esc } from './format';
@@ -37,7 +37,7 @@ export class Coach {
     this.log.length = 0;
   }
 
-  /** Show a tip once (if the tutorial is on); records it for the journal either way. */
+  /** Show a tip once (if the tutorial is on); records it for Help either way. */
   async show(id: TipId, round: number, root: ParentNode): Promise<void> {
     if (this.seen.has(id)) return;
     this.seen.add(id);

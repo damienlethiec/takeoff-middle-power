@@ -159,6 +159,8 @@ export interface Change {
   text: string;
   cause: string;
   tone: -1 | 0 | 1;
+  /** Set when the player caused it (a card, or an answer to a request): kept out of "What changed". */
+  by?: 'card' | 'request';
 }
 
 export interface Pick {
@@ -171,10 +173,20 @@ export interface RoundRecord {
   headlines: MapItem[];
   voices: MapItem[];
   leak: Leak | null;
-  event: { id: EventId; title: string; prepared: boolean | null; choice: string | null } | null;
+  event: { id: EventId; title: string; prepared: boolean | null; choice: string | null; at: number; region: RegionId } | null;
   changes: Change[];
   decisions: Pick[];
   letter: string | null;
+  /** Public values at the end of the round (after decisions), for the gauges' sparklines. */
+  values: PublicValues;
+}
+
+export interface PublicValues {
+  aiPower: number;
+  cooperation: number;
+  estimate: number;
+  margin: number;
+  cohesion: number;
 }
 
 export interface LetterRecord {
@@ -449,4 +461,29 @@ export interface JournalRound {
   changes: string[];
   decisions: string[];
   letter: string | null;
+}
+
+/** One item of the live feed beside the map. `at` (0–1) is when it appears while the six months play out;
+ *  items the player causes (decisions, answers) come after the clock (at > 1). */
+export interface FeedItem {
+  id: string;
+  round: number;
+  at: number;
+  kind: 'headline' | 'milestone' | 'threat' | 'voice' | 'leak' | 'event' | 'lea' | 'decision' | 'request';
+  /** "Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Léa", "Your decision" */
+  label: string;
+  text: string;
+  /** What it changed, in words ("US–China cooperation 51 → 55"). */
+  detail: string | null;
+  region: RegionId | null;
+  threat: ThreatId | null;
+  tone: -1 | 0 | 1;
+}
+
+export interface FeedRound {
+  round: number;
+  date: string;
+  items: FeedItem[];
+  /** "What changed": the three biggest changes of the six months with their cause (not the player's own). */
+  summary: Change[];
 }

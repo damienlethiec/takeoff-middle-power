@@ -518,7 +518,7 @@ describe('endings', () => {
   });
 
   it('the reveal gives the band the player saw and names what widened it', () => {
-    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less certain (±15 → ±30)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
+    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less certain (±15 → ±30)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
     const v = ending(ended({ ...tip, history, cooperation: 45, cohesion: 60, confidence: { truth: 48, estimate: 71, margin: 30 } }));
     expect(v.reveal).toMatchObject({ low: 41, high: 100, truth: 48, audited: false });
     expect(v.reveal.widened[0]).toBe('Opaque reasoning doubled your uncertainty (±15 → ±30).');

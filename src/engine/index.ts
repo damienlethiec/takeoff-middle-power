@@ -33,6 +33,10 @@ import type {
   MapItem,
   MilestoneId,
   PendingEvent,
+  PublicValues,
+  RegionId,
+  FeedItem,
+  FeedRound,
   Pick,
   PreviewView,
   ReportView,
@@ -163,11 +167,11 @@ function impacts(a: Snapshot, b: Snapshot): Impact[] {
 const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 
 /** Record the visible moves between two snapshots as changes with a cause (for the report). */
-function recordChanges(s: GameState, a: Snapshot, b: Snapshot, cause: string) {
+function recordChanges(s: GameState, a: Snapshot, b: Snapshot, cause: string, by?: Change['by']) {
   for (const i of impacts(a, b)) {
     if (i.key === 'influence') continue;
     const text = i.key === 'margin' ? marginText(i.before, i.after) : `${i.label} ${i.before} → ${i.after}`;
-    s.changes.push({ round: s.round, key: i.key, text, cause, tone: i.tone });
+    s.changes.push({ round: s.round, key: i.key, text, cause, tone: i.tone, ...(by ? { by } : {}) });
   }
 }
 
@@ -595,7 +599,7 @@ export function resolveEvent(state: GameState, choice?: string): GameState {
     if (ev.id === 'theft' && s.coalition >= 1) openOpportunity(s, 'attribution');
   }
   s.event = null;
-  s.roundEvent = { id: ev.id, title: ev.title, prepared: ev.prepared, choice: choice ?? null };
+  s.roundEvent = { id: ev.id, title: ev.title, prepared: ev.prepared, choice: choice ?? null, at: ev.at, region: ev.region };
   return s;
 }
 
@@ -741,7 +745,7 @@ export function playCard(state: GameState, p: Pick): GameState {
       delete s.opportunities[p.id];
       break;
   }
-  recordChanges(s, a, snap(s), name);
+  recordChanges(s, a, snap(s), name, 'card');
   // spent cards leave the hand
   if ((s.uses[p.id] ?? 0) >= cardUses(p.id)) s.hand = s.hand.filter((c) => c !== p.id);
   return s;
@@ -846,9 +850,18 @@ function record(s: GameState): RoundRecord {
     event: s.roundEvent,
     changes: s.changes,
     decisions: s.played,
-    letter: s.letters.find((l) => l.round === s.round)?.id ?? null,
+    letter: s.letters.find((l) => l.round === s.round && l.slot !== 'end')?.id ?? null,
+    values: publicValues(s),
   };
 }
+
+const publicValues = (s: GameState): PublicValues => ({
+  aiPower: s.aiPower,
+  cooperation: s.cooperation,
+  estimate: s.confidence.estimate,
+  margin: s.confidence.margin,
+  cohesion: s.cohesion,
+});
 
 export function endRound(state: GameState): { state: GameState; outcome: 'next' | 'ended' } {
   if (state.event) throw new Error('resolve the event first');
@@ -1026,17 +1039,27 @@ export function threats(s: GameState): ThreatView[] {
   });
 }
 
+/** The biggest changes of a round with their cause: not threat stages, not the player's own moves. */
+function topChanges(list: Change[], score: (c: Change) => number): Change[] {
+  return list
+    .filter((c) => c.key !== 'threat' && !c.by)
+    .slice()
+    .sort((a, b) => score(b) - score(a))
+    .slice(0, 3);
+}
+
+const changeScore = (c: Change) => {
+  const m = /(-?\d+) → (-?\d+)/.exec(c.text.replace(/±/g, ''));
+  return m ? Math.abs(Number(m[2]) - Number(m[1])) : 0;
+};
+
 export function report(s: GameState): ReportView {
   // the three biggest changes with a cause; threat stage moves are listed with the threats
   const score = (c: Change) => {
     const m = /(-?\d+) → (-?\d+)/.exec(c.text.replace(/±/g, ''));
     return m ? Math.abs(Number(m[2]) - Number(m[1])) : 0;
   };
-  const changes = s.changes
-    .filter((c) => c.key !== 'threat')
-    .slice()
-    .sort((a, b) => score(b) - score(a))
-    .slice(0, 3);
+  const changes = topChanges(s.changes, score);
   const moved = threats(s)
     .filter((t) => !t.struck)
     .flatMap((t) => {
@@ -1306,6 +1329,84 @@ export function journal(s: GameState): JournalRound[] {
   }));
 }
 
+const REGION_NAME: Record<RegionId, string> = { eu: 'Europe', us: 'the US', cn: 'China' };
+
+/** The feed items of one round, in the order they appeared. */
+function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): FeedItem[] {
+  const out: FeedItem[] = [];
+  const base = { round: r.round, detail: null, threat: null, tone: 0 as const };
+  if (r.letter) out.push({ ...base, id: `lea_${r.round}`, at: 0.03, kind: 'lea', label: 'Léa', text: 'Léa wrote to you from Lyon. Her portrait is on the map.', region: 'eu' });
+  for (const h of r.headlines) {
+    const t = /^t_(\w+)_(\d)$/.exec(h.id);
+    const threat = t ? (t[1] as ThreatId) : null;
+    out.push({ ...base, id: h.id, at: h.at, kind: threat ? 'threat' : h.id.startsWith('m_') ? 'milestone' : 'headline', label: threat ? 'Threat' : h.id.startsWith('m_') ? 'AI 2027 milestone' : 'Headline', text: h.text, region: h.region, threat, tone: threat ? -1 : 0 });
+  }
+  for (const v of r.voices) out.push({ ...base, id: v.id, at: v.at, kind: 'voice', label: `Heard in ${REGION_NAME[v.region]}`, text: v.text, region: v.region });
+  if (r.leak)
+    out.push({
+      ...base,
+      id: `leak_${r.leak.id}`,
+      at: r.leak.at,
+      kind: 'leak',
+      label: 'Leak',
+      text: r.leak.readable || s.phase === 'ended' ? r.leak.text : 'A leak from inside the labs, redacted: you lack the oversight to read it.',
+      region: 'us',
+    });
+  const ev = r.event ?? (pending ? { id: pending.id, title: pending.title, prepared: pending.prepared, choice: null, at: pending.at, region: pending.region } : null);
+  if (ev) {
+    const detail = r.changes.filter((c) => c.cause === ev.title && !c.by).map((c) => c.text);
+    out.push({
+      ...base,
+      id: `ev_${ev.id}`,
+      at: ev.at,
+      kind: 'event',
+      label: 'Breaking news',
+      text: `${ev.title}${ev.prepared === null ? '' : ev.prepared ? ': Europe was prepared.' : ': Europe was not prepared.'}`,
+      detail: detail.length ? detail.join(', ') : null,
+      region: ev.region,
+      threat: ev.id in s.threats ? (ev.id as ThreatId) : null,
+      tone: ev.prepared ? 1 : -1,
+    });
+  }
+  out.sort((a, b) => a.at - b.at);
+  // the player's decisions, after the six months, with what they changed
+  const earlier = s.history.filter((x) => x.round < r.round).flatMap((x) => x.decisions);
+  r.decisions.forEach((p, i) => {
+    const def = CARD_BY_ID[p.id];
+    const nth = earlier.filter((x) => x.id === p.id).length;
+    const name = def.levels ? def.levels[Math.min(nth, def.levels.length - 1)] : def.name;
+    const opt = p.option && def.options ? ` (${def.options.find((o) => o.id === p.option)!.label.toLowerCase()})` : '';
+    const detail = r.changes.filter((c) => c.by === 'card' && c.cause === name).map((c) => c.text);
+    out.push({ ...base, id: `d_${p.id}`, at: 1.1 + i * 0.01, kind: 'decision', label: 'Your decision', text: `${name}${opt}`, detail: detail.length ? detail.join(', ') : null, region: 'eu', tone: 0 });
+  });
+  // ids are unique across the whole game
+  return out.map((x) => ({ ...x, id: `r${r.round}_${x.id}` }));
+}
+
+export function feed(s: GameState): FeedRound[] {
+  const rounds = [...s.history];
+  const current = s.round > 0 && !rounds.some((r) => r.round === s.round);
+  if (current) rounds.push(record(s));
+  return rounds.map((r) => ({
+    round: r.round,
+    date: dateLabel(r.round),
+    items: roundFeed(s, r, current && r.round === s.round ? s.event : null),
+    summary: topChanges(r.changes, changeScore),
+  }));
+}
+
+export function trends(s: GameState): Record<GaugeKey, number[]> {
+  const st = T.start;
+  const pts: PublicValues[] = [{ aiPower: st.aiPower, cooperation: st.cooperation, estimate: st.estimate, margin: st.margin, cohesion: st.cohesion }, ...s.history.map((r) => r.values)];
+  if (s.round > 0 && !s.history.some((r) => r.round === s.round)) pts.push(publicValues(s));
+  return {
+    aiPower: pts.map((p) => p.aiPower),
+    cooperation: pts.map((p) => p.cooperation),
+    confidence: pts.map((p) => p.estimate),
+    cohesion: pts.map((p) => p.cohesion),
+  };
+}
+
 export const engine: EngineApi = {
   createInitialState,
   startRound,
@@ -1323,5 +1424,7 @@ export const engine: EngineApi = {
   letters,
   ending,
   journal,
+  feed,
+  trends,
   dateLabel,
 };

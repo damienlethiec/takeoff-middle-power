@@ -4,7 +4,7 @@
 // It talks to the engine only through EngineApi.
 
 import type { EngineApi } from '../engine/api';
-import type { GameState, GaugeKey, LeaMood, MapItem, Pick, ThreatView } from '../engine/types';
+import type { FeedItem, GameState, GaugeKey, LeaMood, MapItem, Pick, ThreatView } from '../engine/types';
 import { CARD_BY_ID } from '../data/cards';
 import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, marginText } from '../data/copy';
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
@@ -18,11 +18,10 @@ import { renderEnding } from './screens/ending';
 import { showHelp } from './screens/help';
 import { showBadge, showGaugeHelp, showLeak, showThreat } from './screens/info';
 import { showIntro } from './screens/intro';
-import { showJournal } from './screens/journal';
 import { showLetters } from './screens/letters';
-import { showReport } from './screens/report';
 import { showWorlds } from './screens/worlds';
 import { outlookHtml } from './outlook';
+import { Feed } from './feed';
 
 const ROUND_MS = 8000;
 const KEYS: GaugeKey[] = ['aiPower', 'cooperation', 'confidence', 'cohesion'];
@@ -32,6 +31,9 @@ type Live = { item: MapItem; kind: 'headline' | 'voice'; state: 'wait' | 'live' 
 export class App {
   private s!: GameState;
   private map!: WorldMap;
+  private feed!: Feed;
+  /** The six months are over: the feed shows "What changed" on top. */
+  private feedDone = false;
   private coach: Coach;
   private gameId = 0;
   // clock
@@ -129,6 +131,8 @@ export class App {
       ...s.voices.map((item) => ({ item, kind: 'voice' as const, state: 'wait' as const, until: Math.min(1.05, item.at + 0.32) })),
     ];
     this.leakShown = false;
+    this.feedDone = false;
+    this.feed.clearMark();
     this.map.setLeak(null);
     this.map.clearItems();
     this.map.setThreats(this.prevThreats);
@@ -156,6 +160,7 @@ export class App {
     this.items.forEach((x) => x.state !== 'gone' && this.map.hideItem(x.item.id));
     this.prevThreats = this.e.threats(this.s);
     this.map.setThreats(this.prevThreats);
+    this.feedDone = true;
     this.renderAll();
     if (this.s.round === 1) await this.coach.show('heading', 1, this.root);
     if (this.s.round === 2) await this.coach.show('margin', 2, this.root);
@@ -166,33 +171,15 @@ export class App {
       ? 'AI has reached the tipping point. This is your last round of decisions.'
       : this.s.round === 12
         ? 'The last six months. This is your last round of decisions.'
-        : 'Six months have passed. The clock is stopped: take your time.';
-    let ask: 'report' | 'decide' = await this.dock(lastWords, [
-      { id: 'report', label: 'See what changed' },
-      { id: 'decide', label: this.s.tipping || this.s.round === 12 ? 'Make my last decisions' : 'Make my decisions', primary: true },
-    ]);
+        : 'Six months have passed: what changed is at the top of the news. The clock is stopped: take your time.';
+    const decideLabel = this.s.tipping || this.s.round === 12 ? 'Make my last decisions' : 'Make my decisions';
     while (!picks) {
-      if (ask === 'report') {
-        const r = await showReport(this.e.report(this.s), date);
-        if (r === 'map') {
-          ask = await this.dock(lastWords, [
-            { id: 'report', label: 'See what changed' },
-            { id: 'decide', label: 'Make my decisions', primary: true },
-          ]);
-          continue;
-        }
-      }
+      await this.dock(lastWords, [{ id: 'decide', label: decideLabel, primary: true }]);
       this.setPhase('Your decisions');
       await this.coach.show('firstCard', this.s.round, this.root);
       if (this.s.round >= 2) await this.coach.show('twoCards', this.s.round, this.root);
       const d = await showDecision(this.e, this.s, date);
-      if (d.kind === 'map') {
-        ask = await this.dock(lastWords, [
-          { id: 'report', label: 'See what changed' },
-          { id: 'decide', label: 'Make my decisions', primary: true },
-        ]);
-        continue;
-      }
+      if (d.kind === 'map') continue;
       picks = d.picks;
     }
     await this.consequences(picks);
@@ -292,6 +279,7 @@ export class App {
       return;
     }
     this.renderClock();
+    this.renderFeed();
     if (this.t >= 1 && !this.eventBusy) {
       const done = this.clockDone;
       this.clockDone = null;
@@ -407,19 +395,52 @@ export class App {
     } else if (k === '?') {
       ev.preventDefault();
       this.openHelp();
-    } else if (k === 'j' || k === 'J') {
+    } else if (k === 'n' || k === 'N') {
       ev.preventDefault();
-      this.openJournal();
+      this.feed.focusTab();
     }
   };
 
   private openHelp() {
     this.openFromMap(() =>
-      showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on), shortcuts: shortcutsOn(), onShortcuts: (on) => setSingleKeyShortcuts(on) }),
+      showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on), shortcuts: shortcutsOn(), onShortcuts: (on) => setSingleKeyShortcuts(on), tips: this.coach.log }),
     );
   }
-  private openJournal() {
-    this.openFromMap(() => showJournal(this.e.journal(this.s), this.coach.log));
+  /** A feed item shown on the map: its threat icon, Léa or the leak lights up, or its banner comes back where it happened. */
+  private showOnMap(it: FeedItem) {
+    const glow = (b: HTMLElement | null) => {
+      if (!b) return false;
+      b.classList.remove('hl');
+      void b.offsetWidth;
+      b.classList.add('hl');
+      setTimeout(() => b.classList.remove('hl'), 2600);
+      return true;
+    };
+    if (it.threat && glow(this.map.threatButton(it.threat))) return;
+    if (it.kind === 'lea' && glow(this.map.leaButton)) return;
+    if (it.kind === 'leak' && this.map.leakButton && !this.map.leakButton.hidden && glow(this.map.leakButton)) return;
+    if (!it.region) return;
+    this.map.burst(it.region, true);
+    const id = `re_${it.id}`;
+    this.map.hideItem(id);
+    this.map.showItem(id, it.region, it.text, it.kind === 'voice' ? 'voice' : it.kind === 'event' ? 'breaking' : 'headline');
+    setTimeout(() => this.map.hideItem(id), 4000);
+  }
+
+  private markFeed(pred: (x: FeedItem) => boolean) {
+    const it = this.feed.latest(pred);
+    if (it) this.feed.mark(it.id);
+  }
+
+  private feedOf: GameState | null = null;
+  private feedCache: ReturnType<EngineApi['feed']> = [];
+  private renderFeed() {
+    if (!this.feed) return;
+    if (this.feedOf !== this.s) {
+      this.feedOf = this.s;
+      this.feedCache = this.e.feed(this.s);
+    }
+    this.feed.render(this.feedCache, this.clockActive ? this.t : 2, this.feedDone);
   }
   private openLea() {
     this.openFromMap(async () => {
@@ -428,8 +449,7 @@ export class App {
         (r) => this.e.dateLabel(r),
       );
       this.unreadLetter = false;
-      const last = this.e.letters(this.s).at(-1);
-      this.map.setLea((last?.mood ?? 'hopeful') as LeaMood, false);
+      this.map.setLea(this.leaMood(), false);
     });
   }
 
@@ -468,7 +488,7 @@ export class App {
       <section class="gauge g-${k}" data-key="${k}" data-coach="${coach}" aria-labelledby="gn-${k}">
         <div class="g-top"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-val num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
           <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(GAUGE_LABEL[k])}" aria-describedby="gd-${k}">?</button></div>
-        <p class="g-sub" aria-hidden="true">${esc(GAUGE_SUB[k])}</p>
+        <div class="g-subrow" aria-hidden="true"><p class="g-sub">${esc(GAUGE_SUB[k])}</p><svg class="spark" viewBox="0 0 48 16" preserveAspectRatio="none"><title>History since 2027</title><polyline points=""/></svg></div>
         <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? '<i class="g-tipzone"></i>' : ''}<i class="g-band"></i><i class="g-fill"></i><i class="g-target"></i><span class="g-target-l"></span></div>
         ${k === 'cooperation' ? '<div class="g-zones" aria-hidden="true"><span>Rupture</span><span>Race</span><span>Pause</span></div>' : ''}
         ${k === 'aiPower' ? `<p class="g-tipline" aria-hidden="true"><span class="long">${esc(TIPPING_LINE(tip))}</span><span class="short">${tip} = the tipping point</span></p><p class="g-eta" aria-hidden="true"></p>` : ''}
@@ -492,7 +512,6 @@ export class App {
           <span class="inf-why" id="inf-why"></span>
         </div>
         <div class="top-btns">
-          <button type="button" class="btn-quiet small" id="journal-btn" aria-keyshortcuts="J">${ICON.journal}<span class="jt">Journal</span></button>
           <button type="button" class="iconbtn help-btn" id="help-btn" aria-label="Help and keyboard shortcuts" aria-keyshortcuts="?">?</button>
         </div>
       </header>
@@ -512,17 +531,25 @@ export class App {
         <section class="theatre" aria-labelledby="map-h">
           <h2 class="sr-only" id="map-h" tabindex="-1">World map</h2>
           <div class="mapwrap" id="mapwrap" data-coach="map"></div>
+          <aside class="feed" id="feed" aria-labelledby="feed-h" data-coach="feed"></aside>
         </section>
       </main>
       <section class="dock" aria-label="Your move" hidden></section>
-      <p class="keys-hint" aria-hidden="true"><kbd>Space</kbd> pause · <kbd>Enter</kbd> continue · <kbd>J</kbd> journal · <kbd>?</kbd> help</p>
+      <p class="keys-hint" aria-hidden="true"><kbd>Space</kbd> pause · <kbd>Enter</kbd> continue · <kbd>N</kbd> news · <kbd>?</kbd> help</p>
     </div>`;
     this.map = new WorldMap($('#mapwrap', this.root));
     $('#mapwrap', this.root).setAttribute('aria-describedby', this.map.summaryId);
-    this.map.onLea = () => this.openLea();
+    this.map.onLea = () => {
+      this.markFeed((x) => x.kind === 'lea');
+      this.openLea();
+    };
     this.map.onBadge = () => this.openFromMap(() => showBadge(this.s.europeAi, this.s.europeAiLocked));
-    this.map.onLeak = () => this.s.leak && this.openFromMap(() => showLeak(this.s.leak!, this.e.dateLabel(this.s.round)));
+    this.map.onLeak = () => {
+      this.markFeed((x) => x.kind === 'leak');
+      if (this.s.leak) this.openFromMap(() => showLeak(this.s.leak!, this.e.dateLabel(this.s.round)));
+    };
     this.map.onThreat = (id) => {
+      this.markFeed((x) => x.threat === id);
       const t = this.prevThreats.find((x) => x.id === id) ?? this.e.threats(this.s).find((x) => x.id === id);
       if (t) this.openFromMap(() => showThreat(t, this.e.hand(this.s)));
     };
@@ -538,7 +565,7 @@ export class App {
       tog.setAttribute('aria-expanded', String(open));
       tog.firstChild!.textContent = open ? 'Less' : 'More';
     });
-    $('#journal-btn', this.root).addEventListener('click', () => this.openJournal());
+    this.feed = new Feed($('#feed', this.root), { onSelect: (it) => this.showOnMap(it) });
     this.root.querySelectorAll<HTMLButtonElement>('.speed button').forEach((b) => b.addEventListener('click', () => this.setSpeed(Number(b.dataset.speed) as 1 | 2)));
     this.root.querySelectorAll<HTMLButtonElement>('.g-info').forEach((b) =>
       b.addEventListener('click', () => {
@@ -553,13 +580,33 @@ export class App {
 
   private renderAll(flash = false) {
     this.renderTop();
+    this.renderFeed();
     this.renderClock();
     this.renderGauges(flash);
     this.renderHeading();
     this.map.update({ aiPower: this.shown.aiPower, cooperation: this.shown.cooperation, coalition: this.s.coalition, europeAi: this.s.europeAi });
-    if (!this.unreadLetter) {
-      const last = this.e.letters(this.s).filter((l) => l.slot !== 'end').at(-1);
-      this.map.setLea(last?.mood ?? 'hopeful', false);
+    if (!this.unreadLetter) this.map.setLea(this.leaMood(), false);
+    this.map.setUnrest(this.s.cohesion < 40 ? 2 : this.s.cohesion < 52 ? 1 : 0);
+    this.renderSparks();
+  }
+
+  /** Léa's face follows the world between letters: relieved after a crisis Europe was ready for, worried or sad as Europe frays. */
+  private leaMood(): LeaMood {
+    const s = this.s;
+    if (s.roundEvent?.prepared) return 'relieved';
+    if (s.cohesion < 45) return 'sad';
+    if (s.cohesion < 58 || s.roundEvent?.prepared === false) return 'worried';
+    return 'hopeful';
+  }
+
+  /** Each gauge's history since 2027, as a small line (public values only). */
+  private renderSparks() {
+    const tr = this.e.trends(this.s);
+    for (const k of KEYS) {
+      const pl = this.root.querySelector<SVGPolylineElement>(`.gauge[data-key="${k}"] .spark polyline`);
+      if (!pl) continue;
+      const pts = tr[k].map((v, i) => `${((i * 48) / 12).toFixed(1)},${(15 - (Math.max(0, Math.min(100, v)) * 14) / 100).toFixed(1)}`).join(' ');
+      if (pl.getAttribute('points') !== pts) pl.setAttribute('points', pts);
     }
   }
 

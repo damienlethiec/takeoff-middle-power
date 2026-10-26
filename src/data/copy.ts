@@ -105,7 +105,7 @@ export const HELP = {
     ['Enter', 'Continue, confirm or make your decisions'],
     ['Escape', 'Close a window'],
     ['?', 'Open this help'],
-    ['J', 'Open the journal'],
+    ['N', 'Jump to the news feed'],
   ] as [string, string][],
   rules: [
     'AI capabilities rise every round. At 80, AI improves itself: the tipping point (never before round 6), and the game ends. If it never gets there, the game ends after round 12.',

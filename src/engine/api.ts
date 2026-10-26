@@ -27,6 +27,8 @@ import type {
   AdvisorView,
   CardView,
   EndingView,
+  FeedRound,
+  GaugeKey,
   GameState,
   GaugeView,
   HeadingView,
@@ -56,6 +58,10 @@ export interface EngineApi {
   letters(state: GameState): LetterView[];
   ending(state: GameState): EndingView;
   journal(state: GameState): JournalRound[];
+  /** The live feed: every round so far, the current one last; the UI reveals the current round's items at their `at`. */
+  feed(state: GameState): FeedRound[];
+  /** Public values over time (start, then the end of each round, then now), for sparklines. */
+  trends(state: GameState): Record<GaugeKey, number[]>;
   /** "H1 2028" */
   dateLabel(round: number): string;
 }

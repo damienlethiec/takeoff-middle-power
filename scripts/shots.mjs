@@ -1,4 +1,4 @@
-// Screenshots of every v3 screen at 1280×800 and 390×844, for review and for docs/screenshots/v3.
+// Screenshots of every screen at 1280×800 and 390×844, for review and for docs/screenshots/v4.
 //   node scripts/shots.mjs [outDir]   (starts vite on port 5177; A11Y_URL reuses a running server)
 // Seeds: 9 (a fast game, tipping point) for the round screens.
 
@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { advance, loadPlaywright, newPage, startServer } from './a11y/lib.mjs';
 
-const OUT = process.argv[2] ?? 'docs/screenshots/v3';
+const OUT = process.argv[2] ?? 'docs/screenshots/v4';
 fs.mkdirSync(OUT, { recursive: true });
 const { chromium } = loadPlaywright();
 const server = await startServer(5177);
@@ -56,17 +56,21 @@ try {
         }
           await choice.click();
         } else await page.keyboard.press('Enter');
-      } else if (c.includes('report')) {
-        if (!taken.has('report')) {
-          taken.add('report');
-          await shot('report');
-        }
-        await page.keyboard.press('Enter');
+      } else if (c.includes('card-details')) {
+        await page.keyboard.press('Escape');
       } else if (c.includes('decision')) {
         decisions++;
         if (!taken.has('decision')) {
           taken.add('decision');
           await shot('decision');
+          const det = await page.$(`${modal} [data-details]`);
+          if (det) {
+            await det.click();
+            await advance(page, 300);
+            await shot('card-details');
+            await page.keyboard.press('Escape');
+            await advance(page, 300);
+          }
         }
         const cards = await page.$$(`${modal} .pc-wrap:not(.locked) .pcard`);
         if (cards.length) {
@@ -82,15 +86,25 @@ try {
         } else await page.click(`${modal} #dec-none`);
       } else if (c) {
         await page.keyboard.press('Escape');
-      } else if (await has('.dock:not([hidden]) [data-go="report"]')) {
+      } else if (await has('.dock:not([hidden]) [data-go="decide"]')) {
         if (!taken.has('dock')) {
           taken.add('dock');
           await shot('dock');
         }
-        if (!taken.has('report-open')) {
-          taken.add('report-open');
-          await page.click('.dock [data-go="report"]');
-        } else await page.click('.dock [data-go="decide"]');
+        if (!taken.has('worlds') && decisions >= 1) {
+          taken.add('worlds');
+          if (await has('.ol-toggle') && (await page.evaluate(() => document.querySelector('.ol-toggle').checkVisibility()))) {
+            await page.click('.ol-toggle');
+            await advance(page, 200);
+            await shot('band-expanded');
+          }
+          await page.click('[data-worlds]');
+          await advance(page, 300);
+          await shot('worlds');
+          await page.keyboard.press('Escape');
+          await advance(page, 300);
+        }
+        await page.click('.dock [data-go="decide"]');
       } else if (await has('.dock:not([hidden]) [data-go="next"]')) {
         if (!taken.has('consequences')) {
           taken.add('consequences');
@@ -103,7 +117,7 @@ try {
           taken.add(key);
           await shot(name);
         };
-        if (!taken.has('main') && (await has('.banner, .tk'))) await once('main', 'main');
+        if (!taken.has('main') && (await has('.banner, .fd-item'))) await once('main', 'main');
         if (!taken.has('threats') && (await page.$$('.threat-btn')).length >= 2) await once('threats', 'main-threats');
         if (!taken.has('leak') && (await has('.leak-btn:not([hidden])'))) {
           taken.add('leak');
@@ -126,12 +140,14 @@ try {
           await shot('threat-info');
           await page.keyboard.press('Escape');
         }
-        if (!taken.has('journal') && decisions >= 3) {
-          taken.add('journal');
-          await page.keyboard.press('j');
+        if (!taken.has('earlier') && decisions >= 3) {
+          taken.add('earlier');
+          if (await has('.feed-toggle') && (await page.evaluate(() => document.querySelector('.feed-toggle').checkVisibility()))) await page.click('.feed-toggle');
+          await page.click('#feed-tab-past');
           await advance(page, 200);
-          await shot('journal');
-          await page.keyboard.press('Escape');
+          await shot('feed-earlier');
+          await page.click('#feed-tab-now');
+          if (await has('.feed.expanded')) await page.click('.feed-toggle');
           await page.keyboard.press('?');
           await advance(page, 200);
           await shot('help');
