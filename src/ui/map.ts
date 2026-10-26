@@ -17,9 +17,10 @@ const VB = { x: 14, y: 0, w: 210, h: 68 };
 // The band that must always be visible, centred on the US – Europe – China axis: the US west coast to Japan,
 // the Arctic coast to the tropics (lon −127…146, lat 75…5).
 const CORE = { x0: 27.3, x1: 209.3, y0: 0.7, y1: 47.3 };
-/** When the map is taller than the core, it centres on the US–Europe–China band (lat ~38): extra room is shared
- *  between the Arctic sea above and the south, which fades out below the equator (the data has no Antarctica). */
-const FRAME_MID = 25;
+/** When the map is taller than the core, it centres a little above the US–Europe–China band (lat ~43), so the
+ *  world sits slightly low: more Arctic sea above the north, less ocean below, where the south fades out below
+ *  the equator (the data has no Antarctica). */
+const FRAME_MID = 21.5;
 const FADE = { from: 53.3, to: 66.7 }; // lat −4 → −24
 /** The data stops at lat 76: the top rows fade in (lat 77 → 68) so Greenland and Canada dissolve instead of being cut. */
 const NORTH = { from: -0.5, to: 5 };
@@ -537,7 +538,8 @@ export class WorldMap {
     this.placePop();
   }
 
-  /** The list opens under its cluster (or above it near the bottom), kept inside the map. */
+  /** The list opens under its cluster (or above it near the bottom), kept inside the map. It never covers its
+   *  cluster: when it fits neither way, it takes the larger side and scrolls. */
   private placePop() {
     const r = this.popRegion;
     if (!r || !this.pop) return;
@@ -548,9 +550,21 @@ export class WorldMap {
     this.pop.style.width = `${pw}px`;
     const cx = parseFloat(c.style.left) || 0;
     const cy = parseFloat(c.style.top) || 0;
+    this.pop.style.maxHeight = '';
     const ph = this.pop.offsetHeight;
     const below = cy + c.offsetHeight / 2 + 6;
-    const top = below + ph <= h - 4 ? below : Math.max(4, cy - c.offsetHeight / 2 - 6 - ph);
+    const roomBelow = h - 4 - below;
+    const roomAbove = cy - c.offsetHeight / 2 - 6 - 4;
+    let top: number;
+    if (ph <= roomBelow) top = below;
+    else if (ph <= roomAbove) top = cy - c.offsetHeight / 2 - 6 - ph;
+    else if (roomBelow >= roomAbove) {
+      this.pop.style.maxHeight = `${Math.max(60, roomBelow)}px`;
+      top = below;
+    } else {
+      this.pop.style.maxHeight = `${Math.max(60, roomAbove)}px`;
+      top = Math.max(4, cy - c.offsetHeight / 2 - 6 - this.pop.offsetHeight);
+    }
     this.pop.style.left = `${Math.max(6, Math.min(w - pw - 6, cx - pw / 2)).toFixed(1)}px`;
     this.pop.style.top = `${top.toFixed(1)}px`;
   }
