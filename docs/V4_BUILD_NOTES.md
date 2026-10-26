@@ -150,6 +150,37 @@ Playtesters found the game full of jargon. Player text now aims at a curious 14-
 
 *To be filled by the balancing pass*: final `npm run sim` table for v4 against the targets in CLAUDE.md, and the requests and uncertainty checks. The tuning history is in DEVELOPER_NOTES, "Tuning changes for v4".
 
+## Languages (27 Oct, branch `i18n`)
+
+The game ships in English plus French, German, Spanish and Polish; translators' guide in `docs/I18N.md`.
+
+- **The engine stays English and untouched** (the seeded simulation is byte-identical): it compares and parses its
+  own strings, so translating inside it would have changed behaviour. The UI translates what it shows. Content keeps
+  its English in `src/data`, keyed by id and field (`src/i18n/content.ts`); the sentences the engine composes are
+  templates (`src/i18n/templates.ts`) that a matcher recognises and refills part by part (`src/i18n/match.ts`). A
+  name placeholder takes only a catalog entry, so a gauge's name never swallows a comma list. A test plays seeded
+  games and fails on any engine string the catalog cannot match.
+- The UI's own strings stay readable in the code: `t('ui.key', 'English', vars)`; the extractor reads them with the
+  TypeScript parser. `en.json` is generated, never loaded at run time; a locale file is loaded on demand (a small
+  chunk each), and a missing key falls back to English. A translation whose numbers differ from the English (the
+  tuning changed since) is not shown.
+- Effect chips that templates already build ("Social cohesion: down a little") are left out of the catalog, so
+  translators translate them once, as their parts.
+- Choosing: a header button (EN…), a row on the first intro screen, `?lang=` in the address (not kept), the choice
+  kept in `takeoff.lang` (removed by Forget my save). On a first visit the intro offers the browser's language in
+  that language; English stays until the player accepts. Switching re-draws the screen in place: the decision panel
+  and the bar at the bottom move over to the new shell with the selection kept.
+- Sources and the basis references stay English: links carry `hreflang="en"`, their titles `lang="en"`, and
+  "(in English)" in other languages. CFG's scenario names under the endings stay English too.
+- Fonts: the Fontsource faces already include Latin Extended (ą ł ß ñ…), same-origin; a test checks it, and that
+  translations use no character outside the fonts.
+- Layout for ~30% longer text: gauge captions and status chips wrap instead of being cut, hyphenation in other
+  languages, the decisions' bar keeps its notes readable, long tips stay inside the window; on phones the language
+  button joins the sound toggle on the header's first row. The pseudo-locale (`?lang=xx`) was used to check every
+  screen (no string left outside the catalog in three seeded games).
+- The EU's AI Office takes the AI Act's term in each language (Art. 64); French and Spanish terms to confirm on
+  EUR-Lex.
+
 ## Known issues
 
 1. **Not playtested with the target audience** (as for v3). A game is now busier: requests and the feed add reading; the 10-minute target needs checking.

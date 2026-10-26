@@ -44,6 +44,17 @@ describe('the catalogs', () => {
   }
 });
 
+describe('the fonts carry Polish, German, Spanish and French letters', () => {
+  it('every Fontsource face imported in fonts.css includes its latin-ext subset; Newsreader has its own', () => {
+    const css = readFileSync(join(I18N_DIR, '../ui/fonts.css'), 'utf8');
+    const imports = [...css.matchAll(/@import '(@fontsource\/[^']+)'/g)].map((m) => m[1]);
+    expect(imports.length).toBeGreaterThan(3);
+    for (const i of imports) expect(readFileSync(join(I18N_DIR, '../../node_modules', `${i}.css`), 'utf8'), i).toContain('latin-ext');
+    expect(css).toContain('newsreader-latin-ext-opsz-normal');
+    expect(css).toContain('newsreader-latin-ext-opsz-italic');
+  });
+});
+
 describe('every string the engine shows is in the catalog', () => {
   it('over seeded games: gauges, heading, hand, previews, advisor, requests, Breaking news, feed, ending', () => {
     const missing = [...engineStrings(6)].filter((s) => !known(s));

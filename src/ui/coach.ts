@@ -112,13 +112,15 @@ export class Coach {
     const right = r.right + 14 + w < window.innerWidth;
     const left = r.left - 14 - w > 0;
     const top = Math.max(12, Math.min(window.innerHeight - 260, r.top));
-    if (right) box.style.left = `${r.right + 14}px`;
-    else if (left) box.style.left = `${r.left - 14 - w}px`;
-    else {
+    if (right || left) {
+      box.style.left = right ? `${r.right + 14}px` : `${r.left - 14 - w}px`;
+      box.style.top = `${top}px`;
+    } else {
       box.style.left = `${Math.max(12, Math.min(window.innerWidth - w - 12, r.left))}px`;
       box.style.top = `${Math.min(window.innerHeight - 240, r.bottom + 12)}px`;
-      return;
     }
-    box.style.top = `${top}px`;
+    // a longer tip (another language) never runs off the bottom of the window
+    const h = box.offsetHeight;
+    if (h && parseFloat(box.style.top) + h > window.innerHeight - 12) box.style.top = `${Math.max(12, window.innerHeight - h - 12)}px`;
   }
 }

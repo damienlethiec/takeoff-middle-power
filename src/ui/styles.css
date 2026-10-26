@@ -1108,7 +1108,11 @@ html:not([lang="en"]) body { hyphens: auto; }
 .g-line { flex-wrap: wrap; row-gap: 2px; overflow: visible; }
 .g-chip { overflow: visible; white-space: nowrap; }
 .m-cluster.calling::after { content: attr(data-calling); }
-.btn-primary, .btn-quiet, .choice, .ans { overflow-wrap: anywhere; }
+/* the decisions' bar on one row (wide windows): the notes keep a readable width, the buttons wrap before they squeeze it */
+@media (min-width: 1100px) and (min-height: 541px) {
+  .dk-bar { grid-template-columns: auto minmax(14em, 1fr) minmax(0, max-content); }
+  .dk-bar .dec-btns { flex-wrap: wrap; justify-content: flex-end; }
+}
 .in-en { font-size: .85em; color: var(--mute); white-space: nowrap; }
 /* the header's language button and its small list */
 .lang-menu { position: relative; }
