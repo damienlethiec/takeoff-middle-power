@@ -399,7 +399,6 @@ export class App {
     const pin = `rq_${v.id}`;
     this.map.showItem(pin, v.character.region, `${v.character.name} has a request`, 'headline');
     this.renderClock();
-    await this.coach.show('request', this.s.round, this.root);
     await showRequest(v, date, (side) => {
       const r = this.e.answerRequest(this.s, side);
       this.s = r.state;
@@ -410,7 +409,7 @@ export class App {
       this.map.setThreats(this.prevThreats);
       this.renderAll(true);
       return r.outcome;
-    });
+    }, () => this.coach.show('request', this.s.round, this.root)); // the tip waits until the card is on screen
     this.map.hideItem(pin);
     this.renderAll();
     this.follow = 'clock';

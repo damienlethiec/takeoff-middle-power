@@ -10,6 +10,16 @@ import { modalOpen, openModal } from './modal';
 
 const KEY = 'takeoff.v4.tutorial';
 
+/** Is this element actually on screen (attached, not hidden, with a size)? */
+function visible(el: HTMLElement | null): el is HTMLElement {
+  if (!el || !el.isConnected || el.closest('[hidden], .leaving')) return false;
+  const r = el.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return false;
+  const cs = getComputedStyle(el);
+  if (cs.visibility === 'hidden' || cs.display === 'none') return false;
+  return typeof el.checkVisibility === 'function' ? el.checkVisibility({ opacityProperty: false, visibilityProperty: true } as CheckVisibilityOptions) : true;
+}
+
 export class Coach {
   private seen = new Set<TipId>();
   readonly log: { round: number; title: string; text: string }[] = [];
@@ -39,20 +49,22 @@ export class Coach {
     this.log.length = 0;
   }
 
-  /** Show a tip once (if the tutorial is on); records it for Help either way. */
   /** Has this tip been shown (or logged) already in this game? */
   has(id: TipId): boolean {
     return this.seen.has(id);
   }
 
+  /** Show a tip once (if the tutorial is on), only when its anchor is on screen; records it for Help either way. */
   async show(id: TipId, round: number, root: ParentNode): Promise<void> {
     if (this.seen.has(id)) return;
-    this.seen.add(id);
     const tip = TIPS[id];
+    // the anchor may sit in the page or in an open dialog (the decision screen, a request card)
+    const anchor = root.querySelector<HTMLElement>(`[data-coach="${tip.anchor}"]`) ?? document.querySelector<HTMLElement>(`.overlay:not(.leaving) [data-coach="${tip.anchor}"]`);
+    // never point at something that is not on screen yet: the tip waits for a later call
+    if (this.enabled && !visible(anchor)) return;
+    this.seen.add(id);
     this.log.push({ round, title: tip.title, text: tip.text });
     if (!this.enabled) return;
-    // the anchor may sit in the page or in an open dialog (the decision screen)
-    const anchor = root.querySelector<HTMLElement>(`[data-coach="${tip.anchor}"]`) ?? document.querySelector<HTMLElement>(`.overlay:not(.leaving) [data-coach="${tip.anchor}"]`);
     anchor?.classList.add('coach-target');
     const m = openModal(
       `<div class="dateline">Tip</div>

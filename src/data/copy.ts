@@ -102,7 +102,7 @@ export const TIPS = {
   map: { anchor: 'map', title: 'The world map', text: 'Six months play out here: headlines pop up where they happen, people speak up, threats grow as icons. Space pauses the clock.' },
   feed: { anchor: 'feed', title: 'The news', text: 'Everything that happens appears here as it happens. Click an item to see it on the map. At the end of the six months, what changed sits on top.' },
   lea: { anchor: 'lea', title: 'A letter from Léa', text: 'Léa wrote to you from Lyon. Open her portrait on the map to read it: she tells you what the world’s choices do to people like her.' },
-  request: { anchor: 'map', title: 'A request', text: 'Someone needs an answer from you. Answering is free of Influence: the cost is in the answer. Click an answer, swipe the card, or press ← → (once to look, twice to answer).' },
+  request: { anchor: 'request', title: 'A request', text: 'Someone needs an answer from you. Answering is free of Influence: the cost is in the answer. Click an answer, swipe the card, or press ← → (once to look, twice to answer).' },
   influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round (the counter at the top shows how much next round, and why) and spend it on policies. Play as many cards as it covers, or save it.' },
   firstCard: { anchor: 'hand', title: 'Your cards', text: 'Every card helps something and costs something: green chips go up, red chips go down. Click cards to select them: the bar at the bottom shows their combined effect. Details tells you more.' },
   zones: { anchor: 'cooperation', title: 'US–China cooperation', text: 'Pause 60+, Race 30–59, Rupture below 30. The calmer the zone at the tipping point, the lower the bar for a good ending.' },

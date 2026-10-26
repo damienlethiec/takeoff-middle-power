@@ -30,7 +30,7 @@ const KIND = (v: RequestView) =>
 function requestHtml(v: RequestView, date: string): string {
   const kind = KIND(v);
   const basis = v.basis.kind === 'ai2027' ? 'AI 2027' : v.basis.kind === 'cfg' ? 'the CFG scenarios' : 'the real world today';
-  return `<div class="req-card asking c-${v.character.id}">
+  return `<div class="req-card asking c-${v.character.id}" data-coach="request">
     <div class="req-top"><span class="dateline">${esc(date)} · Request${v.count > 1 ? ` ${v.index} of ${v.count}` : ''}</span>${kind ? `<span class="req-kind k-${v.kind}">${esc(kind)}</span>` : ''}</div>
     <div class="req-who">${portrait(v.character.id, 'worried')}<div><h2 id="req-name" tabindex="-1" data-autofocus>${esc(v.character.name)}</h2><p class="req-role">${esc(v.character.role)}</p></div></div>
     <p class="req-text" id="req-text">“${esc(v.text)}”</p>
@@ -103,7 +103,8 @@ function enableSwipe(card: HTMLElement, onLook: (side: Side | null) => void, onA
 }
 
 /** Show a request; resolves once the player has answered and read the reaction. */
-export async function showRequest(v: RequestView, date: string, answer: (side: Side) => RequestOutcome): Promise<Side> {
+/** `onOpen` runs once the card is on screen (the tutorial's tip about requests, stacked over it and anchored to it). */
+export async function showRequest(v: RequestView, date: string, answer: (side: Side) => RequestOutcome, onOpen?: () => Promise<void>): Promise<Side> {
   const m = openModal(requestHtml(v, date), { cls: 'request', overlayCls: 'req-ov', describedBy: '#req-text', keep: true });
   const card = () => m.el.querySelector<HTMLElement>('.req-card')!;
   let chosen: Side | null = null;
@@ -148,6 +149,8 @@ export async function showRequest(v: RequestView, date: string, answer: (side: S
   });
   enableSwipe(card(), (s) => look(s, false), (s) => void choose(s));
   announce(`${v.character.name}, ${v.character.role}, has a request. The clock is stopped.`);
+  // after focus has moved into the card (openModal does it on the next frame)
+  if (onOpen) requestAnimationFrame(() => requestAnimationFrame(() => void onOpen()));
 
   void m.result.then(() => {
     m.close();
