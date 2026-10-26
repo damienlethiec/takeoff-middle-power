@@ -808,7 +808,7 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
   const notes: string[] = [];
   for (const p of picks) {
     const def = cardDef(p.id);
-    if (def.protects) notes.push(`Protects against ${THREAT_BY_ID[def.protects].name.toLowerCase()}${p.id === 'inspections' || p.id === 'coalition' ? ' (with a coalition and the inspection accord)' : ''}.`);
+    if (def.protects) notes.push(`Protects against ${THREAT_BY_ID[def.protects].name.replace(/^(\w)(?=[a-z])/, (x) => x.toLowerCase())}${p.id === 'inspections' || p.id === 'coalition' ? ' (with a coalition and the inspection accord)' : ''}.`);
     if (p.id === 'audit') notes.push(`Shows the true Confidence for ${T.cards.audit.rounds} rounds.`);
     if (p.id === 'alignment') notes.push('Most of the gain is real safety that the estimate does not show.');
     if (p.id === 'flexicurity') notes.push(`Softens job shocks. Influence ${signed(T.cards.flexicurity.influence)} for the next ${T.cards.flexicurity.rounds} rounds.`);
@@ -1149,7 +1149,7 @@ export function ending(s: GameState): EndingView {
   for (const t of THREATS) {
     const st = s.threats[t.id];
     if (st.struck && st.prepared === false && t.id !== 'blackmail' && cf.length < 3)
-      cf.push(`The ${t.name.toLowerCase()} caught Europe unprepared. ${t.protectedBy.map((x) => (x === 'inspections' ? 'the inspection accord' : CARD_BY_ID[x].name)).join(' and ')} would have changed that.`);
+      cf.push(`The ${t.name.replace(/^(\w)(?=[a-z])/, (x) => x.toLowerCase())} caught Europe unprepared. ${t.protectedBy.map((x) => (x === 'inspections' ? 'the inspection accord' : CARD_BY_ID[x].name)).join(' and ')} would have changed that.`);
   }
   if (!s.tipping && world !== 'plateau_open' && !s.europeAiLocked && T.worlds.plateau_open.decides === w.decides)
     cf.push('Funding open models would have made this a plateau with open models: same bar, but no silicon blackmail.');

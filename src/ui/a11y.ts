@@ -32,7 +32,7 @@ export function focusOwnsKey(key: string): boolean {
 }
 
 // ---------------------------------------------------------------- single-key shortcuts setting
-// WCAG 2.1.4: single-character shortcuts (P, C, D, 1, 2, ?) can be turned off. Space, Enter and Escape always work.
+// WCAG 2.1.4: single-character shortcuts (J, ?) can be turned off in Help. Space, Enter and Escape always work.
 
 const SHORTCUTS_KEY = 'takeoff.singleKeyShortcuts';
 export function singleKeyShortcuts(): boolean {
@@ -103,8 +103,3 @@ export function flush() {
   r.appendChild(p);
   while (r.childElementCount > 4) r.firstElementChild!.remove();
 }
-
-/** "+3" → "up 3", "−2" → "down 2". */
-export const moveWords = (n: number) => (n > 0 ? `up ${n}` : n < 0 ? `down ${Math.abs(n)}` : 'no change');
-/** Words for a tone class, so gains and losses never rely on colour. */
-export const TONE_WORDS: Record<string, string> = { good: 'good for you', bad: 'bad for you', flat: '' };

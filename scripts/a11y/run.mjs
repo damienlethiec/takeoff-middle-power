@@ -1,9 +1,9 @@
-// Accessibility check: plays whole games with the keyboard alone (no mouse) and runs axe on every screen.
+// Accessibility check (v3): plays whole games with the keyboard alone (no mouse) and runs axe on every screen.
 //   npm run a11y                      starts vite on port 5176 and stops it at the end
 //   A11Y_URL=http://localhost:5173/takeoff-middle-power/ npm run a11y   reuses a running server
 //   A11Y_SHOTS=/some/dir npm run a11y  also saves a screenshot of each screen
-// Runs: seed 9 (fast takeoff: tipping point) at 1280×800, and seed 3 (slow: the clock stops) with
-// prefers-reduced-motion at 640×400, which is the 1280×800 screen at 200% zoom.
+// Runs: seed 9 (fast pace, tipping point) at 1280×800 with the intro and the tutorial; seed 3 (slow pace,
+// twelve rounds) with prefers-reduced-motion at 640×400 (the 1280×800 screen at 200% zoom); seed 4 at 390×844.
 // Fails on any serious or critical axe violation, console error, focus escaping a dialog, or a missed check.
 
 import fs from 'node:fs';
@@ -12,13 +12,12 @@ import { advance, axe, focused, loadPlaywright, newPage, screenOf, settle, start
 
 const PORT = Number(process.env.A11Y_PORT ?? 5176);
 const SHOTS = process.env.A11Y_SHOTS;
-const PREF = ['ai_office', 'coalition', 'host_verification', 'weight_security', 'cyber_defence', 'fund_alignment', 'measure', 'flexicurity'];
 const MODAL = '.overlay:not(.leaving) .modal';
 
 const RUNS = [
-  // (fixtures: true adds ?obfixtures, the dev stand-ins of src/ui/onboarding for engine notices, tips and letters)
-  { name: 'keyboard', seed: 9, viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference', intro: true },
-  { name: 'reduced-motion-200%', seed: 3, viewport: { width: 640, height: 400 }, reducedMotion: 'reduce', intro: false },
+  { name: 'keyboard', seed: 9, viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference', intro: true, tutorial: true },
+  { name: 'reduced-motion-200%', seed: 3, viewport: { width: 640, height: 400 }, reducedMotion: 'reduce', intro: false, tutorial: false },
+  { name: 'phone', seed: 4, viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', intro: false, tutorial: true },
 ];
 
 async function playRun(browser, base, run) {
@@ -31,19 +30,20 @@ async function playRun(browser, base, run) {
   const once = (k) => (done.has(k) ? false : (done.add(k), true));
   const press = (k) => page.keyboard.press(k);
   const evalText = (sel) => page.evaluate((s) => document.querySelector(s)?.textContent?.trim() ?? '', sel);
-  const pcShown = async () => Number(await evalText('#pc'));
   const phase = () => evalText('#phase');
+  const focusIs = (sel) => page.evaluate((s) => !!document.activeElement?.matches(s), sel);
+  const said = () => page.evaluate(() => [...document.querySelectorAll('.sr-live')].map((r) => r.textContent).join(' '));
 
-  /** First time a screen shows: axe it, check reflow, screenshot it. */
   async function audit(name) {
     if (audits[name]) return;
     await settle(page);
+    // axe needs real timers: let time flow while it runs, then pause the page clock again
+    await page.clock.resume();
     audits[name] = await axe(page);
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 50);
     const overflow = await page.evaluate(() => {
       const ov = document.querySelector('.overlay:not(.leaving)');
-      const w = document.documentElement.scrollWidth - window.innerWidth;
-      const o = ov ? ov.scrollWidth - ov.clientWidth : 0;
-      return Math.max(w, o);
+      return Math.max(document.documentElement.scrollWidth - window.innerWidth, ov ? ov.scrollWidth - ov.clientWidth : 0);
     });
     if (overflow > 1) fail(`${name}: content is ${overflow}px wider than the viewport (horizontal scrolling)`);
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `${run.name}-${name}.png`) });
@@ -52,7 +52,7 @@ async function playRun(browser, base, run) {
   /** Tab and Shift+Tab around an open dialog: focus must stay inside and always be visible. */
   async function checkTrap(name) {
     const n = await page.evaluate((m) => document.querySelector(m)?.querySelectorAll('button:not(:disabled), a[href], input, [tabindex="0"]').length ?? 0, MODAL);
-    for (let i = 0; i < n + 2; i++) {
+    for (let i = 0; i < Math.min(n + 2, 24); i++) {
       await press(i % 3 === 2 ? 'Shift+Tab' : 'Tab');
       const st = await page.evaluate((m) => {
         const a = document.activeElement;
@@ -65,197 +65,108 @@ async function playRun(browser, base, run) {
     }
   }
 
-  // ---------------------------------------------------------------- v2 onboarding checks
-  /** Tips, act transitions and notices: audited, Tab trapped once per kind, closed with Enter. */
-  async function onboardingDialog(screen) {
-    log.push(`  ${screen}: ${await evalText(`${MODAL} h2`)}`);
-    await audit(screen);
-    if (once(`trap-${screen}`)) await checkTrap(screen);
-    if (!(await page.evaluate(() => !!document.activeElement?.matches('[data-primary], [role="tab"]')))) fail(`${screen}: focus is not on its button (${await focused(page)})`);
-    if (screen === 'ob-journal') await press('Escape');
-    else {
-      await tabTo(page, '[data-primary]');
-      await press('Enter');
-    }
-  }
-  /** Once, while the clock runs: the journal from the keyboard, then Skip to decision. */
-  async function checkOnboarding() {
-    if (!(await tabTo(page, '#ob-journal'))) return fail('could not Tab to the Journal button');
-    await press('Enter');
-    await advance(page, 100);
-    if ((await screenOf(page)) !== 'ob-journal') return fail('Enter on Journal did not open it');
-    await audit('ob-journal');
-    await checkTrap('ob-journal');
-    const tabs = await page.evaluate(() => document.querySelectorAll('[role="tab"]').length);
-    if (tabs > 1) {
-      await tabTo(page, '[role="tab"][aria-selected="true"]');
-      await press('ArrowLeft');
-      if (!(await page.evaluate(() => document.activeElement?.matches('[role="tab"][aria-selected="true"]')))) fail('journal: ArrowLeft did not move to the previous quarter');
-    }
+  /** Open something from the main screen with the keyboard, check its dialog, close with Escape, check focus came back. */
+  async function openAndReturn(name, sel, key = 'Enter') {
+    if (!(await tabTo(page, sel, { max: 120 }))) return fail(`could not Tab to ${name} (${sel})`);
+    await press(key);
+    await advance(page, 150);
+    const sc = await screenOf(page);
+    if (['main', 'dock'].includes(sc)) return fail(`${key} on ${name} did not open a dialog`);
+    await audit(`${name}`);
+    if (once(`trap-${name}`)) await checkTrap(name);
     await press('Escape');
     await advance(page, 300);
-    if (!(await page.evaluate(() => document.activeElement?.matches('#ob-journal')))) fail(`focus did not return to the Journal button (${await focused(page)})`);
-    if ((await phase()) !== 'Clock running') fail(`the clock did not resume after the journal (phase "${await phase()}")`);
-  }
-  async function checkSkip() {
-    // paused while tabbing (the page clock ticks in real time), so the quarter cannot end under the keyboard
-    if ((await phase()) === 'Clock running') await press('p');
-    if (!(await tabTo(page, '#ob-skip'))) return fail('could not Tab to Skip to decision');
-    // record everything announced from now on (the fast-forward announces news quickly, and the region keeps only the last few)
-    await page.evaluate(() => {
-      window.__said = '';
-      new window.MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => (window.__said += ` ${n.textContent}`)))).observe(document.body, { subtree: true, childList: true });
-    });
-    await press('Enter');
-    await advance(page, 200);
-    const said = await page.evaluate(() => window.__said);
-    if (!/bubbles you have not clicked are skipped/.test(said)) fail('Skip to decision was not announced');
-    if (!(await page.evaluate(() => document.querySelector('#ob-skip')?.getAttribute('aria-disabled') === 'true'))) fail('Skip to decision is not disabled while skipping');
-    if (!(await page.evaluate(() => document.activeElement?.matches('#ob-skip')))) fail(`Skip to decision lost keyboard focus (${await focused(page)})`);
-    for (let i = 0; i < 20 && (await screenOf(page)) === 'main'; i++) await advance(page, 200);
-    if ((await screenOf(page)) === 'main') fail('Skip to decision did not reach the end of the quarter');
-    log.push('  skipped to the decision');
+    if (!(await focusIs(sel))) fail(`${name}: focus did not return to its button (now ${await focused(page)})`);
+    log.push(`  opened ${name} from the keyboard`);
   }
 
-  const url = `${base}?seed=${run.seed}${run.intro ? '' : '&skipintro'}${run.fixtures ? '&obfixtures' : ''}`;
+  const url = `${base}?seed=${run.seed}${run.intro ? '' : '&skipintro'}${run.tutorial ? '' : '&notutorial'}`;
   await page.goto(url);
+  // time moves only when the harness advances it, so Tab presses never race the game clock
+  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 50);
   await advance(page, 300);
 
   if (run.intro) {
-    await audit('opening');
-    if (!(await page.evaluate(() => document.activeElement?.matches('[data-go="next"]')))) fail(`opening: focus is not on Begin (${await focused(page)})`);
+    await audit('intro');
+    if (!(await page.evaluate(() => document.activeElement?.tagName === 'H2'))) fail(`intro: focus is not on the heading (${await focused(page)})`);
     await press('Enter');
-    await advance(page, 200);
-    await audit('opening-slide');
-    if (!(await page.evaluate(() => document.activeElement?.tagName === 'H2'))) fail(`opening slide: focus is not on the slide heading (${await focused(page)})`);
-    for (let i = 0; i < 12 && (await page.evaluate(() => !!document.querySelector('.opening:not(.leaving)'))); i++) {
-      await press('Enter');
-      await advance(page, 200);
-    }
-    await advance(page, 600);
-    if (await page.evaluate(() => !!document.querySelector('.opening'))) fail('opening: Enter did not reach the game');
+    await advance(page, 300);
+    await audit('intro-2');
+    await press('Enter');
+    await advance(page, 400);
   }
 
-  // double speed from the keyboard: Tab to ×2 and press Enter
-  if (!(await tabTo(page, '.speed button[data-speed="2"]'))) fail('could not Tab to the ×2 speed button');
-  await press('Enter');
-  if ((await page.evaluate(() => document.querySelector('.speed button[data-speed="2"]')?.getAttribute('aria-pressed'))) !== 'true') fail('×2 did not activate with Enter');
-
-  let bubblesByTab = 0;
-  let bubblesByKey = 0;
-  let pi = 0;
-  let quarter = '';
-  for (let step = 0; step < 3000; step++) {
+  let date = '';
+  for (let step = 0; step < 4000; step++) {
     const screen = await screenOf(page);
+    if (process.env.A11Y_DEBUG) console.error(`${step} ${screen} ${await evalText('#date')} ${await focused(page)}`);
     if (screen === 'ending') break;
     if (screen === 'main') {
-      const q = await evalText('#date');
-      if (q !== quarter) {
-        quarter = q;
-        log.push(q);
-      }
-      if (done.has('first-report') && once('main')) {
+      const d = await evalText('#date');
+      if (d !== date) log.push((date = d));
+      if (once('main')) {
         await audit('main');
-        // pause and resume with P, the single-key shortcut that works whatever has focus
-        await press('p');
-        if ((await phase()) !== 'Paused') fail(`P did not pause (phase "${await phase()}")`);
-        await press('p');
-        if ((await phase()) !== 'Clock running') fail(`P did not resume (phase "${await phase()}")`);
-        // the indicator popover opens with Enter and closes with Escape, focus back on the tile
-        if (!(await tabTo(page, '.g-tile[data-key="tension"]'))) fail('could not Tab to the Tension indicator');
-        await press('Enter');
-        if (await page.evaluate(() => document.querySelector('#gpop')?.hidden !== false)) fail('Enter on an indicator did not open its popover');
-        await audit('popover');
-        await press('Escape');
-        const back = await page.evaluate(() => document.querySelector('#gpop')?.hidden === true && document.activeElement?.matches('.g-tile[data-key="tension"]'));
-        if (!back) fail(`Escape did not close the popover back onto its tile (${await focused(page)})`);
-        // the shortcut list, from the keyboard
-        await press('Shift+Slash');
-        if ((await screenOf(page)) !== 'help') fail('? did not open the keyboard shortcuts');
-        else {
-          await audit('help');
-          await checkTrap('help');
-          await press('Escape');
-          await advance(page, 300);
-          if ((await screenOf(page)) !== 'main') fail('Escape did not close the shortcuts');
-          if (!(await page.evaluate(() => document.activeElement?.matches('.g-tile[data-key="tension"]')))) fail(`focus did not return after the shortcuts closed (${await focused(page)})`);
-          if ((await phase()) !== 'Clock running') fail('the clock did not resume after the shortcuts closed');
-        }
-        // Léa's button: Tab to it, Space opens her messages, Escape returns to the button
-        if (!(await tabTo(page, '.lea-btn', { back: true }))) fail('could not Tab to Léa’s button');
-        else {
-          const box = await page.evaluate(() => document.querySelector('.lea-btn')?.getBoundingClientRect().toJSON());
-          if (!box || box.width < 44 || box.height < 44) fail(`Léa’s button is smaller than 44 px (${JSON.stringify(box)})`);
+        if ((await phase()) === 'Clock running') {
           await press(' ');
-          await advance(page, 100);
-          if ((await screenOf(page)) !== 'lea') fail('Space on Léa’s button did not open her message');
-          await press('Escape');
-          await advance(page, 300);
-          if (!(await page.evaluate(() => document.activeElement?.matches('.lea-btn')))) fail(`focus did not return to Léa’s button (${await focused(page)})`);
+          if ((await phase()) !== 'Paused') fail(`Space did not pause (phase "${await phase()}")`);
+          await press(' ');
+          if ((await phase()) !== 'Clock running') fail(`Space did not resume (phase "${await phase()}")`);
         }
-        // More indicators: a disclosure that opens with Enter and closes with Escape, focus back on it
-        if (!(await tabTo(page, '#gmore'))) fail('could not Tab to More indicators');
-        else {
-          await press('Enter');
-          if (await page.evaluate(() => document.querySelector('#gdrawer')?.hidden !== false)) fail('Enter on More indicators did not open the drawer');
-          await audit('more-indicators');
-          await press('Escape');
-          if (!(await page.evaluate(() => document.querySelector('#gdrawer')?.hidden === true && document.activeElement?.matches('#gmore')))) fail(`Escape did not close the drawer back onto its button (${await focused(page)})`);
-        }
+        if (!(await tabTo(page, '.speed button[data-speed="2"]'))) fail('could not Tab to ×2');
+        await press('Enter');
+        if ((await page.evaluate(() => document.querySelector('.speed button[data-speed="2"]')?.getAttribute('aria-pressed'))) !== 'true') fail('×2 did not activate with Enter');
       }
-      if (done.has('main') && once('onboarding')) await checkOnboarding();
-      if (q !== 'Q1 2027' && q !== 'Q2 2027' && bubblesByTab > 0 && (await phase()) === 'Clock running' && once('skip')) {
-        await checkSkip();
+      // pause while exploring with the keyboard (the page clock runs in real time meanwhile)
+      // the pause button, from the keyboard (Space would press whatever button has focus)
+      const toggle = async () => {
+        if (await tabTo(page, '#play')) await press('Enter');
+        else fail('could not Tab to the pause button');
+      };
+      const explore = async (fn) => {
+        const was = (await phase()) === 'Clock running';
+        if (was) await toggle();
+        await fn();
+        if (was && (await phase()) === 'Paused' && (await screenOf(page)) === 'main') await toggle();
+      };
+      if (await page.evaluate(() => !!document.querySelector('.lea-btn.unread')) && once('lea')) {
+        await explore(async () => {
+          const box = await page.evaluate(() => document.querySelector('.lea-btn')?.getBoundingClientRect().toJSON());
+          if (!box || box.width < 44 || box.height < 44) fail(`Léa's button is smaller than 44 px (${JSON.stringify(box)})`);
+          await openAndReturn('letters', '.lea-btn', ' ');
+        });
         continue;
       }
-      // event pins: once one exists, open its recap from the keyboard
-      // (only while the clock runs: a pin appears a moment before its event opens, and waits for it)
-      if (!done.has('evpin') && (await phase()) === 'Clock running') {
-        if (await page.evaluate(() => !!document.querySelector('.evpin[role="button"]'))) {
-          done.add('evpin');
-          if (!(await tabTo(page, '.evpin[role="button"]'))) fail('could not Tab to an event pin');
-          else {
-            await press('Enter');
-            await advance(page, 100);
-            if ((await screenOf(page)) !== 'event-recap') fail(`Enter on an event pin did not reopen the event (screen ${await screenOf(page)}, focus ${await focused(page)})`);
-            else {
-              await audit('event-recap');
-              await press('Escape');
-              await advance(page, 300);
-              if (!(await page.evaluate(() => document.activeElement?.matches('.evpin')))) fail(`focus did not return to the event pin (${await focused(page)})`);
-            }
-          }
-        }
+      if (await page.evaluate(() => !!document.querySelector('.threat-btn')) && once('threat')) {
+        await explore(() => openAndReturn('threat-info', '.threat-btn'));
+        continue;
       }
-      // concern bubbles: the first by Tab + Enter, later ones with the C shortcut; reading one pays nothing
-      if (await page.evaluate(() => !!document.querySelector('.bubble:not(.read):not(.faded)'))) {
-        // pause first, as a keyboard player would (bubbles stay while paused): Q1's clock is short (v2 onboarding),
-        // and the page clock keeps ticking in real time while the audit and the Tab presses run
-        const wasRunning = (await phase()) === 'Clock running';
-        if (wasRunning) await press('p');
-        await advance(page, 200); // announcements are batched for 150 ms
-        const before = await pcShown();
-        const announced = await page.evaluate(() => document.querySelector('.sr-live')?.textContent ?? '');
-        if (!/Public concern in/.test(announced)) fail(`a bubble appeared without an announcement ("${announced.slice(-80)}")`);
-        if (bubblesByTab === 0) {
-          if (await tabTo(page, '.bubble:not(.read):not(.faded)')) {
-            await press('Enter');
-            bubblesByTab++;
-            await advance(page, 200);
-            await audit('main-concern');
-            if (!(await page.evaluate(() => /read: /.test(document.activeElement?.getAttribute('aria-label') ?? '')))) fail(`the read bubble does not say its concern (${await focused(page)})`);
+      if (await page.evaluate(() => !!document.querySelector('.leak-btn:not([hidden])')) && once('leak')) {
+        await explore(() => openAndReturn('leak', '.leak-btn'));
+        continue;
+      }
+      if (done.has('main') && once('badge')) {
+        await explore(async () => {
+          await openAndReturn('badge', '.badge-btn');
+          await openAndReturn('gauge-help', '.g-info[data-info="confidence"]');
+          // help and journal by their shortcuts
+          await press('Shift+Slash');
+          await advance(page, 150);
+          if ((await screenOf(page)) !== 'help') fail('? did not open the help');
+          else {
+            await audit('help');
+            await checkTrap('help');
             await press('Escape');
-            if (await page.evaluate(() => !!document.querySelector('.concern-pop'))) fail('Escape did not close the concern');
-          } else fail('could not Tab to a concern bubble');
-        } else {
-          await press('c');
-          bubblesByKey++;
-        }
-        await advance(page, 300);
-        const after = await pcShown();
-        if (after !== before) fail(`reading a concern changed Political Capital (${before} → ${after}); it must pay nothing`);
-        if (!/Public concern in [^:]+: (?!press C|find)/.test(await page.evaluate(() => document.querySelector('.sr-live')?.textContent ?? ''))) fail('the concern was not read aloud');
-        if (wasRunning && (await phase()) === 'Paused') await press('p');
+            await advance(page, 300);
+          }
+          await press('j');
+          await advance(page, 150);
+          if ((await screenOf(page)) !== 'journal') fail('J did not open the journal');
+          else {
+            await audit('journal');
+            await press('Escape');
+            await advance(page, 300);
+          }
+        });
         continue;
       }
       await advance(page, 500);
@@ -263,28 +174,27 @@ async function playRun(browser, base, run) {
     }
 
     if (screen === 'dock') {
-      // after the report the game waits on the map: nothing opens until the player asks for the decision
       await audit('dock');
-      if (!(await page.evaluate(() => document.activeElement?.matches('.dock [data-go="decide"]')))) fail(`the decision button did not take focus (${await focused(page)})`);
+      if (!(await focusIs('.dock [data-go].btn-primary'))) fail(`dock: the primary button did not take focus (${await focused(page)})`);
       if (once('dock-wait')) {
         await advance(page, 200);
-        const said = await page.evaluate(() => document.querySelector('body > .sr-live')?.textContent ?? '');
-        if (!/When you are ready, press Make my (last )?decision/.test(said)) fail(`the paused map was not announced ("${said.slice(-120)}")`);
+        if (!/Enter: Make my decisions|See what changed/.test(await said())) fail('the stopped clock was not announced');
         await advance(page, 4000);
-        if ((await screenOf(page)) !== 'dock') fail(`the decision opened by itself (screen ${await screenOf(page)})`);
-        // the risks and indicators are explorable meanwhile, and focus comes back to the button
-        if (!(await tabTo(page, '.g-tile[data-key="tension"]', { back: true }))) fail('could not Tab from the paused map to an indicator');
-        if (!(await tabTo(page, '.dock [data-go="decide"]'))) fail('could not Tab back to Make my decision');
+        if ((await screenOf(page)) !== 'dock') fail('something opened by itself after the clock stopped');
+        if (!(await tabTo(page, '.dock [data-go="report"]', { back: true }))) fail('could not reach See what changed');
+        await press('Enter');
+        await advance(page, 300);
+        continue;
       }
       await press('Enter');
       await advance(page, 300);
       continue;
     }
 
-    // a dialog: check focus moved in, trap it once per kind, then act with the keyboard
+    // a dialog: focus moved in, labelled, trap once per kind, then act with the keyboard
     await advance(page, 100);
     const inModal = await page.evaluate((m) => document.querySelector(m)?.contains(document.activeElement), MODAL);
-    if (!inModal && !['tipping', 'choose'].includes(screen)) fail(`${screen}: focus did not move into the dialog (${await focused(page)})`);
+    if (!inModal) fail(`${screen}: focus did not move into the dialog (${await focused(page)})`);
     const labelled = await page.evaluate((m) => {
       const d = document.querySelector(m);
       const ids = (d?.getAttribute('aria-labelledby') ?? '').split(/\s+/).filter(Boolean);
@@ -292,135 +202,78 @@ async function playRun(browser, base, run) {
     }, MODAL);
     if (!labelled) fail(`${screen}: not a labelled modal dialog`);
 
-    if (screen.startsWith('ob-')) {
-      await onboardingDialog(screen);
-    } else if (screen === 'event') {
-      log.push(`  event: ${await evalText(`${MODAL} h2`)}`);
-      await audit('event');
-      if (once('trap-event')) await checkTrap('event');
-      const hasChoice = await page.evaluate((m) => !!document.querySelector(`${m} .choice`), MODAL);
-      if (!(await tabTo(page, hasChoice ? '.choice' : '[data-primary]'))) fail('event: could not reach its button');
+    if (screen === 'coach') {
+      await audit('coach');
+      if (once('trap-coach')) await checkTrap('coach');
+      log.push(`  tip: ${await evalText(`${MODAL} h2`)}`);
+      await tabTo(page, '[data-primary]');
+      await press('Enter');
+    } else if (screen === 'breaking') {
+      log.push(`  breaking: ${await evalText(`${MODAL} h2`)}`);
+      await audit('breaking');
+      if (once('trap-breaking')) await checkTrap('breaking');
+      const choice = await page.evaluate((m) => !!document.querySelector(`${m} .choice`), MODAL);
+      if (!(await tabTo(page, choice ? '.choice' : '[data-primary]'))) fail('breaking: could not reach its button');
       await press('Enter');
     } else if (screen === 'report') {
-      done.add('first-report');
       await audit('report');
       if (once('trap-report')) await checkTrap('report');
-      if (once('report-lea') && (await page.evaluate((m) => !!document.querySelector(`${m} [data-action="lea"]`), MODAL))) {
-        await tabTo(page, '[data-action="lea"]');
-        await press('Enter');
+      if (once('report-escape')) {
+        await press('Escape');
         await advance(page, 300);
-        if ((await screenOf(page)) !== 'lea') fail('report: the Léa button did not open her message');
-        continue;
-      }
-      if (once('report-map')) {
-        await press('Escape'); // closes onto the paused map
-        await advance(page, 300);
-        if ((await screenOf(page)) !== 'dock') fail('report: Escape did not go to the paused map');
+        if ((await screenOf(page)) !== 'dock') fail('report: Escape did not return to the map');
         continue;
       }
       await tabTo(page, '[data-primary]');
       await press('Enter');
     } else if (screen === 'decision') {
       await audit('decision');
-      if (!(await page.evaluate(() => document.activeElement?.matches('.pcard')))) fail(`decision: focus is not on the first card (${await focused(page)})`);
-      if (once('trap-decision')) {
-        await checkTrap('decision');
-        await tabTo(page, '.pcard');
-      }
-      const ids = await page.evaluate(() => [...document.querySelectorAll('.pcard')].map((c) => ({ id: c.dataset.card, ok: !c.matches('.locked, .short') })));
-      let target = -1;
-      for (let k = 0; k < PREF.length && target < 0; k++) {
-        const t = ids.findIndex((c) => c.id === PREF[(pi + k) % PREF.length] && c.ok);
-        if (t >= 0) {
-          target = t;
-          pi = (pi + k + 1) % PREF.length;
-        }
-      }
-      // show a locked card's preview first (announced with its reason), once
-      const locked = ids.findIndex((c) => !c.ok);
-      if (locked >= 0 && once('locked-preview')) {
-        await tabTo(page, `.pcard[data-card="${ids[locked].id}"]`);
+      if (!(await focusIs('.pcard'))) fail(`decision: focus is not on a card (${await focused(page)})`);
+      if (once('trap-decision')) await checkTrap('decision');
+      const target = await page.evaluate(() => document.querySelector('.pcard:not(.locked)')?.dataset.card ?? null);
+      if (target) {
+        if (!(await tabTo(page, `.pcard[data-card="${target}"]`)) && !(await tabTo(page, `.pcard[data-card="${target}"]`, { back: true }))) fail('decision: could not Tab to a card');
         await press('Enter');
         await advance(page, 200);
-        const said = await page.evaluate((m) => document.querySelector(`${m} .sr-live`)?.textContent ?? '', MODAL);
-        if (!/Locked|can't afford|Can't afford|not available/i.test(said)) fail(`decision: a locked card was not announced with its reason ("${said.slice(-120)}")`);
-        if (await page.evaluate(() => document.activeElement?.getAttribute('aria-pressed')) !== 'true') fail('decision: the selected card is not aria-pressed');
-      }
-      if (target >= 0) {
-        if (!(await tabTo(page, `.pcard[data-card="${ids[target].id}"]`, { back: true })) && !(await tabTo(page, `.pcard[data-card="${ids[target].id}"]`))) fail('decision: could not Tab to a card');
-        await press('Enter');
-        await advance(page, 200);
-        if (!(await page.evaluate(() => document.activeElement?.matches('.dec-bar [data-primary]')))) fail(`decision: focus did not move to Confirm (${await focused(page)})`);
+        if ((await page.evaluate(() => document.activeElement?.getAttribute('aria-pressed'))) !== 'true') fail('decision: the selected card is not aria-pressed');
+        if (!/Selected/.test(await said())) fail('decision: the selection was not announced');
         await audit('decision-preview');
-        const said = await page.evaluate((m) => document.querySelector(`${m} .sr-live`)?.textContent ?? '', MODAL);
-        if (!said.includes('Selected')) fail(`decision: the preview was not announced ("${said.slice(-80)}")`);
-        log.push(`  card: ${ids[target].id}`);
+        if (!(await tabTo(page, '#dec-ok'))) fail('decision: could not Tab to Confirm');
+        log.push(`  card: ${target}`);
         await press('Enter');
       } else {
-        if (!(await tabTo(page, '[data-action="pass"]', { back: true }))) fail('decision: could not Tab to Pass');
-        log.push('  pass');
+        if (!(await tabTo(page, '#dec-none', { back: true }))) fail('decision: could not reach Play no card');
+        log.push('  no card');
         await press('Enter');
       }
-    } else if (screen === 'decision-preview') {
-      // a preview left open from an earlier visit: confirm or pass
-      if (await tabTo(page, '.dec-bar [data-primary]:not(:disabled)', { max: 30 })) await press('Enter');
-      else if (await tabTo(page, '[data-action="pass"]', { back: true })) await press('Enter');
-    } else if (screen === 'lea') {
-      await audit('lea');
-      if (once('trap-lea')) await checkTrap('lea');
-      await tabTo(page, '[data-primary]');
-      await press('Enter');
-    } else if (screen === 'briefing') {
-      await audit('briefing');
-      if (once('trap-briefing')) await checkTrap('briefing');
-      await press('Enter');
-    } else if (screen === 'tipping') {
-      log.push('  tipping point');
-      await advance(page, 2500);
-      await settle(page);
-      if (!(await page.evaluate(() => document.activeElement?.matches('[data-primary]')))) fail(`tipping: focus is not on its button (${await focused(page)})`);
-      await audit('tipping');
-      await checkTrap('tipping');
-      await tabTo(page, '[data-primary]');
-      await press('Enter');
-    } else if (screen === 'choose') {
-      for (let i = 0; i < 60 && (await page.evaluate((m) => !!document.querySelector(`${m} [data-primary]:disabled`), MODAL)); i++) await advance(page, 300);
-      await advance(page, 300);
-      log.push(`  ${await evalText(`${MODAL} .verdict`)}`);
-      if (!(await page.evaluate(() => document.activeElement?.matches('[data-primary]')))) fail(`choose: focus is not on its button (${await focused(page)})`);
-      await audit('choose');
-      await press('Enter');
-    } else if (screen === 'clock-stops') {
-      log.push('  the clock stops');
-      await audit('clock-stops');
-      await press('Enter');
+    } else if (['letters', 'help', 'journal', 'info'].includes(screen)) {
+      await press('Escape');
     } else {
       fail(`unexpected screen ${screen}`);
-      await press('Enter');
+      await press('Escape');
     }
     await advance(page, 400);
   }
 
-  // the ending, then the debrief, then play again
   await advance(page, 500);
-  if ((await screenOf(page)) !== 'ending') fail('the game did not reach its ending');
+  if ((await screenOf(page)) !== 'ending') fail('the game did not reach its end screen');
   else {
     log.push(`ENDING ${await evalText('.ending-page h1')}`);
     if (!(await page.evaluate(() => document.activeElement?.matches('.ending-page h1')))) fail(`ending: focus is not on the title (${await focused(page)})`);
     await audit('ending');
-    if (!(await tabTo(page, 'a[href="#debrief"]'))) fail('ending: could not Tab to "Why it happened"');
+    if (!(await tabTo(page, '[data-again]', { max: 200 }))) fail('ending: could not Tab to Play again');
     await press('Enter');
-    await settle(page, 900);
-    if (!(await page.evaluate(() => !!document.activeElement?.closest('#debrief')))) fail(`debrief: focus did not move to the debrief (${await focused(page)})`);
-    await audit('debrief');
-    if (!(await tabTo(page, '[data-again]', { max: 200 }))) fail('debrief: could not Tab to Play again');
-    await press('Enter');
-    await advance(page, 600);
-    if ((await evalText('#date')) !== 'Q1 2027') fail('Play again did not start a new game');
+    await advance(page, 800);
+    const sc = await screenOf(page);
+    if (sc === 'coach') {
+      await press('Enter');
+      await advance(page, 300);
+    }
+    if ((await evalText('#date')) !== 'H1 2027') fail('Play again did not start a new game');
   }
-  if (bubblesByTab < 1) fail('no concern bubble was read with Tab + Enter');
+  for (const k of ['lea', 'threat', 'badge']) if (!done.has(k)) fail(`never checked: ${k}`);
   await context.close();
-  return { run, problems, errors, audits, log, bubblesByTab, bubblesByKey };
+  return { run, problems, errors, audits, log };
 }
 
 const { chromium } = loadPlaywright();
@@ -433,7 +286,6 @@ try {
     const r = await playRun(browser, server.url, run);
     console.log(`\n=== ${run.name}: seed ${run.seed}, ${run.viewport.width}×${run.viewport.height}, reduced motion: ${run.reducedMotion}`);
     console.log(r.log.join('\n'));
-    console.log(`concerns read: ${r.bubblesByTab} by Tab+Enter, ${r.bubblesByKey} with C`);
     console.log('axe, per screen (serious+critical / all):');
     for (const [name, v] of Object.entries(r.audits)) {
       const sc = v.filter((x) => x.impact === 'serious' || x.impact === 'critical');

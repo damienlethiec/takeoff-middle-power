@@ -6,7 +6,7 @@
 import type { EngineApi } from '../engine/api';
 import type { GameState, GaugeKey, LeaMood, MapItem, Pick, ThreatView } from '../engine/types';
 import { CARD_BY_ID } from '../data/cards';
-import { announce, focusOwnsKey, reducedMotion, tryFocus } from './a11y';
+import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
 import { Coach } from './coach';
 import { $, ICON, esc, signed } from './format';
 import { WorldMap } from './map';
@@ -399,6 +399,8 @@ export class App {
     } else if (k === 'Enter' && this.dockResolve) {
       ev.preventDefault();
       this.dockResolve();
+    } else if (!shortcutsOn()) {
+      return;
     } else if (k === '?') {
       ev.preventDefault();
       this.openHelp();
@@ -409,7 +411,9 @@ export class App {
   };
 
   private openHelp() {
-    this.openFromMap(() => showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on) }));
+    this.openFromMap(() =>
+      showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on), shortcuts: shortcutsOn(), onShortcuts: (on) => setSingleKeyShortcuts(on) }),
+    );
   }
   private openJournal() {
     this.openFromMap(() => showJournal(this.e.journal(this.s), this.coach.log));
@@ -458,7 +462,7 @@ export class App {
   private buildShell() {
     const gauge = (k: GaugeKey, label: string, coach: string) => `
       <section class="gauge g-${k}" data-key="${k}" data-coach="${coach}" aria-labelledby="gn-${k}">
-        <div class="g-top"><h3 class="g-name" id="gn-${k}">${esc(label)}</h3><span class="g-val num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
+        <div class="g-top"><h3 class="g-name" id="gn-${k}">${k === 'confidence' ? 'Confidence<span class="sr-only"> in AI</span>' : esc(label)}</h3><span class="g-val num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
           <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(label)}" aria-describedby="gd-${k}">?</button></div>
         ${
           k === 'aiPower'

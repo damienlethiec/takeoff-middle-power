@@ -16,7 +16,7 @@ function cardHtml(c: CardView, selected: boolean, recommended: boolean): string 
     <span class="pc-top"><span class="pc-name">${esc(c.title)}</span><span class="pc-cost num" aria-label="costs ${c.cost} Influence">${ICON.influence}${c.cost}</span></span>
     ${c.level ? `<span class="pc-level">Level ${c.level} of ${c.levels!.length}</span>` : ''}
     <span class="pc-chips">${chips(c.ups)}${chips(c.downs)}</span>
-    ${c.protectsName ? `<span class="pc-prot">Protects against ${esc(c.protectsName.toLowerCase())}</span>` : ''}
+    ${c.protectsName ? `<span class="pc-prot">Protects against ${esc(c.protectsName.replace(/^(\w)(?=[a-z])/, (x) => x.toLowerCase()))}</span>` : ''}
     <span class="pc-tags">${c.isNew ? '<span class="tag new">New</span>' : ''}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? '<span class="tag sel">Selected</span>' : ''}</span>
     <span class="pc-reason" id="pc-${esc(c.id)}-d">${c.playable || selected ? esc(c.text) : esc(c.reason ?? '')}</span>
   </button>`;

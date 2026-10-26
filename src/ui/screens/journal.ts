@@ -6,7 +6,7 @@ import { esc } from '../format';
 import { openModal } from '../modal';
 
 export async function showJournal(rounds: JournalRound[], tips: { round: number; title: string; text: string }[]): Promise<void> {
-  const block = (title: string, items: string[]) => (items.length ? `<h4>${esc(title)}</h4><ul>${items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
+  const block = (title: string, items: string[]) => (items.length ? `<h3>${esc(title)}</h3><ul>${items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
   const list = [...rounds].reverse();
   const m = openModal(
     `<div class="dateline">Journal</div>

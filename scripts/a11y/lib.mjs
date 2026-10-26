@@ -85,25 +85,11 @@ export async function axe(page) {
 /** Which screen is showing (by the classes the UI uses). */
 export const screenOf = (page) =>
   page.evaluate(() => {
-    if (document.querySelector('.opening:not(.leaving)')) return document.querySelector('.op-stage.title') ? 'opening' : 'opening-slide';
     if (document.querySelector('.ending-page')) return 'ending';
     const m = document.querySelector('.overlay:not(.leaving) .modal');
     if (!m) return document.querySelector('.dock:not([hidden])') ? 'dock' : 'main';
-    const c = m.className;
-    // v2 onboarding dialogs (Léa's letters keep the 'lea' screen: same keys, same checks)
-    const ob = c.match(/\bob-(tip|act|notice|journal)\b/);
-    if (ob) return ob[0];
-    if (c.includes('event-recap')) return 'event-recap';
-    if (c.includes('help')) return 'help';
-    if (c.includes('event')) return 'event';
-    if (c.includes('decision')) return m.querySelector('.pv-card') ? 'decision-preview' : 'decision';
-    if (c.includes('tipping-alarm')) return 'tipping';
-    if (c.includes('choose')) return 'choose';
-    if (c.includes('briefing')) return 'briefing';
-    if (c.includes('lea')) return 'lea';
-    if (m.getAttribute('aria-label') === 'The clock stops') return 'clock-stops';
-    if (c.includes('report')) return 'report';
-    return `modal:${c}`;
+    for (const k of ['intro', 'coach', 'breaking', 'report', 'decision', 'letters', 'help', 'journal', 'info']) if (m.classList.contains(k)) return k;
+    return `modal:${m.className}`;
   });
 
 /** What has keyboard focus, in a readable form. */

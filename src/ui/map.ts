@@ -327,9 +327,9 @@ export class WorldMap {
   setLea(mood: LeaMood, unread: boolean) {
     const b = this.leaButton;
     if (!b) return;
-    b.innerHTML = `${leaPortrait(mood)}<span class="lea-tag">Léa${unread ? '<i class="lea-new">new</i>' : ''}</span>`;
+    // the name is the visible text plus words for screen readers (WCAG 2.5.3: label in name)
+    b.innerHTML = `${leaPortrait(mood)}<span class="lea-tag">Léa${unread ? ' <i class="lea-new">new<span class="sr-only"> letter</span></i>' : ''}<span class="sr-only">, in Lyon: read her letters</span></span>`;
     b.classList.toggle('unread', unread);
-    b.setAttribute('aria-label', `Léa, in Lyon: read her letters${unread ? ' (new letter)' : ''}`);
   }
 
   setBadge(ai: EuropeAi) {
@@ -339,8 +339,7 @@ export class WorldMap {
     if (b.dataset.v === ai) return;
     b.dataset.v = ai;
     b.className = `badge-btn ${ai}`;
-    b.innerHTML = `<span class="badge-k">Europe’s AI</span><b>${word}</b>`;
-    b.setAttribute('aria-label', `Europe’s AI: ${word}. What this means`);
+    b.innerHTML = `<span class="badge-k">Europe’s AI</span> <b>${word}</b><span class="sr-only">: what this means</span>`;
   }
 
   /** The round's leak: an envelope over the US labs, readable or redacted. */
@@ -349,8 +348,7 @@ export class WorldMap {
     if (!b) return;
     b.hidden = !leak;
     if (!leak) return;
-    b.innerHTML = `${ICON.leak}<span>${leak.readable ? 'Leak' : 'Leak · redacted'}</span>`;
-    b.setAttribute('aria-label', leak.readable ? 'A leak from inside the labs: read it' : 'A leak from inside the labs, redacted: what it means');
+    b.innerHTML = `${ICON.leak}<span>${leak.readable ? 'Leak' : 'Leak · redacted'}</span><span class="sr-only">${leak.readable ? ' from inside the labs: read it' : ' from inside the labs: what it means'}</span>`;
     this.layout();
   }
 
@@ -374,8 +372,7 @@ export class WorldMap {
       const grew = b.dataset.sig && Number(b.dataset.sig.split(':')[0]) < t.stage;
       b.dataset.sig = sig;
       b.className = `threat-btn ${STAGE_SIZE[t.stage]} ${t.prepared ? 'prepared' : ''} ${grew ? 'grew' : ''}`;
-      b.innerHTML = `<span class="tb-ico">${t.prepared ? ICON.check : ICON.alert}</span><span class="tb-txt"><b>${esc(t.name)}</b><small>${esc(t.stageWord)}${t.certainty === 'possible' ? ' · possible' : ''}${t.prepared ? ' · prepared' : ''}</small></span>`;
-      b.setAttribute('aria-label', `Threat: ${t.name}, ${t.stageWord.toLowerCase()}${t.certainty === 'possible' ? ', possible' : ''}, ${t.prepared ? 'prepared' : 'not prepared'}. What it is and what protects against it`);
+      b.innerHTML = `<span class="sr-only">Threat: </span><span class="tb-ico">${t.prepared ? ICON.check : ICON.alert}</span><span class="tb-txt"><b>${esc(t.name)}</b> <small>${esc(t.stageWord)}${t.certainty === 'possible' ? ' · possible' : ''}${t.prepared ? ' · prepared' : ' · not prepared'}</small></span><span class="sr-only">: what it is and what protects against it</span>`;
     }
     for (const [id, b] of this.threatBtns) {
       if (live.has(id)) continue;

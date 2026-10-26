@@ -108,7 +108,7 @@ test.describe('a full game', () => {
     expect(seen.breaking).toBeGreaterThan(0);
     await checkEnding(page, s);
     // every card played shows in the debrief, in order
-    const names = (await page.locator('.deb-list h4').allTextContents()).map((x) => x.trim());
+    const names = (await page.locator('.deb-list h3').allTextContents()).map((x) => x.trim());
     expect(names).toEqual(seen.played);
     await page.getByRole('button', { name: /^Play again/ }).click();
     await advance(page, 600);
@@ -212,13 +212,13 @@ test.describe('key interactions', () => {
     const s = await boot(page, '?skipintro&notutorial&seed=9');
     // Léa writes in round 1
     await advance(page, 1500);
-    const lea = page.getByRole('button', { name: /^Léa, in Lyon: read her letters \(new letter\)/ });
+    const lea = page.getByRole('button', { name: /^Léa new letter ?, in Lyon: read her letters/ });
     await lea.click();
     await expect(dialog(page).getByRole('heading', { name: 'A letter from Léa' })).toBeVisible();
     await page.keyboard.press('Escape');
     await advance(page, 300);
     await expect(lea).toHaveCount(0);
-    await page.getByRole('button', { name: /^Europe’s AI: Dependent/ }).click();
+    await page.getByRole('button', { name: /^Europe’s AI Dependent/ }).click();
     await expect(dialog(page).getByRole('heading', { name: 'Europe’s AI: Dependent' })).toBeVisible();
     await page.keyboard.press('Escape');
     // play passively until a threat icon shows

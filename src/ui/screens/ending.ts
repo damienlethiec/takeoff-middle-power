@@ -23,7 +23,7 @@ function gaugeRow(g: EndingView['gauges'][number]): string {
 export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => void): void {
   const decisions = v.decisions.length
     ? `<ol class="deb-list">${v.decisions
-        .map((d) => `<li><span class="deb-date num">${esc(d.date)}</span><h4>${esc(d.name)}</h4><span class="pc-chips">${chips(d.ups)}${chips(d.downs)}</span></li>`)
+        .map((d) => `<li><span class="deb-date num">${esc(d.date)}</span><h3>${esc(d.name)}</h3><span class="pc-chips">${chips(d.ups)}${chips(d.downs)}</span></li>`)
         .join('')}</ol>`
     : '<p>You played no card. The world went its own way.</p>';
   const threats = v.threats.length

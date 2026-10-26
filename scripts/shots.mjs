@@ -26,6 +26,7 @@ try {
     const has = (sel) => page.evaluate((s) => !!document.querySelector(s), sel);
     const cls = () => page.evaluate((m) => document.querySelector(m)?.className ?? '', modal);
     await page.goto(`${server.url}?seed=9`);
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 50);
     await advance(page, 400);
     await shot('intro-1');
     await page.keyboard.press('Enter');
