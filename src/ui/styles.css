@@ -572,7 +572,7 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 /* desktop: a small hand sits in the middle of the space the map left (no wider than its cards need), its cards a
    little larger when the window is tall and there are four at most, rather than in a corner above blank space;
    a big hand still scrolls inside (the page does not grow) */
-@media (min-width: 768px) and (min-height: 641px) {
+@media (min-width: 768px) and (min-height: 541px) {
   .dk-main .hand { flex: 0 1 auto; margin: auto; width: 100%; max-width: calc(var(--n, 4) * 420px + (var(--n, 4) - 1) * 10px + 6px); grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); container: hand / inline-size; }
 }
 @media (min-width: 768px) and (min-height: 860px) {
@@ -714,11 +714,36 @@ body.ended { overflow: auto; }
   .inf-why { display: none; }
   .theatre { grid-template-columns: minmax(0, 1fr) 280px; }
 }
-@media (max-width: 960px) {
-  .panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* tablets and small laptops (768–1259 px wide): the desktop arrangement, compacted so it fits the window without
+   scrolling: the four gauges stay on one row, the news stays beside the map, the dock stays one row under them */
+@media (min-width: 768px) and (max-width: 1259px) {
+  .gauge { padding: 6px 9px 7px; row-gap: 4px; }
+  .g-name { font-size: 11px; letter-spacing: .03em; }
+  .g-sub { font-size: 11px; }
+  .g-val { font-size: 24px; }
+  .g-delta { font-size: 11.5px; }
+  .g-chip { font-size: 10.5px; padding: 0 4px; }
+  .g-info { width: 24px; height: 24px; font-size: 13px; }
+  .mapwrap { min-height: 150px; }
+  .dock { flex-wrap: nowrap; padding: 8px 12px; }
+  .dock p { flex: 1 1 auto; min-width: 0; font-size: 14px; line-height: 1.35; }
+  .dock-btns { flex: none; flex-wrap: nowrap; }
+  .dock .btn-primary { font-size: 18px; padding: 9px 14px; }
+}
+@media (min-width: 768px) and (max-width: 960px) {
+  .g-alerts { display: none; }
+  .g-line { gap: 5px; }
+  .g-val { font-size: 22px; }
+  .g-sub { display: none; }
+  .panel .gauge { grid-row: span 4; }
+  .g-cap { font-size: 10.5px; }
+  .theatre { grid-template-columns: minmax(0, 1fr) 260px; }
 }
 /* phones (and very short windows): the feed goes under the map; tablets keep it as a column on the right */
-@media (max-width: 767px), (max-height: 640px) {
+@media (max-width: 767px) {
+  .panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px), (max-height: 540px) {
   .decide { grid-template-columns: minmax(0, 1fr); }
   .dk-main .hand { overflow: visible; flex: none; }
   .dk-bar .dec-btns { flex-wrap: wrap; }
@@ -734,7 +759,7 @@ body.ended { overflow: auto; }
 }
 /* short but wide windows (a laptop at 125% zoom): the page scrolls, but the decisions keep the map's place and
    height, with the threats beside the cards and the cards scrolling inside, so the page does not grow */
-@media (max-height: 640px) and (min-width: 768px) {
+@media (max-height: 540px) and (min-width: 768px) {
   .decide { grid-template-columns: minmax(0, 1fr) 240px; height: max(52vh, 300px); }
   .dk-main .hand { overflow: auto; flex: 1; }
   .dk-bar { position: static; }
