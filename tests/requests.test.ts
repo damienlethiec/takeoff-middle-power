@@ -62,6 +62,11 @@ describe('request content', () => {
     }
   });
 
+  it('one convention for sides: the right answer goes along with the request, the left one refuses or puts it off', () => {
+    const wrong = REQUESTS.filter((r) => r.right.stance !== 'accept' || r.left.stance !== 'refuse').map((r) => r.id);
+    expect(wrong).toEqual([]);
+  });
+
   it('every answer costs something visible, and the two answers of a card differ', () => {
     const free = REQUESTS.flatMap((r) => [[r.left, r.right], [r.right, r.left]].filter(([a, b]) => !costs(a, b)).map(([a]) => `${r.id}: ${a.label}`));
     expect(free).toEqual([]);

@@ -142,6 +142,9 @@ export interface Condition {
 export interface Answer {
   /** ≤ 5 words */
   label: string;
+  /** Does this answer go along with the request ('accept') or refuse it / put it off ('refuse')?
+   *  Convention: the right answer accepts, the left one refuses (tests/requests.test.ts enforces it). */
+  stance: 'accept' | 'refuse';
   effects: ReqEffects;
   /** flags set by this answer (protections and follow-ups) */
   set?: string[];

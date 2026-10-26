@@ -389,7 +389,7 @@ export const SOCIAL_BY_ID: Record<string, SocialEventDef> = Object.fromEntries(S
 export const WORKER_ANSWERS: { id: string; side: 'left' | 'right' }[] = [
   { id: 'lea_retrain', side: 'right' },
   { id: 'un_agent_tax', side: 'right' },
-  { id: 'un_strike', side: 'left' },
+  { id: 'un_strike', side: 'right' },
 ];
 
 /** The kind of a social event in words (the feed's label, the map's list). */

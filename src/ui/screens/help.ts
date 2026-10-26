@@ -1,4 +1,4 @@
-// Help: the rules in five lines, the keyboard shortcuts, the tutorial switch and every tip.
+// Help: the rules in six lines, the keyboard shortcuts, the tutorial switch and every tip.
 
 import { HELP } from '../../data/copy';
 import { tipHtml } from '../coach';

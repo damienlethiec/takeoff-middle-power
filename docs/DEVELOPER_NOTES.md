@@ -59,6 +59,10 @@ The job shocks also show in the feed and on the map as a social item with the jo
 
 **Oversight** (to read leaks): AI Office 2, each inspection level 1, an audit 1. Leak levels in order: 1, 1, 2, 2, 3, 3. A leak's text says whether the labs are overconfident (estimate − truth ≥ 6) or not.
 
+## Requests: which side means yes
+
+One convention for every request (26 Oct): **right goes along with the request, left refuses it or puts it off**. Each answer declares it (`stance: 'accept'` on `right`, `stance: 'refuse'` on `left`) and `tests/requests.test.ts` fails otherwise. When the request offers two courses ("Expose them publicly, or deal with it quietly?"), the one the character asks for first, or plainly wants, is the accepting one. Adopting it swapped the sides of 21 cards (each answer kept its effects and label) and reworded Léa's AI-friend question so that "yes" means the age limit she wants. Effects did not change, but the strategies that pick a side blindly did: quick sim (100 games a strategy) passive (always left, now always refusing) 0% → 0% good, random 22% → 16%, saver 60% → 59%; thoughtful, cooperation-only, home-first and advised unchanged; every target still passes.
+
 ## Previews, the heading line and the advisor
 
 - `preview(s, picks)` plays the cards on a copy whose truth is replaced by the estimate, so a preview never depends on the hidden value (tested). After a real play, the estimate may differ from the preview when a narrower margin pulls it toward the truth: that is information the player earned.
