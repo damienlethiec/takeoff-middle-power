@@ -1,18 +1,20 @@
-// "What is a race?": the five worlds in a few lines each, a small diagram of how the game picks one
-// (US–China cooperation zones if AI tips, Europe's AI badge if it stalls), what decides each, and sources.
+// "Why?" (from the line under the gauges): what the world you are heading for means and how to change course,
+// then the five worlds in a few lines each, a small diagram of how the game picks one (US–China cooperation
+// zones if AI tips, Europe's AI badge if it stalls), what decides each, and sources.
 
 import { GAUGE_LABEL } from '../../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../../data/endings';
 import { SOURCES } from '../../data/sources';
 import { TUNING as T } from '../../data/tuning';
-import type { WorldId } from '../../engine/types';
+import type { HeadingView, WorldId } from '../../engine/types';
 import { esc, link } from '../format';
 import { openModal } from '../modal';
-import { worldChip } from '../outlook';
+import { statusOf, worldChip } from '../outlook';
 
 const ORDER: WorldId[] = ['pause', 'race', 'rupture', 'plateau_open', 'plateau_labs'];
 
-export async function showWorlds(current: WorldId): Promise<void> {
+/** With `h` (where the world is heading now), the dialog opens on that world and how to change course. */
+export async function showWorlds(current: WorldId, h?: HeadingView): Promise<void> {
   const here = (w: WorldId) => (w === current ? ' here' : '');
   const youAreHere = (w: WorldId) => (w === current ? '<em class="wd-here">you are heading here</em>' : '');
   const z = T.zones;
@@ -38,10 +40,19 @@ export async function showWorlds(current: WorldId): Promise<void> {
       <p class="muted small">To end well: ${esc(GAUGE_LABEL[t.decides])} ${t.target} or more, and ${esc(GAUGE_LABEL[t.net])} at least ${t.floor}. Good ending: <i>${esc(ENDING_BY_ID[d.good].title)}</i>; otherwise <i>${esc(ENDING_BY_ID[d.bad].title)}</i>.</p>
     </li>`;
   }).join('');
+  const now = h
+    ? `<section class="wd-now" aria-labelledby="wd-now-h">
+         <h3 id="wd-now-h">${h.plateau ? 'If AI stalls, you are heading for' : 'If AI tipped now, you would be in'} ${worldChip(h.world, h.name)}</h3>
+         <p>${esc(h.meaning)} ${esc(WORLDS[h.world].explain)}</p>
+         <p>To end well here: ${esc(h.decides.label)} must reach ${h.decides.bar} (you: ${esc(h.decides.you)}, ${statusOf(h.decides)}), and ${esc(h.net.label)} must stay at ${h.net.bar} or more (you: ${esc(h.net.you)}, ${statusOf(h.net)}).</p>
+         ${h.alt ? `<p class="wd-alt"><b>Change course:</b> ${esc(h.alt.text)}</p>` : ''}
+       </section>`
+    : '';
   const m = openModal(
-    `<div class="dateline">The five worlds</div>
+    `<div class="dateline">${h ? 'Why this world' : 'The five worlds'}</div>
      <h2>Where the world can go</h2>
      <p class="why">The game ends when AI reaches the tipping point, or in late 2032. What the world looks like then decides how hard a good ending is: the calmer the world, the lower the bar.</p>
+     ${now}
      ${diagram}
      <ul class="worlds-list">${items}</ul>
      <p class="muted small">Built on ${link(SOURCES.cfg)} (the five worlds and their ten endings) and ${link(SOURCES.ai2027)}. Which world follows from which gauge is the game’s reading of these scenarios.</p>

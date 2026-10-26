@@ -1,14 +1,17 @@
-// The "If AI tipped now" outlook (v4): a column left of the map on wide screens, a band above it below ~1200 px. Left: the world chip and what it means, with a button
-// that explains the five worlds. Middle: "To end well here", the deciding gauge against its target and the
-// safety net against its floor, each with a mini bar (for AI safety, the reported value and the band below it) and a status word.
-// Right: "Or change course", the nearest other world when it is within reach and would help.
-// On small screens the band collapses to the chip and one line, with a button to expand it.
-// Everything shown comes from heading(s): public values only.
+// Where the world is heading (v4, simplest form). No column and no band: the targets are drawn on the gauges
+// themselves ("goal 75 · short", "floor 55 · on track", see app.ts), and one line under the gauges names the
+// world and what decides it: "Heading for a Race: AI safety must reach 75." with a Why? button (the five worlds
+// dialog: what this world means, the five worlds, how to change course). On a plateau, Europe's AI badge
+// (which picks the plateau) sits next to the line as a small chip. While the player selects cards, the line
+// previews the selection ("Race → Pause", "short → on track").
+// Everything shown comes from heading(s) and preview(s): public values only.
 
 import type { HeadingView, OutlookGauge, WorldId } from '../engine/types';
 import { esc } from './format';
 
-const STATUS: Record<OutlookGauge['met'], string> = { yes: 'on track', no: 'short', maybe: 'uncertain' };
+/** A target's status, from the low end for AI safety ("could be as low as" must reach it). */
+export type Status = 'on track' | 'short';
+export const statusOf = (g: OutlookGauge): Status => (g.low >= g.bar ? 'on track' : 'short');
 
 /** One small icon per world, drawn in the zone's colour (never the only cue: the name is always written). */
 export const WORLD_ICON: Record<WorldId, string> = {
@@ -21,61 +24,29 @@ export const WORLD_ICON: Record<WorldId, string> = {
 
 export const worldChip = (world: WorldId, name: string) => `<span class="wchip w-${world}">${WORLD_ICON[world]}<span>${esc(name)}</span></span>`;
 
-/** "What is a race?", "What is a plateau?" */
-export function whatIs(h: HeadingView): string {
-  const noun = h.plateau ? 'plateau' : h.name.toLowerCase();
-  return `What is a${/^[aeiou]/.test(noun) ? 'n' : ''} ${noun}?`;
-}
-
-function mini(g: OutlookGauge, kind: 'goal' | 'floor'): string {
-  const pct = (x: number) => `${Math.max(0, Math.min(100, x))}%`;
-  const band = g.high > g.low ? `<i class="mb-band" style="left:${pct(g.low)};width:${pct(g.high - g.low)}"></i>` : '';
-  return `<span class="mbar k-${g.key}" aria-hidden="true">${band}<i class="mb-dot" style="left:${pct(g.value)}"></i><i class="mb-bar ${kind}" style="left:${pct(g.bar)}"></i></span>`;
-}
-
-const hm = (m: OutlookGauge['met']) => `<span class="hm ${m}">${STATUS[m]}</span>`;
-
-/** One goal line. With `p` (the same gauge before the selected cards), it shows the change: "you 57 → 65", "short → on track". */
-function row(g: OutlookGauge, kind: 'goal' | 'floor', p?: OutlookGauge): string {
-  const words = kind === 'goal' ? `${g.label} ${g.bar} or more` : `${g.label} at least ${g.bar}`;
-  const was = p && p.key === g.key && p.bar === g.bar ? p : null;
-  const youMoved = was && was.you !== g.you;
-  const metMoved = was && was.met !== g.met;
-  return `<li class="ol-row${youMoved || metMoved ? ' moved' : ''}">
-    <span class="ol-what">${kind === 'goal' ? '' : '<span class="ol-net">Safety net</span> '}${esc(g.label)} <b class="num">${g.bar}</b></span>
-    ${mini(g, kind)}
-    <span class="ol-you">you ${youMoved ? `<span class="num">${esc(was.you)}</span> → ` : ''}<b class="num">${esc(g.you)}</b></span>
-    <span class="hm-wrap">${metMoved ? `${hm(was.met)} → ` : ''}${hm(g.met)}</span>
-    <span class="sr-only">${esc(words)}: you ${youMoved ? `would have ${esc(g.you)} instead of ${esc(was.you)}` : `have ${esc(g.you)}`}, ${metMoved ? `${STATUS[was.met]} would become ${STATUS[g.met]}` : STATUS[g.met]}.</span>
-  </li>`;
-}
+/** "a Race", "a Pause", "a Plateau, big labs" */
+const a = (name: string) => `${/^[AEIOU]/.test(name) ? 'an' : 'a'} ${name}`;
 
 /**
- * The outlook's inner HTML (the section, its badge and its toggle are built once by the app). With `before`
- * (decisions: `h` is the outlook if the selected cards are confirmed), it shows what would change.
+ * The line under the gauges. `h` is where the world is heading (or would head, if the selected cards are
+ * confirmed: then `before` is where it heads now). Returns the visible HTML and the same in words.
  */
-export function outlookHtml(h: HeadingView, before?: HeadingView): string {
-  const one = `${h.decides.label} ${h.decides.bar}: you ${h.decides.you}, ${STATUS[h.decides.met]}`;
-  const turned = before && before.world !== h.world;
-  return `
-    <div class="ol-col ol-world">
-      <h2 class="ol-k" id="ol-h">${h.plateau ? 'If AI stalls' : 'If AI tipped now'}${before ? '<span class="ol-if"> · if you confirm</span>' : ''}</h2>
-      <p class="ol-chipline">${turned ? `${worldChip(before.world, before.name)}<span class="ol-arrow" aria-hidden="true">→</span><span class="sr-only"> would turn to </span>` : ''}${worldChip(h.world, h.name)}<span class="ol-one" aria-hidden="true">${esc(one)}</span></p>
-      <p class="ol-mean">${esc(h.meaning)}</p>
-    </div>
-    <div class="ol-col ol-goal">
-      <h3 class="ol-k">To end well here</h3>
-      <ul class="ol-rows">${row(h.decides, 'goal', before?.decides)}${row(h.net, 'floor', before?.net)}</ul>
-    </div>
-    ${
-      h.alt
-        ? `<div class="ol-col ol-alt"><h3 class="ol-k">Or change course</h3><p>${worldChip(h.alt.world, h.alt.name)} ${esc(h.alt.text)}</p></div>`
-        : ''
-    }
-    <p class="ol-col ol-more"><button type="button" class="btn-link ol-whatis" data-worlds>${esc(whatIs(h))}</button></p>`;
+export function headingLineHtml(h: HeadingView, before?: HeadingView): { html: string; words: string } {
+  const turned = !!before && before.world !== h.world;
+  const d = h.decides;
+  const was = before && before.decides.key === d.key ? before.decides : null;
+  const st = statusOf(d);
+  const stWas = was ? statusOf(was) : null;
+  const stMoved = !!before && (!was || stWas !== st);
+  const lead = h.plateau ? 'AI may stall. Heading for' : 'Heading for';
+  const chips = turned ? `${worldChip(before!.world, before!.name)}<span class="hl-arrow" aria-hidden="true">→</span>${worldChip(h.world, h.name)}` : worldChip(h.world, h.name);
+  const status = `<span class="hm ${st === 'on track' ? 'yes' : 'no'}">${stMoved && stWas ? `${stWas} → ` : ''}${st}</span>`;
+  const html = `${before ? '<span class="hl-if">If you confirm:</span> ' : ''}${esc(lead)} ${chips}<span class="hl-colon">:</span> <span class="hl-goal">${esc(d.label)} must reach <b class="num">${d.bar}</b> ${status}</span>`;
+  const words = `${before ? 'If you confirm: ' : ''}${lead} ${turned ? `${a(before!.name)} turning into ${a(h.name)}` : a(h.name)}: ${d.label} must reach ${d.bar}, ${stMoved && stWas ? `${stWas} would become ${st}` : st}. Safety net: ${h.net.label} at least ${h.net.bar}, ${statusOf(h.net)}.`;
+  return { html, words };
 }
 
-/** Europe's AI badge (v4: in the outlook, no longer on the map): Open or Dependent, a button that explains it. */
+/** Europe's AI badge, a small chip next to the line on a plateau: Open or Dependent, a button that explains it. */
 export function badgeHtml(ai: 'open' | 'dependent', from?: 'open' | 'dependent'): string {
   const word = (x: string) => (x === 'open' ? 'Open' : 'Dependent');
   const moved = from && from !== ai ? `<span class="badge-was">${word(from)} →</span> ` : '';

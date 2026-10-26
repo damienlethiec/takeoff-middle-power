@@ -1,4 +1,4 @@
-// The game controller (v4). It builds the main screen (header, gauges, outlook, map, feed, dock), runs each
+// The game controller (v4). It builds the main screen (header, gauges with their targets, the line on where the world is heading, map, feed, dock), runs each
 // round's six months on the map, stops for Breaking news and requests, waits for the player ("Make my
 // decisions"), shows the consequences on the gauges and in the feed, then starts the next six months
 // directly (the player can pause), and ends with the end screen.
@@ -22,7 +22,7 @@ import { showIntro } from './screens/intro';
 import { showLetters } from './screens/letters';
 import { showWorlds } from './screens/worlds';
 import { showRequest } from './screens/request';
-import { badgeHtml, outlookHtml } from './outlook';
+import { badgeHtml, headingLineHtml, statusOf } from './outlook';
 import { Feed } from './feed';
 
 const ROUND_MS = 8000;
@@ -559,7 +559,7 @@ export class App {
     const tip = this.e.gauges(this.s).find((g) => g.key === 'aiPower')?.target ?? 80;
     const gauge = (k: GaugeKey, coach: string) => `
       <section class="gauge g-${k}" data-key="${k}" data-coach="${coach}" aria-labelledby="gn-${k}">
-        <div class="g-top"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-val num" aria-hidden="true"></span><span class="g-after num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
+        <div class="g-top"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-val num" aria-hidden="true"></span>${k === 'cooperation' ? '<span class="g-zone" aria-hidden="true"></span>' : ''}<span class="g-after num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
           <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(GAUGE_LABEL[k])}" aria-describedby="gd-${k}">?</button></div>
         <div class="g-subrow" aria-hidden="true"><p class="g-sub">${esc(GAUGE_SUB[k])}</p><svg class="spark" viewBox="0 0 48 16" preserveAspectRatio="none"><title>History since 2027</title><polyline points=""/></svg></div>
         <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? `<i class="g-tipzone"></i><span class="g-tick" style="left:${tip}%">${tip}</span>` : ''}<i class="g-band"></i><i class="g-fill"></i><i class="g-ghost" hidden></i><i class="g-target"></i><span class="g-target-l"></span></div>
@@ -593,10 +593,12 @@ export class App {
           <h2 class="sr-only" id="gauges-h">Gauges</h2>
           ${gauge('aiPower', 'clock')}${gauge('confidence', 'confidence')}${gauge('cooperation', 'cooperation')}${gauge('cohesion', 'cohesion')}
         </section>
-        <section class="outlook collapsed" data-coach="heading" aria-labelledby="ol-h" id="outlook">
-          <div class="ol-body" id="ol-body"></div>
-          <div class="ol-badge" id="ol-badge"></div>
-          <button type="button" class="ol-toggle btn-quiet small" aria-expanded="false" aria-controls="outlook">More<span class="sr-only"> about where the world is heading</span></button>
+        <section class="heading-line" id="heading-line" data-coach="heading" aria-labelledby="hl-h">
+          <h2 class="sr-only" id="hl-h">Where the world is heading</h2>
+          <p class="hl-text" id="hl-text" aria-hidden="true"></p>
+          <p class="sr-only" id="hl-words"></p>
+          <span class="hl-badge" id="hl-badge"></span>
+          <button type="button" class="btn-link hl-why" data-worlds aria-label="Why? What this world means, the five worlds, and how to change course">Why?</button>
           <p class="heading-why" id="heading-why"></p>
         </section>
         <section class="theatre" aria-labelledby="map-h">
@@ -626,16 +628,10 @@ export class App {
     };
     $('#play', this.root).addEventListener('click', () => this.setRunning(!this.running));
     $('#help-btn', this.root).addEventListener('click', () => this.openHelp());
-    $('#outlook', this.root).addEventListener('click', (ev) => {
-      if ((ev.target as HTMLElement).closest('[data-worlds]')) this.openFromMap(() => showWorlds(this.e.heading(this.s).world));
+    $('#heading-line', this.root).addEventListener('click', (ev) => {
+      const h = this.e.heading(this.s);
+      if ((ev.target as HTMLElement).closest('[data-worlds]')) this.openFromMap(() => showWorlds(h.world, h));
       if ((ev.target as HTMLElement).closest('[data-badge]')) this.openFromMap(() => showBadge(this.s.europeAi, this.s.europeAiLocked));
-    });
-    const tog = $<HTMLButtonElement>('.ol-toggle', this.root);
-    tog.addEventListener('click', () => {
-      const sec = $('#outlook', this.root);
-      const open = sec.classList.toggle('collapsed') === false;
-      tog.setAttribute('aria-expanded', String(open));
-      tog.firstChild!.textContent = open ? 'Less' : 'More';
     });
     this.feed = new Feed($('#feed', this.root), { onSelect: (it) => this.showOnMap(it) });
     this.root.querySelectorAll<HTMLButtonElement>('.speed button').forEach((b) => b.addEventListener('click', () => this.setSpeed(Number(b.dataset.speed) as 1 | 2)));
@@ -749,6 +745,7 @@ export class App {
   private renderGauges(flash = false) {
     if (!this.s) return;
     const views = this.e.gauges(this.s);
+    const hd = this.e.heading(this.s);
     const start = this.s.roundStart;
     const sig = KEYS.map((k) => Math.round(this.shown[k])).join() + Math.round(this.shown.margin) + views.map((g) => `${g.target}${g.targetKind}${g.eta}${g.markers.map((m) => m.text).join()}`).join();
     if (sig === this.lastSig && !flash) return;
@@ -786,15 +783,24 @@ export class App {
         band.style.width = `${Math.min(100, this.shown.confidence) - Math.max(0, this.shown.confidence - this.shown.margin)}%`;
         band.hidden = false;
       } else band.hidden = true;
-      const tg = box.querySelector<HTMLElement>('.g-target')!;
-      const tl = box.querySelector<HTMLElement>('.g-target-l')!;
-      tg.hidden = tl.hidden = g.target === null;
-      if (g.target !== null) {
-        tg.style.left = pct(g.target);
-        tl.style.left = pct(g.target);
-        tg.className = `g-target ${g.targetKind}`;
-        tl.textContent = g.targetKind === 'tipping' ? '' : `${g.targetKind === 'goal' ? 'goal' : 'floor'} ${g.target}`;
-        tl.hidden = g.targetKind === 'tipping';
+      if (g.key === 'aiPower') {
+        const tg = box.querySelector<HTMLElement>('.g-target')!;
+        tg.hidden = g.target === null;
+        if (g.target !== null) {
+          tg.style.left = pct(g.target);
+          tg.className = 'g-target tipping';
+        }
+        box.querySelector<HTMLElement>('.g-target-l')!.hidden = true;
+      }
+      if (g.key === 'cooperation') {
+        // the current zone, highlighted and named on the gauge
+        const z = v >= 60 ? 'p' : v >= 30 ? 'a' : 'r';
+        const name = { p: 'Pause', a: 'Race', r: 'Rupture' }[z];
+        const zEl = box.querySelector<HTMLElement>('.g-zone')!;
+        if (zEl.textContent !== name) zEl.textContent = name;
+        zEl.className = `g-zone z-${z}`;
+        for (const x of ['r', 'a', 'p']) box.querySelector(`.zone-${x}`)?.classList.toggle('on', x === z);
+        box.querySelectorAll<HTMLElement>('.g-zones span').forEach((sp, i) => sp.classList.toggle('on', ['r', 'a', 'p'][i] === z));
       }
       if (g.key === 'aiPower') {
         box.classList.toggle('near', v >= 70);
@@ -814,7 +820,8 @@ export class App {
             : `${v} out of 100.`;
       const zone = g.key === 'cooperation' ? ` Zone: ${v >= 60 ? 'Pause' : v >= 30 ? 'Race' : 'Rupture'}.` : '';
       const sub = ` ${g.sub}.`;
-      const tgt = g.target !== null && g.key !== 'aiPower' ? ` ${g.targetKind === 'goal' ? 'Goal' : 'Floor'} for the world you are heading to: ${g.target}.` : '';
+      const og = g.key === hd.decides.key ? hd.decides : g.key === hd.net.key ? hd.net : null;
+      const tgt = og ? ` ${og === hd.decides ? 'Goal' : 'Floor'} for the world you are heading to: ${og.bar}, ${statusOf(og)}.` : '';
       const ch = delta ? ` ${delta > 0 ? 'Up' : 'Down'} ${Math.abs(delta)} this round.` : '';
       const desc = `${words}${g.key === 'aiPower' ? '' : sub}${zone}${tgt}${ch}${g.markers.length ? ` ${g.markers.map((m) => m.text).join('. ')}.` : ''}`;
       const d = box.querySelector<HTMLElement>(`#gd-${g.key}`)!;
@@ -825,14 +832,47 @@ export class App {
         box.classList.add('flash');
       }
     }
+    this.renderTargets();
     this.map?.update({ aiPower: this.shown.aiPower, cooperation: this.shown.cooperation, coalition: this.s.coalition, europeAi: this.s.europeAi });
   }
 
-  /** The decisions' preview: the selected cards' effect on the real gauges and in the outlook (public values). */
+  /**
+   * The targets drawn on the gauges: on the gauge that decides the world, a tick "goal 75 · short"; on the
+   * safety net, "floor 55 · on track" (AI safety's status uses its low end). While cards are selected, the ticks
+   * show where the selection would take them, dashed.
+   */
+  private renderTargets() {
+    const now = this.e.heading(this.s);
+    const pv = this.pv?.ok ? this.pv : null;
+    const h = pv ? pv.outlookAfter : now;
+    const pct = (x: number) => `${Math.max(0, Math.min(100, x))}%`;
+    for (const k of KEYS) {
+      if (k === 'aiPower') continue;
+      const box = this.root.querySelector<HTMLElement>(`.gauge[data-key="${k}"]`);
+      if (!box) continue;
+      const tg = box.querySelector<HTMLElement>('.g-target')!;
+      const tl = box.querySelector<HTMLElement>('.g-target-l')!;
+      const role = h.decides.key === k ? 'goal' : h.net.key === k ? 'floor' : null;
+      tg.hidden = tl.hidden = !role;
+      if (!role) continue;
+      const og = role === 'goal' ? h.decides : h.net;
+      const was = pv ? (now.decides.key === k ? now.decides : now.net.key === k ? now.net : null) : null;
+      const st = statusOf(og);
+      const moved = !!pv && (!was || was.bar !== og.bar || statusOf(was) !== st);
+      tg.style.left = tl.style.left = pct(og.bar);
+      tg.className = `g-target ${role}${moved ? ' pv' : ''}`;
+      tl.className = `g-target-l${og.bar >= 70 ? ' end' : ''}${moved ? ' pv' : ''}`;
+      const html = `${role} ${og.bar} · ${was && moved && statusOf(was) !== st ? `${statusOf(was)} → ` : ''}<b class="st ${st === 'on track' ? 'yes' : 'no'}">${st}</b>`;
+      if (tl.innerHTML !== html) tl.innerHTML = html;
+    }
+  }
+
+  /** The decisions' preview: the selected cards' effect on the real gauges, their targets and the heading line (public values). */
   private pv: PreviewView | null = null;
   private setPreview(pv: PreviewView | null) {
     this.pv = pv;
     this.renderGaugePreview();
+    this.renderTargets();
     this.renderHeading();
   }
 
@@ -850,6 +890,10 @@ export class App {
       const parts: string[] = [];
       if (i) parts.push(`<span class="${tone(i.tone)}">→ ${esc(i.after)}</span>`);
       if (m) parts.push(`<span class="${tone(m.tone)}">low → ${esc(m.after)}</span>`);
+      if (k === 'cooperation' && i) {
+        const zone = (x: number) => (x >= 60 ? 'Pause' : x >= 30 ? 'Race' : 'Rupture');
+        if (zone(Number(i.before)) !== zone(Number(i.after))) parts.push(`<span class="${tone(i.tone)}">${zone(Number(i.after))}</span>`);
+      }
       after.innerHTML = parts.join(' ');
       box.classList.toggle('previewing', parts.length > 0);
       const v = i ? Number.parseFloat(i.after) : NaN;
@@ -863,35 +907,33 @@ export class App {
 
   private renderHeading() {
     const now = this.e.heading(this.s);
-    // while the player selects cards, the outlook shows where they would take the world
+    // while the player selects cards, the line shows where they would take the world
     const pv = this.pv?.ok ? this.pv : null;
     const h = pv ? pv.outlookAfter : now;
-    const body = $('#ol-body', this.root);
-    const html = outlookHtml(h, pv ? now : undefined);
-    if (body.dataset.sig !== html) {
-      const changed = !pv && !!body.dataset.sig && body.dataset.sig2 !== h.text;
-      body.dataset.sig = html;
-      body.dataset.sig2 = h.text;
-      // keep focus on the "What is…" button across re-renders
-      const hadFocus = body.contains(document.activeElement);
-      body.innerHTML = html;
-      if (hadFocus) body.querySelector<HTMLElement>('[data-worlds]')?.focus({ preventScroll: true });
+    const line = headingLineHtml(h, pv ? now : undefined);
+    const text = $('#hl-text', this.root);
+    if (text.dataset.sig !== line.html) {
+      const changed = !pv && !!text.dataset.sig && text.dataset.world !== h.world;
+      text.dataset.sig = line.html;
+      text.dataset.world = h.world;
+      text.innerHTML = line.html;
+      $('#hl-words', this.root).textContent = line.words;
       if (changed) {
-        const sec = $('#outlook', this.root);
+        const sec = $('#heading-line', this.root);
         sec.classList.remove('flash');
         void sec.offsetWidth;
         sec.classList.add('flash');
       }
     }
     $('#heading-why', this.root).textContent = this.headingWhy;
-    // Europe's AI badge lives in the outlook (v4)
-    const badge = $('#ol-badge', this.root);
+    // Europe's AI picks the world when AI stalls: on a plateau, its badge sits next to the line
+    const badge = $('#hl-badge', this.root);
     const ai = pv?.impacts.some((i) => i.key === 'europeAi') ? (this.s.europeAi === 'open' ? 'dependent' : 'open') : this.s.europeAi;
-    const bsig = `${this.s.europeAi}>${ai}`;
+    const bsig = h.plateau || now.plateau ? `${this.s.europeAi}>${ai}` : '';
     if (badge.dataset.v !== bsig) {
       const hadFocus = badge.contains(document.activeElement);
       badge.dataset.v = bsig;
-      badge.innerHTML = badgeHtml(ai, this.s.europeAi);
+      badge.innerHTML = bsig ? badgeHtml(ai, this.s.europeAi) : '';
       if (hadFocus) badge.querySelector<HTMLElement>('[data-badge]')?.focus({ preventScroll: true });
     }
   }

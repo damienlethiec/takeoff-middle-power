@@ -222,6 +222,16 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .g-zones { display: grid; grid-template-columns: 30fr 30fr 40fr; font-family: var(--f-data); font-size: 10.5px; color: var(--mute); margin-top: 3px; }
 .g-zones span:nth-child(2) { text-align: center; }
 .g-zones span:nth-child(3) { text-align: right; }
+/* the current zone, highlighted and named */
+.g-zones span.on { color: var(--ink); font-weight: 700; }
+.g-bar i[class^="zone-"].on { box-shadow: inset 0 0 0 2px var(--ink); }
+.g-zone { font-family: var(--f-data); font-size: 12px; font-weight: 700; border: 1px solid currentColor; border-radius: 4px; padding: 0 5px; align-self: center; }
+.g-zone.z-p { color: var(--align); } .g-zone.z-a { color: var(--cap); } .g-zone.z-r { color: var(--crit-text); }
+/* targets: "goal 75 · short", "floor 55 · on track"; dashed while previewing a selection */
+.g-target-l.end { transform: translateX(-88%); }
+.g-target-l .st.yes { color: var(--good); } .g-target-l .st.no { color: var(--crit-text); }
+.g-target.pv { outline: 1px dashed var(--align); outline-offset: 1px; }
+.g-target-l.pv { color: var(--align); }
 .g-cooperation:has(.g-target:not([hidden])) .g-zones { margin-top: 16px; }
 .gauge:has(.g-target-l:not([hidden])) .g-markers:empty { margin-bottom: 12px; }
 .g-markers { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
@@ -230,79 +240,33 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .g-markers li.no { color: var(--crit-text); }
 .g-markers li.yes { color: var(--good); }
 .g-aiPower .g-val { color: var(--cap); }
-/* the "If AI tipped now" band */
-.outlook { position: relative; background: var(--deck-2); border: 1px solid var(--align); border-radius: 12px; min-width: 0; }
-.outlook.flash { animation: gflash 1.2s ease; }
-.ol-body { display: contents; }
-.ol-col { min-width: 0; }
-.ol-more { margin: 0; }
-.ol-badge { display: flex; }
-.outlook .badge-btn { transform: none; position: static; }
-.ol-k { margin: 0 0 3px; font-family: var(--f-data); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
-.ol-chipline { margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.ol-one { display: none; font-size: 13px; }
-.ol-mean { margin: 3px 0 0; font-size: 13px; line-height: 1.35; }
-.ol-whatis { padding: 0 2px; font-size: 13px; color: var(--align); }
+/* where the world is heading: one line under the gauges (v4, simplest form) */
+.heading-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 5px 12px; background: var(--deck-2); border: 1px solid var(--rule); border-radius: 10px; min-width: 0; }
+.heading-line.flash { animation: gflash 1.2s ease; }
+.hl-text { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 14px; line-height: 1.3; }
+.hl-text .wchip { font-size: 14px; padding: 0 8px 0 5px; }
+.hl-colon { margin-left: -4px; }
+.hl-arrow { color: var(--mute); }
+.hl-if { color: var(--align); font-weight: 600; }
+.hl-goal b { font-weight: 700; }
+.hl-badge:empty { display: none; }
+.heading-line .badge-btn { transform: none; position: static; flex-direction: row; gap: 6px; align-items: baseline; min-height: 32px; padding: 2px 8px; }
+.hl-why { padding: 0 2px; font-size: 13px; color: var(--align); margin-left: auto; }
+.heading-line .heading-why { flex: 1 1 100%; margin: 0; }
 .wchip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 10px 1px 7px; border: 1.5px solid currentColor; font-family: var(--f-display); font-weight: 800; font-size: 17px; letter-spacing: .04em; line-height: 1.3; background: color-mix(in srgb, currentColor 14%, transparent); white-space: nowrap; }
 .wchip .ico { width: 15px; height: 15px; }
 .w-pause { color: var(--align); }
 .w-race { color: var(--cap); }
 .w-rupture { color: var(--crit-text); }
 .w-plateau_open, .w-plateau_labs { color: var(--concern); }
-.ol-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
-.ol-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px auto auto; gap: 8px; align-items: center; font-size: 13px; }
-.ol-what { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ol-net { color: var(--mute); font-size: 11.5px; }
-.ol-you { color: var(--mute); white-space: nowrap; }
-.ol-you b { color: var(--ink); font-weight: 600; }
-.mbar { position: relative; height: 8px; border-radius: 4px; background: var(--night); }
-.mb-band { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: color-mix(in srgb, var(--align) 35%, transparent); border: 1px dashed color-mix(in srgb, var(--align) 75%, transparent); }
-.mb-dot { position: absolute; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--ink); }
-.k-cohesion .mb-dot { background: var(--concern); } .k-confidence .mb-dot { background: var(--align); } .k-cooperation .mb-dot { background: var(--ink); }
-.mb-bar { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); }
-.mb-bar.floor { background: repeating-linear-gradient(var(--ink) 0 2px, transparent 2px 4px); }
-.ol-alt p { margin: 0; font-size: 13px; line-height: 1.4; }
-.ol-alt .wchip { font-size: 14px; padding: 0 8px 0 5px; margin-right: 2px; }
-.ol-toggle { display: none; }
-.outlook .heading-why { margin: 0; }
-/* wide screens: a column left of the map, its parts stacked */
-@media (min-width: 1200px) {
-  .stage { grid-template-columns: 268px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .panel { grid-column: 1 / -1; }
-  .outlook { display: flex; flex-direction: column; overflow: auto; padding: 4px 0; }
-  .ol-col, .ol-badge, .outlook .heading-why { padding: 9px 14px; }
-  .ol-col + .ol-col, .ol-badge, .outlook .heading-why { border-top: 1px solid var(--rule); }
-  .ol-col.ol-more { border-top: 0; padding-top: 0; }
-  .ol-rows { gap: 8px; }
-  .ol-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "what st" "bar bar" "you you"; gap: 3px 8px; }
-  .ol-row .ol-what { grid-area: what; white-space: normal; }
-  .ol-row .hm-wrap { grid-area: st; justify-self: end; white-space: nowrap; }
-  .ol-row .mbar { grid-area: bar; }
-  .ol-row .ol-you { grid-area: you; white-space: normal; }
-  .ol-alt p { font-size: 13px; }
-  .outlook .badge-btn { flex-direction: row; gap: 8px; align-items: baseline; justify-content: flex-start; width: 100%; min-height: 40px; }
-}
-/* narrower screens: a band above the map; collapsed, one line (the world, its deciding gauge, Europe's AI, More) */
-@media (max-width: 1199.98px) {
-  .outlook { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; padding: 6px 0; }
-  .ol-world { order: 0; flex: 1 1 260px; }
-  .ol-badge { order: 1; padding: 0 8px; }
-  .ol-toggle { display: inline-flex; order: 2; margin-right: 10px; padding: 3px 9px; }
-  .ol-goal { order: 3; flex: 1 1 300px; }
-  .ol-alt { order: 4; flex: 1 1 260px; }
-  .ol-more { order: 5; flex: 1 1 100%; }
-  .outlook .heading-why { order: 6; flex: 1 1 100%; padding: 0 12px; }
-  .ol-col { padding: 0 12px; }
-  .ol-goal, .ol-alt { border-top: 1px solid var(--rule); padding-top: 6px; }
-  .ol-goal + .ol-alt { border-left: 1px solid var(--rule); }
-  .outlook.collapsed .ol-mean, .outlook.collapsed .ol-goal, .outlook.collapsed .ol-alt, .outlook.collapsed .ol-more { display: none; }
-  .outlook.collapsed .ol-one { display: inline; }
-}
 .pv-world { margin: 0 0 4px; font-size: 15px; color: var(--align); }
 .hm { display: inline-block; font-family: var(--f-data); font-size: 10.5px; border-radius: 4px; padding: 0 5px; margin-left: 2px; border: 1px solid; white-space: nowrap; }
 .hm.yes { color: var(--good); } .hm.no { color: var(--crit-text); } .hm.maybe { color: var(--warn); }
 /* the five worlds dialog */
 .modal.worlds { max-width: 680px; }
+.wd-now { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: var(--deck-2); }
+.wd-now h3 { margin: 0 0 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 16px; }
+.wd-now p { margin: 4px 0 0; }
 .wd { margin: 14px 0; display: grid; gap: 6px; }
 .wd-k { margin: 6px 0 0; font-family: var(--f-data); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--mute); }
 .wd-zones { display: grid; grid-template-columns: 30fr 30fr 40fr; gap: 4px; }
@@ -592,9 +556,6 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .g-top { min-width: 0; }
 .g-ghost { position: absolute; top: -5px; bottom: -5px; width: 0; margin-left: -1px; border-left: 3px dotted var(--ink); z-index: 1; }
 .g-ghost.good { border-left-color: var(--good); } .g-ghost.bad { border-left-color: var(--crit-text); }
-.ol-if { text-transform: none; letter-spacing: 0; color: var(--align); }
-.ol-arrow { color: var(--mute); }
-.ol-row.moved .ol-you b { color: var(--align); }
 .badge-was { font-size: 12px; color: var(--mute); }
 .overlay:has(.decision) { padding: 12px; }
 .modal.decision { max-width: 1240px; padding: 14px 18px; display: flex; flex-direction: column; margin: 0; max-height: calc(100dvh - 24px); }
@@ -803,12 +764,6 @@ body.ended { overflow: auto; }
   .g-val { font-size: 20px; }
   .g-delta { min-width: 0; font-size: 11px; }
   .g-info { width: 26px; height: 26px; }
-  .ol-goal + .ol-alt { border-left: 0; }
-  .outlook .badge-btn { padding: 2px 7px; }
-  .ol-world { flex: 1 1 0; }
-  .ol-badge { padding: 0 6px; }
-  .ol-toggle { margin-right: 8px; padding: 3px 7px; }
-  .ol-row { grid-template-columns: minmax(0, 1fr) 56px auto auto; gap: 6px; font-size: 12px; }
   .wchip { font-size: 15px; }
   .threat-btn { padding: 3px 7px 3px 4px; }
   .threat-btn .tb-txt b { font-size: 11px; }

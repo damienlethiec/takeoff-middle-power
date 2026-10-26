@@ -1,6 +1,6 @@
 // The decisions (v4, lot 2): the card grid takes the map's place on the main screen while the gauges and the
-// outlook stay in view, with a compact list of the active threats where the news feed was. Selecting cards
-// previews their effect on the real gauges and in the outlook (the app draws it, from the preview this module
+// heading line stay in view, with a compact list of the active threats where the news feed was. Selecting cards
+// previews their effect on the real gauges and the heading line (the app draws it, from the preview this module
 // hands over), so there is no separate combined-effect bar: only a Confirm row with the Influence left and
 // the preview's notes. Clicking a card toggles it (as many as Influence allows); Details opens a dialog with
 // the full proposal, the real-world example and cost, and its levels. Nothing is committed until Confirm.
@@ -17,7 +17,7 @@ export type DecisionResult = { kind: 'play'; picks: Pick[] } | { kind: 'map' };
 export interface DecisionView {
   /** Where the panel is drawn (in place of the map and the feed). */
   host: HTMLElement;
-  /** Show the selection's effect on the real gauges and in the outlook (null: no selection, clear it). */
+  /** Show the selection's effect on the real gauges, their targets and the heading line (null: no selection, clear it). */
   onPreview(pv: PreviewView | null): void;
   /** Runs once the panel is up (the tutorial's tips about Influence and the cards). */
   onOpen?: () => Promise<void>;
@@ -112,7 +112,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     <aside class="dk-side" aria-labelledby="dk-th">
       <h3 class="dk-side-h" id="dk-th">Active threats</h3>
       <div id="dk-threats"></div>
-      <p class="dk-side-note muted small">Your selection shows on the gauges above and in the outlook.</p>
+      <p class="dk-side-note muted small">Your selection shows on the gauges above and in the line under them.</p>
     </aside>`;
   host.hidden = false;
   const handEl = host.querySelector<HTMLElement>('.hand')!;
@@ -134,7 +134,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   const showPreview = () => {
     const pv = picks.length ? e.preview(s, picks) : null;
     view.onPreview(pv);
-    notesEl.innerHTML = pv ? (pv.ok ? esc(pv.notes.join(' ')) : `<span class="bad-text">${esc(pv.reason ?? '')}</span>`) : '<span class="muted">Select cards: their effect shows on the gauges and in the outlook before you confirm.</span>';
+    notesEl.innerHTML = pv ? (pv.ok ? esc(pv.notes.join(' ')) : `<span class="bad-text">${esc(pv.reason ?? '')}</span>`) : '<span class="muted">Select cards: their effect shows on the gauges, their targets and the line under them before you confirm.</span>';
     const covering = new Map<string, string>();
     for (const p of picks) {
       const c = hand.find((x) => x.id === p.id);
