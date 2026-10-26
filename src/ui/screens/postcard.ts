@@ -13,14 +13,14 @@ export async function showPostcard(l: Pick<LetterView, 'friend' | 'mood' | 'text
   const f = FRIENDS[l.friend];
   const title = letterLabel(l.friend);
   const m = openModal(
-    `<div class="pc-stamp" aria-hidden="true"><span class="pc-stamp-c">${esc(f.city)}</span><span class="pc-stamp-d">${esc(date)}</span></div>
-     <div class="pc-head">
+    `<div class="post-stamp" aria-hidden="true"><span class="post-stamp-c">${esc(f.city)}</span><span class="post-stamp-d">${esc(date)}</span></div>
+     <div class="post-head">
        ${friendPortrait(l.friend, l.mood, `${f.name}, ${MOOD_WORD[l.mood]}`)}
        <div><p class="dateline">${esc(date)} · Back home</p><h2>${esc(title)}</h2></div>
      </div>
-     <p class="pc-text">${esc(l.text)}</p>
+     <p class="post-text">${esc(l.text)}</p>
      <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">Continue <kbd>Enter</kbd></button></div>`,
-    { cls: 'postcard', overlayCls: 'postcard-ov', label: title, describedBy: '.pc-text' },
+    { cls: 'postcard', overlayCls: 'postcard-ov', label: title, describedBy: '.post-text' },
   );
   await m.result;
 }

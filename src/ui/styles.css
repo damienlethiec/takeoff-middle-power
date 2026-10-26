@@ -355,6 +355,14 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .mc-icons { display: inline-flex; gap: 2px; }
 .mc-i { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--deck-2); color: var(--c, var(--ink)); }
 .mc-i .ico { width: 14px; height: 14px; }
+/* a friend's letter: their face, with a small envelope at its corner */
+.mc-face, .mp-face { position: relative; }
+.mc-face { background: none; }
+.mc-face .friend-face { width: 22px; height: 22px; display: block; }
+.mc-face .env, .mp-face .env { position: absolute; right: -4px; bottom: -3px; display: grid; place-items: center; width: 13px; height: 13px; border-radius: 3px; background: var(--paper); color: var(--paper-ink); }
+.mc-face .env .ico, .mp-face .env .ico { width: 10px; height: 10px; }
+.mp-face { width: 18px; height: 18px; padding-top: 0; }
+.mp-face .friend-face { width: 18px; height: 18px; display: block; }
 .mc-n { font-family: var(--f-data); font-size: 12px; font-weight: 600; min-width: 1.2em; text-align: center; }
 .m-cluster.new { animation: bannerin .35s ease-out; }
 .m-cluster.calling { box-shadow: 0 0 0 3px color-mix(in srgb, var(--concern) 70%, transparent), 0 3px 10px rgba(0, 0, 0, .45); }
@@ -491,14 +499,14 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .overlay.postcard-ov { align-items: center; background: color-mix(in srgb, var(--night) 86%, transparent); }
 .modal.postcard { max-width: 600px; background: var(--paper); color: var(--paper-ink); border: 0; border-radius: 6px 6px 18px 6px; padding: 26px 28px 22px; animation: pcin .45s cubic-bezier(.2, .9, .3, 1.05); transform: rotate(-.6deg); }
 @keyframes pcin { from { opacity: 0; transform: translateY(24px) rotate(-3deg); } }
-.postcard .pc-head { display: flex; gap: 16px; align-items: center; padding-right: 92px; }
+.postcard .post-head { display: flex; gap: 16px; align-items: center; padding-right: 92px; }
 .postcard .friend-face { width: 84px; height: 84px; flex: none; }
 .postcard .dateline { color: var(--paper-mute); font-size: 11.5px; }
 .postcard h2 { margin: 4px 0 0; font-size: 30px; color: var(--paper-ink); }
-.postcard .pc-text { margin: 18px 0 0; max-width: none; font-family: var(--f-diary); font-size: 20px; line-height: 1.55; padding-top: 14px; border-top: 1px solid var(--paper-rule); }
-.postcard .pc-stamp { position: absolute; top: 18px; right: 20px; width: 78px; padding: 8px 4px; border: 2px dashed var(--paper-margin); border-radius: 4px; transform: rotate(4deg); text-align: center; font-family: var(--f-data); color: #8e3b34; line-height: 1.25; }
-.postcard .pc-stamp-c { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
-.postcard .pc-stamp-d { display: block; font-size: 10px; margin-top: 2px; }
+.postcard .post-text { color: var(--paper-ink); margin: 18px 0 0; max-width: none; font-family: var(--f-diary); font-size: 20px; line-height: 1.55; padding-top: 14px; border-top: 1px solid var(--paper-rule); }
+.postcard .post-stamp { position: absolute; top: 18px; right: 20px; width: 78px; padding: 8px 4px; border: 2px dashed var(--paper-margin); border-radius: 4px; transform: rotate(4deg); text-align: center; font-family: var(--f-data); color: #8e3b34; line-height: 1.25; }
+.postcard .post-stamp-c { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.postcard .post-stamp-d { display: block; font-size: 10px; margin-top: 2px; }
 .postcard .row-btns { justify-content: flex-end; }
 .postcard .btn-primary { background: var(--paper-ink); color: var(--paper); }
 .postcard .btn-primary:focus-visible { outline: 3px solid #8e3b34; outline-offset: 3px; }
@@ -824,7 +832,7 @@ body.ended { overflow: auto; }
   .mapwrap { aspect-ratio: 2 / 1; min-height: 0; height: auto; }
   .m-over .m-banner { display: none; }
   .m-cluster { padding: 2px 6px 2px 3px; min-height: 32px; }
-  .mc-i { width: 18px; height: 18px; } .mc-i .ico { width: 12px; height: 12px; }
+  .mc-i { width: 18px; height: 18px; } .mc-i .ico { width: 12px; height: 12px; } .mc-face .friend-face { width: 18px; height: 18px; }
   .mc-i + .mc-i { display: none; }
   .threat-btn { padding: 2px; border-radius: 50%; min-width: 44px; justify-content: center; }
   .threat-btn .tb-txt { display: none; }
@@ -928,11 +936,11 @@ body.ended { overflow: auto; }
 @media (max-width: 560px) {
   .overlay.postcard-ov { padding: 16px; }
   .modal.postcard { padding: 18px 18px 16px; transform: none; }
-  .postcard .pc-head { gap: 12px; padding-right: 64px; }
+  .postcard .post-head { gap: 12px; padding-right: 64px; }
   .postcard .friend-face { width: 60px; height: 60px; }
   .postcard h2 { font-size: 23px; }
-  .postcard .pc-text { font-size: 18px; margin-top: 14px; padding-top: 12px; }
-  .postcard .pc-stamp { top: 14px; right: 12px; width: 60px; padding: 6px 2px; }
-  .postcard .pc-stamp-c { font-size: 9px; }
-  .postcard .pc-stamp-d { font-size: 9px; }
+  .postcard .post-text { font-size: 18px; margin-top: 14px; padding-top: 12px; }
+  .postcard .post-stamp { top: 14px; right: 12px; width: 60px; padding: 6px 2px; }
+  .postcard .post-stamp-c { font-size: 9px; }
+  .postcard .post-stamp-d { font-size: 9px; }
 }
