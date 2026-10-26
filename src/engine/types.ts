@@ -626,7 +626,7 @@ export interface FeedItem {
   round: number;
   at: number;
   kind: 'headline' | 'milestone' | 'threat' | 'voice' | 'leak' | 'event' | 'lea' | 'decision' | 'request';
-  /** "Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Letter from Léa", "Your decision" */
+  /** "Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Letter from Léa, your friend in Lyon", "Your decision" */
   label: string;
   text: string;
   /** What it changed, in words ("US–China cooperation 51 → 55"). */

@@ -17,9 +17,12 @@ const VB = { x: 14, y: 0, w: 210, h: 68 };
 // The band that must always be visible, centred on the US – Europe – China axis: the US west coast to Japan,
 // the Arctic coast to the tropics (lon −127…146, lat 75…5).
 const CORE = { x0: 27.3, x1: 209.3, y0: 0.7, y1: 47.3 };
-/** When the map is taller than the core, it centres on lat 76…−20: the south fades out below the equator (no polar seas). */
-const FRAME_MID = 32;
+/** When the map is taller than the core, it centres on the US–Europe–China band (lat ~38): extra room is shared
+ *  between the Arctic sea above and the south, which fades out below the equator (the data has no Antarctica). */
+const FRAME_MID = 25;
 const FADE = { from: 53.3, to: 66.7 }; // lat −4 → −24
+/** The data stops at lat 76: the top rows fade in (lat 77 → 68) so Greenland and Canada dissolve instead of being cut. */
+const NORTH = { from: -0.5, to: 5 };
 
 type Zone = 'us' | 'eu' | 'cn' | 'uk' | 'no' | 'ca' | 'jp' | 'kr' | 'other';
 export const PARTNERS: { zone: Zone; name: string; level: number; lon: number; lat: number }[] = [
@@ -129,7 +132,8 @@ const CLUSTER_SPOT: Record<RegionId, { lon: number; lat: number }> = {
   cn: { lon: 92, lat: 46 },
 };
 const REGION_NAME: Record<RegionId, string> = { us: 'the US', eu: 'Europe', cn: 'China' };
-const KIND_WORD: Record<string, string> = { headline: 'headline', voice: 'voice', lea: 'letter from Léa', leak: 'leak', event: 'breaking story', request: 'request' };
+const REGION_TITLE: Record<RegionId, string> = { us: 'The US', eu: 'Europe', cn: 'China' };
+const KIND_WORD: Record<string, string> = { headline: 'headline', voice: 'voice', lea: 'letter from Léa, your friend in Lyon', leak: 'leak', event: 'breaking story', request: 'request' };
 
 /** One item of the current round on the map (from the news feed). */
 export interface MapEntry {
@@ -190,7 +194,7 @@ export class WorldMap {
     defs.innerHTML = `
       <pattern id="sea" width="3" height="3" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r=".17" class="sea-dot"/></pattern>
       <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>
-      <linearGradient id="south-fade" gradientUnits="userSpaceOnUse" x1="0" y1="${FADE.from}" x2="0" y2="${FADE.to}"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <linearGradient id="south-fade" gradientUnits="userSpaceOnUse" x1="0" y1="${NORTH.from}" x2="0" y2="${FADE.to}"><stop offset="0" stop-color="#262626"/><stop offset="${((NORTH.to - NORTH.from) / (FADE.to - NORTH.from)).toFixed(3)}" stop-color="#fff"/><stop offset="${((FADE.from - NORTH.from) / (FADE.to - NORTH.from)).toFixed(3)}" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
       <mask id="south-mask" maskUnits="userSpaceOnUse" x="-60" y="-60" width="360" height="220"><rect x="-60" y="-60" width="360" height="220" fill="url(#south-fade)"/></mask>`;
     el('rect', { x: -60, y: -60, width: 360, height: 220, fill: 'url(#sea)' }, svg);
     this.layers = {
@@ -275,7 +279,7 @@ export class WorldMap {
         vw = ch * aspect;
       }
       const mid = (CORE.x0 + CORE.x1) / 2;
-      // top-aligned on the core while it fits; taller, centred on the frame (Arctic sea above, faded south below)
+      // centred on the band (Arctic sea above, faded south below), never cutting the band's top
       const y0 = Math.min(CORE.y0 - 2, FRAME_MID - vh / 2);
       svg.setAttribute('viewBox', `${(mid - vw / 2).toFixed(2)} ${y0.toFixed(2)} ${vw.toFixed(2)} ${vh.toFixed(2)}`);
       this.layout();
@@ -419,7 +423,8 @@ export class WorldMap {
       b.innerHTML = `<span class="mc-icons" aria-hidden="true">${kinds
         .slice(0, 3)
         .map((k) => `<span class="mc-i k-${k}">${KIND_ICON[k]}</span>`)
-        .join('')}</span>${mine.length > 1 ? `<span class="mc-n" aria-hidden="true">${mine.length}</span>` : ''}<span class="sr-only">${esc(REGION_NAME[r])} this round: ${counts.join(', ')}. Show them</span>`;
+        .join('')}</span>${mine.length > 1 ? `<span class="mc-n" aria-hidden="true">${mine.length}</span>` : ''}<span class="sr-only">${esc(REGION_TITLE[r])} this round: ${counts.join(', ')}. Show them</span>`;
+      b.title = `${REGION_TITLE[r]} this round: ${counts.join('; ')}`;
       b.classList.toggle('new', true);
       setTimeout(() => b.classList.remove('new'), 900);
     }
@@ -521,12 +526,12 @@ export class WorldMap {
     if (!r || !this.pop) return;
     const mine = this.entries.filter((x) => x.region === r);
     this.pop.setAttribute('role', 'group');
-    this.pop.setAttribute('aria-label', `${REGION_NAME[r]} this round`);
+    this.pop.setAttribute('aria-label', `${REGION_TITLE[r]} this round`);
     this.pop.className = `m-pop p-${r}`;
-    this.pop.innerHTML = `<p class="mp-h">${esc(REGION_NAME[r].replace(/^the /, 'The '))} · this round</p><ul>${mine
+    this.pop.innerHTML = `<p class="mp-h">${esc(REGION_TITLE[r])} · this round</p><ul>${mine
       .map(
         (x) =>
-          `<li><button type="button" class="mp-item k-${x.kind === 'milestone' ? 'headline' : x.kind}" data-item="${esc(x.id)}"><span class="mp-ico" aria-hidden="true">${KIND_ICON[x.kind === 'milestone' ? 'headline' : x.kind]}</span><span class="mp-b"><span class="mp-k">${esc(x.label)}</span><span class="mp-t">${esc(x.text)}</span></span><span class="sr-only">${x.kind === 'leak' ? ': read it' : ': show in the news'}</span></button></li>`,
+          `<li><button type="button" class="mp-item k-${x.kind === 'milestone' ? 'headline' : x.kind}" data-item="${esc(x.id)}"${x.kind === 'lea' ? ` title="${esc(x.label)}"` : ''}><span class="mp-ico" aria-hidden="true">${KIND_ICON[x.kind === 'milestone' ? 'headline' : x.kind]}</span><span class="mp-b"><span class="mp-k">${esc(x.label)}</span><span class="mp-t">${esc(x.text)}</span></span><span class="sr-only">${x.kind === 'leak' ? ': read it' : ': show in the news'}</span></button></li>`,
       )
       .join('')}</ul>`;
     this.placePop();
