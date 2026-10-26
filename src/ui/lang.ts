@@ -93,9 +93,11 @@ export function langRowHtml(): string {
 export function langMenuHtml(): string {
   const all: { id: AnyLang; name: string; short: string }[] = pseudoOffered || lang() === 'xx' ? [...LANGS, { id: 'xx', name: 'Pseudo', short: 'XX' }] : LANGS;
   const cur = all.find((l) => l.id === lang());
-  const label = t('ui.lang.button', 'Language: {name}. Change language', { name: cur?.name ?? 'English' });
+  const short = cur?.short ?? lang().toUpperCase();
+  // the name starts with the visible text (WCAG 2.5.3): "EN, Language: English. Change language"
+  const label = `${short}, ${t('ui.lang.button', 'Language: {name}. Change language', { name: cur?.name ?? 'English' })}`;
   return `<div class="lang-menu">
-    <button type="button" class="iconbtn lang-btn" id="lang-btn" aria-expanded="false" aria-controls="lang-list" aria-label="${esc(label)}" title="${esc(t('ui.lang.label', 'Language'))}"><span aria-hidden="true">${esc(cur?.short ?? lang().toUpperCase())}</span></button>
+    <button type="button" class="iconbtn lang-btn" id="lang-btn" aria-expanded="false" aria-controls="lang-list" aria-label="${esc(label)}" title="${esc(t('ui.lang.label', 'Language'))}"><span aria-hidden="true">${esc(short)}</span></button>
     <ul class="lang-list" id="lang-list" hidden>${all.map(
       (l) => `<li><button type="button" class="lang-opt" data-lang="${l.id}" lang="${l.id === 'xx' ? 'en' : l.id}" ${lang() === l.id ? 'aria-current="true"' : ''}><span class="lang-short" aria-hidden="true">${l.short}</span> ${esc(l.name)}</button></li>`,
     ).join('')}</ul>

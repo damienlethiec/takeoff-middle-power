@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { I18N_DIR, LOCALES, buildEnglish, checkLocale, readJson, stringify } from '../scripts/i18n-lib';
 import { engineStrings } from '../scripts/i18n-coverage';
 import { englishEntries, known, t, th, tn, tr, useCatalog } from '../src/i18n';
+import { numberKey } from '../src/i18n/match';
 import { pseudo } from '../src/i18n/pseudo';
 
 const en = buildEnglish();
@@ -112,6 +113,23 @@ describe('the runtime', () => {
     const k = Object.keys(E).find((x) => x === 'threat.theft.ifUnprepared')!;
     useCatalog('fr', { [k]: 'Le vol réussit : +99, −99.' });
     expect(tr(E[k])).toBe(E[k]);
+  });
+
+  it('numbers compare across languages: thousands separators (space, no-break spaces, dot, comma) and decimal commas', () => {
+    const en = numberKey('the EU approved €931,690 in 2025');
+    for (const x of ['l’UE a approuvé 931 690 € en 2025', 'l’UE a approuvé 931\u00a0690 € en 2025', 'l’UE a approuvé 931\u202f690 € en 2025', 'die EU genehmigte 931.690 € im Jahr 2025', 'la UE aprobó 931.690 € en 2025', 'UE zatwierdziła 931 690 zł w 2025'])
+      expect(numberKey(x), x).toBe(en);
+    expect(numberKey('about €171 million')).toBe(numberKey('environ 171 millions d’euros'));
+    expect(numberKey('1.5 points')).toBe(numberKey('1,5 point'));
+    expect(numberKey('22–25-year-olds')).toBe(numberKey('les 22-25 ans'));
+    expect(numberKey('€931,690')).not.toBe(numberKey('931 691 €'));
+    // the runtime uses it too: a correct French amount is shown
+    const E = englishEntries();
+    const k = Object.keys(E).find((x) => /931,690/.test(E[x]));
+    if (k) {
+      useCatalog('fr', { [k]: E[k].replace('€931,690', '931 690 €') });
+      expect(tr(E[k])).toContain('931 690 €');
+    }
   });
 
   it('the pseudo-locale marks and lengthens every string, keeping placeholders', () => {

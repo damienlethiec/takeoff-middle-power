@@ -12,7 +12,7 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { collectContent } from '../src/i18n/content';
-import { isPluralKey, placeholders } from '../src/i18n/match';
+import { isPluralKey, numberKey, placeholders } from '../src/i18n/match';
 import { TEMPLATES } from '../src/i18n/templates';
 import { derivableKeys } from '../src/i18n/index';
 
@@ -116,7 +116,7 @@ export interface LocaleReport {
 }
 
 const PLURAL_SUFFIX = /\.(zero|one|two|few|many|other)$/;
-const digits = (s: string) => (s.match(/\d+(?:[.,]\d+)?/g) ?? []).map((d) => d.replace(',', '.')).sort().join('|');
+const digits = numberKey;
 
 /** Check one locale against English. */
 export function checkLocale(lang: string, en: Record<string, string>, loc: Record<string, unknown>): LocaleReport {

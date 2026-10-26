@@ -24,6 +24,16 @@ const PH = /\{(\w+)\}/g;
 const NUM = /^[+−-]?\d+(?:[.,]\d+)?$/;
 const PLURAL_FORMS = ['zero', 'one', 'two', 'few', 'many', 'other'];
 
+/**
+ * The numbers of a text, comparable across languages: "€931,690", "931 690 €" (a space, a no-break or a narrow
+ * no-break space), "931.690 €" and "931 690 zł" all give 931690; decimals stay comparable ("1.5" and "1,5").
+ * A separator followed by exactly three digits groups thousands; any other comma is a decimal point.
+ */
+export function numberKey(s: string): string {
+  const grouped = s.replace(/(\d)[ \u00a0\u202f.,](?=\d{3}(?!\d))/g, '$1');
+  return (grouped.match(/\d+(?:[.,]\d+)?/g) ?? []).map((d) => d.replace(',', '.')).sort().join('|');
+}
+
 export const placeholders = (s: string) => [...s.matchAll(PH)].map((m) => m[1]).sort();
 
 export function fill(tpl: string, vars: Record<string, string | number> = {}): string {
@@ -71,7 +81,7 @@ export function makeMatcher(
   const memo = new Map<string, string | null>();
 
   /** A translation keeps the English numbers: a stale one (numbers changed since) falls back to English. */
-  const digits = (s: string) => (s.match(/\d+(?:[.,]\d+)?/g) ?? []).map((d) => d.replace(',', '.')).sort().join('|');
+  const digits = numberKey;
   const lcFirst = (s: string) => (opts.lowerFirst ? s.replace(/^(\p{Lu})(?=\p{Ll})/u, (c) => c.toLowerCase()) : s);
 
   /** An entry equal to the string: its translation (`done`), or the English shown untranslated. */
