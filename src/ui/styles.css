@@ -318,7 +318,7 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .heading-why:empty { display: none; }
 
 /* ---------- dock ---------- */
-.dock { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; background: var(--deck-2); border: 1px solid var(--align); border-radius: 12px; padding: 10px 14px; }
+.dock { position: relative; z-index: 6; display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; background: var(--deck-2); border: 1px solid var(--align); border-radius: 12px; padding: 10px 14px; }
 .dock p { margin: 0 auto 0 0; font-weight: 600; }
 .dock-btns { display: flex; gap: 10px; flex-wrap: wrap; }
 .game:not(.docked) .dock { display: none; }
