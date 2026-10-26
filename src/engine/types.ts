@@ -28,10 +28,23 @@ export type CardId =
   | 'oversight_mandate'
   // opportunities: appear after a crisis, for two rounds only
   | 'summit'
-  | 'attribution';
+  | 'attribution'
+  | 'pause_call';
 
 export type ThreatId = 'theft' | 'opaque' | 'incident' | 'ransomware' | 'blackmail';
-export type EventId = ThreatId | 'job_shock_1' | 'job_shock_2';
+/** Breaking news: the threats when they strike, the two job shocks, and the scenario's turning points that are not
+ *  threats: the leaked misalignment memo (AI 2027, October 2027). */
+export type EventId = ThreatId | 'job_shock_1' | 'job_shock_2' | 'memo';
+
+/** AI 2027's Oversight Committee vote (October 2027): race on, or slow down. Held at the tipping point once the memo
+ *  has leaked; built from public values only (the leak, Europe's pause call, what is verified, the zone). */
+export interface CommitteeVote {
+  slowdown: number;
+  race: number;
+  outcome: 'slowdown' | 'race';
+  /** What swayed the votes, in words ("The leaked memo: +1 to slow down"). */
+  reasons: string[];
+}
 
 export type MilestoneId =
   | 'coding_automation'
@@ -449,6 +462,8 @@ export interface GameState {
   ending: EndingId | null;
   /** Cooperation zone at the end (after the small suspense draw at the tipping point). */
   finalCooperation: number | null;
+  /** AI 2027's Oversight Committee vote, held at the tipping point once the memo has leaked (null otherwise). */
+  committee: CommitteeVote | null;
 }
 
 // ---------------------------------------------------------------- views
@@ -508,6 +523,9 @@ export interface HeadingView {
   /** What decides whether this world ends well (its target) and the safety net (its floor). */
   decides: OutlookGauge;
   net: OutlookGauge;
+  /** Once the memo has leaked: how the Oversight Committee would vote now (public values), and how far its vote
+   *  would move US–China cooperation at the tipping point. The world above already includes it. */
+  committee: (CommitteeVote & { shift: number }) | null;
   /** The nearest other world and what it takes, only when it is within reach and would help. */
   alt: { world: WorldId; name: string; text: string } | null;
   /** Full sentence, e.g. "If AI tipped now: Race. To end well: AI safety 75 (you: 47 verified, 62 claimed) and Social cohesion 55 or more (you: 58)." */
@@ -655,6 +673,8 @@ export interface EndingView {
   threats: { id: ThreatId; name: string; struck: boolean; prepared: boolean | null; by: string }[];
   /** One short epilogue per friend, in the order lea, mother, malik. */
   friends: FriendEpilogue[];
+  /** The Oversight Committee's vote at the tipping point, if it was held (it moved the final US–China cooperation). */
+  committee: (CommitteeVote & { shift: number }) | null;
   basis: Basis;
   source: Source;
 }

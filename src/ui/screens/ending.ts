@@ -4,7 +4,7 @@
 // "Back home, <year>" (the year the game ended): a last word from each of the three friends (Léa, your mother, Malik).
 
 import type { EndingView } from '../../engine/types';
-import { ICON, chips, esc, link } from '../format';
+import { ICON, chips, esc, link, provTag, signed } from '../format';
 import { MOOD_WORD, friendPortrait } from '../friends';
 import { FRIENDS } from '../../data/friends';
 import { ENDING_BY_ID } from '../../data/endings';
@@ -54,6 +54,15 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
       <p class="end-why" id="end-why"><span class="sr-only">Why: </span>${esc(v.sentence)}</p>
     </header>
     ${TEAM_HUMAN_CTA}
+    ${
+      v.committee
+        ? `<section class="end-committee" aria-labelledby="cm-h">
+      <h2 id="cm-h">Washington’s oversight committee voted ${v.committee.slowdown}–${v.committee.race} to ${v.committee.outcome === 'slowdown' ? 'slow down' : 'race on'}</h2>
+      <ul class="cf">${v.committee.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
+      <p>${v.committee.outcome === 'slowdown' ? 'Outside alignment researchers were brought in, and' : 'Washington refused to stop, and'} US–China cooperation moved by <b class="num">${signed(v.committee.shift)}</b> at the tipping point. ${provTag({ kind: 'ai2027', ref: 'AI 2027, October 2027: Government Oversight; the race and slowdown endings (votes of 6–4)' })}</p>
+    </section>`
+        : ''
+    }
     <section class="end-story" aria-labelledby="st-h">
       <h2 id="st-h">The world in ${v.year}</h2>
       <p>${esc(v.story)}</p>

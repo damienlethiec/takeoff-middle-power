@@ -1,6 +1,7 @@
 // Small rendering helpers shared by the screens. Every string that reaches innerHTML goes through esc().
 
-import type { Chip, Fact, Impact, Source } from '../engine/types';
+import { provenanceOf } from '../data/basis';
+import type { Basis, Chip, Fact, Impact, Source } from '../engine/types';
 
 export const esc = (s: unknown): string =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -33,6 +34,13 @@ export function impactLine(i: Impact): string {
   const v = (x: string) => x;
   const label = i.label;
   return `<li class="imp ${tone}"><span class="imp-l">${esc(label)}</span> <span class="imp-v num">${esc(v(i.before))} → <b>${esc(v(i.after))}</b></span>${word ? `<span class="imp-w">${word}</span>` : ''}</li>`;
+}
+
+/** The provenance tag (Real / From AI 2027 / From CFG / Invented), from the content's basis. The visible word is the
+ *  whole tag, so it reads the same for screen readers; the title gives the reference. */
+export function provTag(b: Basis): string {
+  const p = provenanceOf(b);
+  return `<span class="tag prov p-${p.kind}" title="${esc(b.ref)}">${esc(p.label)}</span>`;
 }
 
 export const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');

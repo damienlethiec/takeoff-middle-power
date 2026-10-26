@@ -46,6 +46,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
          <h3 id="wd-now-h">${h.plateau ? 'If AI stalls, you are heading for' : 'If AI tipped now, you would be in'} ${worldChip(h.world, h.name)}</h3>
          <p>${esc(h.meaning)} ${esc(WORLDS[h.world].explain)}</p>
          <p>To end well here: ${esc(h.decides.label)} must reach ${h.decides.bar} (you: ${esc(h.decides.you)}, ${statusOf(h.decides)}), and ${esc(h.net.label)} must stay at ${h.net.bar} or more (you: ${esc(h.net.you)}, ${statusOf(h.net)}).</p>
+         ${h.committee ? `<p><b>Washington’s oversight committee</b> would vote ${h.committee.slowdown}–${h.committee.race} to ${h.committee.outcome === 'slowdown' ? 'slow down' : 'race on'} if AI tipped now. Its vote moves ${esc(GAUGE_LABEL.cooperation)} by ${h.committee.shift > 0 ? '+' : '−'}${Math.abs(h.committee.shift)} at the tipping point (included above). ${esc(h.committee.reasons.join('. '))}.</p>` : ''}
          ${h.alt ? `<p class="wd-alt"><b>Change course:</b> ${esc(h.alt.text)}</p>` : ''}
          ${ai ? `<p>Europe’s AI is <b>${ai === 'open' ? 'Open' : 'Dependent'}</b>: it decides the world if AI never tips (a plateau with ${ai === 'open' ? 'open models' : 'big labs'}).</p>` : ''}
        </section>`

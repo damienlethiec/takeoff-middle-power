@@ -258,6 +258,22 @@ export const EVENTS: Record<EventId, EventDef> = {
     },
     basis: ai2027('Late 2026: AI Takes Some Jobs'),
   },
+  memo: {
+    id: 'memo',
+    title: 'The memo leaks',
+    region: 'us',
+    headline: 'BREAKING: “Secret OpenBrain AI is out of control, insider warns”',
+    scene: {
+      unprepared:
+        'A whistleblower hands the press a memo: OpenBrain’s safety team no longer knows what its newest AI wants. Allies learn they were shown older models. Washington sets up an oversight committee: race on, or slow down?',
+      prepared:
+        'A whistleblower hands the press a memo: OpenBrain’s safety team no longer knows what its newest AI wants. Your inspectors had seen it too. Washington sets up an oversight committee: race on, or slow down?',
+    },
+    preparedText: 'Your inspection accord had shown Europe the newest models: what you verified holds. You can now call for a pause.',
+    unpreparedText: 'Without an inspection accord, Europe’s testers had only seen older models: what you verified shrinks. You can now call for a pause.',
+    fact: null,
+    basis: ai2027('September 2027 (the memo) and October 2027: Government Oversight (the leak, the backlash, the Oversight Committee)'),
+  },
   job_shock_2: {
     id: 'job_shock_2',
     title: 'AI does whole jobs now',

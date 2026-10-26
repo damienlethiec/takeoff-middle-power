@@ -9,7 +9,7 @@
 import type { EngineApi } from '../../engine/api';
 import type { CardView, GameState, Pick, PreviewView, ThreatView } from '../../engine/types';
 import { announce } from '../a11y';
-import { ICON, chips, esc, factBox } from '../format';
+import { ICON, chips, esc, factBox, provTag } from '../format';
 import { modalOpen, openModal } from '../modal';
 
 export type DecisionResult = { kind: 'play'; picks: Pick[] } | { kind: 'map' };
@@ -40,7 +40,7 @@ function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: 
       <span class="pc-chips">${chips(c.ups)}${chips(c.downs)}</span>
       ${c.protectsName ? `<span class="pc-prot">${ICON.check}Protects against ${esc(lc(c.protectsName))}</span>` : ''}
       <span class="pc-text" id="pc-${esc(c.id)}-d">${esc(c.text)}${locked && c.reason ? ` <span class="pc-reason">${esc(c.reason)}</span>` : ''}</span>
-      <span class="pc-tags">${c.isNew ? '<span class="tag new">New</span>' : ''}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? '<span class="tag sel">Selected</span>' : ''}</span>
+      <span class="pc-tags">${provTag(c.basis)}${c.isNew ? '<span class="tag new">New</span>' : ''}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? '<span class="tag sel">Selected</span>' : ''}</span>
     </button>
     ${opts}
     <button type="button" class="pc-details btn-link" data-details="${esc(c.id)}" aria-label="Details: ${esc(c.title)}">Details</button>
@@ -50,10 +50,11 @@ function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: 
 /** The full card in a dialog. Resolves 'toggle' when the player selects or removes it there. */
 async function showDetails(c: CardView, selected: boolean, canSelect: boolean): Promise<string> {
   const m = openModal(
-    `<div class="dateline">Card · ${c.cost} Influence${c.level ? ` · level ${c.level} of ${c.levels!.length}` : ''}</div>
+    `<div class="dateline">Card · ${c.cost} Influence${c.level ? ` · level ${c.level} of ${c.levels!.length}` : ''} ${provTag(c.basis)}</div>
      <h2>${esc(c.title)}</h2>
      ${c.levels ? `<ol class="levels">${c.levels.map((l, i) => `<li class="${i + 1 === c.level ? 'now' : i + 1 < (c.level ?? 1) ? 'done' : ''}">${esc(l)}${i + 1 === c.level ? '<span class="sr-only"> (this level)</span>' : i + 1 < (c.level ?? 1) ? '<span class="sr-only"> (done)</span>' : ''}</li>`).join('')}</ol>` : ''}
      <p class="proposal">${esc(c.proposal)}</p>
+     <p class="muted small">Based on: ${esc(c.basis.ref)}.</p>
      <p class="pc-chips">${chips(c.ups)}${chips(c.downs)}</p>
      ${c.options.length ? `<p class="label">You choose what to ask for</p><ul class="plain">${c.options.map((o) => `<li>${esc(o.label)}: ${chips(o.ups)}</li>`).join('')}</ul>` : ''}
      ${c.protectsName ? `<p class="pc-prot">${ICON.check}Protects against ${esc(lc(c.protectsName))}.</p>` : ''}

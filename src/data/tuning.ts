@@ -98,6 +98,9 @@ export const TUNING = {
     oversight_mandate: { cost: 2, cohesion: 6, aiPower: -2, arrivesRound: 6 },
     summit: { cost: 1, cooperation: 10, estimate: 5, truth: 5, rounds: 2 },
     attribution: { cost: 1, cooperation: 5, rounds: 2 },
+    /** AI 2027, October 2027: after the memo leaks, Europe calls for a pause with other capitals. Beijing joins
+     *  (cooperation), Washington calls it betrayal (Influence next round); one vote toward slowing down. */
+    pause_call: { cost: 2, cooperation: 4, influence: -2, rounds: 2 },
   } satisfies Record<CardId, object>,
 
   /** When cards first arrive. */
@@ -125,6 +128,21 @@ export const TUNING = {
     /** Silicon blackmail: appears with the oversight mandate while Dependent, grows one stage a round. */
     blackmail: { holdFirm: { cohesion: -10 } },
   },
+
+  /** The misalignment memo leaks to the press (AI 2027, September–October 2027): Breaking news in the first round
+   *  with AI capabilities `at` or more, after the geopolitics milestone (so always at or before the tipping point).
+   *  Backlash: Social cohesion. Unless Europe's inspections reached `seesFrontier` (the accord), Europe's testers had
+   *  only been shown older models: the uncertainty widens by `obsoleteMargin` (verified falls). It opens the pause
+   *  call and forms the Oversight Committee. */
+  memo: { at: 76, cohesion: -3, seesFrontier: 2, obsoleteMargin: 4 },
+
+  /** AI 2027's Oversight Committee vote at the tipping point (once the memo leaked): ten votes, `base` to slow down,
+   *  +1 for the leaked memo, +1 for Europe's pause call, +1 when what is verified about AI safety is below
+   *  `doubtBelow` (nobody outside can vouch for it), −1 in the Rupture zone (hawks). Slow down at `needed` or more.
+   *  Slowing down moves the final US–China cooperation by `slowdown.cooperation` and the true AI safety by
+   *  `slowdown.truth` (outside researchers brought in, Agent-4 shut down); racing on moves cooperation by
+   *  `race.cooperation` (China's offer of a pause refused). */
+  committee: { base: 4, needed: 6, doubtBelow: 50, slowdown: { cooperation: 10, truth: 6 }, race: { cooperation: -4 } },
 
   /** Leaks: every two or three rounds, readable with enough oversight. */
   leaks: { firstRound: 2, gapMin: 2, gapMax: 3, levels: [1, 1, 2, 2, 3, 3] },

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { CARDS } from '../src/data/cards';
+import { ENDING_BY_ID } from '../src/data/endings';
 import { MILESTONES } from '../src/data/milestones';
 import { TUNING as T } from '../src/data/tuning';
 import {
   advisor,
+  committeeVote,
   createInitialState,
   dateLabel,
   endRound,
@@ -266,7 +268,7 @@ describe('threats and events', () => {
       for (let i = 0; i < T.rounds; i++) {
         const before = s.threats;
         s = startRound(s);
-        if (s.event && !s.event.id.startsWith('job_')) {
+        if (s.event && s.event.id in before) {
           const id = s.event.id as keyof typeof before;
           expect(before[id].stage).toBe(3);
           expect(before[id].imminentSince).not.toBeNull();
@@ -602,10 +604,57 @@ describe('endings', () => {
     expect(v.sentence).toMatch(/^The superpowers paused and AI safety reached 70, but Social cohesion fell to 30, below the 45 a pause needs: the pause breaks down\.$/);
   });
 
+  it('the Oversight Committee votes at the tipping point once the memo has leaked, and its vote moves the world', () => {
+    const memo = { flags: ['memo_public'] };
+    // no memo, no committee
+    expect(ended({ ...tip, cooperation: 50 }).committee).toBeNull();
+    // the memo alone: 5 of 10 to slow down, the race goes on (cooperation −4)
+    const race = ended({ ...tip, ...memo, cooperation: 50, confidence: { truth: 55, estimate: 70, margin: 10 } });
+    expect(race.committee).toMatchObject({ slowdown: 5, race: 5, outcome: 'race' });
+    expect(race.flags).toContain('committee_race');
+    // Europe's pause call adds the sixth vote: slow down, cooperation +10, a Race becomes a Pause
+    const slow = ended({ ...tip, flags: ['memo_public', 'pause_call'], cooperation: 52, confidence: { truth: 55, estimate: 70, margin: 10 } });
+    expect(slow.committee).toMatchObject({ slowdown: 6, outcome: 'slowdown' });
+    expect(slow.flags).toContain('committee_slowdown');
+    expect(ENDING_BY_ID[slow.ending!].world).toBe('pause');
+    // doubt counts: what is verified below the bar adds a vote; open rupture takes one away
+    expect(committeeVote({ ...fresh(1), ...memo, confidence: { truth: 30, estimate: 60, margin: 25 } } as GameState)!.slowdown).toBe(6);
+    expect(committeeVote({ ...fresh(1), ...memo, cooperation: 20, confidence: { truth: 30, estimate: 60, margin: 25 } } as GameState)!.slowdown).toBe(5);
+    const v = ending(slow);
+    expect(v.committee).toMatchObject({ outcome: 'slowdown', shift: T.committee.slowdown.cooperation });
+    expect(v.committee!.reasons.length).toBe(2);
+  });
+
+  it('the memo leaks before the tipping point, opens the pause call, and the call sets its flag', () => {
+    let seen = 0;
+    for (const seed of SEEDS.slice(0, 60)) {
+      const f = playGame(seed, thoughtful).final;
+      if (!f.tipping) continue;
+      seen++;
+      expect(f.flags, `seed ${seed}`).toContain('memo_public');
+      const memoRound = f.history.find((r) => r.event?.id === 'memo')!.round;
+      expect(memoRound).toBeLessThanOrEqual(f.tipping.round);
+    }
+    expect(seen).toBeGreaterThan(5);
+    const base = fresh(1, { round: 8, aiPower: 77, milestones: MILESTONES.filter((m) => m.id !== 'tipping_point').map((m) => ({ id: m.id, round: 1 })) });
+    const s = startRound(base);
+    expect(s.event?.id).toBe('memo');
+    const after = resolveEvent(s);
+    expect(after.flags).toContain('memo_public');
+    expect(hand(after).find((c) => c.id === 'pause_call')?.opportunity).toBe(true);
+    const ready = { ...answerAll(after), influence: 10 };
+    const played = playCard(ready, { id: 'pause_call' });
+    expect(played.flags).toContain('pause_call');
+    expect(played.cooperation - ready.cooperation).toBe(T.cards.pause_call.cooperation);
+    expect(nextIncome(played).reasons.join(' ')).toMatch(/Call for a pause/);
+  });
+
   it('the suspense at the tipping point is never more than a few points', () => {
     for (const seed of SEEDS) {
       const f = playGame(seed, thoughtful).final;
-      if (f.tipping) expect(Math.abs(f.finalCooperation! - f.cooperation)).toBeLessThanOrEqual(T.tippingNoise);
+      // the committee's vote (once the memo leaked) moves it on purpose; the suspense draw only by a few points
+      const shift = f.committee ? (f.committee.outcome === 'slowdown' ? T.committee.slowdown.cooperation : T.committee.race.cooperation) : 0;
+      if (f.tipping) expect(Math.abs(f.finalCooperation! - shift - f.cooperation)).toBeLessThanOrEqual(T.tippingNoise);
     }
   });
 

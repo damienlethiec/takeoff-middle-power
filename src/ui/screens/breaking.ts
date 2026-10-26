@@ -2,7 +2,7 @@
 // was prepared and by which card, and an "Already real" fact with its source.
 
 import type { PendingEvent } from '../../engine/types';
-import { ICON, esc, factBox, impactLine } from '../format';
+import { ICON, esc, factBox, impactLine, provTag } from '../format';
 import { openModal } from '../modal';
 
 export async function showBreaking(ev: PendingEvent, date: string, cardNames: string[]): Promise<string | undefined> {
@@ -14,7 +14,7 @@ export async function showBreaking(ev: PendingEvent, date: string, cardNames: st
         }</span></p>`;
   const choose = ev.options.length > 0;
   const m = openModal(
-    `<div class="dateline"><span class="tag-breaking">Breaking news</span> ${esc(date)}</div>
+    `<div class="dateline"><span class="tag-breaking">Breaking news</span> ${esc(date)} ${provTag(ev.basis)}</div>
      <h2>${esc(ev.title)}</h2>
      <p class="scene">${esc(ev.scene)}</p>
      ${prep}
@@ -26,6 +26,7 @@ export async function showBreaking(ev: PendingEvent, date: string, cardNames: st
          : `<p class="label">What it did</p><ul class="imps">${ev.impacts.length ? ev.impacts.map(impactLine).join('') : '<li class="imp flat">No gauge moved.</li>'}</ul>`
      }
      ${ev.fact ? factBox(ev.fact) : ''}
+     <p class="muted small">Based on: ${esc(ev.basis.ref)}.</p>
      ${choose ? '' : '<div class="row-btns"><button type="button" class="btn-primary" data-primary data-action="ok">Continue <kbd>Enter</kbd></button></div>'}`,
     { cls: 'breaking', label: 'Breaking news', describedBy: '.scene' },
   );

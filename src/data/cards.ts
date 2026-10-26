@@ -254,6 +254,18 @@ export const CARDS: CardDef[] = [
     opportunity: true,
     basis: ai2027('February 2027: China Steals Agent-2 (the US retaliates; both sides move forces around Taiwan)'),
   },
+  {
+    id: 'pause_call',
+    name: 'Call for a pause with other capitals',
+    text: 'The memo is out. Demand a pause with India and others; Beijing joins, Washington calls it betrayal. Sways its oversight committee toward slowing down.',
+    proposal:
+      'Europe’s leaders accuse Washington of building an AI it cannot control and host a summit demanding a pause. India and others join; Beijing says yes. Washington’s new oversight committee will vote at the tipping point: race on, or slow down. Your call adds one vote for slowing down. Washington will make you pay for it.',
+    ups: [up(`US–China cooperation ${n(C.pause_call.cooperation)}`), up('One more vote to slow down')],
+    downs: [down(`Influence ${n(C.pause_call.influence)} next round`)],
+    arrives: { opportunity: true },
+    opportunity: true,
+    basis: ai2027('October 2027: Government Oversight (European leaders “hold summits demanding a pause, with India, Israel, Russia, and China all joining in”)'),
+  },
 ];
 
 export const CARD_BY_ID = Object.fromEntries(CARDS.map((c) => [c.id, c])) as Record<CardId, CardDef>;

@@ -622,6 +622,7 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .pc-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .pc-tags:empty { display: none; }
 .tag { font-family: var(--f-data); font-size: 10.5px; border-radius: 4px; padding: 1px 5px; border: 1px solid; }
+.tag.prov { color: var(--mute); border-style: dashed; } .tag.prov.p-real { color: var(--good); border-style: solid; }
 .tag.new { color: var(--warn); } .tag.opp { color: var(--warn); } .tag.rec { color: var(--align); } .tag.sel { color: var(--night); background: var(--align); border-color: var(--align); }
 .pc-details { align-self: flex-start; margin: 0 8px 6px; padding: 4px 6px; font-size: 13px; color: var(--align); min-height: 32px; }
 .pc-wrap .opts { margin: 0 12px 6px; }

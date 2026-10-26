@@ -19,6 +19,7 @@ import type { EngineApi } from './api';
 import { random, randomInt, seedToRng, weightedOrder, weightedPick, type RngHolder } from './rng';
 import type {
   AdvisorView,
+  CommitteeVote,
   Answer,
   AnswerView,
   CardId,
@@ -275,6 +276,7 @@ export function createInitialState(seed: number, opts: { recent?: string[] } = {
     recent: [...(opts.recent ?? [])],
     ending: null,
     finalCooperation: null,
+    committee: null,
   };
   settleConfidence(s);
   return s;
@@ -478,7 +480,7 @@ function reach(s: GameState, id: MilestoneId, out: MapItem[]) {
 /** The effects an event would have, given the state now (and the player's choice for silicon blackmail). */
 function eventFx(s: GameState, id: EventId, choice?: string | null): Fx[] {
   const TT = T.threats;
-  const prepared = id === 'job_shock_1' || id === 'job_shock_2' ? used(s, 'flexicurity') : isPrepared(s, id);
+  const prepared = eventPrepared(s, id);
   switch (id) {
     case 'theft':
       return prepared
@@ -504,14 +506,32 @@ function eventFx(s: GameState, id: EventId, choice?: string | null): Fx[] {
     case 'job_shock_1':
     case 'job_shock_2':
       return [{ key: 'cohesion', amount: prepared ? T.jobShocks.softened : T.jobShocks.hit }];
+    case 'memo':
+      return [{ key: 'cohesion', amount: T.memo.cohesion }, ...(prepared ? [] : [{ key: 'margin' as const, amount: T.memo.obsoleteMargin }])];
   }
+}
+
+const isThreat = (id: EventId): id is ThreatId => (THREAT_IDS as string[]).includes(id);
+
+/** Was Europe prepared for this event? Threats by their protection, job shocks by flexicurity, the memo by an
+ *  inspection accord (Europe's testers had seen the newest models). */
+function eventPrepared(s: GameState, id: EventId): boolean {
+  if (isThreat(id)) return isPrepared(s, id);
+  if (id === 'memo') return s.inspections >= T.memo.seesFrontier;
+  return used(s, 'flexicurity');
+}
+
+/** The cards that prepare Europe for an event (or would have). */
+function eventPreparedBy(id: EventId): CardId[] {
+  if (isThreat(id)) return THREAT_BY_ID[id].protectedBy;
+  if (id === 'memo') return ['inspections'];
+  return ['flexicurity'];
 }
 
 function buildEvent(s: GameState, id: EventId, h: RngHolder): PendingEvent {
   const def = EVENTS[id];
-  const isJob = id === 'job_shock_1' || id === 'job_shock_2';
-  const prepared = isJob ? used(s, 'flexicurity') : isPrepared(s, id);
-  const preparedBy: CardId[] = isJob ? ['flexicurity'] : THREAT_BY_ID[id].protectedBy;
+  const prepared = eventPrepared(s, id);
+  const preparedBy = eventPreparedBy(id);
   const after = clone(s);
   applyFx(after, eventFx(s, id, 'hold_firm'));
   const options =
@@ -543,6 +563,8 @@ function buildEvent(s: GameState, id: EventId, h: RngHolder): PendingEvent {
 function chooseEvent(s: GameState, h: RngHolder): EventId | null {
   const next = nextMilestone(s);
   if (next?.via && ripe(s, next.via)) return next.via;
+  // AI 2027's turning point: the misalignment memo leaks, at the latest in the tipping point's round
+  if (!s.flags.includes('memo_public') && reached(s, 'geopolitics') && s.aiPower >= T.memo.at) return 'memo';
   const J = T.jobShocks.at;
   if (s.jobShocks === 0 && s.aiPower >= J[0] && reached(s, 'ai_takes_jobs')) return 'job_shock_1';
   if (s.jobShocks === 1 && s.aiPower >= J[1] && reached(s, 'cheap_remote_worker')) return 'job_shock_2';
@@ -979,6 +1001,10 @@ export function resolveEvent(state: GameState, choice?: string): GameState {
   if (ev.id === 'job_shock_1' || ev.id === 'job_shock_2') {
     s.jobShocks += 1;
     arrive(s);
+  } else if (ev.id === 'memo') {
+    // the leak goes public: Washington forms the Oversight Committee, Europe may call for a pause
+    if (!s.flags.includes('memo_public')) s.flags.push('memo_public');
+    openOpportunity(s, 'pause_call');
   } else {
     const t = s.threats[ev.id];
     t.struck = true;
@@ -998,7 +1024,7 @@ export function resolveEvent(state: GameState, choice?: string): GameState {
   return s;
 }
 
-function openOpportunity(s: GameState, id: 'summit' | 'attribution') {
+function openOpportunity(s: GameState, id: 'summit' | 'attribution' | 'pause_call') {
   s.opportunities[id] = s.round + T.cards[id].rounds - 1;
   if (!s.hand.includes(id)) s.hand.push(id);
   s.arrivals[id] = s.round;
@@ -1097,6 +1123,8 @@ function cardFx(s: GameState, p: Pick): Fx[] {
       ];
     case 'attribution':
       return [{ key: 'cooperation', amount: C.attribution.cooperation }];
+    case 'pause_call':
+      return [{ key: 'cooperation', amount: C.pause_call.cooperation }];
   }
 }
 
@@ -1131,6 +1159,12 @@ export function playCard(state: GameState, p: Pick): GameState {
     case 'flexicurity':
     case 'cyber_shield':
       for (let i = 1; i <= C[p.id].rounds; i++) s.penalties.push({ round: s.round + i, amount: C[p.id].influence, card: p.id });
+      break;
+    case 'pause_call':
+      // Washington calls it betrayal; the call weighs on its Oversight Committee's vote
+      s.penalties.push({ round: s.round + 1, amount: C.pause_call.influence, card: 'pause_call' });
+      if (!s.flags.includes('pause_call')) s.flags.push('pause_call');
+      delete s.opportunities.pause_call;
       break;
     case 'oversight_mandate':
       if (s.europeAi === 'dependent' && s.threats.blackmail.stage === 0) s.threats.blackmail.stage = 1;
@@ -1219,6 +1253,7 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
     if (p.id === 'open_models') notes.push('Ransomware gets easier: that threat grows faster.');
     if (p.id === 'coalition' && base.coalition + 1 === T.influence.coalitionLevel) notes.push('Allies share the load: Influence +1 every round from now on.');
     if (p.id === 'talks') notes.push('The envoys rest next round.');
+    if (p.id === 'pause_call') notes.push(`One more vote to slow down in Washington’s oversight committee. Influence ${signed(T.cards.pause_call.influence)} next round.`);
   }
   return {
     ok: true,
@@ -1283,9 +1318,49 @@ function gaugeValueTrue(s: GameState, key: GaugeKey): number {
   return key === 'confidence' ? s.confidence.truth : key === 'cooperation' ? (s.finalCooperation ?? s.cooperation) : s[key];
 }
 
+/**
+ * AI 2027's Oversight Committee (October 2027): ten votes, race on or slow down. Public values only: the leaked memo,
+ * Europe's pause call, what is verified about AI safety, and whether the superpowers are in open rupture.
+ * Null until the memo has leaked (no committee yet).
+ */
+export function committeeVote(s: GameState): CommitteeVote | null {
+  if (!s.flags.includes('memo_public')) return null;
+  const V = T.committee;
+  const reasons: string[] = [];
+  let slow: number = V.base;
+  slow += 1;
+  reasons.push('The leaked memo and the public backlash: +1 to slow down');
+  if (s.flags.includes('pause_call')) {
+    slow += 1;
+    reasons.push('Europe’s call for a pause, joined by other capitals: +1 to slow down');
+  }
+  if (lowEnd(s.confidence) < V.doubtBelow) {
+    slow += 1;
+    reasons.push(`Nobody outside the labs can vouch for the AI (${GAUGE_LABEL.confidence} verified below ${V.doubtBelow}): +1 to slow down`);
+  }
+  if (zoneOf(s.cooperation) === 'rupture') {
+    slow -= 1;
+    reasons.push('The superpowers are in open rupture, and hawks fear losing the lead: −1');
+  }
+  slow = Math.max(0, Math.min(10, slow));
+  return { slowdown: slow, race: 10 - slow, outcome: slow >= V.needed ? 'slowdown' : 'race', reasons };
+}
+
+/** How far the committee's vote moves US–China cooperation at the tipping point. */
+const committeeShift = (v: CommitteeVote) => (v.outcome === 'slowdown' ? T.committee.slowdown.cooperation : T.committee.race.cooperation);
+
 function finish(s: GameState) {
   const h: RngHolder = { rng: s.rng };
   if (s.tipping) s.finalCooperation = clamp(s.cooperation + randomInt(h, -T.tippingNoise, T.tippingNoise));
+  // the Oversight Committee votes (once the memo has leaked): it moves the final cooperation, and slowing down
+  // brings outside alignment researchers in (AI 2027's slowdown ending)
+  const vote = s.tipping ? committeeVote(s) : null;
+  if (vote) {
+    s.committee = vote;
+    s.flags.push(vote.outcome === 'slowdown' ? 'committee_slowdown' : 'committee_race');
+    s.finalCooperation = clamp((s.finalCooperation ?? s.cooperation) + committeeShift(vote));
+    if (vote.outcome === 'slowdown') applyFx(s, [{ key: 'truth', amount: T.committee.slowdown.truth }]);
+  }
   const world = worldAtEnd(s);
   const w = T.worlds[world];
   const good = gaugeValueTrue(s, w.decides) >= w.target && gaugeValueTrue(s, w.net) >= w.floor;
@@ -1300,11 +1375,14 @@ function finish(s: GameState) {
 /** The world the player is heading to, from public values only. */
 function projectedWorld(s: GameState): WorldId {
   if (s.phase === 'ended' && s.ending) return ENDING_BY_ID[s.ending].world;
-  if (s.tipping) return zoneOf(s.cooperation);
+  // once the memo has leaked, the committee's vote (as it stands, public values) moves the cooperation that counts
+  const v = committeeVote(s);
+  const coop = clamp(s.cooperation + (v ? committeeShift(v) : 0));
+  if (s.tipping) return zoneOf(coop);
   const left = T.rounds - s.round;
   const reach = s.aiPower + s.lastRise * left * 1.15;
   if (s.round >= 4 && reach < T.tippingAt) return s.europeAi === 'open' ? 'plateau_open' : 'plateau_labs';
-  return zoneOf(s.cooperation);
+  return zoneOf(coop);
 }
 
 const audited = (s: GameState) => s.round > 0 && s.round <= s.auditUntil;
@@ -1334,7 +1412,9 @@ export function heading(s: GameState): HeadingView {
   const plateau = world === 'plateau_open' || world === 'plateau_labs';
   const name = def.name;
   const text = `${plateau ? 'If AI stalls' : 'If AI tipped now'}: ${name}. To end well: ${decides.label} ${w.target} (you: ${decides.you}) and ${net.label} ${w.floor} or more (you: ${net.you}).`;
-  return { world, name, plateau, meaning: def.meaning, basis: def.basis, decides, net, alt: alternative(s, world, decides, net), text };
+  const vote = s.phase === 'play' && !plateau ? committeeVote(s) : null;
+  const committee = vote ? { ...vote, shift: committeeShift(vote) } : null;
+  return { world, name, plateau, meaning: def.meaning, basis: def.basis, decides, net, committee, alt: alternative(s, world, decides, net), text };
 }
 
 /** "Or change course": the nearest other world, from public values, only when it is within reach and would help. */
@@ -1633,6 +1713,8 @@ export function ending(s: GameState): EndingView {
       `With ${GAUGE_LABEL.cooperation} at ${T.zones.pause} or more at the tipping point (you had ${val('cooperation')}), the superpowers would have paused, and ${GAUGE_LABEL.confidence} ${p.target} would have been enough${pauseGood ? `: ${ENDING_BY_ID.licensed_utopia.title.toLowerCase()}` : ''}.`,
     );
   }
+  if (s.committee?.outcome === 'race' && !s.flags.includes('pause_call') && s.committee.slowdown + 1 >= T.committee.needed)
+    cf.push('Calling for a pause with other capitals after the memo leaked would have tipped Washington’s oversight committee toward slowing down.');
   if (!dOk) cf.push(shortfall(w.decides, w.target - dv));
   else if (!nOk) cf.push(shortfall(w.net, w.floor - nv));
   else if (dv - w.target <= 4) cf.push(`It was close: ${label(w.decides)} cleared the bar by only ${dv - w.target}.`);
@@ -1687,6 +1769,7 @@ export function ending(s: GameState): EndingView {
     decisions,
     threats: threatList,
     friends: epilogues(s.ending!),
+    committee: s.committee ? { ...s.committee, shift: committeeShift(s.committee) } : null,
     basis: def.basis,
     source: def.source,
   };
