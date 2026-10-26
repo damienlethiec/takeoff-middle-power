@@ -15,12 +15,11 @@ describe('balance (small sample)', () => {
   it('passive rarely wins, random sometimes, a thoughtful player usually', () => {
     expect(good(passive)).toBeLessThan(0.15);
     const r = good(randomStrategy);
-    expect(r).toBeGreaterThan(0.03); // 0.08 before the content rewrite of 26 Oct (see below)
+    expect(r).toBeGreaterThan(0.08);
     expect(r).toBeLessThan(0.38);
     const t = good(thoughtful);
-    // 0.5 before the content rewrite of 26 Oct, which removed Europe's direct gains on the hidden AI safety; relaxed
-    // until the rebalancing pass (docs/DEVELOPER_NOTES.md, "Rebalancing backlog")
-    expect(t).toBeGreaterThan(0.3);
+    // restored after the rebalancing of 26 Oct (0.56 on these seeds; the sim's target is 55–80% on its own seeds)
+    expect(t).toBeGreaterThan(0.45);
     expect(t).toBeLessThan(0.9);
     expect(good(cooperationOnly)).toBeLessThan(t - 0.2);
   }, 120_000);

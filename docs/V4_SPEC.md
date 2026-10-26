@@ -28,7 +28,7 @@ v3 simplified the model, but its screen still asked the player to find things: t
 | Headline banners and voice bubbles over the map; Léa's portrait over Lyon; a leak button | The round's items as **small icons grouped per region**, each group opening its list; only the newest headline shows briefly as a banner |
 | A full-screen decision dialog | **Decisions replace the map** (and the feed) while the gauges and the line stay in view and preview the selection |
 | A stop between rounds ("Start H2 2027") | No stop: after Confirm the gauges move and the next six months begin (the player can pause). Only the end waits ("See how it ends") |
-| No requests | **Requests**: 46 cards from 11 characters, free of Influence, answered left or right |
+| No requests | **Requests**: about 48 cards from 13 characters, answered left or right; asking is free, the cost is in the answer (sometimes Influence) |
 | Léa's letters in a dialog | Léa's **letter in full in the feed** with her small portrait, "Letter from Léa, your friend in Lyon", and an envelope in Europe's map group |
 
 ## The main screen
@@ -59,7 +59,7 @@ From top to bottom:
 
 ## Requests
 
-A character arrives during the six months with a short request (≤ 40 words) and two answers (left and right; no fixed convention on which side goes along). Answering is **free of Influence: the cost is in the answer**, and both answers cost something visible (a gauge, a growing threat, Europe's AI, the coalition, or a delayed effect announced on the card).
+A character arrives during the six months with a short request (≤ 40 words) and two answers (left and right; no fixed convention on which side goes along). Asking is free: **the cost is in the answer**, and both answers cost something visible (a gauge, a growing threat, Europe's AI, the coalition, a delayed effect announced on the card, or, since 26 Oct, Influence spent at once: political capital, shown as a number like a card's cost). Costs are spread: Social cohesion is no longer the default price of an answer (playtests of 26 Oct).
 
 - **Characters** (all fictional; OpenBrain and DeepCent are AI 2027's): Dana Whitfield (US envoy), Li Wen (China's delegate in Geneva), Marcus Hale (OpenBrain's CEO), Dr Ines Moreau (independent evaluator), Katrin Vogel (union leader), Tomas Novak (open-model collective), General Aurélie Brandt (EU cyber and intelligence), Minister Hana Sato (Japan and the middle powers), Sam Okafor (journalist), the three friends back home (Léa, your mother, Malik), and "Agent", OpenBrain's frontier model speaking for itself.
 - **Which comes**: first a request tied to a milestone reached this round or to a growing threat, else a seeded draw; 6 to 10 a game; never the same one twice. Three **follow-ups** come back on an earlier answer ("I warned you").
@@ -116,7 +116,7 @@ A content pass on the decisions, threats, events and endings, from the audit aga
 - **AI 2027's turning point**: the misalignment memo leaks (Breaking news) before the tipping point; Europe can **call for a pause with other capitals**; at the tipping point **Washington's oversight committee votes**, race on or slow down, and its vote moves the final US–China cooperation. The vote shows in Why?, on the end screen, and in the heading line's world.
 - **Europe acts on its own ground**, with real blowback: EU testing before any inspection accord (which needs a crisis or a pause), Washington's chip-tool ban after the ASML lever, labs withholding models after the oversight mandate, the Five Eyes pulling partners away. Weight security and the AI Office protect in part.
 - **New decisions**: a CERN for AI on the gigafactories, chips that prove where they run, a licensing treaty within a pause, a biosecurity pact; **new crises**: Taiwan, a US–China ban on large open models, bioweapon uplift.
-- **The gradual worlds** are picked by how far AI got (Plateau below 60, Big AI from 60), and in Big AI only an Open Europe ends well; three endings retold as CFG tells them (*The agent economy*, *Silicon blackmail*, *Unstable pause*).
+- **The gradual worlds** are picked by how far AI got (Plateau below 70, Big AI from 70; 60 until the rebalancing of 26 Oct), and in Big AI only an Open Europe ends well; three endings retold as CFG tells them (*The agent economy*, *Silicon blackmail*, *Unstable pause*).
 
 ## Tutorial
 

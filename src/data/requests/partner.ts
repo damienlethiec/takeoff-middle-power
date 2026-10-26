@@ -18,7 +18,7 @@ export const PARTNER: RequestCard[] = [
     right: {
       label: 'Host the secret talks',
       stance: 'accept',
-      effects: { coop: 8, cohesion: -2 },
+      effects: { coop: 4, influence: -1 },
       why: 'Accused of secret deals',
       reaction: 'Quietly, then. Not a word to the press.',
     },
@@ -43,7 +43,7 @@ export const PARTNER: RequestCard[] = [
     right: {
       label: 'Join joint testing',
       stance: 'accept',
-      effects: { margin: -4, cohesion: -2, truth: 3 },
+      effects: { margin: -4, influence: -1, truth: 3 },
       why: 'Shared costs, shared delays',
       reaction: 'Five pairs of eyes see more than one.',
     },

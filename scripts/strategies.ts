@@ -5,6 +5,8 @@
 import { TUNING } from '../src/data/tuning';
 import { advisor, answerRequest, createInitialState, endRound, gauges, hand, heading, playCard, preview, request, resolveEvent, startRound, threats } from '../src/engine/index';
 import { pick, randomInt, seedToRng, type RngHolder } from '../src/engine/rng';
+import { GAUGE_LABEL } from '../src/data/copy';
+import { sizeWord, type SizeWord } from '../src/data/effects';
 import type { CardId, CardView, GameState, Pick, RequestView, Side } from '../src/engine/types';
 
 export interface Strategy {
@@ -24,6 +26,8 @@ export interface PlayedGame {
   shortages: number;
   /** Requests answered (v4). */
   requests: number;
+  /** Cards played that did not work (v4: diplomatic and external cards can fail); also listed in `plays`. */
+  failed: CardId[];
 }
 
 /** An event's answer: silicon blackmail by the strategy's own rule; other choices (the chip-tool ban, the open-model
@@ -52,6 +56,7 @@ export function playGame(seed: number, strat: Strategy, recent?: string[]): Play
   const plays: CardId[] = [];
   let shortages = 0;
   let requests = 0;
+  const failed: CardId[] = [];
   for (let guard = 0; guard < 20; guard++) {
     s = startRound(s);
     // the six months in order: requests and the event come at their time
@@ -74,38 +79,56 @@ export function playGame(seed: number, strat: Strategy, recent?: string[]): Play
       }
       s = playCard(s, p);
       plays.push(p.id);
+      if (s.played[s.played.length - 1]?.failed) failed.push(p.id);
     }
     const end = endRound(s);
     s = end.state;
     if (end.outcome === 'ended') break;
   }
-  return { final: s, plays, shortages, requests };
+  return { final: s, plays, shortages, requests, failed };
 }
 
-/** What a request's answer would move, read from its chips (what the player sees, in words; the simulation weighs the
- *  move behind each). AI safety counts by its verified part when an answer moves it, else the claim moves it. */
-function chipValue(v: RequestView, side: Side, w: { coop: number; conf: number; coh: number; ai?: number }): number {
+/** A move as the player reads it on an answer (v4: words, never numbers): a little ≈ 2, some ≈ 5, a lot ≈ 10. */
+const FELT: Record<SizeWord, number> = { 'a little': 2, some: 5, 'a lot': 10 };
+const felt = (d: number) => Math.sign(d) * FELT[sizeWord(d)];
+
+/** What a request's answer would move, read from its chips as the player sees them: gauge moves in words (the
+ *  simulation keeps the move behind each chip, `chip.move`, and reads only its direction and size word), Influence as
+ *  a number, delayed effects in words too. AI safety counts by its verified part when an answer moves it, else the
+ *  claim moves it. */
+function chipValue(v: RequestView, side: Side, w: { coop: number; conf: number; coh: number; ai?: number; inf?: number }): number {
   let x = 0;
   const chips = v[side].chips;
-  // the answer card says each gauge move in words; the player weighs it by the move it stands for (chip.move)
   const verifiedChip = chips.some((c) => c.move?.key === 'margin');
+  const gauge = (key: string, d: number, verified = verifiedChip) => {
+    if (key === 'margin') x += d * w.conf;
+    else if (key === 'cooperation') x += d * w.coop;
+    else if (key === 'confidence') x += verified ? 0 : d * w.conf;
+    else if (key === 'cohesion') x += d * w.coh;
+    else if (key === 'aiPower') x -= d * (w.ai ?? 0.3);
+    else if (key === 'influence') x += d * (w.inf ?? 2.5);
+  };
+  const LABEL_KEY: Record<string, string> = Object.fromEntries(Object.entries(GAUGE_LABEL).map(([k, l]) => [l, k]));
   for (const c of chips) {
     if (c.move) {
-      const d = c.move.delta;
-      if (c.move.key === 'margin') x += d * w.conf;
-      else if (c.move.key === 'cooperation') x += d * w.coop;
-      else if (c.move.key === 'confidence') x += verifiedChip ? 0 : d * w.conf;
-      else if (c.move.key === 'cohesion') x += d * w.coh;
-      else if (c.move.key === 'aiPower') x -= d * (w.ai ?? 0.3);
+      gauge(c.move.key, c.move.key === 'influence' ? c.move.delta : felt(c.move.delta));
       continue;
     }
-    // kept from the numeric chips (byte-identical simulation): a delayed effect whose text ended on a number
-    // ("Later: Social cohesion −3") matched no rule and counted for nothing; now it ends on a size word
-    if (/^Later.*(a little|some|a lot)$/.test(c.text)) continue;
+    if (/^Later: /.test(c.text)) {
+      // "Later: Social cohesion: down a little, AI safety: less verified, Influence −1"
+      for (const part of c.text.slice('Later: '.length).split(', ')) {
+        const m = /^(.*): (up|down) (a little|some|a lot)$/.exec(part);
+        const inf = /^Influence ([+−-])(\d+)$/.exec(part);
+        if (m) gauge(LABEL_KEY[m[1]] ?? '', (m[2] === 'up' ? 1 : -1) * FELT[m[3] as SizeWord], false);
+        else if (inf) gauge('influence', (inf[1] === '+' ? 1 : -1) * Number(inf[2]));
+        else if (/less verified$/.test(part)) gauge('margin', -2);
+        else if (/more verified$/.test(part)) gauge('margin', 2);
+      }
+      continue;
+    }
     const sign = c.tone === 'up' ? 1 : -1;
     if (/Real safety/.test(c.text)) x += 4 * w.conf;
     else if (/grows/.test(c.text)) x -= 3;
-    else if (/^Later/.test(c.text)) x += sign * 2;
     else if (/Europe’s AI/.test(c.text)) x += sign * 0.5;
     else x += sign * 1.5;
   }
@@ -157,11 +180,13 @@ function thoughtfulWeights(s: GameState) {
   const coop = s.cooperation;
   const pausePath = !plateau && (coop >= 40 || hd.world === 'pause');
   const k = (x: number) => Math.max(0.05, Math.min(1.5, x));
+  // aim a little above what the world needs (its target and floor, shown on the heading line)
+  const W = TUNING.worlds;
   const w = plateau
-    ? { coop: 0.05, conf: k((46 - low) / 8), coh: k((70 - s.cohesion) / 8) }
+    ? { coop: 0.05, conf: k((W.plateau_labs.floor + 6 - low) / 8), coh: k((W.plateau_labs.target + 10 - s.cohesion) / 8) }
     : pausePath
-      ? { coop: k((70 - coop) / 8), conf: k((71 - low) / 6), coh: k((56 - s.cohesion) / 6) }
-      : { coop: k((40 - coop) / 6), conf: k((81 - low) / 6), coh: k((64 - s.cohesion) / 6) };
+      ? { coop: k((70 - coop) / 8), conf: k((W.pause.target + 3 - low) / 6), coh: k((W.pause.floor + 11 - s.cohesion) / 6) }
+      : { coop: k((40 - coop) / 6), conf: k((W.race.target + 6 - low) / 6), coh: k((W.race.floor + 9 - s.cohesion) / 6) };
   return { w, conf, plateau };
 }
 
@@ -202,6 +227,11 @@ export const thoughtful: Strategy = {
       if (id === 'alignment') v += (s.inspections >= 2 ? 4 : 1.5) * w.conf; // the card says the real gain is larger than shown, more with an accord
       if (id === 'licensing_treaty' || id === 'summit') v += 2 * w.conf; // real safety up (not shown)
       if (pv.worldAfter !== pv.worldBefore) v += pv.worldAfter === 'Pause' ? 6 : pv.worldBefore === 'Pause' ? -6 : 0; // the committee's vote, a zone
+      // the card says it sways the committee toward slowing down; the heading line shows the vote as it stands
+      if (id === 'pause_call') {
+        const cv = heading(ls).committee;
+        if (cv && cv.outcome === 'race' && cv.slowdown + 1 >= TUNING.committee.needed) v += 6 * w.conf + 4;
+      }
       if (id === 'flexicurity' && s.jobShocks < 2) v += 6 * w.coh; // softens the next job shock
       if (id === 'flexicurity' || id === 'cyber_shield') v -= 2;
       if (id === 'audit') v += conf.margin >= 12 ? 3 * w.conf : -1;

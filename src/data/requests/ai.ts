@@ -37,7 +37,7 @@ export const AI_REQUESTS: RequestCard[] = [
     left: {
       label: 'Humans write laws',
       stance: 'refuse',
-      effects: { cohesion: -2 },
+      effects: { influence: -1 },
       why: 'Slower, and the backlog grows',
       reaction: 'As you wish. The offer stands.',
     },

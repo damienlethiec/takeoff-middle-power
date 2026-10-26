@@ -104,7 +104,7 @@ export interface Chip {
   tone: 'up' | 'down';
   /** A request answer's chip before the player answers: its text is in words ("up a lot"), and this keeps the public
    *  move it stands for (`margin`: the verified part of AI safety) for the simulation's players. Never shown. */
-  move?: { key: GaugeKey | 'margin'; delta: number };
+  move?: { key: GaugeKey | 'margin' | 'influence'; delta: number };
 }
 
 // ---------------------------------------------------------------- requests (v4, from the hybrid)
@@ -137,6 +137,8 @@ export interface ReqEffects {
   cohesion?: number;
   /** hidden: the true AI safety */
   truth?: number;
+  /** v4 (26 Oct): Europe's political capital, spent at once (a number, like a card's cost) */
+  influence?: number;
 }
 
 /** All listed conditions must hold. */

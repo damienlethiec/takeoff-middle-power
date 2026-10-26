@@ -93,7 +93,7 @@ export const OPENBRAIN_CEO: RequestCard[] = [
     left: {
       label: 'Test it ourselves',
       stance: 'refuse',
-      effects: { margin: -4, cohesion: -2 },
+      effects: { margin: -4, influence: -1 },
       why: 'Testing costs money and time',
       reaction: 'Suit yourself. It will say the same thing.',
     },

@@ -47,8 +47,10 @@ describe('request answers before answering', () => {
           const v = request(s);
           if (!v) break;
           for (const a of [v.left, v.right]) {
-            for (const c of a.chips) expect(c.text, `${v.id}: ${c.text}`).not.toMatch(/\d/);
-            expect(a.words, v.id).not.toMatch(/\d/);
+            // Influence stays a number (a resource, like a card's cost); every gauge move is in words
+            const noInfluence = (t: string) => t.replace(/Influence [+−]\d+/g, '');
+            for (const c of a.chips) expect(noInfluence(c.text), `${v.id}: ${c.text}`).not.toMatch(/\d/);
+            expect(noInfluence(a.words), v.id).not.toMatch(/\d/);
             seen++;
           }
           const out = answerRequest(s, seed % 2 ? 'left' : 'right');

@@ -4,7 +4,7 @@
 import type { CardId, FriendId, Pace } from '../engine/types';
 
 export const TUNING = {
-  /** Ten rounds of six months, H1 2027 to H2 2031 (12 → 10, user decision of 26 Oct; rebalancing to follow). */
+  /** Ten rounds of six months, H1 2027 to H2 2031 (12 → 10, user decision of 26 Oct; rebalanced the same day). */
   rounds: 10,
   /** The tipping point: AI can do AI research by itself. */
   tippingAt: 80,
@@ -16,27 +16,27 @@ export const TUNING = {
   /** Hidden pace: how fast AI power rises each round. The rise grows with AI power (AI speeds up AI research). */
   pace: {
     weights: { slow: 0.4, steady: 0.33, fast: 0.27 } as Record<Pace, number>,
-    base: { slow: 3.6, steady: 5.6, fast: 7.6 } as Record<Pace, number>,
+    base: { slow: 4.0, steady: 5.8, fast: 7.2 } as Record<Pace, number>,
     /** Extra rise per 10 points of AI power above 20, as a share of the base. */
-    accel: 0.07,
+    accel: 0.15,
     noise: 1.2,
   },
 
   drift: {
     /** The race heats up: Cooperation lost each round, more once AI power passes `highPower`. */
-    cooperation: -1,
+    cooperation: 0,
     cooperationHigh: -1,
     cooperationHighPower: 60,
     /** AI disrupts work: Cohesion lost each round, more once AI power passes `highPower`. */
     cohesion: 0,
-    cohesionHigh: -1,
+    cohesionHigh: 0,
     highPower: 50,
     /** Cohesion erodes only once AI does whole jobs. */
     cohesionHighPower: 60,
     /** In the Rupture zone the arms race hits Europe too (sanctions, energy, cyberattacks): Cohesion lost each round. */
     cohesionRupture: -3,
     /** Harder to align as AI grows: true Confidence lost each round past `truthHighPower` (the low end drops with it). */
-    truth: -2,
+    truth: -1,
     truthHighPower: 60,
     /** The labs' reports push the reported value up each round; the uncertainty widens by as much (the low end stays). */
     labReports: 1,
@@ -57,7 +57,7 @@ export const TUNING = {
   /** Requests (v4): characters who arrive during the six months. 6 to 10 a game, at most one a round
    *  (two when a follow-up is due). `chance` is the share of other rounds that get one; `minRate` keeps the
    *  count up (a request is forced when fewer than round × minRate have come). */
-  requests: { maxPerGame: 10, chance: 0.6, minRate: 0.9, firstRound: 1 },
+  requests: { maxPerGame: 8, chance: 0.6, minRate: 1, firstRound: 1 },
 
   influence: { base: 2, highCohesion: 60, lowCohesion: 35, coalitionLevel: 2, cap: 10, minIncome: 1 },
 
@@ -67,9 +67,9 @@ export const TUNING = {
 
   /** Deciding gauge and safety net of each world. */
   worlds: {
-    pause: { decides: 'confidence', target: 68, net: 'cohesion', floor: 45 },
-    race: { decides: 'confidence', target: 75, net: 'cohesion', floor: 55 },
-    rupture: { decides: 'cohesion', target: 82, net: 'confidence', floor: 65 },
+    pause: { decides: 'confidence', target: 60, net: 'cohesion', floor: 42 },
+    race: { decides: 'confidence', target: 62, net: 'cohesion', floor: 47 },
+    rupture: { decides: 'cohesion', target: 82, net: 'confidence', floor: 60 },
     plateau_open: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
     plateau_labs: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
   },
@@ -77,7 +77,7 @@ export const TUNING = {
   /** Without a tipping point, how far AI got picks CFG's gradual world: below `bigAiFrom` AI hit a wall (Plateau,
    *  open models everywhere); from it, AI kept improving slowly under a few labs' compute (Big AI). In Big AI only a
    *  Europe with its own open models ends well (CFG's agent economy: publicly funded models must be open-weight). */
-  plateau: { bigAiFrom: 60 },
+  plateau: { bigAiFrom: 70 },
 
   jobShocks: { at: [40, 70], hit: -5, softened: -1 },
 
@@ -109,7 +109,7 @@ export const TUNING = {
       talks: { base: 0.75, pause: 0.15, rupture: -0.3 },
       coalition: { base: 0.75, highCohesion: 0.1, lowCohesion: -0.25 },
       inspections: { base: 0.65, pause: 0.15, rupture: -0.3 },
-      pause_call: { base: 0.55, perCoalition: 0.1 },
+      pause_call: { base: 0.65, perCoalition: 0.1 },
       licensing_treaty: { base: 0.55, perCoalition: 0.1 },
       biosecurity: { base: 0.8, rupture: -0.3 },
       asml: { base: 0.7, highCohesion: 0.1, lowCohesion: -0.25 },
@@ -118,16 +118,16 @@ export const TUNING = {
 
   /** Card effects. Costs per level for cards with levels. */
   cards: {
-    talks: { cost: 1, cooperation: 6, cohesion: -2, uses: 3, rest: 1 },
+    talks: { cost: 1, cooperation: 3, cohesion: -2, uses: 3, rest: 1 },
     /** Level 1 (EU testing of the models sold in Europe) from round 1; the accord and the joint inspectorate only
      *  after an AI incident, the summit, or with US–China cooperation in the Pause zone. Cooperation per level (0
      *  for the first: Europe tests at home); hidden `truth` per level (inspectors inside the labs, under a deal, can
      *  demand fixes); Influence lost the next round from the accord on. */
-    inspections: { cost: [2, 3, 3], margin: -8, cooperation: [0, 3, 3], truth: [0, 3, 3], influence: -1, uses: 3 },
+    inspections: { cost: [2, 3, 3], margin: -8, cooperation: [0, 2, 2], truth: [0, 3, 3], influence: -1, uses: 3 },
     ai_office: { cost: 2, marginFactor: 0.5, cohesion: -1, inspectionsBonus: -2 },
     /** Hidden gain `truth`, plus `accessTruth` once the inspection accord (`accessInspections`) opens the labs. */
-    alignment: { cost: 2, truth: 3, accessTruth: 4, accessInspections: 2, estimate: 2, cohesion: -1, uses: 3 },
-    coalition: { cost: [2, 2, 3], cooperation: 3, cohesion: -1, uses: 3 },
+    alignment: { cost: 2, truth: 5, accessTruth: 4, accessInspections: 2, estimate: 2, cohesion: 0, uses: 3 },
+    coalition: { cost: [2, 2, 3], cooperation: 2, cohesion: 0, uses: 3 },
     audit: { cost: 1, rounds: 2, uses: 2 },
     asml: { cost: 2, safety: { margin: -8 }, access: { cohesion: 6 }, cooperation: -2, uses: 2, arrivesAt: 35 },
     weight_security: { cost: 1, cohesion: -2 },
@@ -136,16 +136,16 @@ export const TUNING = {
     cyber_shield: { cost: 2, cohesion: 3, influence: -1, rounds: 2 },
     oversight_mandate: { cost: 2, cohesion: 6, arrivesRound: 6 },
     cern_ai: { cost: 3, margin: -8, cohesion: -3, arrivesRound: 3 },
-    chip_verification: { cost: 3, cooperation: 4, margin: -3, influence: -1, arrivesAt: 50 },
+    chip_verification: { cost: 3, cooperation: 2, margin: -3, influence: -1, arrivesAt: 50 },
     /** Only with US–China cooperation in the Pause zone (`zones.pause`). */
-    licensing_treaty: { cost: 3, margin: -6, truth: 6, cooperation: 3, cohesion: -2 },
-    biosecurity: { cost: 2, cooperation: 3, cohesion: -1 },
+    licensing_treaty: { cost: 3, margin: -6, truth: 6, cooperation: 2, cohesion: -2 },
+    biosecurity: { cost: 2, cooperation: 2, cohesion: -1 },
     /** Opens after any AI incident: `cooperation` when Europe was prepared (it leads), `cooperationFollow` otherwise. */
     summit: { cost: 1, cooperation: 10, cooperationFollow: 5, margin: -5, truth: 4, rounds: 2 },
-    attribution: { cost: 1, cooperation: 5, rounds: 2 },
+    attribution: { cost: 1, cooperation: 3, rounds: 2 },
     /** AI 2027, October 2027: after the memo leaks, Europe calls for a pause with other capitals. Beijing joins
      *  (cooperation), Washington calls it betrayal (Influence next round); one vote toward slowing down. */
-    pause_call: { cost: 2, cooperation: 4, influence: -2, rounds: 2 },
+    pause_call: { cost: 2, cooperation: 2, influence: -2, rounds: 2 },
   } satisfies Record<CardId, object>,
 
   /** When cards first arrive. */
@@ -160,8 +160,8 @@ export const TUNING = {
     opaque: { stages: [45, 48, 51], marginFactor: 1.5, preparedFactor: 1.2 },
     /** AI incident: AI power stages, after opaque reasoning; strike chance per round at stage 3 depends on hidden safety. */
     incident: {
-      stages: [52, 57, 62],
-      chanceBase: 0.2,
+      stages: [50, 54, 58],
+      chanceBase: 0.3,
       chancePerPoint: 0.02,
       chanceMin: 0.08,
       chanceMax: 0.85,
@@ -213,7 +213,7 @@ export const TUNING = {
    *  Slowing down moves the final US–China cooperation by `slowdown.cooperation` and the true AI safety by
    *  `slowdown.truth` (outside researchers brought in, Agent-4 shut down); racing on moves cooperation by
    *  `race.cooperation` (China's offer of a pause refused). */
-  committee: { base: 4, needed: 6, doubtBelow: 50, slowdown: { cooperation: 10, truth: 8 }, race: { cooperation: -4 } },
+  committee: { base: 4, needed: 6, doubtBelow: 30, slowdown: { cooperation: 10, truth: 8 }, race: { cooperation: -4 } },
 
   /** Leaks: a leak round every two or three rounds; each leak comes at the first leak round after its AI 2027
    *  milestone (src/data/leaks.ts), readable with enough oversight. */
@@ -259,7 +259,7 @@ export const TUNING = {
    *  cohesion loses round(min(max, (AI capabilities − from) / per) × factor) a round. The factor is 1, minus
    *  `flexicurity` once the flexicurity reform is played, minus `answer` per answer that protects workers
    *  (src/data/social.ts, WORKER_ANSWERS), never below `minFactor`. The two job shocks stay as visible moments. */
-  jobDrift: { from: 35, per: 25, max: 2, flexicurity: 0.5, answer: 0.25, minFactor: 0.25 },
+  jobDrift: { from: 35, per: 25, max: 2, flexicurity: 0.75, answer: 0.25, minFactor: 0.25 },
 
   /** v4: social events (src/data/social.ts), one a round from `firstRound`, a second with chance
    *  min(secondMax, secondChance + unrest × secondPerUnrest). Unrest, from public values only:

@@ -535,12 +535,13 @@ describe('hidden values never leak', () => {
 
 describe('heading, report, letters', () => {
   it('the heading line names the world, the goal and the safety net', () => {
-    const s = fresh(1, { cooperation: 50, cohesion: 58, confidence: { truth: 60, estimate: 62, margin: 15 } });
-    expect(heading(s).text).toBe('If AI tipped now: Race. To end well: AI safety 75 (you: 47 verified, 62 claimed) and Social cohesion 55 or more (you: 58).');
+    const s = fresh(1, { cooperation: 50, cohesion: 58, confidence: { truth: 58, estimate: 60, margin: 15 } });
+    const race = T.worlds.race;
+    expect(heading(s).text).toBe(`If AI tipped now: Race. To end well: AI safety ${race.target} (you: 45 verified, 60 claimed) and Social cohesion ${race.floor} or more (you: 58).`);
     expect(heading(s).meaning).toMatch(/race/i);
     expect(heading(s).basis.kind).toBe('cfg');
-    expect(heading(s).decides).toMatchObject({ key: 'confidence', bar: 75, low: 47, high: 62, met: 'no' });
-    expect(heading({ ...s, confidence: { truth: 70, estimate: 80, margin: 15 } }).decides).toMatchObject({ low: 65, high: 80, met: 'maybe' });
+    expect(heading(s).decides).toMatchObject({ key: 'confidence', bar: race.target, low: 45, high: 60, met: 'no' });
+    expect(heading({ ...s, confidence: { truth: 60, estimate: 70, margin: 15 } }).decides).toMatchObject({ low: 55, high: 70, met: 'maybe' });
     expect(heading({ ...s, cooperation: 65 }).world).toBe('pause');
     expect(heading({ ...s, cooperation: 20 }).world).toBe('rupture');
   });
@@ -548,7 +549,7 @@ describe('heading, report, letters', () => {
   it('offers another course only when it is within reach and would help', () => {
     const s = fresh(1, { round: 4, aiPower: 50, lastRise: 8, cooperation: 52, cohesion: 58, confidence: { truth: 60, estimate: 62, margin: 15 } });
     expect(heading(s).alt).toMatchObject({ world: 'pause' });
-    expect(heading(s).alt!.text).toBe('Push US–China cooperation to 60 or more (you: 52) to reach a Pause, where AI safety 68 is enough.');
+    expect(heading(s).alt!.text).toBe(`Push US–China cooperation to 60 or more (you: 52) to reach a Pause, where AI safety ${T.worlds.pause.target} is enough.`);
     expect(heading({ ...s, cooperation: 40 }).alt).toBeNull();
     expect(heading({ ...s, confidence: { truth: 90, estimate: 90, margin: 5 } }).alt).toBeNull();
     expect(heading({ ...s, cooperation: 25, cohesion: 60 }).alt).toMatchObject({ world: 'race' });
@@ -560,7 +561,7 @@ describe('heading, report, letters', () => {
     expect(heading(s).world).toBe('plateau_open');
     expect(heading(s).text).toMatch(/^If AI stalls: Plateau, open models\./);
     expect(heading(s).needsOpen).toBeNull();
-    const labs = { ...s, aiPower: 62 };
+    const labs = { ...s, aiPower: T.plateau.bigAiFrom + 2 };
     expect(heading(labs).world).toBe('plateau_labs');
     expect(heading(labs).needsOpen).toEqual({ now: 'dependent' });
     expect(heading(labs).text).toMatch(/Europe’s AI Open \(you: Dependent\)/);
@@ -664,16 +665,16 @@ describe('endings', () => {
       [{ ...tip, cooperation: 75, cohesion: 30, confidence: { truth: 70, estimate: 70, margin: 5 } }, 'unstable_pause'],
       [{ ...tip, cooperation: 75, cohesion: 50, confidence: { truth: 50, estimate: 60, margin: 10 } }, 'unstable_pause'],
       [{ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 80, estimate: 80, margin: 3 } }, 'cognitive_revolution'],
-      [{ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 62, estimate: 70, margin: 15 } }, 'loss_of_control'],
+      [{ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 58, estimate: 70, margin: 15 } }, 'loss_of_control'],
       [{ ...tip, cooperation: 10, cohesion: 90, confidence: { truth: 70, estimate: 70, margin: 3 } }, 'multipolar_world'],
       [{ ...tip, cooperation: 10, cohesion: 70, confidence: { truth: 70, estimate: 70, margin: 3 } }, 'hot_war'],
-      // without a tipping point, how far AI got picks the world: a plateau below 60, big labs from 60
+      // without a tipping point, how far AI got picks the world: a plateau below T.plateau.bigAiFrom, big labs from it
       [{ round: T.rounds, tipping: null, aiPower: 55, europeAi: 'dependent', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'bright_winter'],
       [{ round: T.rounds, tipping: null, aiPower: 55, europeAi: 'open', cohesion: 50, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'decentralised_mayhem'],
       // with big labs in charge, only an Open Europe ends well (CFG, Big AI, Ending A)
-      [{ round: T.rounds, tipping: null, aiPower: 65, europeAi: 'open', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'agent_economy'],
-      [{ round: T.rounds, tipping: null, aiPower: 65, europeAi: 'dependent', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'silicon_blackmail'],
-      [{ round: T.rounds, tipping: null, aiPower: 65, europeAi: 'open', cohesion: 65, confidence: { truth: 30, estimate: 40, margin: 12 } }, 'silicon_blackmail'],
+      [{ round: T.rounds, tipping: null, aiPower: 72, europeAi: 'open', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'agent_economy'],
+      [{ round: T.rounds, tipping: null, aiPower: 72, europeAi: 'dependent', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'silicon_blackmail'],
+      [{ round: T.rounds, tipping: null, aiPower: 72, europeAi: 'open', cohesion: 65, confidence: { truth: 30, estimate: 40, margin: 12 } }, 'silicon_blackmail'],
     ];
     for (const [patch, id] of cases) expect(ended(patch).ending, id).toBe(id);
   });
@@ -688,10 +689,10 @@ describe('endings', () => {
   });
 
   it('decides on the true Confidence, and says so in one sentence', () => {
-    const s = ended({ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 62, estimate: 70, margin: 15 } });
+    const s = ended({ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 58, estimate: 70, margin: 15 } });
     const v = ending(s);
-    expect(v.sentence).toBe('The superpowers raced. AI safety was 62 (55 verified, the labs claimed 70), below the 75 a race needs: control of AI is lost.');
-    expect(v.reveal.truth).toBe(62);
+    expect(v.sentence).toBe(`The superpowers raced. AI safety was 58 (55 verified, the labs claimed 70), below the ${T.worlds.race.target} a race needs: control of AI is lost.`);
+    expect(v.reveal.truth).toBe(58);
     expect(v.counterfactuals[0]).toMatch(/^With US–China cooperation at 60 or more at the tipping point/);
   });
 
@@ -704,7 +705,7 @@ describe('endings', () => {
 
   it('a safety net that fails is named', () => {
     const v = ending(ended({ ...tip, cooperation: 75, cohesion: 30, confidence: { truth: 70, estimate: 70, margin: 5 } }));
-    expect(v.sentence).toMatch(/^The superpowers paused and AI safety reached 70, but Social cohesion fell to 30, below the 45 a pause needs: the pause breaks down\.$/);
+    expect(v.sentence).toBe(`The superpowers paused and AI safety reached 70, but Social cohesion fell to 30, below the ${T.worlds.pause.floor} a pause needs: the pause breaks down.`);
   });
 
   it('the Oversight Committee votes at the tipping point once the memo has leaked, and its vote moves the world', () => {
@@ -721,8 +722,8 @@ describe('endings', () => {
     expect(slow.flags).toContain('committee_slowdown');
     expect(ENDING_BY_ID[slow.ending!].world).toBe('pause');
     // doubt counts: what is verified below the bar adds a vote; open rupture takes one away
-    expect(committeeVote({ ...fresh(1), ...memo, confidence: { truth: 30, estimate: 60, margin: 25 } } as GameState)!.slowdown).toBe(6);
-    expect(committeeVote({ ...fresh(1), ...memo, cooperation: 20, confidence: { truth: 30, estimate: 60, margin: 25 } } as GameState)!.slowdown).toBe(5);
+    expect(committeeVote({ ...fresh(1), ...memo, confidence: { truth: 30, estimate: 60, margin: 35 } } as GameState)!.slowdown).toBe(6);
+    expect(committeeVote({ ...fresh(1), ...memo, cooperation: 20, confidence: { truth: 30, estimate: 60, margin: 35 } } as GameState)!.slowdown).toBe(5);
     const v = ending(slow);
     expect(v.committee).toMatchObject({ outcome: 'slowdown', shift: T.committee.slowdown.cooperation });
     expect(v.committee!.reasons.length).toBe(2);

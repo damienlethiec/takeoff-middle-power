@@ -73,7 +73,7 @@ export const OPEN_SOURCE: RequestCard[] = [
     right: {
       label: 'Fund safer releases',
       stance: 'accept',
-      effects: { cohesion: -3, truth: 2 },
+      effects: { influence: -1, truth: 2 },
       set: ['ransomware_ready'],
       tag: 'safety',
       why: 'A year of costly work',

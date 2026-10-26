@@ -47,9 +47,9 @@ The ten endings are the CFG's, unchanged. Two questions pick the world; in each 
 ```
 End of the game (tipping point reached, or after round 12)
 ├─ Tipping point reached → Cooperation zone at that moment
-│   ├─ Pause (Cooperation 60+)      Decides: Confidence 68+  Safety net: Cohesion 45+   ✓ Licensed utopia      ✗ Unstable pause
-│   ├─ Race (Cooperation 30–59)     Decides: Confidence 75+  Safety net: Cohesion 55+   ✓ Cognitive revolution ✗ Loss of control
-│   └─ Rupture (Cooperation < 30)   Decides: Cohesion 82+    Safety net: Confidence 65+ ✓ Multipolar world     ✗ Hot war
+│   ├─ Pause (Cooperation 60+)      Decides: Confidence 60+  Safety net: Cohesion 42+   ✓ Licensed utopia      ✗ Unstable pause
+│   ├─ Race (Cooperation 30–59)     Decides: Confidence 62+  Safety net: Cohesion 47+   ✓ Cognitive revolution ✗ Loss of control
+│   └─ Rupture (Cooperation < 30)   Decides: Cohesion 82+    Safety net: Confidence 60+ ✓ Multipolar world     ✗ Hot war
 └─ AI plateaus → Europe's AI badge
     ├─ Open                         Decides: Cohesion 60+    Safety net: Confidence 40+ ✓ A bright winter      ✗ Decentralised mayhem
     └─ Dependent (big labs)         Decides: Cohesion 60+    Safety net: Confidence 40+ ✓ The agent economy    ✗ Silicon blackmail
@@ -57,15 +57,15 @@ End of the game (tipping point reached, or after round 12)
 
 **How to read it.** At the tipping point, the cooperation zone sets the world: the superpowers pause, race or break apart. If AI never reaches the tipping point, Europe's AI badge sets the world. Then the deciding gauge must reach its target and the safety net its floor; if either fails, the bad ending of that world follows.
 
-**Why these targets.** The calmer the world, the easier a good ending: a plateau is the least dangerous world, a rupture the most. Getting the superpowers to cooperate is rewarded twice: a lower bar and a better ending. Targets are ambitious (68, 75, 82) but the gauges are lively, so a good game can reach them. All numbers are starting values to tune with the simulation.
+**Why these targets.** The calmer the world, the easier a good ending: a plateau is the least dangerous world, a rupture the most. Getting the superpowers to cooperate is rewarded twice: a lower bar and a better ending. Targets are ambitious but the gauges are lively, so a good game can reach them. All numbers are tuned with the simulation (26 Oct rebalancing: Pause 60 / 42, Race 62 / 47, Rupture 82 / 60, against AI safety's true value).
 
 | World | Good ending if | Otherwise | What the bad ending tells |
 | --- | --- | --- | --- |
 | Plateau, open | Cohesion 60+ and Confidence 40+ | *Decentralised mayhem* | Powerful tools in everyone's hands, misused or unreliable |
 | Plateau, big labs | Cohesion 60+ and Confidence 40+ | *Silicon blackmail* | A few labs hold the keys and nobody can check them |
-| Pause | Confidence 68+ and Cohesion 45+ | *Unstable pause* | A pause nobody can verify, or that society rejects |
-| Race | Confidence 75+ and Cohesion 55+ | *Loss of control* | Untrustworthy AI, or people losing their grip on an AI-run economy |
-| Rupture | Cohesion 82+ and Confidence 65+ | *Hot war* | No strong Europe to mediate, or an AI incident that escalates |
+| Pause | Confidence 60+ and Cohesion 42+ | *Unstable pause* | A pause nobody can verify, or that society rejects |
+| Race | Confidence 62+ and Cohesion 47+ | *Loss of control* | Untrustworthy AI, or people losing their grip on an AI-run economy |
+| Rupture | Cohesion 82+ and Confidence 60+ | *Hot war* | No strong Europe to mediate, or an AI incident that escalates |
 
 **Every ending explains itself in one sentence**, built from the gauge that decided it: *"The superpowers raced. Confidence was 62 ± 8, below the 75 a race needs: loss of control."* A little randomness near the zone borders and at the tipping point keeps suspense, never more than a few points.
 

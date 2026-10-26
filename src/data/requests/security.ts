@@ -19,7 +19,7 @@ export const SECURITY: RequestCard[] = [
     right: {
       label: 'Lock down now',
       stance: 'accept',
-      effects: { cohesion: -2, coop: -2 },
+      effects: { coop: -2 },
       set: ['weight_security'],
       why: 'Beijing reads it as an accusation',
       reaction: 'Better late. Barely.',
@@ -46,7 +46,7 @@ export const SECURITY: RequestCard[] = [
     right: {
       label: 'Back joining in',
       stance: 'accept',
-      effects: { coop: -8, cohesion: 1 },
+      effects: { coop: -6, cohesion: 1 },
       why: 'Beijing sees Europe at war',
       reaction: 'Orders received. God help us.',
     },
@@ -71,7 +71,7 @@ export const SECURITY: RequestCard[] = [
     right: {
       label: 'Expose publicly',
       stance: 'accept',
-      effects: { coop: -6, cohesion: 3 },
+      effects: { coop: -4, cohesion: 3 },
       why: 'A diplomatic storm',
       reaction: 'The press conference is at noon.',
     },

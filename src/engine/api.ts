@@ -13,7 +13,7 @@
 //   if s.event: the clock stops at event.at for its Breaking news screen →
 //   s = resolveEvent(s, choice?)   (choice required when event.options is non-empty: silicon blackmail)
 //   while request(s): a character arrives at its `at`, the clock stops →
-//   { state: s } = answerRequest(s, 'left' | 'right')   (free of Influence; the cost is in the answer)
+//   { state: s } = answerRequest(s, 'left' | 'right')   (the cost is in the answer, sometimes Influence)
 //   The clock stops ("What changed" tops the feed); when the player asks for the decisions:
 //     hand(s), advisor(s)    the hand and the chief of staff's one recommendation
 //     preview(s, picks)      the selection's effect, in public values only (nothing committed), with
@@ -59,7 +59,7 @@ export interface EngineApi {
   resolveEvent(state: GameState, choice?: string): GameState;
   /** The next request to answer this round (it comes at its `at` while the clock runs), or null. */
   request(state: GameState): RequestView | null;
-  /** Answer the next request: free of Influence, the cost is in the answer. */
+  /** Answer the next request: the cost is in the answer (a gauge, a threat, Europe's AI, sometimes Influence). */
   answerRequest(state: GameState, side: Side): { state: GameState; outcome: RequestOutcome };
   endRound(state: GameState): { state: GameState; outcome: 'next' | 'ended' };
   hand(state: GameState): CardView[];

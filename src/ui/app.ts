@@ -503,7 +503,7 @@ export class App {
     this.renderClock();
   }
 
-  /** A character arrives with a request: the clock stops until the player answers (free of Influence). */
+  /** A character arrives with a request: the clock stops until the player answers (the cost is in the answer). */
   private async fireRequest(v: RequestView) {
     this.eventBusy = true;
     const date = this.e.dateLabel(this.s.round);

@@ -20,7 +20,7 @@ export const RESEARCHER: RequestCard[] = [
     right: {
       label: 'Fund it',
       stance: 'accept',
-      effects: { truth: 9, margin: -3, cohesion: -3 },
+      effects: { truth: 9, margin: -3, influence: -1 },
       tag: 'safety',
       why: 'Expensive, slow research',
       reaction: 'Then we might see what it hides.',
@@ -47,7 +47,7 @@ export const RESEARCHER: RequestCard[] = [
     right: {
       label: 'Outside tests first',
       stance: 'accept',
-      effects: { margin: -4, coop: -2, cohesion: -1 },
+      effects: { margin: -4, coop: -2 },
       set: ['memo_tested'],
       why: 'Washington calls it grandstanding',
       reaction: 'Good. We start on Monday.',

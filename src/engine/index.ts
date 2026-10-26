@@ -932,6 +932,7 @@ function reqFx(e: ReqEffects): Fx[] {
   if (e.truth) fx.push({ key: 'truth', amount: e.truth });
   if (e.margin) fx.push({ key: 'margin', amount: e.margin });
   if (e.cohesion) fx.push({ key: 'cohesion', amount: e.cohesion });
+  if (e.influence) fx.push({ key: 'influence', amount: e.influence });
   return fx;
 }
 
@@ -1019,8 +1020,12 @@ const answerCause = (r: RequestCard, a: Answer) => `${CHARACTERS[r.character].na
 function answerChips(before: GameState, after: GameState, a: Answer, words = false): Chip[] {
   const out: Chip[] = [];
   for (const i of impacts(snap(before), snap(after))) {
-    if (i.key === 'influence') continue;
     const d = Number(i.after) - Number(i.before);
+    // Influence stays a number before and after the answer (a resource, like a card's cost)
+    if (i.key === 'influence') {
+      out.push({ text: `Influence ${signed(d)}`, tone: d >= 0 ? 'up' : 'down', ...(words ? { move: { key: 'influence' as const, delta: d } } : {}) });
+      continue;
+    }
     if (i.key === 'margin') {
       out.push(words ? { text: verifiedMoveText(d), tone: d >= 0 ? 'up' : 'down', move: { key: 'margin', delta: d } } : { text: marginText(i.before, i.after), tone: d >= 0 ? 'up' : 'down' });
     }
@@ -1037,8 +1042,8 @@ function answerChips(before: GameState, after: GameState, a: Answer, words = fal
   if (a.later) {
     const e = a.later.effects;
     const mv = (label: string, x: number) => (words ? moveText(label, x) : `${label} ${signed(x)}`);
-    const parts = [e.cohesion ? mv(GAUGE_LABEL.cohesion, e.cohesion) : '', e.coop ? mv(GAUGE_LABEL.cooperation, e.coop) : '', e.ai ? mv(GAUGE_LABEL.aiPower, e.ai) : '', e.margin ? `${GAUGE_LABEL.confidence}: ${e.margin > 0 ? 'less' : 'more'} verified` : '', e.conf ? mv(GAUGE_LABEL.confidence, e.conf) : ''].filter(Boolean);
-    const bad = (e.cohesion ?? 0) < 0 || (e.coop ?? 0) < 0 || (e.margin ?? 0) > 0 || (e.ai ?? 0) > 0 || (e.conf ?? 0) < 0;
+    const parts = [e.cohesion ? mv(GAUGE_LABEL.cohesion, e.cohesion) : '', e.coop ? mv(GAUGE_LABEL.cooperation, e.coop) : '', e.ai ? mv(GAUGE_LABEL.aiPower, e.ai) : '', e.margin ? `${GAUGE_LABEL.confidence}: ${e.margin > 0 ? 'less' : 'more'} verified` : '', e.conf ? mv(GAUGE_LABEL.confidence, e.conf) : '', e.influence ? `Influence ${signed(e.influence)}` : ''].filter(Boolean);
+    const bad = (e.cohesion ?? 0) < 0 || (e.coop ?? 0) < 0 || (e.margin ?? 0) > 0 || (e.ai ?? 0) > 0 || (e.conf ?? 0) < 0 || (e.influence ?? 0) < 0;
     if (parts.length) out.push({ text: `Later: ${parts.join(', ')}`, tone: bad ? 'down' : 'up' });
   }
   return out;

@@ -1,8 +1,8 @@
 // A request (v4, from the hybrid): a character arrives during the six months and the clock stops. The card is a
 // dialog named after the character, with the request, a "Learn more" fact, and two answers that are real
 // buttons whose names say what they move. Answer by clicking, by swiping the card, or with ← and → (the first
-// press looks at an answer, the second takes it). Swiping is never the only way. Answering is free of Influence:
-// the cost is in the answer. Then the character reacts, with what changed.
+// press looks at an answer, the second takes it). Swiping is never the only way. Asking costs nothing:
+// the cost is in the answer (sometimes Influence). Then the character reacts, with what changed.
 
 import type { AnswerView, RequestOutcome, RequestView, Side } from '../../engine/types';
 import { announce, reducedMotion, tryFocus } from '../a11y';

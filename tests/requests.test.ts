@@ -18,7 +18,7 @@ const SOURCE_LIST = Object.values(SOURCES);
  *  the AI safety uncertainty where it is while the other answer narrows it. */
 function costs(a: Answer, other: Answer): boolean {
   const e = a.effects;
-  if ((e.ai ?? 0) > 0 || (e.coop ?? 0) < 0 || (e.conf ?? 0) < 0 || (e.margin ?? 0) > 0 || (e.cohesion ?? 0) < 0) return true;
+  if ((e.ai ?? 0) > 0 || (e.coop ?? 0) < 0 || (e.conf ?? 0) < 0 || (e.margin ?? 0) > 0 || (e.cohesion ?? 0) < 0 || (e.influence ?? 0) < 0) return true;
   if ((other.effects.margin ?? 0) < 0 && (e.margin ?? 0) >= 0) return true;
   if (a.grow?.length || a.badge === 'dependent') return true;
   const l = a.later?.effects;
@@ -124,9 +124,7 @@ describe('requests in a game', () => {
         expect(r.requests.length).toBeLessThanOrEqual(2);
         if (r.requests.length === 2) expect(r.requests.some((q) => REQUESTS.find((x) => x.id === q.id)!.followup)).toBe(true);
       }
-    // 12 → 10 rounds (26 Oct): the same request pacing leaves fewer empty rounds (9.7% with 300 thoughtful
-    // games, was above 10%). Relaxed to 8% until the rebalancing for ten rounds (docs/DEVELOPER_NOTES.md).
-    expect(empty / rounds).toBeGreaterThan(0.08);
+    expect(empty / rounds).toBeGreaterThan(0.1);
   });
 
   it('each game draws a different mix; no request comes twice in a game', () => {
@@ -154,7 +152,7 @@ describe('requests in a game', () => {
     expect(seen).toBeGreaterThan(0);
   });
 
-  it('an answer is free of Influence, never mutates its input, and costs nothing hidden in its view', () => {
+  it('an answer moves Influence only by its own effects, never mutates its input, and costs nothing hidden in its view', () => {
     let s = createInitialState(21);
     let checked = 0;
     for (let i = 0; i < T.rounds && checked < 4; i++) {
@@ -164,8 +162,9 @@ describe('requests in a game', () => {
         const v = request(freeze(s))!;
         for (const a of [v.left, v.right]) for (const c of a.chips) expect(c.text).not.toMatch(/true|truth/i);
         const inf = s.influence;
+        const own = REQUESTS.find((r) => r.id === v.id)!.right.effects.influence ?? 0;
         const { state } = answerRequest(s, 'right');
-        expect(state.influence).toBe(inf);
+        expect(state.influence).toBe(Math.max(0, Math.min(T.influence.cap, inf + own)));
         s = state;
         checked++;
       }

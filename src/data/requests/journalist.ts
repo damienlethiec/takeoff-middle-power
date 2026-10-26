@@ -152,7 +152,7 @@ export const JOURNALIST: RequestCard[] = [
     right: {
       label: 'Back the story',
       stance: 'accept',
-      effects: { margin: -4, cohesion: -2, coop: -2 },
+      effects: { margin: -4, coop: -2 },
       why: 'Washington is furious with Europe',
       reaction: 'Front page tomorrow. People deserve to know.',
     },

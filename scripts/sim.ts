@@ -15,6 +15,21 @@ const RUN = ONLY ? STRATEGIES.filter((st) => ONLY.includes(st.name)) : STRATEGIE
 const pct = (x: number, n: number) => `${((100 * x) / Math.max(1, n)).toFixed(1)}%`;
 const isGood = (g: PlayedGame) => ENDING_BY_ID[g.final.ending!].good;
 const best = new Map<EndingId, number>();
+/** Cards that worked, per card: a failed try (v4) is a roll of the dice, not a play, so the "no card above 20%" check
+ *  counts only plays that took effect (retries of a failed card would otherwise inflate it). */
+const worked = (res: PlayedGame[]) => {
+  const m = new Map<CardId, number>();
+  for (const x of res) {
+    const failed = [...x.failed];
+    for (const p of x.plays) {
+      const i = failed.indexOf(p);
+      if (i >= 0) failed.splice(i, 1);
+      else m.set(p, (m.get(p) ?? 0) + 1);
+    }
+  }
+  return m;
+};
+const tipShare = (res: PlayedGame[]) => res.filter((x) => x.final.tipping).length / Math.max(1, res.length);
 const share = new Map<string, number>();
 const all = new Map<string, PlayedGame[]>();
 
@@ -32,6 +47,7 @@ for (const strat of RUN) {
     const avg = tipped.length ? (tipped.reduce((a, x) => a + x.final.tipping!.round, 0) / tipped.length).toFixed(1) : '-';
     console.log(`  ${p.padEnd(6)} ${String(sub.length).padStart(5)} games · tipping ${pct(tipped.length, sub.length).padStart(6)} (avg round ${avg}) · good ${pct(sub.filter(isGood).length, sub.length)}`);
   }
+  console.log(`tipping point reached: ${pct(res.filter((x) => x.final.tipping).length, N)} of games`);
   const minTip = Math.min(...res.filter((x) => x.final.tipping).map((x) => x.final.tipping!.round));
   console.log(`earliest tipping point: round ${Number.isFinite(minTip) ? minTip : '-'}`);
   console.log('endings:');
@@ -40,10 +56,10 @@ for (const strat of RUN) {
     best.set(e.id, Math.max(best.get(e.id) ?? 0, k / N));
     console.log(`  ${(e.good ? '+ ' : '- ') + e.title.padEnd(26)} ${pct(k, N).padStart(6)}`);
   }
-  const plays = new Map<CardId, number>();
-  for (const x of res) for (const p of x.plays) plays.set(p, (plays.get(p) ?? 0) + 1);
+  const plays = worked(res);
   const total = [...plays.values()].reduce((a, b) => a + b, 0);
-  console.log(`cards (${(total / N).toFixed(1)} per game): ${[...plays].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${pct(v, total)}`).join(', ')}`);
+  const fails = res.reduce((a, x) => a + x.failed.length, 0);
+  console.log(`cards that worked (${(total / N).toFixed(1)} per game; ${pct(fails, total + fails)} of tries failed): ${[...plays].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${pct(v, total)}`).join(', ')}`);
   const avg = (f: (x: PlayedGame) => number) => (res.reduce((a, x) => a + f(x), 0) / N).toFixed(1);
   console.log(
     `at the end: Cooperation ${avg((x) => x.final.finalCooperation ?? x.final.cooperation)} · Confidence true ${avg((x) => x.final.confidence.truth)} / shown ${avg((x) => x.final.confidence.estimate)} ± ${avg((x) => x.final.confidence.margin)} · Cohesion ${avg((x) => x.final.cohesion)} · Influence left ${avg((x) => x.final.influence)} · short of Influence ${avg((x) => x.shortages)}×`,
@@ -66,8 +82,7 @@ console.log('\n=== reachability (best share across strategies) ===');
 for (const e of ENDINGS) console.log(`  ${e.title.padEnd(26)} ${pct(best.get(e.id) ?? 0, 1)}`);
 
 const th = all.get('thoughtful') ?? [];
-const plays = new Map<string, number>();
-for (const x of th) for (const p of x.plays) plays.set(p, (plays.get(p) ?? 0) + 1);
+const plays = worked(th);
 const total = [...plays.values()].reduce((a, b) => a + b, 0);
 const [topCard, topN] = [...plays].sort((a, b) => b[1] - a[1])[0] ?? ['-', 0];
 const earliest = Math.min(...RUN.flatMap((st) => all.get(st.name)!.filter((x) => x.final.tipping).map((x) => x.final.tipping!.round)));
@@ -75,6 +90,8 @@ const g = (n: string) => share.get(n) ?? NaN;
 const reqCounts = RUN.flatMap((st) => all.get(st.name)!.map((x) => x.requests));
 const thMargins = th.map((x) => x.final.confidence.margin).sort((a, b) => a - b);
 const thMedianMargin = thMargins[Math.floor((thMargins.length - 1) / 2)];
+const pooled = RUN.flatMap((st) => all.get(st.name)!);
+const tipByPace = (['slow', 'steady', 'fast'] as Pace[]).map((p) => `${p} ${pct(tipShare(pooled.filter((x) => x.final.pace === p)), 1)}`).join(', ');
 /** [target, passed, value, strategies it needs] */
 const allChecks: [string, boolean, string, string[]][] = [
   ['passive good endings < 15%', g('passive') < 0.15, pct(g('passive'), 1), ['passive']],
@@ -83,11 +100,12 @@ const allChecks: [string, boolean, string, string[]][] = [
   ['every ending ≥ 2% for some strategy', ENDINGS.every((e) => (best.get(e.id) ?? 0) >= 0.02), ENDINGS.filter((e) => (best.get(e.id) ?? 0) < 0.02).map((e) => e.id).join(', ') || 'all', ['*']],
   ['cooperation-only clearly worse than thoughtful (−20 pts)', g('thoughtful') - g('cooperation-only') >= 0.2, `${pct(g('cooperation-only'), 1)} vs ${pct(g('thoughtful'), 1)}`, ['cooperation-only', 'thoughtful']],
   ['home-first (no diplomacy) clearly worse than thoughtful (−15 pts)', g('thoughtful') - g('home-first') >= 0.15, `${pct(g('home-first'), 1)} vs ${pct(g('thoughtful'), 1)}`, ['home-first', 'thoughtful']],
-  ['thoughtful: no card above 20% of its plays', topN / total <= 0.2, `${topCard} ${pct(topN, total)}`, ['thoughtful']],
+  ['thoughtful: no card above 20% of its plays that worked', topN / total <= 0.2, `${topCard} ${pct(topN, total)}`, ['thoughtful']],
   ['saver (Influence kept for bursts) clearly worse than thoughtful (−10 pts)', g('thoughtful') - g('saver') >= 0.1, `${pct(g('saver'), 1)} vs ${pct(g('thoughtful'), 1)}`, ['saver', 'thoughtful']],
   ['6–10 requests a game (≥ 99.5% of games)', reqCounts.filter((n) => n >= 6 && n <= 10).length >= 0.995 * reqCounts.length, `${pct(reqCounts.filter((n) => n >= 6 && n <= 10).length, reqCounts.length)} (${Math.min(...reqCounts)}–${Math.max(...reqCounts)})`, []],
   ['thoughtful: AI safety uncertainty at the end ≤ 30 (median)', thMedianMargin <= 30, `±${thMedianMargin}`, ['thoughtful']],
   [`tipping point never before round ${TUNING.earliestTipping}`, earliest >= TUNING.earliestTipping, `earliest round ${earliest}`, []],
+  ['AI takes off (tipping point) in 50–70% of games (all strategies)', tipShare(pooled) >= 0.5 && tipShare(pooled) <= 0.7, `${pct(tipShare(pooled), 1)} (${tipByPace})`, []],
 ];
 const checks = allChecks.filter(([, , , need]) => need.every((n) => (n === '*' ? !ONLY : share.has(n))));
 console.log(`\n=== targets ===${ONLY ? ` (quick run, ${allChecks.length - checks.length} skipped)` : ''}`);
