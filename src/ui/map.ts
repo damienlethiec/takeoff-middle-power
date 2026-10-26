@@ -55,6 +55,8 @@ function zoneOf(code: string, i: number, j: number): Zone {
       if (lon > 26 && lat < 41.6) return 'other';
       // eastern Greenland reaches past 30°W, and Svalbard sits far north: neither is coloured as Europe (Iceland is kept)
       if ((lon < -10 && lat > 66.8) || lat > 71.5) return 'other';
+      // Atlantic islands (the Azores, west of Ireland) read as ocean: only Iceland keeps Europe's colour out there
+      if (lon < -11 && !(lat >= 63 && lat <= 66.8)) return 'other';
       if (lon >= -6.8 && lon <= 2.2 && lat >= 49.6 && lat <= 59.5) return 'uk';
       if (lat >= 57.5 && lat <= 71.5 && lon >= 4 && (lon < 11.8 + (lat - 58.5) * 0.85 || (lat >= 69 && lon < 31))) return 'no';
       return 'eu';
