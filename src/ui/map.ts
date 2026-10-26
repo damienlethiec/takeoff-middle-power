@@ -163,6 +163,8 @@ export interface MapView {
 }
 
 const STAGE_SIZE = ['', 'st1', 'st2', 'st3'];
+/** Banner stacks and public voices: they make way for the pins. */
+const isNews = (e: HTMLElement) => e.classList.contains('banners') || e.classList.contains('voice');
 let mapIds = 0;
 
 export class WorldMap {
@@ -309,12 +311,76 @@ export class WorldMap {
     const top = isVoice ? Math.max(hh + 6, Math.min(h - 4, p.y)) : e.classList.contains('banners') ? Math.max(6, Math.min(h - hh, p.y)) : Math.max(hh, Math.min(h - hh, p.y));
     e.style.left = `${Math.max(hw, Math.min(w - hw, p.x)).toFixed(1)}px`;
     e.style.top = `${top.toFixed(1)}px`;
+    if (isNews(e)) this.avoidPins(e);
   }
   private layout() {
-    for (const [e, at] of this.placed) {
-      if (!e.isConnected) this.placed.delete(e);
-      else this.position(e, at);
+    // pins first, then the news, which moves out of their way
+    for (const news of [false, true])
+      for (const [e, at] of this.placed) {
+        if (!e.isConnected) this.placed.delete(e);
+        else if (isNews(e) === news) this.position(e, at);
+      }
+  }
+  /** Banners and voices go back to their spot, then step aside from the pins (and other news) they would cover. */
+  private relayoutNews() {
+    for (const [e, at] of this.placed) if (e.isConnected && isNews(e)) this.position(e, at);
+  }
+
+  /**
+   * Shift a banner stack or a voice to the nearest place where it covers no pin (threat, Léa, badge, leak) and no
+   * other news, staying inside the map. When nothing is free (a small phone map), the least covered place wins.
+   */
+  private avoidPins(e: HTMLElement) {
+    if (!e.offsetWidth || !e.offsetHeight) return;
+    // boxes from the placed spot and each kind's CSS anchor, not from the layout: entry animations and transitions
+    // (even the reduced-motion ones) would report where it was a moment ago
+    const rel = (x: HTMLElement, pad = 0) => {
+      const w = x.offsetWidth;
+      const h = x.offsetHeight;
+      const l = parseFloat(x.style.left) - w / 2;
+      const y = parseFloat(x.style.top);
+      const t = x.classList.contains('voice') ? y - h - 6 : x.classList.contains('banners') ? y : y - h / 2;
+      return { l: l - pad, t: t - pad, r: l + w + pad, b: t + h + pad };
+    };
+    const obstacles = [...this.overlay.children]
+      .filter(
+        (o): o is HTMLElement =>
+          o !== e &&
+          o instanceof HTMLElement &&
+          o.offsetWidth > 0 &&
+          !!o.style.left &&
+          !o.hidden &&
+          !o.classList.contains('out') &&
+          (o.matches('.threat-btn, .lea-btn, .badge-btn, .leak-btn, .voice') || (o.classList.contains('banners') && o.childElementCount > 0)),
+      )
+      .map((o) => rel(o, 4));
+    if (!obstacles.length) return;
+    const box = rel(e);
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    const cover = (dx: number, dy: number) => {
+      let a = 0;
+      for (const o of obstacles) {
+        const x = Math.min(box.r + dx, o.r) - Math.max(box.l + dx, o.l);
+        const y = Math.min(box.b + dy, o.b) - Math.max(box.t + dy, o.t);
+        if (x > 0 && y > 0) a += x * y;
+      }
+      return a;
+    };
+    let best = { dx: 0, dy: 0, a: cover(0, 0) };
+    if (best.a === 0) return;
+    const moves: { dx: number; dy: number }[] = [];
+    for (let i = -16; i <= 16; i++) for (let j = -8; j <= 8; j++) moves.push({ dx: j * 30, dy: i * 14 });
+    moves.sort((m, n) => Math.hypot(m.dx, m.dy * 1.5) - Math.hypot(n.dx, n.dy * 1.5));
+    for (const m of moves) {
+      if (box.l + m.dx < 2 || box.r + m.dx > w - 2 || box.t + m.dy < 2 || box.b + m.dy > h - 2) continue;
+      const a = cover(m.dx, m.dy);
+      if (a < best.a) best = { ...m, a };
+      if (a === 0) break;
     }
+    if (!best.dx && !best.dy) return;
+    e.style.left = `${(parseFloat(e.style.left) + best.dx).toFixed(1)}px`;
+    e.style.top = `${(parseFloat(e.style.top) + best.dy).toFixed(1)}px`;
   }
 
   /** Léa's portrait over Lyon, with her mood and a "new" tag (in words, not only a glow). */
@@ -324,6 +390,7 @@ export class WorldMap {
     // the name is the visible text plus words for screen readers (WCAG 2.5.3: label in name)
     b.innerHTML = `${leaPortrait(mood)}<span class="lea-tag">Léa${unread ? ' <i class="lea-new">new<span class="sr-only"> letter</span></i>' : ''}<span class="sr-only">, in Lyon: read her letters</span></span>`;
     b.classList.toggle('unread', unread);
+    this.relayoutNews();
   }
 
   setBadge(ai: EuropeAi) {
@@ -381,6 +448,7 @@ export class WorldMap {
           .join('; ')}.`
       : ' No threat on the map yet.';
     this.writeSummary();
+    this.relayoutNews();
   }
 
   threatButton(id: string) {
