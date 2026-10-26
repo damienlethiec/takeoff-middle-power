@@ -6,6 +6,8 @@ import { AI_REQUESTS } from './ai';
 import { CN_DELEGATE } from './cn-delegate';
 import { JOURNALIST } from './journalist';
 import { LEA_REQUESTS } from './lea';
+import { MALIK_REQUESTS } from './malik';
+import { MOTHER_REQUESTS } from './mother';
 import { OPEN_SOURCE } from './open-source';
 import { OPENBRAIN_CEO } from './openbrain-ceo';
 import { PARTNER } from './partner';
@@ -25,6 +27,8 @@ export const REQUESTS: RequestCard[] = [
   ...PARTNER,
   ...JOURNALIST,
   ...LEA_REQUESTS,
+  ...MOTHER_REQUESTS,
+  ...MALIK_REQUESTS,
   ...AI_REQUESTS,
 ];
 

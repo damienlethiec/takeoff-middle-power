@@ -26,7 +26,7 @@ function costs(a: Answer, other: Answer): boolean {
 }
 
 describe('request content', () => {
-  it('about forty cards from eleven characters, ids unique, each with a basis', () => {
+  it('about forty cards from thirteen characters, ids unique, each with a basis', () => {
     expect(REQUESTS.length).toBeGreaterThanOrEqual(40);
     expect(new Set(REQUESTS.map((r) => r.id)).size).toBe(REQUESTS.length);
     for (const id of Object.keys(CHARACTERS)) expect(REQUESTS.some((r) => r.character === id), id).toBe(true);

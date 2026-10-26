@@ -84,7 +84,7 @@ export interface Chip {
 
 // ---------------------------------------------------------------- requests (v4, from the hybrid)
 
-export type CharacterId = 'us_envoy' | 'cn_delegate' | 'openbrain_ceo' | 'researcher' | 'union' | 'open_source' | 'security' | 'partner' | 'journalist' | 'lea' | 'ai';
+export type CharacterId = 'us_envoy' | 'cn_delegate' | 'openbrain_ceo' | 'researcher' | 'union' | 'open_source' | 'security' | 'partner' | 'journalist' | 'lea' | 'mother' | 'malik' | 'ai';
 export type Side = 'left' | 'right';
 
 export interface Character {
