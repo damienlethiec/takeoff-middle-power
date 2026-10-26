@@ -33,15 +33,30 @@ export const TUNING = {
     /** Cohesion erodes only once AI does whole jobs. */
     cohesionHighPower: 60,
     /** In the Rupture zone the arms race hits Europe too (sanctions, energy, cyberattacks): Cohesion lost each round. */
-    cohesionRupture: -1,
-    /** Harder to align as AI grows: true Confidence lost each round past `truthHighPower`. */
-    truth: -1,
+    cohesionRupture: -3,
+    /** Harder to align as AI grows: true Confidence lost each round past `truthHighPower` (the low end drops with it). */
+    truth: -2,
     truthHighPower: 60,
-    /** The labs' reports push the estimate up each round. */
-    labReports: 2,
+    /** The labs' reports push the reported value up each round; the uncertainty widens by as much (the low end stays). */
+    labReports: 1,
   },
 
-  confidence: { minMargin: 3, maxMargin: 30 },
+  /** AI safety (v4): the uncertainty lies only below the reported value, between these bounds. The cap keeps
+   *  "could be as low as" meaningful; it rarely binds for a player who builds oversight (the labs' reports widen
+   *  the band by `drift.labReports` a round, opaque reasoning by `threats.opaque.marginFactor`). */
+  confidence: { minMargin: 3, maxMargin: 40 },
+
+  /** "At this pace" on the capabilities gauge, from public values only (the last rise): the range of rounds
+   *  left to the tipping point is (gap / last rise) × these factors. Low under 1 because AI speeds up AI. */
+  eta: { low: 0.6, high: 1.1, showWithin: 4 },
+
+  /** "Or change course" in the band: another world is offered only when the cooperation gap is this small. */
+  outlook: { altGap: 15 },
+
+  /** Requests (v4): characters who arrive during the six months. 6 to 10 a game, at most one a round
+   *  (two when a follow-up is due). `chance` is the share of other rounds that get one; `minRate` keeps the
+   *  count up (a request is forced when fewer than round × minRate have come). */
+  requests: { maxPerGame: 10, chance: 0.6, minRate: 0.9, firstRound: 1 },
 
   influence: { base: 2, highCohesion: 60, lowCohesion: 35, coalitionLevel: 2, cap: 10, minIncome: 1 },
 
@@ -51,7 +66,7 @@ export const TUNING = {
 
   /** Deciding gauge and safety net of each world. */
   worlds: {
-    pause: { decides: 'confidence', target: 65, net: 'cohesion', floor: 45 },
+    pause: { decides: 'confidence', target: 68, net: 'cohesion', floor: 45 },
     race: { decides: 'confidence', target: 75, net: 'cohesion', floor: 55 },
     rupture: { decides: 'cohesion', target: 82, net: 'confidence', floor: 65 },
     plateau_open: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
@@ -89,9 +104,9 @@ export const TUNING = {
 
   threats: {
     /** Theft pressure = AI power + (50 − Cooperation) × coopWeight. Stages at these pressures. */
-    theft: { coopWeight: 0.4, stages: [28, 36, 42], unprepared: { aiPower: 5, cooperation: -15 }, prepared: { cooperation: -3 } },
+    theft: { coopWeight: 0.4, stages: [28, 33, 38], unprepared: { aiPower: 5, cooperation: -15 }, prepared: { cooperation: -3 } },
     /** Opaque reasoning: AI power stages, after the theft. */
-    opaque: { stages: [45, 50, 55], marginFactor: 2 },
+    opaque: { stages: [45, 48, 51], marginFactor: 1.5 },
     /** AI incident: AI power stages, after opaque reasoning; strike chance per round at stage 3 depends on hidden safety. */
     incident: {
       stages: [52, 57, 62],
@@ -105,7 +120,7 @@ export const TUNING = {
       needs: { coalition: 1, inspections: 2 },
     },
     /** Ransomware pressure = AI power × powerWeight + 25 if Europe's AI is Open. */
-    ransomware: { powerWeight: 0.5, openBonus: 25, stages: [32, 40, 48], unprepared: { cohesion: -15 }, prepared: { cohesion: -3 } },
+    ransomware: { powerWeight: 0.5, openBonus: 25, stages: [32, 37, 42], unprepared: { cohesion: -15 }, prepared: { cohesion: -3 } },
     /** Silicon blackmail: appears with the oversight mandate while Dependent, grows one stage a round. */
     blackmail: { holdFirm: { cohesion: -10 } },
   },
@@ -121,6 +136,31 @@ export const TUNING = {
 
   /** Léa writes at these rounds, and at the end. */
   letters: { r1: 1, r4: 4, r8: 8 },
+
+  /** v4: AI weighs on jobs every round (automation spreading, AI 2027's agents taking office work): Social
+   *  cohesion loses round(min(max, (AI capabilities − from) / per) × factor) a round. The factor is 1, minus
+   *  `flexicurity` once the flexicurity reform is played, minus `answer` per answer that protects workers
+   *  (src/data/social.ts, WORKER_ANSWERS), never below `minFactor`. The two job shocks stay as visible moments. */
+  jobDrift: { from: 35, per: 25, max: 2, flexicurity: 0.5, answer: 0.25, minFactor: 0.25 },
+
+  /** v4: social events (src/data/social.ts), one a round from `firstRound`, a second with chance
+   *  min(secondMax, secondChance + unrest × secondPerUnrest). Unrest, from public values only:
+   *  max(0, (cohesionCalm − Social cohesion) / cohesionSpan) + max(0, (AI capabilities − aiFrom) / aiSpan).
+   *  Draw weights: bad news 1 + unrest × badPerUnrest; good news goodBase + protections × goodPerProtection
+   *  (flexicurity, worker answers). A job event's hit is softened by `softenPerProtection` per protection, never
+   *  below 1. Sizes: the points an event moves its gauge (for "verified", how much more of AI safety is verified). */
+  social: {
+    firstRound: 1,
+    secondChance: 0.3,
+    secondPerUnrest: 0.25,
+    secondMax: 0.75,
+    unrest: { cohesionCalm: 60, cohesionSpan: 20, aiFrom: 40, aiSpan: 30 },
+    badPerUnrest: 0.5,
+    goodBase: 1.6,
+    goodPerProtection: 0.5,
+    softenPerProtection: 1,
+    size: { small: 2, medium: 3, large: 4 },
+  },
 } as const;
 
 export type Tuning = typeof TUNING;

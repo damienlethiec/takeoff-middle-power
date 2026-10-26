@@ -16,24 +16,24 @@ export interface LetterDef {
 const jobs = ai2027('Late 2026: AI Takes Some Jobs');
 const worker = ai2027('July 2027: The Cheap Remote Worker');
 
-/** Round 1: the first letter. */
+/** Round 1: the first letter. It opens as from an old friend, so the player knows at once who Léa is. */
 export const LEA_R1: LetterDef[] = [
   {
     id: 'r1_funeral',
     mood: 'hopeful',
-    text: 'Congrats on the new job!! Brussels, wow. Here my agency is testing an AI translator. Yesterday it turned a funeral notice into a party invitation. My boss says we will “keep an eye on it”. Come for dinner when you’re back in Lyon? L.',
+    text: 'Dear old friend, it’s Léa, from Lyon! Congrats on the new job!! Brussels, wow. Here my agency is testing an AI translator. Yesterday it turned a funeral notice into a party invitation. My boss says we will “keep an eye on it”. Come for dinner when you’re back in Lyon? L.',
     basis: ai2027('Mid 2025: Stumbling Agents (impressive but unreliable)'),
   },
   {
     id: 'r1_manual',
     mood: 'hopeful',
-    text: 'So you’re an envoy now! I told everyone at the market. Here, the agency bought an AI tool. It translated a whole washing-machine manual overnight. Not bad, not great. My boss keeps smiling at it. I keep my dictionaries close. L.',
+    text: 'Dear old friend, it’s Léa! So you’re an envoy now! I told everyone at the market. Here, the agency bought an AI tool. It translated a whole washing-machine manual overnight. Not bad, not great. My boss keeps smiling at it. I keep my dictionaries close. L.',
     basis: ai2027('Early 2026: Coding Automation'),
   },
   {
     id: 'r1_mistake',
     mood: 'worried',
-    text: 'Congrats on the job, really. Strange timing though: the AI tool at the agency caught a mistake in my own work this morning. Everyone laughed. I didn’t, quite. Call me when you have a minute? L.',
+    text: 'Dear old friend, it’s Léa. Congrats on the job, really. Strange timing though: the AI tool at the agency caught a mistake in my own work this morning. Everyone laughed. I didn’t, quite. Call me when you have a minute? L.',
     basis: ai2027('Early 2026: Coding Automation'),
   },
 ];

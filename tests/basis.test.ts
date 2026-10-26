@@ -54,7 +54,7 @@ describe('scenario structure', () => {
   });
 
   it('the ten endings are CFG’s', () => {
-    expect(ENDINGS.map((e) => e.title).sort()).toEqual(
+    expect(ENDINGS.map((e) => e.cfgName).sort()).toEqual(
       ['A bright winter', 'Decentralised mayhem', 'Hot war', 'Licensed utopia', 'Loss of control', 'Multipolar world', 'Silicon blackmail', 'The agent economy', 'The cognitive revolution', 'Unstable pause'].sort(),
     );
   });

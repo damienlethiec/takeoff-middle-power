@@ -3,19 +3,30 @@
 // The round flow is documented at the top of api.ts; rules and numbers in docs/DEVELOPER_NOTES.md.
 
 import { CARD_BY_ID, CARDS, cardCost, cardUses, type CardDef } from '../data/cards';
-import { GAUGE_LABEL, PACE_TEXT, STAGE_WORD } from '../data/copy';
+import { CHARACTERS } from '../data/characters';
+import { REQUEST_BY_ID, REQUESTS } from '../data/requests';
+import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, lowText, marginText, verifiedWord } from '../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../data/endings';
 import { LEA_END, LEA_END_BASIS, LEA_END_MOOD, LEA_R1, LEA_R4, LEA_R8, type LetterDef } from '../data/lea';
-import { LEAKS } from '../data/leaks';
+import { LEAK_REDACTED_ADVICE, LEAKS } from '../data/leaks';
 import { VOICES, WORLD_HEADLINES, type MapLine, type PublicWorld } from '../data/mapcontent';
 import { MILESTONES, MILESTONE_BY_ID } from '../data/milestones';
 import { EVENTS, THREAT_BY_ID, THREATS } from '../data/threats';
+import { JOB_SHOCK_PLACE, SOCIAL_BY_ID, SOCIAL_EVENTS, SOCIAL_WORD, WORKER_ANSWERS, type SocialEventDef } from '../data/social';
 import { TUNING as T } from '../data/tuning';
 import type { EngineApi } from './api';
 import { pick, random, randomInt, seedToRng, shuffle, weightedPick, type RngHolder } from './rng';
 import type {
   AdvisorView,
+  Answer,
+  AnswerView,
   CardId,
+  Condition,
+  ReqEffects,
+  RequestCard,
+  RequestOutcome,
+  RequestView,
+  Side,
   CardView,
   Change,
   Chip,
@@ -28,11 +39,14 @@ import type {
   HeadingView,
   Impact,
   IncomeView,
-  JournalRound,
   LetterView,
   MapItem,
   MilestoneId,
   PendingEvent,
+  PublicValues,
+  RegionId,
+  FeedItem,
+  FeedRound,
   Pick,
   PreviewView,
   ReportView,
@@ -72,13 +86,29 @@ export function oversight(s: GameState): number {
   return (used(s, 'ai_office') ? T.oversight.aiOffice : 0) + s.inspections * T.oversight.perInspection + (used(s, 'audit') ? T.oversight.audit : 0);
 }
 
-/** Keep the confidence triple consistent: margin within bounds, the truth always inside estimate ± margin. */
-function settleConfidence(s: GameState) {
+/**
+ * Keep AI safety consistent (v4: the uncertainty only goes downward). The estimate is what the labs and testers
+ * report (what the labs claim); the truth is never above it and never below estimate − margin (what is verified).
+ * - A hidden gain that would lift the truth above the report is capped at the report (no visible trace).
+ * - A hidden loss stops at the low end (see applyFx): nothing visible moves.
+ * - When oversight narrows the band past the truth, the narrowing stops short, a hidden 0–2 points below
+ *   the truth, and never lower than the low end before: what you learn is real, never exact.
+ */
+function settleConfidence(s: GameState, before?: { estimate: number; margin: number }) {
   const c = s.confidence;
-  c.truth = clamp(Math.round(c.truth));
-  c.margin = clamp(Math.round(c.margin), T.confidence.minMargin, T.confidence.maxMargin);
-  c.estimate = clamp(Math.round(clamp(c.estimate, c.truth - c.margin, c.truth + c.margin)));
+  c.estimate = clamp(Math.round(c.estimate));
+  c.truth = Math.min(clamp(Math.round(c.truth)), c.estimate);
+  c.margin = Math.min(c.estimate, clamp(Math.round(c.margin), T.confidence.minMargin, T.confidence.maxMargin));
+  if (c.truth < c.estimate - c.margin) {
+    const prevLow = before ? before.estimate - before.margin : 0;
+    const cushion = Math.abs(s.seed * 31 + s.round * 7 + c.truth) % 3;
+    const low = Math.max(0, Math.min(prevLow, c.truth), c.truth - cushion);
+    c.margin = c.estimate - low;
+  }
 }
+
+/** The low end of the AI safety band: what is verified (the truth is never lower). */
+export const lowEnd = (c: { estimate: number; margin: number }) => Math.max(0, c.estimate - c.margin);
 
 // ---------------------------------------------------------------- effects
 
@@ -110,6 +140,7 @@ const snap = (s: GameState): Snapshot => ({
 });
 
 function applyFx(s: GameState, fx: Fx[]) {
+  const before = { estimate: s.confidence.estimate, margin: s.confidence.margin };
   for (const f of fx) {
     switch (f.key) {
       case 'aiPower':
@@ -124,9 +155,12 @@ function applyFx(s: GameState, fx: Fx[]) {
       case 'estimate':
         s.confidence.estimate += f.amount;
         break;
-      case 'truth':
-        s.confidence.truth += f.amount;
+      case 'truth': {
+        // a hidden loss never pushes the truth below what the player can rule out: it stops at the low end
+        const t = s.confidence.truth;
+        s.confidence.truth = f.amount >= 0 ? t + f.amount : Math.max(t + f.amount, Math.min(t, lowEnd(s.confidence)));
         break;
+      }
       case 'margin':
         s.confidence.margin += f.amount;
         break;
@@ -141,7 +175,7 @@ function applyFx(s: GameState, fx: Fx[]) {
         break;
     }
   }
-  settleConfidence(s);
+  settleConfidence(s, before);
 }
 
 /** Visible before → after lines between two snapshots (public values only). */
@@ -153,7 +187,15 @@ function impacts(a: Snapshot, b: Snapshot): Impact[] {
   line('aiPower', GAUGE_LABEL.aiPower, a.aiPower, b.aiPower, 0);
   line('cooperation', GAUGE_LABEL.cooperation, a.cooperation, b.cooperation, 1);
   line('confidence', GAUGE_LABEL.confidence, a.estimate, b.estimate, 1);
-  line('margin', 'Confidence margin', a.margin, b.margin, -1);
+  // the uncertainty, told by what is verified (only when the uncertainty itself changes)
+  if (a.margin !== b.margin)
+    out.push({
+      key: 'margin',
+      label: `${GAUGE_LABEL.confidence}: ${verifiedWord(lowEnd(a), lowEnd(b))}`,
+      before: String(lowEnd(a)),
+      after: String(lowEnd(b)),
+      tone: lowEnd(b) > lowEnd(a) ? 1 : lowEnd(b) < lowEnd(a) ? -1 : 0,
+    });
   line('cohesion', GAUGE_LABEL.cohesion, a.cohesion, b.cohesion, 1);
   if (a.europeAi !== b.europeAi)
     out.push({ key: 'europeAi', label: 'Europe’s AI', before: cap(a.europeAi), after: cap(b.europeAi), tone: b.europeAi === 'open' ? 1 : -1 });
@@ -163,11 +205,11 @@ function impacts(a: Snapshot, b: Snapshot): Impact[] {
 const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 
 /** Record the visible moves between two snapshots as changes with a cause (for the report). */
-function recordChanges(s: GameState, a: Snapshot, b: Snapshot, cause: string) {
+function recordChanges(s: GameState, a: Snapshot, b: Snapshot, cause: string, by?: Change['by']) {
   for (const i of impacts(a, b)) {
     if (i.key === 'influence') continue;
-    const text = i.key === 'margin' ? `Confidence: ${Number(i.after) > Number(i.before) ? 'less' : 'more'} certain (±${i.before} → ±${i.after})` : `${i.label} ${i.before} → ${i.after}`;
-    s.changes.push({ round: s.round, key: i.key, text, cause, tone: i.tone });
+    const text = i.key === 'margin' ? marginText(lowEnd(a), lowEnd(b), a.margin, b.margin) : `${i.label} ${i.before} → ${i.after}`;
+    s.changes.push({ round: s.round, key: i.key, text, cause, tone: i.tone, ...(by ? { by } : {}) });
   }
 }
 
@@ -218,6 +260,9 @@ export function createInitialState(seed: number): GameState {
     played: [],
     history: [],
     letters: [],
+    flags: [],
+    requests: { done: [], pending: [], round: [], later: [], opened: {} },
+    social: { done: [], round: [] },
     tipping: null,
     ending: null,
     finalCooperation: null,
@@ -264,9 +309,93 @@ function drift(s: GameState) {
   const D = T.drift;
   s.cooperation = clamp(s.cooperation + D.cooperation + (s.aiPower >= D.cooperationHighPower ? D.cooperationHigh : 0));
   s.cohesion = clamp(s.cohesion + D.cohesion + (s.aiPower >= D.cohesionHighPower ? D.cohesionHigh : 0) + (zoneOf(s.cooperation) === 'rupture' ? D.cohesionRupture : 0));
-  if (s.aiPower >= D.truthHighPower) s.confidence.truth += D.truth;
+  const before = { estimate: s.confidence.estimate, margin: s.confidence.margin };
+  // harder to align as AI grows: the truth slips, and everyone knows it could be lower
+  if (s.aiPower >= D.truthHighPower) {
+    s.confidence.truth += D.truth;
+    s.confidence.margin -= D.truth;
+  }
+  // the labs' reports flatter: the reported value rises, nobody outside can check it, the low end stays
   s.confidence.estimate += D.labReports;
-  settleConfidence(s);
+  s.confidence.margin += D.labReports;
+  settleConfidence(s, before);
+}
+
+// ---------------------------------------------------------------- social cohesion (v4)
+
+/** Protections for workers: the flexicurity reform, and the answers to requests that protect them. */
+function workerProtections(s: GameState): { flexicurity: boolean; answers: number } {
+  const answers = WORKER_ANSWERS.filter((w) => s.requests.done.some((d) => d.id === w.id && d.side === w.side)).length;
+  return { flexicurity: used(s, 'flexicurity'), answers };
+}
+
+/** AI weighs on jobs every round, more as capabilities rise; flexicurity and worker answers soften it. */
+export function jobDriftLoss(s: GameState): number {
+  const J = T.jobDrift;
+  const p = workerProtections(s);
+  const factor = Math.max(J.minFactor, 1 - (p.flexicurity ? J.flexicurity : 0) - p.answers * J.answer);
+  return Math.round(Math.max(0, Math.min(J.max, (s.aiPower - J.from) / J.per)) * factor);
+}
+
+function jobDrift(s: GameState) {
+  const loss = jobDriftLoss(s);
+  if (loss <= 0) return;
+  const a = snap(s);
+  applyFx(s, [{ key: 'cohesion', amount: -loss }]);
+  recordChanges(s, a, snap(s), workerProtections(s).flexicurity ? 'AI takes over more work; retraining softens the blow' : 'AI takes over more work');
+}
+
+/** How restless Europe looks, from public values only. */
+function unrest(s: GameState): number {
+  const U = T.social.unrest;
+  return Math.max(0, (U.cohesionCalm - s.cohesion) / U.cohesionSpan) + Math.max(0, (s.aiPower - U.aiFrom) / U.aiSpan);
+}
+
+/** The effects a social event has now (a job event is softened by the protections for workers). */
+function socialFx(s: GameState, def: SocialEventDef): Fx[] {
+  const S = T.social;
+  const p = workerProtections(s);
+  const soften = def.jobs ? ((p.flexicurity ? 1 : 0) + p.answers) * S.softenPerProtection : 0;
+  return def.effects.map((e) => {
+    const n = e.dir < 0 ? Math.max(1, S.size[e.size] - soften) : S.size[e.size];
+    // "verified": independent checks narrow the uncertainty (settleConfidence stops it short of the truth)
+    return e.gauge === 'verified' ? { key: 'margin' as const, amount: -n * e.dir } : { key: e.gauge, amount: n * e.dir };
+  });
+}
+
+/**
+ * This round's social events: one, sometimes two, never the same twice a game, weighted by the public state of
+ * the world. They draw from their own seeded stream (from the seed and the round), so the rest of the game's
+ * draws stay as they were.
+ */
+function socialEvents(s: GameState) {
+  const S = T.social;
+  if (s.round < S.firstRound || s.tipping) return;
+  const hs: RngHolder = { rng: seedToRng(s.seed * 7919 + s.round * 104729 + 13) };
+  const u = unrest(s);
+  const p = workerProtections(s);
+  const prot = (p.flexicurity ? 1 : 0) + p.answers;
+  const n = 1 + (random(hs) < Math.min(S.secondMax, S.secondChance + u * S.secondPerUnrest) ? 1 : 0);
+  const w = publicWorld(s);
+  // the first comes early in the six months (before most requests and breaking news), a second later on
+  const slots = n === 1 ? [0.1 + random(hs) * 0.3] : [0.08 + random(hs) * 0.17, 0.45 + random(hs) * 0.4];
+  for (let i = 0; i < n; i++) {
+    const pool = SOCIAL_EVENTS.filter((e) => !s.social.done.includes(e.id) && (!e.when || e.when(w)));
+    if (!pool.length) return;
+    const bad = (e: SocialEventDef) => e.effects.some((x) => x.dir < 0);
+    const weights = Object.fromEntries(pool.map((e) => [e.id, bad(e) ? 1 + u * S.badPerUnrest : S.goodBase + prot * S.goodPerProtection])) as Record<string, number>;
+    const def = SOCIAL_BY_ID[weightedPick(hs, weights)];
+    const a = snap(s);
+    applyFx(s, socialFx(s, def));
+    const b = snap(s);
+    recordChanges(s, a, b, def.headline);
+    s.social.done.push(def.id);
+    s.social.round.push({
+      id: def.id,
+      at: Math.round(slots[i] * 100) / 100,
+      moved: { cohesion: b.cohesion - a.cohesion, cooperation: b.cooperation - a.cooperation, estimate: b.estimate - a.estimate, margin: b.margin - a.margin },
+    });
+  }
 }
 
 /** Threat stages from public values; stages never go back down. */
@@ -297,7 +426,7 @@ export function isPrepared(s: GameState, id: ThreatId): boolean {
     case 'incident':
       return s.coalition >= T.threats.incident.needs.coalition && s.inspections >= T.threats.incident.needs.inspections;
     case 'ransomware':
-      return used(s, 'cyber_shield');
+      return used(s, 'cyber_shield') || s.flags.includes('ransomware_ready');
     case 'blackmail':
       return s.europeAi === 'open';
   }
@@ -329,7 +458,10 @@ function reach(s: GameState, id: MilestoneId, out: MapItem[]) {
   if (m.effect) {
     const a = snap(s);
     const key = m.effect.key === 'confidence' ? 'estimate' : m.effect.key;
-    applyFx(s, [{ key: key as FxKey, amount: m.effect.amount }]);
+    // a lab's claim lifts the reported value but not the low end: nobody outside checked it
+    const fx: Fx[] = [{ key: key as FxKey, amount: m.effect.amount }];
+    if (key === 'estimate' && m.effect.amount > 0) fx.push({ key: 'margin', amount: m.effect.amount });
+    applyFx(s, fx);
     recordChanges(s, a, snap(s), m.effect.cause);
   }
 }
@@ -377,7 +509,7 @@ function buildEvent(s: GameState, id: EventId, h: RngHolder): PendingEvent {
     id === 'blackmail' && !prepared
       ? [
           { id: 'give_in', label: 'Give in', detail: 'Drop the mandate’s teeth. Europe’s AI is locked to Dependent: you can no longer fund open models.' },
-          { id: 'hold_firm', label: 'Hold firm', detail: `Keep the mandate and ride out the disruption: Cohesion ${signed(T.threats.blackmail.holdFirm.cohesion)}.` },
+          { id: 'hold_firm', label: 'Hold firm', detail: `Keep the mandate and ride out the disruption: ${GAUGE_LABEL.cohesion} ${signed(T.threats.blackmail.holdFirm.cohesion)}.` },
         ]
       : [];
   return {
@@ -471,6 +603,8 @@ export function startRound(state: GameState): GameState {
   s.voices = [];
   s.leak = null;
   s.roundEvent = null;
+  s.requests = { ...s.requests, pending: [], round: [] };
+  s.social = { done: [...(s.social?.done ?? [])], round: [] };
   // opportunities expire
   for (const [id, until] of Object.entries(s.opportunities) as [CardId, number][]) {
     if (until < s.round) {
@@ -482,11 +616,19 @@ export function startRound(state: GameState): GameState {
   const inc = nextIncome(s, s.round);
   s.influence = Math.min(T.influence.cap, s.influence + inc.next);
   s.roundStart = { aiPower: s.aiPower, cooperation: s.cooperation, estimate: s.confidence.estimate, margin: s.confidence.margin, cohesion: s.cohesion, influence: s.influence };
+  // delayed consequences of earlier answers
+  for (const l of s.requests.later.filter((x) => x.round === s.round)) {
+    const a = snap(s);
+    applyFx(s, reqFx(l.effects));
+    recordChanges(s, a, snap(s), l.why);
+  }
+  s.requests.later = s.requests.later.filter((x) => x.round > s.round);
 
   // 2. six months: AI power rises, the race heats up, the labs report
   const r = rise(s, h);
   s.aiPower = clamp(s.aiPower + r);
   drift(s);
+  jobDrift(s);
   const lines: MapItem[] = [];
   reachMilestones(s, lines);
   const stagesBefore = Object.fromEntries(THREAT_IDS.map((t) => [t, s.threats[t].stage]));
@@ -523,6 +665,9 @@ export function startRound(state: GameState): GameState {
     }
   }
 
+  // social events in European cities: strikes, protests, scandals, good news (v4)
+  socialEvents(s);
+
   // 5. map content: milestone headlines first, threat headlines next, a world headline when there is room
   const milestoneLines = lines.filter((l) => l.id.startsWith('m_'));
   const threatLines = lines.filter((l) => l.id.startsWith('t_'));
@@ -553,6 +698,7 @@ export function startRound(state: GameState): GameState {
       level,
       readable: oversight(s) >= level,
       text: `${def.from}: ${over ? def.overconfident : def.honest}`,
+      advice: over ? def.advice.overconfident : def.advice.honest,
       basis: def.basis,
     };
     s.leaks.push(s.leak);
@@ -564,8 +710,197 @@ export function startRound(state: GameState): GameState {
 
   // 8. cards that arrive now
   arrive(s);
+
+  // 9. requests: characters who arrive during the six months (v4)
+  const reqs = chooseRequests(s, h);
+  const base0 = s.event ? (s.event.at < 0.5 ? 0.74 : 0.2) : 0.25 + random(h) * 0.4;
+  reqs.forEach((r, i) => {
+    const at = Math.min(0.92, base0 + i * 0.12);
+    s.requests.pending.push({ id: r.id, at });
+    s.requests.round.push({ id: r.id, at, side: null });
+  });
   s.rng = h.rng;
   return s;
+}
+
+// ---------------------------------------------------------------- requests (v4)
+
+function reqFx(e: ReqEffects): Fx[] {
+  const fx: Fx[] = [];
+  if (e.ai) fx.push({ key: 'aiPower', amount: e.ai });
+  if (e.coop) fx.push({ key: 'cooperation', amount: e.coop });
+  if (e.conf) fx.push({ key: 'estimate', amount: e.conf });
+  if (e.truth) fx.push({ key: 'truth', amount: e.truth });
+  if (e.margin) fx.push({ key: 'margin', amount: e.margin });
+  if (e.cohesion) fx.push({ key: 'cohesion', amount: e.cohesion });
+  return fx;
+}
+
+/** Does a request's condition hold now? */
+export function holds(s: GameState, c?: Condition): boolean {
+  if (!c) return true;
+  const ok = (x: number | undefined, test: (x: number) => boolean) => x === undefined || test(x);
+  if (!ok(c.minRound, (x) => s.round >= x) || !ok(c.maxRound, (x) => s.round <= x)) return false;
+  if (!ok(c.minAi, (x) => s.aiPower >= x) || !ok(c.maxAi, (x) => s.aiPower <= x)) return false;
+  if (!ok(c.minCoop, (x) => s.cooperation >= x) || !ok(c.maxCoop, (x) => s.cooperation <= x)) return false;
+  if (!ok(c.minCohesion, (x) => s.cohesion >= x) || !ok(c.maxCohesion, (x) => s.cohesion <= x)) return false;
+  if (c.milestone && !reached(s, c.milestone)) return false;
+  if (c.beforeMilestone && reached(s, c.beforeMilestone)) return false;
+  if (c.flags && !c.flags.every((f) => s.flags.includes(f))) return false;
+  if (c.notFlags && c.notFlags.some((f) => s.flags.includes(f))) return false;
+  if (c.badge && s.europeAi !== c.badge) return false;
+  if (!ok(c.minCoalition, (x) => s.coalition >= x) || !ok(c.maxCoalition, (x) => s.coalition <= x)) return false;
+  if (!ok(c.minInspections, (x) => s.inspections >= x) || !ok(c.maxInspections, (x) => s.inspections <= x)) return false;
+  if (c.threat) {
+    const t = s.threats[c.threat.id];
+    if (c.threat.minStage !== undefined && t.stage < c.threat.minStage) return false;
+    if (c.threat.maxStage !== undefined && t.stage > c.threat.maxStage) return false;
+    if (c.threat.struck !== undefined && t.struck !== c.threat.struck) return false;
+    if (c.threat.prepared !== undefined && (t.struck ? !!t.prepared : isPrepared(s, c.threat.id)) !== c.threat.prepared) return false;
+  }
+  return true;
+}
+
+/** Is this request's threat growing and Europe not ready for it? */
+const preparesNow = (s: GameState, r: RequestCard) => !!r.prepares && s.threats[r.prepares].stage >= 1 && !s.threats[r.prepares].struck && !isPrepared(s, r.prepares);
+
+/**
+ * This round's requests: a follow-up when one is due, then at most one other, chosen first among those tied to
+ * a milestone reached this round or a threat growing now, else at random among the eligible ones (so each game
+ * differs). Rounds without a request stay common; the count is kept between 6 and 10 a game.
+ */
+function chooseRequests(s: GameState, h: RngHolder): RequestCard[] {
+  const R = T.requests;
+  if (s.round < R.firstRound) return [];
+  const answered = new Set(s.requests.done.map((d) => d.id));
+  // never a request that would prepare for the threat striking this very round
+  const elig = REQUESTS.filter((r) => !answered.has(r.id) && holds(s, r.when) && !(s.event && r.prepares === s.event.id));
+  for (const r of elig) if (r.opportunity && s.requests.opened[r.id] === undefined) s.requests.opened[r.id] = s.round;
+  const open = elig.filter((r) => !r.opportunity || s.round - s.requests.opened[r.id] < r.opportunity.window);
+  const total = s.requests.done.length;
+  const out: RequestCard[] = [];
+  const follow = open.filter((r) => r.followup);
+  if (follow.length && total < R.maxPerGame) out.push(follow[0]);
+  const regular = open.filter((r) => !r.followup);
+  if (!regular.length || total + out.length >= R.maxPerGame) return out;
+  const fresh = new Set(s.milestones.filter((m) => m.round === s.round).map((m) => m.id));
+  const priority = regular.filter((r) => preparesNow(s, r) || (r.when?.milestone !== undefined && fresh.has(r.when.milestone)));
+  const behind = total + out.length < Math.floor(s.round * R.minRate);
+  const roll = random(h);
+  if (!priority.length && !behind && roll >= R.chance) return out;
+  const pool = priority.length ? priority : regular;
+  const id = weightedPick(h, Object.fromEntries(pool.map((r) => [r.id, r.weight ?? 1])) as Record<string, number>);
+  out.push(REQUEST_BY_ID[id]);
+  return out;
+}
+
+function applyAnswer(s: GameState, a: Answer) {
+  applyFx(s, [...reqFx(a.effects), ...(a.badge ? [{ key: 'europeAi' as const, amount: 0, set: a.badge }] : [])]);
+  for (const f of a.set ?? []) if (!s.flags.includes(f)) s.flags.push(f);
+  const level = (id: 'coalition' | 'inspections', n: number) => {
+    s[id] = Math.min(cardUses(id), s[id] + n);
+    s.uses[id] = Math.min(cardUses(id), (s.uses[id] ?? 0) + n);
+    if ((s.uses[id] ?? 0) >= cardUses(id)) s.hand = s.hand.filter((c) => c !== id);
+  };
+  if (a.coalition) level('coalition', a.coalition);
+  if (a.inspections) level('inspections', a.inspections);
+  for (const t of a.grow ?? []) {
+    const st = s.threats[t];
+    if (st.struck || st.stage >= 3) continue;
+    st.stage = (st.stage + 1) as 1 | 2 | 3;
+    if (st.stage === 3) st.imminentSince = s.round;
+  }
+  if (a.later) s.requests.later.push({ round: s.round + a.later.rounds, effects: a.later.effects, why: a.later.why });
+}
+
+const answerCause = (r: RequestCard, a: Answer) => `${CHARACTERS[r.character].name}: “${a.label}”`;
+
+/** Chips for what an answer changes, in public values only, plus what it does beyond the gauges. */
+function answerChips(before: GameState, after: GameState, a: Answer): Chip[] {
+  const out: Chip[] = [];
+  for (const i of impacts(snap(before), snap(after))) {
+    if (i.key === 'influence') continue;
+    const d = Number(i.after) - Number(i.before);
+    if (i.key === 'margin') {
+      out.push({ text: marginText(i.before, i.after), tone: d >= 0 ? 'up' : 'down' });
+    }
+    else if (i.key === 'europeAi') out.push({ text: `Europe’s AI → ${i.after}`, tone: i.tone > 0 ? 'up' : 'down' });
+    else if (i.key === 'aiPower') out.push({ text: `${i.label} ${signed(d)}`, tone: d > 0 ? 'down' : 'up' });
+    else out.push({ text: `${i.label} ${signed(d)}`, tone: d > 0 ? 'up' : 'down' });
+  }
+  if ((a.effects.truth ?? 0) > 0) out.push({ text: 'Real safety up (not shown)', tone: 'up' });
+  if (a.coalition && after.coalition > before.coalition) out.push({ text: 'A partner joins the coalition', tone: 'up' });
+  if (a.inspections && after.inspections > before.inspections) out.push({ text: 'Inspections: one level up', tone: 'up' });
+  for (const t of a.grow ?? []) if (!before.threats[t].struck && before.threats[t].stage < 3) out.push({ text: `${THREAT_BY_ID[t].name} grows`, tone: 'down' });
+  if (a.later) {
+    const e = a.later.effects;
+    const parts = [e.cohesion ? `${GAUGE_LABEL.cohesion} ${signed(e.cohesion)}` : '', e.coop ? `${GAUGE_LABEL.cooperation} ${signed(e.coop)}` : '', e.ai ? `${GAUGE_LABEL.aiPower} ${signed(e.ai)}` : '', e.margin ? `${GAUGE_LABEL.confidence}: ${e.margin > 0 ? 'less' : 'more'} verified` : '', e.conf ? `${GAUGE_LABEL.confidence} ${signed(e.conf)}` : ''].filter(Boolean);
+    const bad = (e.cohesion ?? 0) < 0 || (e.coop ?? 0) < 0 || (e.margin ?? 0) > 0 || (e.ai ?? 0) > 0 || (e.conf ?? 0) < 0;
+    if (parts.length) out.push({ text: `Later: ${parts.join(', ')}`, tone: bad ? 'down' : 'up' });
+  }
+  return out;
+}
+
+function answerView(s: GameState, r: RequestCard, side: Side): AnswerView {
+  const a = r[side];
+  const pub = publicCopy(s);
+  const after = clone(pub);
+  applyAnswer(after, a);
+  const chips = answerChips(pub, after, a);
+  const w0 = heading(pub).name;
+  const w1 = heading(after).name;
+  return {
+    side,
+    label: a.label,
+    chips,
+    words: chips.length ? `Will change: ${chips.map((c) => c.text).join(', ')}` : 'No visible change',
+    why: a.why ?? null,
+    tag: a.tag ?? null,
+    world: w0 !== w1 ? `${w0} → ${w1}` : null,
+  };
+}
+
+export function request(s: GameState): RequestView | null {
+  const p = s.requests.pending[0];
+  if (!p) return null;
+  const r = REQUEST_BY_ID[p.id];
+  const kind: RequestView['kind'] = r.followup ? 'followup' : r.opportunity ? 'opportunity' : preparesNow(s, r) ? 'prepares' : 'request';
+  return {
+    id: r.id,
+    character: CHARACTERS[r.character],
+    text: r.text,
+    kind,
+    threat: r.prepares ?? null,
+    threatName: r.prepares ? THREAT_BY_ID[r.prepares].name : null,
+    left: answerView(s, r, 'left'),
+    right: answerView(s, r, 'right'),
+    learnMore: r.learnMore,
+    basis: r.basis,
+    at: p.at,
+    index: s.requests.round.findIndex((x) => x.id === r.id) + 1,
+    count: s.requests.round.length,
+  };
+}
+
+export function answerRequest(state: GameState, side: Side): { state: GameState; outcome: RequestOutcome } {
+  const p = state.requests.pending[0];
+  if (!p) throw new Error('no request to answer');
+  const s = clone(state);
+  const r = REQUEST_BY_ID[p.id];
+  const a = r[side];
+  const before = clone(s);
+  applyAnswer(s, a);
+  recordChanges(s, snap(before), snap(s), answerCause(r, a), 'request');
+  s.requests.pending.shift();
+  s.requests.done.push({ id: r.id, round: s.round, side });
+  s.requests.round = s.requests.round.map((x) => (x.id === r.id ? { ...x, side } : x));
+  const pubBefore = publicCopy(before);
+  const pubAfter = clone(pubBefore);
+  applyAnswer(pubAfter, a);
+  const notes: string[] = [];
+  if (a.later) notes.push(`In ${a.later.rounds === 1 ? 'six months' : `${a.later.rounds * 6} months`}: ${a.later.why}.`);
+  if (a.badge && before.europeAiLocked && a.badge === 'open') notes.push('Europe’s AI stays Dependent: Europe gave in to the labs.');
+  return { state: s, outcome: { reaction: a.reaction, chips: answerChips(pubBefore, pubAfter, a), notes } };
 }
 
 /** Apply this round's event (with the player's choice for silicon blackmail). */
@@ -595,7 +930,7 @@ export function resolveEvent(state: GameState, choice?: string): GameState {
     if (ev.id === 'theft' && s.coalition >= 1) openOpportunity(s, 'attribution');
   }
   s.event = null;
-  s.roundEvent = { id: ev.id, title: ev.title, prepared: ev.prepared, choice: choice ?? null };
+  s.roundEvent = { id: ev.id, title: ev.title, prepared: ev.prepared, choice: choice ?? null, at: ev.at, region: ev.region };
   return s;
 }
 
@@ -615,12 +950,12 @@ function cardDef(id: CardId): CardDef {
 function blocked(s: GameState, id: CardId): string | null {
   if (s.phase !== 'play') return 'The game is over.';
   if (s.event) return 'Deal with the breaking news first.';
+  if (s.requests.pending.length) return 'Answer the request first.';
   if (!s.hand.includes(id)) return 'Not in your hand.';
   if ((s.uses[id] ?? 0) >= cardUses(id)) return 'Already used up.';
   if (id === 'open_models' && s.europeAiLocked) return 'Locked: Europe gave in to the labs.';
   if ((s.restUntil[id] ?? 0) >= s.round) return 'The envoys need a round of rest.';
   if (s.played.some((p) => p.id === id)) return 'Already played this round.';
-  if (s.played.length >= 2) return 'Two cards already played this round.';
   const cost = cardCost(id, s.uses[id] ?? 0);
   if (cost > s.influence) return `Not enough Influence: costs ${cost}, you have ${s.influence}.`;
   return null;
@@ -741,7 +1076,7 @@ export function playCard(state: GameState, p: Pick): GameState {
       delete s.opportunities[p.id];
       break;
   }
-  recordChanges(s, a, snap(s), name);
+  recordChanges(s, a, snap(s), name, 'card');
   // spent cards leave the hand
   if ((s.uses[p.id] ?? 0) >= cardUses(p.id)) s.hand = s.hand.filter((c) => c !== p.id);
   return s;
@@ -799,7 +1134,10 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
   let cost = 0;
   for (const p of picks) {
     const why = blocked(s, p.id);
-    if (why) return { ok: false, reason: why, cost, influenceAfter: s.influence, impacts: [], notes: [], headingBefore: heading(base).text, headingAfter: heading(base).text };
+    if (why) {
+      const h = heading(base);
+      return { ok: false, reason: why, cost, influenceAfter: s.influence, impacts: [], notes: [], headingBefore: h.text, headingAfter: h.text, worldBefore: h.name, worldAfter: h.name, outlookAfter: h };
+    }
     const def = cardDef(p.id);
     const choice = def.options ? (p.option ?? def.options[0].id) : undefined;
     cost += cardCost(p.id, s.uses[p.id] ?? 0);
@@ -809,7 +1147,7 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
   for (const p of picks) {
     const def = cardDef(p.id);
     if (def.protects) notes.push(`Protects against ${THREAT_BY_ID[def.protects].name.replace(/^(\w)(?=[a-z])/, (x) => x.toLowerCase())}${p.id === 'inspections' || p.id === 'coalition' ? ' (with a coalition and the inspection accord)' : ''}.`);
-    if (p.id === 'audit') notes.push(`Shows the true Confidence for ${T.cards.audit.rounds} rounds.`);
+    if (p.id === 'audit') notes.push(`Shows the true ${GAUGE_LABEL.confidence} for ${T.cards.audit.rounds} rounds.`);
     if (p.id === 'alignment') notes.push('Most of the gain is real safety that the estimate does not show.');
     if (p.id === 'flexicurity') notes.push(`Softens job shocks. Influence ${signed(T.cards.flexicurity.influence)} for the next ${T.cards.flexicurity.rounds} rounds.`);
     if (p.id === 'cyber_shield') notes.push(`Influence ${signed(T.cards.cyber_shield.influence)} for the next ${T.cards.cyber_shield.rounds} rounds.`);
@@ -827,6 +1165,9 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
     notes,
     headingBefore: heading(base).text,
     headingAfter: heading(s).text,
+    worldBefore: heading(base).name,
+    worldAfter: heading(s).name,
+    outlookAfter: heading(s),
   };
 }
 
@@ -841,12 +1182,24 @@ function record(s: GameState): RoundRecord {
     event: s.roundEvent,
     changes: s.changes,
     decisions: s.played,
-    letter: s.letters.find((l) => l.round === s.round)?.id ?? null,
+    letter: s.letters.find((l) => l.round === s.round && l.slot !== 'end')?.id ?? null,
+    values: publicValues(s),
+    requests: s.requests.round,
+    social: s.social?.round ?? [],
   };
 }
 
+const publicValues = (s: GameState): PublicValues => ({
+  aiPower: s.aiPower,
+  cooperation: s.cooperation,
+  estimate: s.confidence.estimate,
+  margin: s.confidence.margin,
+  cohesion: s.cohesion,
+});
+
 export function endRound(state: GameState): { state: GameState; outcome: 'next' | 'ended' } {
   if (state.event) throw new Error('resolve the event first');
+  if (state.requests.pending.length) throw new Error('answer the requests first');
   const s = clone(state);
   s.history.push(record(s));
   if (s.tipping || s.round >= T.rounds) {
@@ -897,7 +1250,7 @@ function shown(s: GameState, key: GaugeKey): { text: string; low: number; high: 
   if (key === 'confidence') {
     const c = s.confidence;
     if (audited(s)) return { text: `${c.truth} (audited)`, low: c.truth, high: c.truth };
-    return { text: `${c.estimate} ± ${c.margin}`, low: c.estimate - c.margin, high: c.estimate + c.margin };
+    return { text: lowText(c.estimate, lowEnd(c)), low: lowEnd(c), high: c.estimate };
   }
   const v = s[key];
   return { text: String(v), low: v, high: v };
@@ -907,19 +1260,71 @@ export function heading(s: GameState): HeadingView {
   const world = projectedWorld(s);
   const w = T.worlds[world];
   const def = WORLDS[world];
-  const d = shown(s, w.decides);
-  const n = shown(s, w.net);
   const met = (x: { low: number; high: number }, bar: number) => (x.low >= bar ? 'yes' : x.high < bar ? 'no' : 'maybe') as 'yes' | 'no' | 'maybe';
+  const og = (key: GaugeKey, bar: number): HeadingView['decides'] => {
+    const x = shown(s, key);
+    const value = key === 'confidence' ? (audited(s) ? s.confidence.truth : s.confidence.estimate) : s[key];
+    return { key, label: GAUGE_LABEL[key], bar, you: x.text, value, low: clamp(x.low), high: clamp(x.high), met: met(x, bar) };
+  };
+  const decides = og(w.decides, w.target);
+  const net = og(w.net, w.floor);
   const plateau = world === 'plateau_open' || world === 'plateau_labs';
   const name = def.name;
-  const text = `Heading: ${name}${plateau ? ' (AI is stalling)' : ''}. Goal: ${GAUGE_LABEL[w.decides].replace(' in AI', '')} ${w.target} (you: ${d.text}). Keep ${GAUGE_LABEL[w.net].replace(' in AI', '')} above ${w.floor} (you: ${n.text}).`;
-  return {
-    world,
-    name,
-    decides: { key: w.decides, label: GAUGE_LABEL[w.decides], target: w.target, you: d.text, met: met(d, w.target) },
-    net: { key: w.net, label: GAUGE_LABEL[w.net], floor: w.floor, you: n.text, met: met(n, w.floor) },
-    text,
-  };
+  const text = `${plateau ? 'If AI stalls' : 'If AI tipped now'}: ${name}. To end well: ${decides.label} ${w.target} (you: ${decides.you}) and ${net.label} ${w.floor} or more (you: ${net.you}).`;
+  return { world, name, plateau, meaning: def.meaning, basis: def.basis, decides, net, alt: alternative(s, world, decides, net), text };
+}
+
+/** "Or change course": the nearest other world, from public values, only when it is within reach and would help. */
+function alternative(s: GameState, world: WorldId, d: HeadingView['decides'], n: HeadingView['net']): HeadingView['alt'] {
+  if (s.tipping || s.phase !== 'play') return null;
+  if (d.met === 'yes' && n.met === 'yes') return null;
+  const coop = s.cooperation;
+  const near = (bar: number) => bar - coop > 0 && bar - coop <= T.outlook.altGap;
+  if (world === 'race' && near(T.zones.pause)) {
+    const p = T.worlds.pause;
+    return {
+      world: 'pause',
+      name: WORLDS.pause.name,
+      text: `Push ${GAUGE_LABEL.cooperation} to ${T.zones.pause} or more (you: ${coop}) to reach a Pause, where ${GAUGE_LABEL[p.decides]} ${p.target} is enough.`,
+    };
+  }
+  if (world === 'rupture' && d.met !== 'yes' && near(T.zones.race)) {
+    const r = T.worlds.race;
+    return {
+      world: 'race',
+      name: WORLDS.race.name,
+      text: `Lift ${GAUGE_LABEL.cooperation} to ${T.zones.race} or more (you: ${coop}) to turn the Rupture into a Race, where ${GAUGE_LABEL[r.decides]} ${r.target} and ${GAUGE_LABEL[r.net]} ${r.floor} decide.`,
+    };
+  }
+  if (world === 'plateau_labs' && !s.europeAiLocked && s.hand.includes('open_models') && s.threats.blackmail.stage > 0 && !s.threats.blackmail.struck)
+    return {
+      world: 'plateau_open',
+      name: WORLDS.plateau_open.name,
+      text: `Fund open models to make Europe’s AI Open: the same bar, and the big labs lose their hold on Europe.`,
+    };
+  return null;
+}
+
+/**
+ * "Tipping point in ~2–4 rounds", only when it looks close (at most four rounds at the visible pace); otherwise
+ * nothing. Built only from what the player sees: AI capabilities now, their rise over the last six months, the
+ * round and the public rule that the tipping point never comes before round 6. Never from the hidden pace (a
+ * test checks it).
+ */
+export function tippingEstimate(s: GameState): string | null {
+  if (s.tipping) return 'AI has reached the tipping point.';
+  if (s.round < 1 || s.phase !== 'play') return null;
+  const left = T.rounds - s.round;
+  if (left <= 0) return null;
+  const gap = Math.max(0, T.tippingAt - s.aiPower);
+  const rate = Math.max(1, s.lastRise);
+  const n = gap / rate;
+  const notBefore = Math.max(1, T.earliestTipping - s.round);
+  const lo = Math.max(notBefore, Math.floor(n * T.eta.low));
+  const hi = Math.max(lo, Math.ceil(n * T.eta.high));
+  if (hi > T.eta.showWithin || lo > left) return null;
+  const top = Math.min(hi, left);
+  return lo >= top ? `Tipping point in ~${lo} round${lo > 1 ? 's' : ''}` : `Tipping point in ~${lo}–${top} rounds`;
 }
 
 export function gauges(s: GameState): GaugeView[] {
@@ -935,10 +1340,12 @@ export function gauges(s: GameState): GaugeView[] {
     return {
       key,
       label: GAUGE_LABEL[key],
+      sub: GAUGE_SUB[key],
+      eta: key === 'aiPower' ? tippingEstimate(s) : null,
       value: key === 'confidence' ? (isAudit ? s.confidence.truth : s.confidence.estimate) : s[key],
       margin: key === 'confidence' && !isAudit ? s.confidence.margin : 0,
       audited: isAudit,
-      target: key === 'aiPower' ? T.tippingAt : hd.decides.key === key ? hd.decides.target : hd.net.key === key ? hd.net.floor : null,
+      target: key === 'aiPower' ? T.tippingAt : hd.decides.key === key ? hd.decides.bar : hd.net.key === key ? hd.net.bar : null,
       targetKind: key === 'aiPower' ? 'tipping' : hd.decides.key === key ? 'goal' : hd.net.key === key ? 'floor' : null,
       markers,
     };
@@ -967,17 +1374,27 @@ export function threats(s: GameState): ThreatView[] {
   });
 }
 
+/** The biggest changes of a round with their cause: not threat stages, not the player's own moves. */
+function topChanges(list: Change[], score: (c: Change) => number): Change[] {
+  return list
+    .filter((c) => c.key !== 'threat' && !c.by)
+    .slice()
+    .sort((a, b) => score(b) - score(a))
+    .slice(0, 3);
+}
+
+const changeScore = (c: Change) => {
+  const m = /(-?\d+) → (-?\d+)/.exec(c.text.replace(/±/g, ''));
+  return m ? Math.abs(Number(m[2]) - Number(m[1])) : 0;
+};
+
 export function report(s: GameState): ReportView {
   // the three biggest changes with a cause; threat stage moves are listed with the threats
   const score = (c: Change) => {
     const m = /(-?\d+) → (-?\d+)/.exec(c.text.replace(/±/g, ''));
     return m ? Math.abs(Number(m[2]) - Number(m[1])) : 0;
   };
-  const changes = s.changes
-    .filter((c) => c.key !== 'threat')
-    .slice()
-    .sort((a, b) => score(b) - score(a))
-    .slice(0, 3);
+  const changes = topChanges(s.changes, score);
   const moved = threats(s)
     .filter((t) => !t.struck)
     .flatMap((t) => {
@@ -1017,11 +1434,13 @@ export function advisor(s: GameState): AdvisorView {
       const pv = preview(s, [{ id: cv.id, ...(option ? { option } : {}) }]);
       const parts: Record<Why, number> = { threat: 0, opportunity: 0, coop: 0, conf: 0, coh: 0 };
       let threat: ThreatView | null = null;
+      // AI safety counts by its verified part: the margin line carries it (before → after); without one, it moves with the claim
+      const verifiedLine = pv.impacts.some((i) => i.key === 'margin');
       for (const i of pv.impacts) {
         const d = Number(i.after) - Number(i.before);
         if (i.key === 'cooperation') parts.coop += d * w.coop;
-        else if (i.key === 'confidence') parts.conf += d * w.conf;
-        else if (i.key === 'margin') parts.conf -= d * w.conf;
+        else if (i.key === 'confidence') parts.conf += verifiedLine ? 0 : d * w.conf;
+        else if (i.key === 'margin') parts.conf += d * w.conf;
         else if (i.key === 'cohesion') parts.coh += d * w.coh;
         else if (i.key === 'europeAi') parts.coh += (i.after === 'Open' ? 1 : -1) * (plateau ? 4 : 0.5);
       }
@@ -1108,9 +1527,9 @@ export function ending(s: GameState): EndingView {
   const wd = WORLDS[world];
   const w = T.worlds[world];
   const c = s.confidence;
-  const seen = `you saw ${c.estimate} ± ${c.margin}`;
+  const seen = `${lowEnd(c)} verified, the labs claimed ${c.estimate}`;
   const val = (k: GaugeKey) => gaugeValueTrue(s, k);
-  const label = (k: GaugeKey) => GAUGE_LABEL[k].replace(' in AI', '');
+  const label = (k: GaugeKey) => GAUGE_LABEL[k];
   const withSeen = (k: GaugeKey) => (k === 'confidence' && (c.estimate !== c.truth || c.margin > 0) ? ` (${seen})` : '');
   const dv = val(w.decides);
   const nv = val(w.net);
@@ -1130,7 +1549,7 @@ export function ending(s: GameState): EndingView {
     value: val(k),
     target: k === 'aiPower' ? T.tippingAt : k === w.decides ? w.target : k === w.net ? w.floor : null,
     targetKind: (k === 'aiPower' ? 'tipping' : k === w.decides ? 'goal' : k === w.net ? 'floor' : null) as EndingView['gauges'][number]['targetKind'],
-    seen: k === 'confidence' ? `${c.estimate} ± ${c.margin}` : null,
+    seen: k === 'confidence' ? lowText(c.estimate, lowEnd(c)) : null,
     met: k === w.decides ? dOk : k === w.net ? nOk : null,
   }));
 
@@ -1140,7 +1559,7 @@ export function ending(s: GameState): EndingView {
     const p = T.worlds.pause;
     const pauseGood = c.truth >= p.target && s.cohesion >= p.floor;
     cf.push(
-      `With Cooperation at ${T.zones.pause} or more at the tipping point (you had ${val('cooperation')}), the superpowers would have paused, and Confidence ${p.target} would have been enough${pauseGood ? `: ${ENDING_BY_ID.licensed_utopia.title.toLowerCase()}` : ''}.`,
+      `With ${GAUGE_LABEL.cooperation} at ${T.zones.pause} or more at the tipping point (you had ${val('cooperation')}), the superpowers would have paused, and ${GAUGE_LABEL.confidence} ${p.target} would have been enough${pauseGood ? `: ${ENDING_BY_ID.licensed_utopia.title.toLowerCase()}` : ''}.`,
     );
   }
   if (!dOk) cf.push(shortfall(w.decides, w.target - dv));
@@ -1183,6 +1602,10 @@ export function ending(s: GameState): EndingView {
       truth: c.truth,
       estimate: c.estimate,
       margin: c.margin,
+      low: lowEnd(c),
+      high: c.estimate,
+      audited: audited(s),
+      widened: widenedBy(s),
       pace: s.pace,
       paceText: PACE_TEXT[s.pace],
       unreadLeaks: s.leaks.filter((l) => !l.readable),
@@ -1197,35 +1620,171 @@ export function ending(s: GameState): EndingView {
   };
 }
 
+/** What made the player less certain about AI safety over the game, in words, biggest first. */
+function widenedBy(s: GameState): string[] {
+  const all = [...s.history.flatMap((r) => r.changes), ...(s.history.some((r) => r.round === s.round) ? [] : s.changes)];
+  const out: { text: string; by: number }[] = [];
+  for (const ch of all) {
+    if (ch.key !== 'margin') continue;
+    const m = /less verified \((\d+) → (\d+)\)/.exec(ch.text);
+    if (!m) continue;
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    if (b >= a) continue;
+    const what = `verified AI safety ${a} → ${b}`;
+    const text = ch.cause === EVENTS.opaque.title ? `${THREAT_BY_ID.opaque.name}: ${what}.` : `${ch.cause}: ${what}.`;
+    out.push({ text, by: a - b });
+  }
+  return out.sort((x, y) => y.by - x.by).slice(0, 3).map((x) => x.text);
+}
+
 function shortfall(key: GaugeKey, gap: number): string {
   if (key === 'confidence')
-    return `Confidence needed ${gap} more point${gap > 1 ? 's' : ''}. Alignment research raises the real value; the AI Office, inspections and audits show you where it stands.`;
+    return `${GAUGE_LABEL.confidence} needed ${gap} more point${gap > 1 ? 's' : ''}. Alignment research raises the real value; the AI Office, inspections and audits show you where it stands.`;
   if (key === 'cohesion')
-    return `Cohesion needed ${gap} more point${gap > 1 ? 's' : ''}. Flexicurity, the oversight mandate and open models lift it; a cyber shield and flexicurity protect it from shocks.`;
+    return `${GAUGE_LABEL.cohesion} needed ${gap} more point${gap > 1 ? 's' : ''}. Flexicurity, the oversight mandate and open models lift it; a cyber shield and flexicurity protect it from shocks.`;
   return `${GAUGE_LABEL[key]} needed ${gap} more.`;
 }
 
-export function journal(s: GameState): JournalRound[] {
+const REGION_NAME: Record<RegionId, string> = { eu: 'Europe', us: 'the US', cn: 'China' };
+
+/** The feed items of one round, in the order they appeared. */
+function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): FeedItem[] {
+  const out: FeedItem[] = [];
+  const base = { round: r.round, detail: null, threat: null, tone: 0 as const };
+  // Léa's letter in full, with her mood (the feed shows her small portrait)
+  const def = r.letter ? letterDef(r.letter) : null;
+  if (def) out.push({ ...base, id: `lea_${r.round}`, at: 0.03, kind: 'lea', label: 'Letter from Léa, your friend in Lyon', text: def.text, region: 'eu', mood: def.mood });
+  for (const h of r.headlines) {
+    const t = /^t_(\w+)_(\d)$/.exec(h.id);
+    const threat = t ? (t[1] as ThreatId) : null;
+    out.push({ ...base, id: h.id, at: h.at, kind: threat ? 'threat' : h.id.startsWith('m_') ? 'milestone' : 'headline', label: threat ? 'Threat' : h.id.startsWith('m_') ? 'AI 2027 milestone' : 'Headline', text: h.text, region: h.region, threat, tone: threat ? -1 : 0 });
+  }
+  for (const v of r.voices) out.push({ ...base, id: v.id, at: v.at, kind: 'voice', label: `Heard in ${REGION_NAME[v.region]}`, text: v.text, region: v.region });
+  if (r.leak)
+    out.push({
+      ...base,
+      id: `leak_${r.leak.id}`,
+      at: r.leak.at,
+      kind: 'leak',
+      label: 'Leak',
+      text: r.leak.readable || s.phase === 'ended' ? r.leak.text : 'A leak from inside the labs, redacted: you lack the oversight to read it.',
+      region: 'us',
+      // what to do about it, one short line
+      detail: r.leak.readable || s.phase === 'ended' ? r.leak.advice : LEAK_REDACTED_ADVICE,
+    });
+  const ev = r.event ?? (pending ? { id: pending.id, title: pending.title, prepared: pending.prepared, choice: null, at: pending.at, region: pending.region } : null);
+  if (ev) {
+    const detail = r.changes.filter((c) => c.cause === ev.title && !c.by).map((c) => c.text);
+    out.push({
+      ...base,
+      id: `ev_${ev.id}`,
+      at: ev.at,
+      kind: 'event',
+      label: 'Breaking news',
+      text: `${ev.title}${ev.prepared === null ? '' : ev.prepared ? ': Europe was prepared.' : ': Europe was not prepared.'}`,
+      detail: detail.length ? detail.join(', ') : null,
+      region: ev.region,
+      threat: ev.id in s.threats ? (ev.id as ThreatId) : null,
+      tone: ev.prepared ? 1 : -1,
+    });
+    // a job shock also shows where it hits, like the social events (v4)
+    if (ev.id === 'job_shock_1' || ev.id === 'job_shock_2') {
+      const pl = JOB_SHOCK_PLACE[ev.id];
+      out.push({
+        ...base,
+        id: `s_${ev.id}`,
+        at: ev.at + 0.005,
+        kind: 'social',
+        label: `${SOCIAL_WORD.jobs} · ${pl.city}, ${pl.country} · in this story`,
+        text: EVENTS[ev.id].headline.replace(/^BREAKING: /, ''),
+        detail: `${pl.why}${detail.length ? ` ${detail.join(', ')}.` : ''}`,
+        region: 'eu',
+        tone: -1,
+        social: { kind: 'jobs', city: pl.city, lon: pl.lon, lat: pl.lat },
+      });
+    }
+  }
+  for (const q of r.requests ?? []) {
+    const card = REQUEST_BY_ID[q.id];
+    const ch = CHARACTERS[card.character];
+    const a = q.side ? card[q.side] : null;
+    const detail = a ? r.changes.filter((c) => c.by === 'request' && c.cause === answerCause(card, a)).map((c) => c.text) : [];
+    out.push({
+      ...base,
+      id: `q_${q.id}`,
+      at: q.at,
+      kind: 'request',
+      label: `Request · ${ch.name}`,
+      text: card.text,
+      detail: a ? `You answered “${a.label}”${detail.length ? `: ${detail.join(', ')}` : ''}.` : null,
+      region: ch.region,
+    });
+  }
+  // social events (v4): story events in European cities, with why they matter and what they changed
+  for (const x of r.social ?? []) {
+    const def = SOCIAL_BY_ID[x.id];
+    if (!def) continue;
+    const moved = r.changes.filter((c) => c.cause === def.headline).map((c) => c.text);
+    const tone = def.effects.some((e) => e.dir < 0) ? -1 : 1;
+    out.push({
+      ...base,
+      id: `s_${x.id}`,
+      at: x.at,
+      kind: 'social',
+      label: `${SOCIAL_WORD[def.kind]} · ${def.city}, ${def.country} · in this story`,
+      text: def.headline,
+      detail: `${def.why}${moved.length ? ` ${moved.join(', ')}.` : ''}`,
+      region: 'eu',
+      tone: tone as -1 | 1,
+      social: { kind: def.kind, city: def.city, lon: def.lon, lat: def.lat },
+    });
+  }
+  out.sort((a, b) => a.at - b.at);
+  // the player's decisions, after the six months, with what they changed
+  const earlier = s.history.filter((x) => x.round < r.round).flatMap((x) => x.decisions);
+  r.decisions.forEach((p, i) => {
+    const def = CARD_BY_ID[p.id];
+    const nth = earlier.filter((x) => x.id === p.id).length;
+    const name = def.levels ? def.levels[Math.min(nth, def.levels.length - 1)] : def.name;
+    const opt = p.option && def.options ? ` (${def.options.find((o) => o.id === p.option)!.label.toLowerCase()})` : '';
+    const detail = r.changes.filter((c) => c.by === 'card' && c.cause === name).map((c) => c.text);
+    out.push({ ...base, id: `d_${p.id}`, at: 1.1 + i * 0.01, kind: 'decision', label: 'Your decision', text: `${name}${opt}`, detail: detail.length ? detail.join(', ') : null, region: 'eu', tone: 0 });
+  });
+  // ids are unique across the whole game
+  return out.map((x) => ({ ...x, id: `r${r.round}_${x.id}` }));
+}
+
+export function feed(s: GameState): FeedRound[] {
   const rounds = [...s.history];
-  if (s.round > 0 && !rounds.some((r) => r.round === s.round)) rounds.push(record(s));
-  const ls = letters(s);
+  const current = s.round > 0 && !rounds.some((r) => r.round === s.round);
+  if (current) rounds.push(record(s));
   return rounds.map((r) => ({
     round: r.round,
     date: dateLabel(r.round),
-    headlines: r.headlines.map((x) => x.text),
-    voices: r.voices.map((x) => x.text),
-    event: r.event ? `${r.event.title}${r.event.prepared === null ? '' : r.event.prepared ? ' (prepared)' : ' (unprepared)'}` : null,
-    leak: r.leak ? (r.leak.readable || s.phase === 'ended' ? r.leak.text : 'A leak you could not read (redacted).') : null,
-    changes: r.changes.map((c) => `${c.text}: ${c.cause}`),
-    decisions: r.decisions.map((p) => CARD_BY_ID[p.id].name + (p.option ? ` (${CARD_BY_ID[p.id].options!.find((o) => o.id === p.option)!.label})` : '')),
-    letter: ls.find((l) => l.round === r.round && l.slot !== 'end')?.text ?? null,
+    items: roundFeed(s, r, current && r.round === s.round ? s.event : null),
+    summary: topChanges(r.changes, changeScore),
   }));
+}
+
+export function trends(s: GameState): Record<GaugeKey, number[]> {
+  const st = T.start;
+  const pts: PublicValues[] = [{ aiPower: st.aiPower, cooperation: st.cooperation, estimate: st.estimate, margin: st.margin, cohesion: st.cohesion }, ...s.history.map((r) => r.values)];
+  if (s.round > 0 && !s.history.some((r) => r.round === s.round)) pts.push(publicValues(s));
+  return {
+    aiPower: pts.map((p) => p.aiPower),
+    cooperation: pts.map((p) => p.cooperation),
+    confidence: pts.map((p) => p.estimate),
+    cohesion: pts.map((p) => p.cohesion),
+  };
 }
 
 export const engine: EngineApi = {
   createInitialState,
   startRound,
   resolveEvent,
+  request,
+  answerRequest,
   endRound,
   hand,
   playCard,
@@ -1238,6 +1797,7 @@ export const engine: EngineApi = {
   nextIncome: (s) => nextIncome(s),
   letters,
   ending,
-  journal,
+  feed,
+  trends,
   dateLabel,
 };

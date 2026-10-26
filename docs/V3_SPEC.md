@@ -32,7 +32,7 @@ The whole game state the player sees fits in five things. Numbers below are star
 
 **Time.** 12 rounds of six months, from early 2027 to late 2032. The game ends at the tipping point, or after round 12 if AI never gets there.
 
-**One resource: Influence.** It replaces Budget and Political Capital. You earn it every round, and how much depends on your position: +2 base, +1 when Cohesion is 60+ (the public backs you), −1 when Cohesion falls below 35 (crisis at home), +1 from coalition level 2 (allies share the load). Cap 10. The counter always shows next round's income and why. Every card costs 1 to 4. You can play **up to two cards per round** if you can afford them, so spending is itself a choice.
+**One resource: Influence.** It replaces Budget and Political Capital. You earn it every round, and how much depends on your position: +2 base, +1 when Cohesion is 60+ (the public backs you), −1 when Cohesion falls below 35 (crisis at home), +1 from coalition level 2 (allies share the load). Cap 10. The counter always shows next round's income and why. Every card costs 1 to 4. You can play **as many cards per round as your Influence covers** (v4: the two-card limit is gone), each card once, so spending is itself a choice.
 
 **The confidence margin** keeps the game's core lesson without a ghost value on screen. You never know exactly how trustworthy the AIs are; you only know a range. Investing in oversight narrows it. To be safe, keep the whole range above the target, not just the middle.
 
@@ -75,7 +75,7 @@ End of the game (tipping point reached, or after round 12)
 
 **Opening a card** shows the full proposal: what Europe would actually do (≤ 60 words), a real-world example with its source, a sourced real-world cost line where one exists, and its levels if it has any. The preview shows each change as before → after ("Cooperation 48 → 56") and how the heading line would change.
 
-**Up to two cards per round**, within your Influence. The chief of staff (advisor) appears only on this screen, with one recommendation and its reason.
+**As many cards per round as your Influence covers** (v4), each once. The chief of staff (advisor) appears only on this screen, with one recommendation and its reason.
 
 **The deck** (first draft, to tune; 12 cards plus 2 opportunities):
 
@@ -124,7 +124,7 @@ Cards appear progressively: three in round 1, then one or two at a time when the
 2. **Six months play on the map** in about 8 seconds: AI power ticks up, threats grow, headlines and public voices appear where things happen. An event stops the clock for its Breaking news screen.
 3. **The clock stops and the player takes the lead.** Two buttons: **See what changed** (the report, on demand) and **Make my decisions**. Nothing opens by itself.
 4. **The report**, when opened, fits on one screen: the heading line, at most three changes with their real cause ("Cooperation 52 → 47: China accused OpenBrain of espionage"), and the threats that moved. Routine drift is not listed.
-5. **The decision screen**: the hand, the chief of staff's recommendation, up to two cards within your Influence, then Confirm.
+5. **The decision screen**: the hand, the chief of staff's recommendation, as many cards as your Influence covers, then Confirm.
 6. **Consequences on the map**, once: gauges move, partners light up, the US–China arc tightens or relaxes, a threat icon turns green, and the heading line updates with a short reason. This is the only recap: no second summary screen.
 
 **The main screen** keeps four things only:
@@ -143,7 +143,7 @@ GDP, approval, misuse, concentration and verification no longer appear as number
 1. **The world today.** AI is grown, not built: nobody writes these systems line by line, and what they learn is hard to check. They are improving fast. Three stakes, in plain words: will AI do what we intend, will the superpowers race or talk, will our societies hold? One or two real facts with recent sources.
 2. **You.** You are the EU's AI Envoy. Europe cannot stop the race, but it can shape it with Influence and policies. **Your goal:** when AI reaches the tipping point, have AI we can trust, superpowers who talk, and a society that holds. The calmer the world, the easier a good ending. A **Skip** button takes returning players straight to round 1.
 
-**Tutorial at first use.** No front-loaded manual. Each element is explained the first time it matters, with a short coach mark pointing at it, one at a time: the clock and the tipping point, Influence, the first card and its chips, the heading line, the Cooperation zones, the Confidence margin, the first threat icon, the first Breaking news, Europe's AI badge, the first leak, playing two cards in a round. The tutorial can be switched off, and every tip stays readable in the journal.
+**Tutorial at first use.** No front-loaded manual. Each element is explained the first time it matters, with a short coach mark pointing at it, one at a time: the clock and the tipping point, Influence, the first card and its chips, the heading line, the Cooperation zones, the Confidence margin, the first threat icon, the first Breaking news, Europe's AI badge, the first leak, playing several cards in a round. The tutorial can be switched off, and every tip stays readable in the journal.
 
 **Léa.**
 

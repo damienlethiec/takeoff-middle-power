@@ -15,14 +15,14 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: gh-pages
-  cancel-in-progress: false
-
 jobs:
   deploy:
     if: github.event_name != 'delete'
     runs-on: ubuntu-latest
+    # Only the jobs that write gh-pages share the lock, so e2e never delays the next deploy.
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
     timeout-minutes: 15
     permissions:
       contents: write # push the build to gh-pages
@@ -95,6 +95,10 @@ jobs:
   remove-preview:
     if: github.event_name == 'delete' && github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
+    # Only the jobs that write gh-pages share the lock, so e2e never delays the next deploy.
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
     timeout-minutes: 5
     permissions:
       contents: write # remove the preview folder from gh-pages

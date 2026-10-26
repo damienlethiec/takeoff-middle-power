@@ -5,7 +5,7 @@ import { CARDS } from '../src/data/cards';
 import { HELP, INTRO, TIPS } from '../src/data/copy';
 import { ENDINGS } from '../src/data/endings';
 import { LEA_END, LEA_R1, LEA_R4, LEA_R8 } from '../src/data/lea';
-import { LEAKS } from '../src/data/leaks';
+import { LEAK_REDACTED_ADVICE, LEAKS } from '../src/data/leaks';
 import { VOICES, WORLD_HEADLINES } from '../src/data/mapcontent';
 import { SOURCES } from '../src/data/sources';
 import { EVENTS, THREATS } from '../src/data/threats';
@@ -71,5 +71,13 @@ describe('no broken text anywhere', () => {
   });
   it('every ending has a two-variant end letter', () => {
     for (const e of ENDINGS) expect(LEA_END[e.id]).toHaveLength(2);
+  });
+
+  it('every leak says what to do about it, in one short line without numbers', () => {
+    for (const l of LEAKS)
+      for (const a of [l.advice.overconfident, l.advice.honest, LEAK_REDACTED_ADVICE]) {
+        expect(a.split(/\s+/).length, l.id).toBeLessThanOrEqual(20);
+        expect(a, l.id).not.toMatch(/\d/);
+      }
   });
 });

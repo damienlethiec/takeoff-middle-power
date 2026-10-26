@@ -1,9 +1,11 @@
 // End-to-end: plays whole games of the production build in Chromium through the real UI, and checks the
-// key interactions of v3. The page clock is faked, so the 8-second rounds run as fast as the test advances them.
-// Selectors use roles and accessible names wherever the markup offers them.
+// key interactions of v4: decisions in place of the map with their preview on the gauges, requests answered by
+// click and by ← →, the news feed (This round / Earlier), the map's icon groups, Léa's letter, the Why? dialog,
+// Europe's AI badge, and a clock that always resumes. The page clock is faked, so the 8-second rounds run as
+// fast as the test advances them. Selectors use roles and accessible names wherever the markup offers them.
 
 import { expect, test, type Page } from '@playwright/test';
-import { INTRO } from '../src/data/copy';
+import { GAUGE_LABEL, INTRO } from '../src/data/copy';
 
 const BAD_TEXT = /undefined|NaN|\[object Object\]/;
 
@@ -24,12 +26,31 @@ async function boot(page: Page, query: string): Promise<Session> {
   return session;
 }
 
-/** Advance the fake clock in 100 ms jumps (the game caps a frame at 100 ms). */
-async function advance(page: Page, ms: number) {
-  for (let t = 0; t < ms; t += 100) await page.clock.fastForward(100);
+/** Advance the fake clock in 100 ms jumps (the game caps a frame at 100 ms). Requests that arrive are answered (left). */
+async function advance(page: Page, ms: number, answer = true) {
+  for (let t = 0; t < ms; t += 100) {
+    await page.clock.fastForward(100);
+    if (answer && t % 500 === 0 && (await page.locator('.req-card.asking').count())) {
+      await page.locator('.req-card.asking .ans-left').click();
+      await page.clock.fastForward(400);
+      await page.getByRole('button', { name: /^Back to the six months/ }).click();
+    }
+  }
+}
+/** Stop the page's time where it is; on a busy machine the target can pass before the call lands, so retry further ahead. */
+async function freeze(page: Page) {
+  for (let ahead = 20; ; ahead *= 2) {
+    try {
+      return await page.clock.pauseAt((await page.evaluate(() => Date.now())) + ahead);
+    } catch (e) {
+      if (ahead > 2000 || !/to the past/.test(String(e))) throw e;
+    }
+  }
 }
 const dialog = (page: Page) => page.locator('.overlay:not(.leaving) [role="dialog"]').last();
 const dockButton = (page: Page, name: RegExp) => page.locator('.dock:not([hidden])').getByRole('button', { name });
+/** The decisions, drawn in place of the map and the feed (not a dialog). */
+const decisions = (page: Page) => page.locator('#decide:not([hidden])');
 
 async function checkText(page: Page, s: Session) {
   const text = await page.evaluate(() => document.body.innerText);
@@ -37,50 +58,70 @@ async function checkText(page: Page, s: Session) {
   if (m) s.badText.push(text.slice(Math.max(0, m.index! - 80), m.index! + 40).replace(/\n/g, ' | '));
 }
 
-/** Play until the end screen. Returns what happened on the way. */
+/** Answer whatever dialog is open: a request (by click), Breaking news (its first choice), a tip or anything else (Enter). */
+async function closeDialog(page: Page, side: 'left' | 'right' = 'left') {
+  // a tip may stack over a request (it points at the request card): close the tip first
+  if (await page.locator('.overlay.coach-ov:not(.leaving)').count()) {
+    await page.keyboard.press('Enter');
+    return 'tip';
+  }
+  const d = dialog(page);
+  if (await d.locator('.req-card.asking').count()) {
+    // the tip can still arrive while we click: then close it on the next pass
+    if (!(await d.locator(`.ans-${side}`).click({ timeout: 3000 }).then(() => true, () => false))) return 'retry';
+    await expect(d.locator('.reaction')).toBeVisible();
+    await d.getByRole('button', { name: /^Back to the six months/ }).click();
+    return 'request';
+  }
+  const choice = d.locator('.choice').first();
+  if (await choice.count()) await choice.click();
+  else await page.keyboard.press('Enter');
+  return 'other';
+}
+
+/** Play until the end screen, one card a round. Returns what happened on the way. */
 async function playToEnd(page: Page, s: Session) {
-  const seen = { decisions: 0, played: [] as string[], breaking: 0, rounds: 0 };
+  const seen = { decisions: 0, played: [] as string[], breaking: 0, rounds: 0, requests: 0 };
   await page.getByRole('button', { name: '×2' }).click();
   for (let step = 0; step < 900; step++) {
     if (await page.locator('.ending-page').count()) return seen;
     const d = dialog(page);
     if (await d.count()) {
       await checkText(page, s);
-      const name = (await d.getAttribute('aria-label')) ?? '';
-      if (name === 'Your decisions') {
-        seen.decisions++;
-        const card = d.locator('.pcard:not(.locked)').first();
-        if (await card.count()) {
-          await card.click();
-          await expect(d.getByText('If you confirm')).toBeVisible();
-          seen.played.push((await card.locator('.pc-name').textContent())!.trim());
-          await page.keyboard.press('Tab'); // off the card: Enter now confirms
-          await d.getByRole('button', { name: /^Confirm/ }).click();
-        } else await d.getByRole('button', { name: 'Play no card' }).click();
-      } else if (name === 'Breaking news') {
-        seen.breaking++;
-        const choice = d.locator('.choice').first();
-        if (await choice.count()) await choice.click();
-        else await page.keyboard.press('Enter');
-      } else await page.keyboard.press('Enter'); // tips, the report, letters
-      await advance(page, 300);
+      if ((await d.getAttribute('aria-label')) === 'Breaking news') seen.breaking++;
+      if ((await closeDialog(page, seen.requests % 2 ? 'right' : 'left')) === 'request') seen.requests++;
+      await advance(page, 300, false);
+      continue;
+    }
+    const dk = decisions(page);
+    if (await dk.count()) {
+      await checkText(page, s);
+      seen.decisions++;
+      const card = dk.locator('.pc-wrap:not(.locked) .pcard').first();
+      if (await card.count()) {
+        await card.click();
+        await expect(card).toHaveAttribute('aria-pressed', 'true');
+        seen.played.push((await card.locator('.pc-name').textContent())!.trim());
+        await dk.getByRole('button', { name: /^Confirm 1 card/ }).click();
+      } else await dk.getByRole('button', { name: 'Play no card' }).click();
+      await advance(page, 300, false);
       continue;
     }
     const decide = dockButton(page, /^Make my (last )?decisions/);
     if (await decide.count()) {
       seen.rounds++;
       await decide.click();
-      await advance(page, 200);
+      await advance(page, 200, false);
       continue;
     }
-    const next = dockButton(page, /^(Start H[12] \d{4}|See how it ends)/);
-    if (await next.count()) {
-      await next.click();
+    const end = dockButton(page, /^See how it ends/);
+    if (await end.count()) {
+      await end.click();
       await advance(page, 300);
       continue;
     }
     if (step % 5 === 0) await checkText(page, s);
-    await advance(page, 800);
+    await advance(page, 800, false);
   }
   throw new Error('the game did not reach its end screen');
 }
@@ -88,13 +129,23 @@ async function playToEnd(page: Page, s: Session) {
 async function checkEnding(page: Page, s: Session) {
   const end = page.locator('.ending-page');
   await expect(end.getByRole('heading', { level: 1 })).not.toBeEmpty();
+  await expect(end.getByRole('heading', { level: 1 })).toBeFocused();
   await expect(end.getByText(/^A (good|bad) ending$/)).toBeVisible();
   await expect(end.locator('.end-why')).toContainText(/: [a-z].+\.$/);
   for (const h of ['The world in 2032', 'The four gauges at the end', 'The reveal', 'What would have changed it', 'Your decisions, in order'])
     await expect(end.getByRole('heading', { level: 2, name: h })).toBeVisible();
   await expect(end.getByText('Léa, one last time')).toBeVisible();
-  await expect(end.getByText(/The truth was \d+\./)).toBeVisible();
+  await expect(end.locator('.reveal-big')).toContainText(/(It was|AI safety was) \d+\./);
   await checkText(page, s);
+}
+
+/** Run the clock (answering requests and closing tips) until the dock offers the decisions. */
+async function toDecisions(page: Page) {
+  for (let i = 0; i < 200 && !(await dockButton(page, /^Make my (last )?decisions/).count()); i++) {
+    if (await dialog(page).count()) await closeDialog(page);
+    await advance(page, 300, false);
+  }
+  await expect(dockButton(page, /^Make my (last )?decisions/)).toBeVisible();
 }
 
 test.describe('a full game', () => {
@@ -106,6 +157,7 @@ test.describe('a full game', () => {
     expect(seen.rounds).toBeGreaterThanOrEqual(6);
     expect(seen.rounds).toBeLessThan(12);
     expect(seen.breaking).toBeGreaterThan(0);
+    expect(seen.requests).toBeGreaterThan(0);
     await checkEnding(page, s);
     // every card played shows in the debrief, in order
     const names = (await page.locator('.deb-list h3').allTextContents()).map((x) => x.trim());
@@ -138,6 +190,7 @@ test.describe('key interactions', () => {
     await page.keyboard.press('Enter');
     await advance(page, 300);
     await expect(intro.getByRole('heading', { level: 2 })).toHaveText(INTRO[1].title);
+    await expect(intro.getByRole('img', { name: 'Léa' })).toBeVisible();
     await intro.getByRole('button', { name: 'Back' }).click();
     await advance(page, 300);
     await intro.getByRole('button', { name: 'Skip to round 1' }).click();
@@ -145,6 +198,7 @@ test.describe('key interactions', () => {
     await expect(intro).toHaveCount(0);
     await expect(page.locator('#date')).toHaveText('H1 2027');
     await expect(page.locator('#round-of')).toHaveText(' · Round 1 of 12');
+    await expect(page.locator('#game-title')).toContainText('Europe’s Next Move');
     expect(s.errors).toEqual([]);
   });
 
@@ -165,91 +219,298 @@ test.describe('key interactions', () => {
     expect(s.errors).toEqual([]);
   });
 
-  test('when the clock stops nothing opens by itself; the report and the decisions are on demand', async ({ page }) => {
+  test('the news feed: items while the clock runs, What changed on top when it stops, Earlier rounds in their tab', async ({ page }) => {
     const s = await boot(page, '?skipintro&notutorial&seed=4');
-    await advance(page, 10_000);
-    await expect(dockButton(page, /^Make my decisions/)).toBeVisible();
+    const feed = page.locator('.feed');
+    await advance(page, 1500);
+    await expect(feed.getByRole('tab', { name: 'This round' })).toHaveAttribute('aria-selected', 'true');
+    await expect(feed.locator('#feed-now .fd-item').first()).toBeVisible();
+    await toDecisions(page);
+    // nothing opens by itself once the clock stops
     await advance(page, 4000);
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await dockButton(page, /^See what changed/).click();
-    const r = dialog(page);
-    await expect(r.getByRole('heading', { name: 'Six months in review' })).toBeVisible();
-    await expect(r.locator('.heading-line')).toHaveText(/^Heading: /);
-    await page.keyboard.press('Escape');
-    await advance(page, 300);
-    await expect(dockButton(page, /^Make my decisions/)).toBeFocused();
+    await expect(decisions(page)).toHaveCount(0);
+    await expect(feed.locator('#feed-now .fd-sum-h')).toHaveText('What changed');
+    const item = feed.locator('#feed-now .fd-item').first();
+    await item.click();
+    await expect(item).toHaveAttribute('aria-pressed', 'true');
+    await feed.getByRole('tab', { name: 'Earlier' }).click();
+    await expect(feed.locator('#feed-past')).toBeVisible();
+    await expect(feed.locator('#feed-past')).toContainText('Earlier rounds appear here.');
+    // the arrow keys move between the tabs; N jumps to them
+    await feed.getByRole('tab', { name: 'Earlier' }).press('ArrowLeft');
+    await expect(feed.getByRole('tab', { name: 'This round' })).toBeFocused();
+    await expect(feed.locator('#feed-now')).toBeVisible();
+    // after the decisions, the round is in Earlier with its date
+    await dockButton(page, /^Make my decisions/).click();
+    await decisions(page).getByRole('button', { name: 'Play no card' }).click();
+    await advance(page, 1500);
+    await expect(page.locator('#date')).toHaveText('H2 2027');
+    await feed.getByRole('tab', { name: 'Earlier' }).click();
+    await expect(feed.locator('#feed-past')).toContainText('H1 2027 · round 1');
+    await expect(feed.locator('#feed-past .fd-sum-h').first()).toHaveText('What changed');
     expect(s.errors).toEqual([]);
   });
 
-  test('a card shows before → after and the heading line before Confirm; up to two cards; Influence is spent', async ({ page }) => {
+  test('decisions replace the map; a selection previews on the real gauges and commits only on Confirm', async ({ page }) => {
     const s = await boot(page, '?skipintro&notutorial&seed=4');
-    await advance(page, 10_000);
+    await toDecisions(page);
     const inf = Number(await page.locator('#inf-v').textContent());
     await page.keyboard.press('Enter');
-    const d = dialog(page);
-    await expect(d).toHaveAttribute('aria-label', 'Your decisions');
-    await expect(d.getByText('Your chief of staff')).toBeVisible();
-    await expect(d.getByText('Pick a card to see what it would change before you commit.')).toBeVisible();
-    const talks = d.getByRole('button', { name: /^Diplomatic talks/ });
+    await advance(page, 200, false);
+    const dk = decisions(page);
+    await expect(dk).toBeVisible();
+    await expect(page.locator('#mapwrap')).toBeHidden();
+    await expect(page.locator('#feed')).toBeHidden();
+    await expect(dk.getByRole('heading', { name: 'Play your cards' })).toBeVisible();
+    await expect(dk.getByText('Your chief of staff:')).toBeVisible();
+    // focus lands on a card; nothing is selected yet
+    await expect(dk.locator('.pcard:focus')).toHaveCount(1);
+    await expect(dk.getByRole('button', { name: 'Pick a card first' })).toBeDisabled();
+    // gauges are found by their names only (their markup may change): a preview shows as "→ 55"
+    const gauges = page.getByRole('region', { name: 'Gauges' });
+    await expect(gauges).not.toContainText(/→ \d+/);
+
+    const talks = dk.getByRole('button', { name: /^Diplomatic talks/ });
     await talks.click();
     await expect(talks).toHaveAttribute('aria-pressed', 'true');
-    await expect(d.locator('.imps .imp').first()).toHaveText(/^Cooperation \d+ → \d+/);
-    await expect(d.getByText('Heading line')).toBeVisible();
+    // the preview is on the gauges themselves: "→ 55" next to the value, a ghost mark on the bar
+    await expect(gauges.getByRole('region', { name: GAUGE_LABEL.cooperation })).toContainText(/→ \d+/);
+    // the line under the gauges and Europe's AI stay in view
+    await expect(page.locator('#hl-text')).toContainText('Heading for');
+    await expect(page.getByRole('button', { name: /^Europe’s AI: (Open|Dependent)/ })).toBeVisible();
     // nothing committed yet
     expect(Number(await page.locator('#inf-v').textContent())).toBe(inf);
-    await d.getByRole('button', { name: /^AI Office capacity/ }).click();
-    await expect(d.getByRole('button', { name: /^Confirm these two cards/ })).toBeEnabled();
-    await expect(d.getByRole('button', { name: /^Offer to host inspections/ })).not.toHaveClass(/sel/);
-    await d.getByRole('button', { name: /^Confirm/ }).click();
-    await advance(page, 1500);
-    expect(Number(await page.locator('#inf-v').textContent())).toBe(inf - 1 - 2);
-    await expect(page.locator('#heading-why')).toHaveText(/^Diplomatic talks and AI Office capacity: /);
-    await expect(dockButton(page, /^Start H2 2027/)).toBeVisible();
+
+    const office = dk.getByRole('button', { name: /^AI Office capacity/ });
+    await office.click();
+    const cost = async (name: RegExp) => Number((await dk.getByRole('button', { name }).locator('.pc-cost').textContent())!.replace(/\D/g, ''));
+    const spent = (await cost(/^Diplomatic talks/)) + (await cost(/^AI Office capacity/));
+    await expect(dk.locator('#dec-inf')).toContainText(`${inf - spent} of ${inf}`);
+    await expect(dk.getByRole('button', { name: /^Confirm 2 cards/ })).toBeEnabled();
+    // a second click removes a card
+    await office.click();
+    await expect(office).toHaveAttribute('aria-pressed', 'false');
+    await expect(dk.getByRole('button', { name: /^Confirm 1 card/ })).toBeEnabled();
+
+    // Escape goes back to the map: the preview is cleared and the dock offers the decisions again
+    await page.keyboard.press('Escape');
+    await expect(decisions(page)).toHaveCount(0);
+    await expect(page.locator('#mapwrap')).toBeVisible();
+    await expect(gauges).not.toContainText(/→ \d+/);
+    await dockButton(page, /^Make my decisions/).click();
+    await dk.getByRole('button', { name: /^Diplomatic talks/ }).click();
+    await dk.getByRole('button', { name: /^AI Office capacity/ }).click();
+    // time stands still while the consequences are checked (the next round's income would follow them)
+    await freeze(page);
+    await dk.getByRole('button', { name: /^Confirm 2 cards/ }).click();
+    await expect(page.locator('#inf-v')).toHaveText(String(inf - spent));
+    // what the decisions changed is in the feed's decision items (no line lingers under the heading)
+    await expect(page.locator('#heading-why')).toHaveCount(0);
+    await expect(page.locator('#feed-now .fd-item.k-decision', { hasText: 'Diplomatic talks' })).toContainText(/US–China cooperation \d+ → \d+/);
+    await expect(page.locator('#phase')).toHaveText('Consequences');
+    await page.clock.resume();
+    // no stop between rounds: the next six months begin by themselves
+    await advance(page, 2000);
+    await expect(page.locator('#date')).toHaveText('H2 2027');
+    await expect(page.locator('#feed-past')).toContainText('Diplomatic talks');
     expect(s.errors).toEqual([]);
   });
 
-  test('threat icons, Europe’s AI badge and Léa are buttons on the map that open their explanation', async ({ page }) => {
+  test('a request is answered by click, another with ← → (the first press looks, the second answers)', async ({ page }) => {
+    const s = await boot(page, '?skipintro&notutorial&seed=4');
+    const done = { click: false, keys: false };
+    for (let i = 0; i < 400 && !(done.click && done.keys); i++) {
+      const d = dialog(page);
+      if (await d.locator('.req-card.asking').count()) {
+        await expect(page.locator('#phase')).toHaveText('A request');
+        const answers = d.getByRole('group', { name: 'Your answer' }).getByRole('button');
+        await expect(answers).toHaveCount(2);
+        await expect(answers.first()).toHaveAccessibleName(/Will change|No visible change/);
+        if (!done.click) {
+          done.click = true;
+          await d.locator('.ans-left').click();
+        } else {
+          done.keys = true;
+          await expect(d.getByRole('heading', { level: 2 })).toBeFocused();
+          await page.keyboard.press('ArrowRight');
+          await expect(d.locator('.ans-right')).toBeFocused();
+          await expect(d.locator('.req-card')).toHaveClass(/look-right/);
+          await expect(d.locator('.req-card.asking')).toHaveCount(1);
+          await page.keyboard.press('ArrowRight');
+        }
+        await expect(d.locator('.reaction')).toBeVisible();
+        await expect(d.getByRole('button', { name: /^Back to the six months/ })).toBeFocused();
+        await page.keyboard.press('Enter');
+        await advance(page, 300, false);
+        await expect(page.locator('#phase')).not.toHaveText('A request');
+        continue;
+      }
+      if (await d.count()) await closeDialog(page);
+      else if (await decisions(page).count()) await decisions(page).getByRole('button', { name: 'Play no card' }).click();
+      else if (await dockButton(page, /^Make my/).count()) await dockButton(page, /^Make my/).click();
+      await advance(page, 300, false);
+    }
+    expect(done).toEqual({ click: true, keys: true });
+    // answered requests are in the feed, with the answer
+    await expect(page.locator('.feed .fd-item.k-request').first()).toContainText('You answered');
+    expect(s.errors).toEqual([]);
+  });
+
+  test('map icons are grouped per region; a group opens its list, Tab goes into it, an item highlights its news', async ({ page }) => {
     const s = await boot(page, '?skipintro&notutorial&seed=9');
-    // Léa writes in round 1
-    await advance(page, 1500);
-    const lea = page.getByRole('button', { name: /^Léa new letter ?, in Lyon: read her letters/ });
-    await lea.click();
-    await expect(dialog(page).getByRole('heading', { name: 'A letter from Léa' })).toBeVisible();
+    await advance(page, 800, false);
+    await page.keyboard.press(' '); // pause: nothing comes due while we look
+    await expect(page.locator('#phase')).toHaveText('Paused');
+    // Léa wrote in round 1: an envelope in Europe's group, her full letter in the news with her portrait
+    const eu = page.getByRole('button', { name: /^Europe this round: .*letter from Léa, your friend in Lyon/ });
+    await expect(eu).toBeVisible();
+    await expect(eu).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('.lea-btn')).toHaveCount(0);
+    const letter = page.locator('.feed .fd-item.k-lea');
+    await expect(letter).toContainText('Letter from Léa, your friend in Lyon');
+    await expect(letter.locator('.fd-t')).toHaveText(/^Dear old friend, it’s Léa/);
+    await expect(letter.locator('.lea-face')).toBeVisible();
+    const full = (await letter.locator('.fd-t').textContent())!.trim();
+    expect(full.length).toBeGreaterThan(120);
+
+    await eu.click();
+    await expect(eu).toHaveAttribute('aria-expanded', 'true');
+    const list = page.getByRole('group', { name: 'Europe this round' });
+    const item = list.getByRole('button', { name: /^Letter from Léa, your friend in Lyon/ });
+    await expect(item).toBeVisible();
+    // the list shows the start of the letter; the feed has it all
+    expect(full.startsWith((await item.locator('.mp-t').textContent())!.replace(/ …$/, ''))).toBe(true);
+    await item.click();
+    await expect(letter).toHaveAttribute('aria-pressed', 'true');
+
+    // a second click closes the list
+    await eu.click();
+    await expect(eu).toHaveAttribute('aria-expanded', 'false');
+    await expect(list).toHaveCount(0);
+    // keyboard: Tab goes from a group into its list, Escape closes it and returns to the group
+    await eu.focus();
+    await page.keyboard.press('Enter');
+    await expect(list).toBeVisible();
+    await page.keyboard.press('Tab');
+    await expect(list.locator('.mp-item').first()).toBeFocused();
     await page.keyboard.press('Escape');
-    await advance(page, 300);
-    await expect(lea).toHaveCount(0);
-    await page.getByRole('button', { name: /^Europe’s AI Dependent/ }).click();
+    await expect(list).toHaveCount(0);
+    await expect(eu).toBeFocused();
+    // a feed item opens its region's list with the item highlighted
+    await letter.click();
+    await expect(list.locator('.mp-item.hl')).toHaveCount(1);
+    expect(s.errors).toEqual([]);
+  });
+
+  test('Why? explains the world; Europe’s AI is always on the line; threat icons open what protects Europe', async ({ page }) => {
+    const s = await boot(page, '?skipintro&notutorial&seed=9');
+    await advance(page, 600, false);
+    await page.keyboard.press(' ');
+    const why = page.getByRole('button', { name: /^Why\?/ });
+    await why.click();
+    const d = dialog(page);
+    await expect(d.getByRole('heading', { name: 'Where the world can go' })).toBeVisible();
+    await expect(d.getByRole('heading', { level: 3, name: /^If AI tipped now, you would be in/ })).toBeVisible();
+    await expect(d).toContainText(/Europe’s AI is (Open|Dependent): it decides the world if AI never tips/);
+    await expect(d.locator('.worlds-list > li')).toHaveCount(5);
+    await page.keyboard.press('Escape');
+    await expect(why).toBeFocused();
+
+    const badge = page.getByRole('button', { name: /^Europe’s AI: Dependent\. Decides the world if AI never tips/ });
+    await expect(badge).toHaveAttribute('title', 'Decides the world if AI never tips');
+    await badge.click();
     await expect(dialog(page).getByRole('heading', { name: 'Europe’s AI: Dependent' })).toBeVisible();
     await page.keyboard.press('Escape');
+    await expect(badge).toBeFocused();
+    await page.locator('#play').click(); // resume (Space would press the focused badge)
+
     // play passively until a threat icon shows
     for (let i = 0; i < 80 && !(await page.locator('.threat-btn').count()); i++) {
-      const next = dockButton(page, /^(Make my decisions|Start H)/);
-      if (await next.count()) {
-        await next.click();
-        await advance(page, 300);
-        const d = dialog(page);
-        if ((await d.count()) && (await d.getAttribute('aria-label')) === 'Your decisions') await d.getByRole('button', { name: 'Play no card' }).click();
-      } else if (await dialog(page).count()) await page.keyboard.press('Enter');
-      await advance(page, 700);
+      if (await dialog(page).count()) await closeDialog(page);
+      else if (await decisions(page).count()) await decisions(page).getByRole('button', { name: 'Play no card' }).click();
+      else if (await dockButton(page, /^Make my/).count()) await dockButton(page, /^Make my/).click();
+      await advance(page, 700, false);
     }
     const threat = page.getByRole('button', { name: /^Threat: / }).first();
     await expect(threat).toBeVisible();
     await threat.click();
     await expect(dialog(page).getByText('What protects Europe')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(threat).toBeFocused();
+    expect(s.errors).toEqual([]);
+  });
+
+  test('a request, a leak and tips in the same round: the clock always resumes (seed 4, phone, tips on)', async ({ page }) => {
+    // regression: in round 2 the leak's tip and Li Wen's request came due in the same frame; the request's dialog
+    // replaced the tip, whose promise never settled, and the clock stayed stopped with the pause button disabled
+    await page.setViewportSize({ width: 390, height: 844 });
+    const s = await boot(page, '?skipintro&seed=4');
+    const seen = { requests: 0, leaks: 0 };
+    let leakDue = false;
+    for (let step = 0; step < 400 && (await page.locator('#date').textContent()) !== 'H1 2028'; step++) {
+      const d = dialog(page);
+      if (await d.count()) {
+        if ((await closeDialog(page)) === 'request') seen.requests++;
+        await advance(page, 300, false);
+        continue;
+      }
+      if (await decisions(page).count()) {
+        await decisions(page).getByRole('button', { name: 'Play no card' }).click();
+        await advance(page, 300, false);
+        continue;
+      }
+      // the leak: in the US group on the map, it opens when chosen from the group's list
+      const us = page.locator('.m-cluster.c-us:not([hidden])');
+      if (seen.leaks === 0 && (await us.count()) && /leak/.test((await us.textContent()) ?? '')) {
+        // the leak's tip comes with it: let it open (and be closed above) before going to the map
+        if (!leakDue) {
+          leakDue = true;
+          await advance(page, 300, false);
+          continue;
+        }
+        // a request may still arrive in the same moment and cover the map: then try again after it
+        const opened = await us
+          .click({ timeout: 1500 })
+          .then(() => page.locator('.m-pop .mp-item.k-leak').click({ timeout: 1500 }))
+          .then(() => true, () => false);
+        if (!opened) continue;
+        seen.leaks++;
+        await expect(dialog(page).getByRole('heading', { name: /leak/i })).toBeVisible();
+        await page.keyboard.press('Escape');
+        await advance(page, 300, false);
+        continue;
+      }
+      const next = dockButton(page, /^Make my decisions/);
+      if (await next.count()) {
+        await next.click();
+        await advance(page, 300, false);
+        continue;
+      }
+      if ((await page.locator('#phase').textContent()) === 'Clock running') await expect(page.locator('#play')).toBeEnabled();
+      await advance(page, 200, false);
+    }
+    await expect(page.locator('#date')).toHaveText('H1 2028');
+    expect(seen.requests).toBeGreaterThanOrEqual(2);
+    expect(seen.leaks).toBe(1);
     expect(s.errors).toEqual([]);
   });
 
   test('the tutorial shows coach marks once, and can be turned off', async ({ page }) => {
     const s = await boot(page, '?skipintro&seed=4');
     await advance(page, 400);
-    const tip = page.getByRole('dialog', { name: /The AI clock/ });
+    const tip = page.getByRole('dialog', { name: /AI capabilities/ });
     await expect(tip).toBeVisible();
+    // one tip per gauge: it points at its own gauge only
     await expect(page.locator('.coach-target')).toHaveCount(1);
+    await expect(page.locator('.gauge.g-aiPower.coach-target')).toHaveCount(1);
     await tip.getByRole('button', { name: 'Turn off tips' }).click();
     await advance(page, 400);
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await page.keyboard.press('j');
-    await expect(dialog(page).getByText(/The AI clock:/)).toBeVisible();
+    await expect(page.locator('.coach-target')).toHaveCount(0);
+    await page.keyboard.press('?');
+    await expect(dialog(page).locator('details.older')).toContainText('Social cohesion');
+    await expect(dialog(page).getByRole('checkbox', { name: /Show tips/ })).not.toBeChecked();
     expect(s.errors).toEqual([]);
   });
 });

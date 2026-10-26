@@ -1,6 +1,8 @@
 // Shared helpers for the accessibility checks: a dev server, a browser page with a fake clock, axe.
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -18,11 +20,19 @@ export function loadPlaywright() {
   }
 }
 
-/** Start `vite` on a port, or reuse A11Y_URL. Returns the game URL and a stop() that kills the server's pid. */
+/**
+ * Build the game and serve the production build (with its Content-Security-Policy) on a port, or reuse A11Y_URL.
+ * The dev server is not used: under Playwright's fake clock it can leave the page's text unstyled for a while.
+ * Returns the game URL and a stop() that kills the server's pid.
+ */
 export async function startServer(port) {
   if (process.env.A11Y_URL) return { url: process.env.A11Y_URL, stop() {} };
   const url = `http://localhost:${port}/takeoff-middle-power/`;
-  const child = spawn(process.execPath, [path.join(ROOT, 'node_modules/vite/bin/vite.js'), '--port', String(port), '--strictPort'], {
+  const vite = path.join(ROOT, 'node_modules/vite/bin/vite.js');
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'takeoff-build-'));
+  const built = spawnSync(process.execPath, [vite, 'build', '--logLevel', 'warn', '--outDir', outDir, '--emptyOutDir'], { cwd: ROOT, encoding: 'utf8' });
+  if (built.status !== 0) throw new Error(`vite build failed:\n${built.stdout}${built.stderr}`);
+  const child = spawn(process.execPath, [vite, 'preview', '--port', String(port), '--strictPort', '--outDir', outDir], {
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -45,7 +55,8 @@ export async function startServer(port) {
 
 /** A page with no web fonts (hermetic), a fake clock and an error log. */
 export async function newPage(browser, { reducedMotion = 'no-preference', viewport = { width: 1280, height: 800 } } = {}) {
-  const context = await browser.newContext({ viewport, reducedMotion });
+  // bypassCSP: the production build's policy would block injecting axe
+  const context = await browser.newContext({ viewport, reducedMotion, bypassCSP: true });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
@@ -55,6 +66,18 @@ export async function newPage(browser, { reducedMotion = 'no-preference', viewpo
   await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ contentType: 'text/css', body: '' }));
   await page.clock.install();
   return { page, errors, context };
+}
+
+/** Stop the page's time where it is (time flows in real time after clock.install or resume). On a busy machine
+ *  the target can pass before the call lands: then try again a little further ahead. */
+export async function freeze(page) {
+  for (let ahead = 50; ; ahead *= 2) {
+    try {
+      return await page.clock.pauseAt((await page.evaluate(() => Date.now())) + ahead);
+    } catch (e) {
+      if (ahead > 3200 || !/to the past/.test(String(e))) throw e;
+    }
+  }
 }
 
 /** Advance the fake clock in 100 ms steps (the game caps a frame at 100 ms). */
@@ -69,7 +92,12 @@ export const settle = (page, ms = 600) => page.waitForTimeout(ms);
 export async function axe(page) {
   if (!(await page.evaluate(() => 'axe' in window))) await page.addScriptTag({ path: AXE });
   const v = await page.evaluate(async () => {
-    const r = await axe.run(document, { resultTypes: ['violations'] });
+    // an item fading in while axe runs (time flows during the audit) would be measured half transparent:
+    // audit the settled state
+    const still = document.createElement('style');
+    still.textContent = '*, *::before, *::after { animation: none !important; transition: none !important; }';
+    document.head.appendChild(still);
+    const r = await axe.run(document, { resultTypes: ['violations'] }).finally(() => still.remove());
     return r.violations.map((x) => ({
       id: x.id,
       impact: x.impact,
@@ -86,9 +114,10 @@ export async function axe(page) {
 export const screenOf = (page) =>
   page.evaluate(() => {
     if (document.querySelector('.ending-page')) return 'ending';
-    const m = document.querySelector('.overlay:not(.leaving) .modal');
-    if (!m) return document.querySelector('.dock:not([hidden])') ? 'dock' : 'main';
-    for (const k of ['intro', 'coach', 'breaking', 'report', 'decision', 'letters', 'help', 'journal', 'info']) if (m.classList.contains(k)) return k;
+    const m = document.querySelector('.overlay:not(.leaving):not([inert]) .modal');
+    // v4: the decisions are drawn in place of the map (not a dialog)
+    if (!m) return document.querySelector('#decide:not([hidden])') ? 'decision' : document.querySelector('.dock:not([hidden])') ? 'dock' : 'main';
+    for (const k of ['intro', 'coach', 'breaking', 'request', 'card-details', 'worlds', 'help', 'info']) if (m.classList.contains(k)) return k;
     return `modal:${m.className}`;
   });
 

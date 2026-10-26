@@ -2,16 +2,20 @@
 // A strategy only reads what the UI shows: the hand, the gauges (estimate ± margin), the heading line,
 // the threats and the advisor. Never the hidden truth or the pace.
 
-import { advisor, createInitialState, endRound, gauges, hand, heading, playCard, preview, resolveEvent, startRound, threats } from '../src/engine/index';
+import { GAUGE_LABEL } from '../src/data/copy';
+import { TUNING } from '../src/data/tuning';
+import { advisor, answerRequest, createInitialState, endRound, gauges, hand, heading, playCard, preview, request, resolveEvent, startRound, threats } from '../src/engine/index';
 import { pick, randomInt, seedToRng, type RngHolder } from '../src/engine/rng';
-import type { CardId, GameState, Pick } from '../src/engine/types';
+import type { CardId, GameState, Pick, RequestView, Side } from '../src/engine/types';
 
 export interface Strategy {
   name: string;
-  /** Cards to play this round, in order (at most two; the runner skips any that became unplayable). */
+  /** Cards to play this round, in order (as many as Influence allows; the runner skips any that became unplayable). */
   decide: (s: GameState, r: RngHolder) => Pick[];
   /** Answer to silicon blackmail. */
   blackmail: (s: GameState, r: RngHolder) => 'give_in' | 'hold_firm';
+  /** Answer to a request (v4). */
+  answer: (s: GameState, v: RequestView, r: RngHolder) => Side;
 }
 
 export interface PlayedGame {
@@ -19,20 +23,36 @@ export interface PlayedGame {
   plays: CardId[];
   /** Rounds where the player wanted a card but could not afford it. */
   shortages: number;
+  /** Requests answered (v4). */
+  requests: number;
 }
 
 const playableIds = (s: GameState) => hand(s).filter((c) => c.playable).map((c) => c.id);
+
+/** The state without its past rounds, for read-only views (previews, the advisor, request cards): they never read
+ *  the history, and the engine clones the whole state on every call, so this keeps the simulation fast. */
+const lite = (s: GameState): GameState => ({ ...s, history: [] });
 
 export function playGame(seed: number, strat: Strategy): PlayedGame {
   const r: RngHolder = { rng: seedToRng(seed * 7919 + 13) };
   let s = createInitialState(seed);
   const plays: CardId[] = [];
   let shortages = 0;
+  let requests = 0;
   for (let guard = 0; guard < 20; guard++) {
     s = startRound(s);
-    if (s.event) s = resolveEvent(s, s.event.options.length ? strat.blackmail(s, r) : undefined);
+    // the six months in order: requests and the event come at their time
+    for (;;) {
+      const q = request(lite(s));
+      const evFirst = s.event && (!q || s.event.at <= q.at);
+      if (evFirst) s = resolveEvent(s, s.event!.options.length ? strat.blackmail(s, r) : undefined);
+      else if (q) {
+        s = answerRequest(s, strat.answer(s, q, r)).state;
+        requests++;
+      } else break;
+    }
     const want = strat.decide(s, r);
-    for (const p of want.slice(0, 2)) {
+    for (const p of want) {
       const c = hand(s).find((x) => x.id === p.id);
       if (!c) continue;
       if (!c.playable) {
@@ -46,13 +66,45 @@ export function playGame(seed: number, strat: Strategy): PlayedGame {
     s = end.state;
     if (end.outcome === 'ended') break;
   }
-  return { final: s, plays, shortages };
+  return { final: s, plays, shortages, requests };
+}
+
+/** What a request's answer would move, read from its chips (what the player sees). AI safety counts by its
+ *  verified part: the "more / less verified (a → b)" chip when there is one, else the claim moves it. */
+function chipValue(v: RequestView, side: Side, w: { coop: number; conf: number; coh: number; ai?: number }): number {
+  let x = 0;
+  const chips = v[side].chips;
+  const verifiedChip = chips.some((c) => /verified \(\d+ → \d+\)$/.test(c.text));
+  for (const c of chips) {
+    const vm = /verified \((\d+) → (\d+)\)$/.exec(c.text);
+    if (vm) {
+      x += (Number(vm[2]) - Number(vm[1])) * w.conf;
+      continue;
+    }
+    const m = /^(.+?) ([+−])(\d+)$/.exec(c.text);
+    if (m) {
+      const d = (m[2] === '−' ? -1 : 1) * Number(m[3]);
+      if (m[1] === GAUGE_LABEL.cooperation) x += d * w.coop;
+      else if (m[1] === GAUGE_LABEL.confidence) x += verifiedChip ? 0 : d * w.conf;
+      else if (m[1] === GAUGE_LABEL.cohesion) x += d * w.coh;
+      else if (m[1] === GAUGE_LABEL.aiPower) x -= d * (w.ai ?? 0.3);
+      continue;
+    }
+    const sign = c.tone === 'up' ? 1 : -1;
+    if (/Real safety/.test(c.text)) x += 4 * w.conf;
+    else if (/grows/.test(c.text)) x -= 3;
+    else if (/^Later/.test(c.text)) x += sign * 2;
+    else if (/Europe’s AI/.test(c.text)) x += sign * 0.5;
+    else x += sign * 1.5;
+  }
+  return x;
 }
 
 export const passive: Strategy = {
   name: 'passive',
   decide: () => [],
   blackmail: () => 'give_in',
+  answer: () => 'left',
 };
 
 export const randomStrategy: Strategy = {
@@ -60,7 +112,7 @@ export const randomStrategy: Strategy = {
   decide: (s, r) => {
     const out: Pick[] = [];
     let ids = playableIds(s);
-    const n = randomInt(r, 1, 2);
+    const n = randomInt(r, 1, 3);
     let budget = s.influence;
     for (let i = 0; i < n && ids.length; i++) {
       const id = pick(r, ids);
@@ -73,6 +125,7 @@ export const randomStrategy: Strategy = {
     return out;
   },
   blackmail: (_s, r) => pick(r, ['give_in', 'hold_firm'] as const),
+  answer: (_s, _v, r) => pick(r, ['left', 'right'] as const),
 };
 
 /**
@@ -80,34 +133,51 @@ export const randomStrategy: Strategy = {
  * is within reach, else a safe Race; in a plateau, Cohesion. It weighs every gauge by how far it is from what
  * that world needs (the low end of the Confidence band, never the truth), scores each card through the
  * public preview (before → after), adds what the card texts say (protection against a visible threat,
- * hidden safety gains, Influence lost later), and plays the best one or two per Influence spent.
+ * hidden safety gains, Influence lost later), and plays the best per Influence spent, as many as it can afford.
  */
+/** The thoughtful player's weights: how far each gauge is from what the world it aims for needs (public values). */
+function thoughtfulWeights(s: GameState) {
+  const g = Object.fromEntries(gauges(s).map((x) => [x.key, x]));
+  const conf = g.confidence;
+  const low = conf.value - conf.margin;
+  const hd = heading(s);
+  const plateau = hd.world === 'plateau_open' || hd.world === 'plateau_labs';
+  const coop = s.cooperation;
+  const pausePath = !plateau && (coop >= 40 || hd.world === 'pause');
+  const k = (x: number) => Math.max(0.05, Math.min(1.5, x));
+  const w = plateau
+    ? { coop: 0.05, conf: k((46 - low) / 8), coh: k((70 - s.cohesion) / 8) }
+    : pausePath
+      ? { coop: k((70 - coop) / 8), conf: k((71 - low) / 6), coh: k((56 - s.cohesion) / 6) }
+      : { coop: k((40 - coop) / 6), conf: k((81 - low) / 6), coh: k((64 - s.cohesion) / 6) };
+  return { w, conf, plateau };
+}
+
+/** Requests: the answer whose visible effects help most the world it aims for. */
+const thoughtfulAnswer = (s: GameState, v: RequestView): Side => {
+  const { w } = thoughtfulWeights(s);
+  return chipValue(v, 'right', w) > chipValue(v, 'left', w) ? 'right' : 'left';
+};
+
 export const thoughtful: Strategy = {
   name: 'thoughtful',
+  answer: thoughtfulAnswer,
   decide: (s) => {
     const cards = hand(s).filter((c) => c.playable);
-    const g = Object.fromEntries(gauges(s).map((x) => [x.key, x]));
-    const conf = g.confidence;
-    const low = conf.value - conf.margin;
-    const hd = heading(s);
-    const plateau = hd.world === 'plateau_open' || hd.world === 'plateau_labs';
-    const coop = s.cooperation;
-    const pausePath = !plateau && (coop >= 40 || hd.world === 'pause');
-    const k = (x: number) => Math.max(0.05, Math.min(1.5, x));
-    let w = { coop: 0.05, conf: 0.05, coh: 0.05 };
-    if (plateau) w = { coop: 0.05, conf: k((46 - low) / 8), coh: k((70 - s.cohesion) / 8) };
-    else if (pausePath) w = { coop: k((70 - coop) / 8), conf: k((71 - low) / 6), coh: k((56 - s.cohesion) / 6) };
-    else w = { coop: k((40 - coop) / 6), conf: k((81 - low) / 6), coh: k((64 - s.cohesion) / 6) };
+    const { w, conf, plateau } = thoughtfulWeights(s);
     const seen = threats(s).filter((t) => !t.struck && !t.prepared && t.stage >= 1);
+    const ls = lite(s);
     const score = (id: CardId, option?: string) => {
-      const pv = preview(s, [{ id, ...(option ? { option } : {}) }]);
+      const pv = preview(ls, [{ id, ...(option ? { option } : {}) }]);
       if (!pv.ok) return -99;
       let v = 0;
+      // AI safety counts by its verified part: the margin line carries it; without one, it moves with the claim
+      const verifiedLine = pv.impacts.some((i) => i.key === 'margin');
       for (const i of pv.impacts) {
         const d = Number(i.after) - Number(i.before);
         if (i.key === 'cooperation') v += d * w.coop;
-        else if (i.key === 'confidence') v += d * w.conf;
-        else if (i.key === 'margin') v -= d * w.conf;
+        else if (i.key === 'confidence') v += verifiedLine ? 0 : d * w.conf;
+        else if (i.key === 'margin') v += d * w.conf;
         else if (i.key === 'cohesion') v += d * w.coh;
         else if (i.key === 'europeAi') v += (i.after === 'Open' ? 1 : -1) * (plateau ? 4 : 0.5);
       }
@@ -132,7 +202,6 @@ export const thoughtful: Strategy = {
     const out: Pick[] = [];
     let budget = s.influence;
     for (const o of ranked) {
-      if (out.length >= 2) break;
       if (out.some((x) => x.id === o.c.id) || o.c.cost > budget) continue;
       out.push({ id: o.c.id, ...(o.option ? { option: o.option } : {}) });
       budget -= o.c.cost;
@@ -151,7 +220,7 @@ export const cooperationOnly: Strategy = {
     let budget = s.influence;
     for (const id of ['summit', 'attribution', 'talks', 'coalition'] as CardId[]) {
       const c = hand(s).find((x) => x.id === id);
-      if (out.length < 2 && c && ok.has(id) && c.cost <= budget) {
+      if (c && ok.has(id) && c.cost <= budget) {
         out.push({ id });
         budget -= c.cost;
       }
@@ -159,16 +228,18 @@ export const cooperationOnly: Strategy = {
     return out;
   },
   blackmail: () => 'hold_firm',
+  answer: (_s, v) => (chipValue(v, 'right', { coop: 1, conf: 0.1, coh: 0.1 }) > chipValue(v, 'left', { coop: 1, conf: 0.1, coh: 0.1 }) ? 'right' : 'left'),
 };
 
 /** Follows the chief of staff's recommendation every round (one card). */
 export const advised: Strategy = {
   name: 'advised',
   decide: (s) => {
-    const a = advisor(s);
+    const a = advisor(lite(s));
     return a.recommend ? [{ id: a.recommend, ...(a.option ? { option: a.option } : {}) }] : [];
   },
   blackmail: () => 'hold_firm',
+  answer: thoughtfulAnswer,
 };
 
 
@@ -199,7 +270,7 @@ export const homeFirst: Strategy = {
     let budget = s.influence;
     for (const w of want) {
       const c = hand(s).find((x) => x.id === w.id)!;
-      if (out.length < 2 && c.cost <= budget) {
+      if (c.cost <= budget) {
         out.push(w);
         budget -= c.cost;
       }
@@ -207,5 +278,17 @@ export const homeFirst: Strategy = {
     return out;
   },
   blackmail: () => 'hold_firm',
+  answer: (_s, v) => (chipValue(v, 'right', { coop: 0.05, conf: 0.4, coh: 1 }) > chipValue(v, 'left', { coop: 0.05, conf: 0.4, coh: 1 }) ? 'right' : 'left'),
 };
-export const STRATEGIES = [passive, randomStrategy, thoughtful, cooperationOnly, homeFirst, advised];
+/**
+ * Saves Influence for a big burst (v4 has no cap on cards a round): plays nothing until Influence is nearly at
+ * its cap, or the tipping point looks close, then plays like the thoughtful player. Answers requests the same way.
+ */
+export const saver: Strategy = {
+  name: 'saver',
+  decide: (s, r) => (s.influence >= TUNING.influence.cap - 1 || s.aiPower >= 70 || s.round >= TUNING.rounds - 1 ? thoughtful.decide(s, r) : []),
+  blackmail: thoughtful.blackmail,
+  answer: thoughtfulAnswer,
+};
+
+export const STRATEGIES = [passive, randomStrategy, thoughtful, cooperationOnly, homeFirst, advised, saver];
