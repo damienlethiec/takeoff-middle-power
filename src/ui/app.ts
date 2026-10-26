@@ -39,7 +39,7 @@ const zoneOf = (v: number) =>
 type Vals = { aiPower: number; cooperation: number; confidence: number; margin: number; cohesion: number };
 type Live = { item: MapItem; kind: 'headline' | 'voice'; state: 'wait' | 'live' | 'gone'; until: number };
 /** A social event's move on the gauges, shown as a step at its time while the clock runs (v4). */
-type Step = { id: string; at: number; d: Vals; state: 'wait' | 'shown' | 'absorbed'; told: boolean };
+type Step = { id: string; at: number; d: Vals; state: 'wait' | 'shown'; told: boolean };
 const ZERO: Vals = { aiPower: 0, cooperation: 0, confidence: 0, margin: 0, cohesion: 0 };
 const VKEYS = Object.keys(ZERO) as (keyof Vals)[];
 /** AI capabilities rising at least this much in six months send a ripple from the labs (v4). */
@@ -73,6 +73,8 @@ export class App {
   private follow: 'clock' | 'tween' = 'tween';
   /** This round's social events as steps on the gauges (v4). */
   private steps: Step[] = [];
+  /** A request or Breaking news stopped the clock this round: the six months' drift is all shown (see catchUp). */
+  private caughtUp = false;
   private prevThreats: ThreatView[] = [];
   private dockResolve: (() => void) | null = null;
   private headingWhy = '';
@@ -188,6 +190,7 @@ export class App {
     this.from = this.vals(before);
     this.to = this.vals();
     this.follow = 'clock';
+    this.caughtUp = false;
     // social events step the gauges at their time (a resumed round already shows where it is)
     this.steps = before === this.s ? [] : s.social.round.map((x) => ({ id: x.id, at: x.at, d: { ...ZERO, cohesion: x.moved.cohesion, cooperation: x.moved.cooperation, confidence: x.moved.estimate, margin: x.moved.margin }, state: 'wait' as const, told: false }));
     this.items = [
@@ -417,8 +420,7 @@ export class App {
     this.map.burst(ev.region);
     this.map.flashBanner(ev.region, ev.headline.replace(/^BREAKING: /, ''), 'breaking', 5000);
     // the gauges catch up with the six months so far, so "before" on the screen is what the map shows
-    this.absorbSteps();
-    this.shown = { ...this.to };
+    this.catchUp();
     this.renderGauges();
     if (!reducedMotion()) {
       document.body.classList.add('jolt');
@@ -439,7 +441,7 @@ export class App {
     this.from = { ...this.shown };
     this.to = this.vals();
     this.follow = 'tween';
-    this.popChanges(this.from, this.to);
+    this.popChanges(this.from, this.target());
     this.prevThreats = this.e.threats(this.s);
     this.map.setThreats(this.prevThreats);
     this.renderAll(true);
@@ -457,8 +459,7 @@ export class App {
     this.eventBusy = true;
     const date = this.e.dateLabel(this.s.round);
     this.setPhase('A request');
-    this.absorbSteps();
-    this.shown = { ...this.to };
+    this.catchUp();
     this.renderGauges();
     // the character's region calls for attention while the request is open; its icon stays for the round
     this.map.setCalling(v.character.region);
@@ -471,7 +472,7 @@ export class App {
       this.from = { ...this.shown };
       this.to = this.vals();
       this.follow = 'tween';
-      this.popChanges(this.from, this.to);
+      this.popChanges(this.from, this.target());
       this.prevThreats = this.e.threats(this.s);
       this.map.setThreats(this.prevThreats);
       this.renderAll(true);
@@ -784,20 +785,26 @@ export class App {
     return Object.fromEntries(VKEYS.map((k) => [k, a[k] - b[k]])) as Vals;
   }
 
-  /** The clock stops for a request or breaking news: the gauges catch up with the whole six months, social events
-   *  still to come included (they still appear in the news and on the map at their time, without a step). From
-   *  here on the gauges simply follow the engine's values. */
-  private absorbSteps() {
-    for (const st of this.steps) st.state = 'absorbed';
+  /** Where the gauges are heading once the six months' drift is shown: the engine's values without the social
+   *  events still to come this round (each steps in at its time). */
+  private target(): Vals {
+    return this.minus(this.to, this.stepSum((st) => st.state === 'wait'));
+  }
+
+  /** The clock stops for a request or breaking news: the gauges catch up with the whole six months' drift (so
+   *  "before" on its card is what the map shows), but not with the social events still to come: those keep their
+   *  step on the gauges, and their change by the gauge, when they happen later in the round. */
+  private catchUp() {
+    this.caughtUp = true;
+    this.shown = this.target();
   }
 
   /** A social event happens: its step on the gauges, its change by the gauge, one polite announcement. */
   private revealStep(st: Step) {
     st.told = true;
-    const absorbed = st.state === 'absorbed';
-    if (!absorbed) st.state = 'shown';
+    st.state = 'shown';
     const item = this.feedCache.at(-1)?.items.find((x) => x.id === `r${this.s.round}_s_${st.id}`);
-    if (!absorbed) this.popChanges(ZERO, st.d);
+    this.popChanges(ZERO, st.d);
     if (item?.social) {
       const said = this.changeWords(ZERO, st.d);
       announce(`${item.label.split(' · ')[0]} in ${item.social.city}, in this story: ${item.text}${said ? ` ${said}.` : ''}`);
@@ -842,12 +849,12 @@ export class App {
 
   private animateGauges(dt: number) {
     if (!this.shown || !this.to) return;
-    let target: Vals = this.to;
-    if (this.follow === 'clock' && this.clockActive) {
+    let target: Vals = this.target();
+    if (this.follow === 'clock' && this.clockActive && !this.caughtUp) {
       const k = Math.min(1, this.t / 0.9);
       const ease = 1 - Math.pow(1 - k, 2);
       // the drift glides over the six months; each social event is a step at its time (v4)
-      const all = this.stepSum((st) => st.state !== 'absorbed');
+      const all = this.stepSum(() => true);
       const done = this.stepSum((st) => st.state === 'shown');
       target = Object.fromEntries(VKEYS.map((x) => [x, this.from[x] + (this.to[x] - all[x] - this.from[x]) * ease + done[x]])) as Vals;
     }
