@@ -11,7 +11,7 @@ import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, TIPS, marginText } from '../data/
 import { moveWord } from '../data/effects';
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
 import { Coach } from './coach';
-import { $, ICON, esc, signed } from './format';
+import { $, ICON, andList, esc, signed } from './format';
 import { WorldMap, type CityEvent, type MapEntry } from './map';
 import { modalOpen, setFocusFallback, wait } from './modal';
 import { showBreaking } from './screens/breaking';
@@ -25,7 +25,9 @@ import { showRequest } from './screens/request';
 import { showPostcard } from './screens/postcard';
 import { FRIENDS } from '../data/friends';
 import { TUNING } from '../data/tuning';
-import { badgeHtml, headingLineHtml, statusOf } from './outlook';
+import { badgeHtml, headingLineHtml, statusOf, statusWord } from './outlook';
+import { lcFirst, onLangChange, t, tc, th, tn, tr } from '../i18n';
+import { bindLangMenu, chooseLang, langMenuHtml } from './lang';
 import { Feed } from './feed';
 import { Soundtrack } from './sound';
 import { clearSave, forgetAll, readRecent, readSave, rememberGame, saveLabel, writeSave, type SaveEnvelope, type SaveStage } from './save';
@@ -39,11 +41,29 @@ const firstSentence = (t: string) => {
 const KEYS: GaugeKey[] = ['aiPower', 'cooperation', 'confidence', 'cohesion'];
 /** US–China cooperation's zone (Pause 60+, Race 30–59, Rupture below 30). */
 const zoneOf = (v: number) =>
-  v >= 60 ? { id: 'p', name: 'Pause', range: '60+' } : v >= 30 ? { id: 'a', name: 'Race', range: '30–59' } : { id: 'r', name: 'Rupture', range: 'under 30' };
+  v >= 60
+    ? { id: 'p', name: tc('zone.pause', 'Pause'), range: '60+' }
+    : v >= 30
+      ? { id: 'a', name: tc('zone.race', 'Race'), range: '30–59' }
+      : { id: 'r', name: tc('zone.rupture', 'Rupture'), range: t('ui.zone.under30', 'under 30') };
+/** A gauge's name in the player's language. */
+const gaugeName = (k: GaugeKey) => tc(`gauge.${k}.label`, GAUGE_LABEL[k]);
 type Vals = { aiPower: number; cooperation: number; confidence: number; margin: number; cohesion: number };
 type Live = { item: MapItem; kind: 'headline' | 'voice'; state: 'wait' | 'live' | 'gone'; until: number };
 /** A social event's move on the gauges, shown as a step at its time while the clock runs (v4). */
 type Step = { id: string; at: number; d: Vals; state: 'wait' | 'shown'; told: boolean };
+/** The header's phase word. */
+type Phase = 'running' | 'paused' | 'decisions' | 'consequences' | 'breaking' | 'request' | 'move';
+const phaseText = (p: Phase): string =>
+  ({
+    running: t('ui.phase.running', 'Clock running'),
+    paused: t('ui.phase.paused', 'Paused'),
+    decisions: t('ui.phase.decisions', 'Your decisions'),
+    consequences: t('ui.phase.consequences', 'Consequences'),
+    breaking: t('ui.phase.breaking', 'Breaking news'),
+    request: t('ui.phase.request', 'A request'),
+    move: t('ui.phase.move', 'Your move'),
+  })[p];
 const ZERO: Vals = { aiPower: 0, cooperation: 0, confidence: 0, margin: 0, cohesion: 0 };
 const VKEYS = Object.keys(ZERO) as (keyof Vals)[];
 /** Phones: the header's sound toggle moves to the first line (see placeSound; matches styles.css). */
@@ -97,6 +117,43 @@ export class App {
   ) {
     const p = new URLSearchParams(location.search);
     this.coach = new Coach(p.has('notutorial'));
+    // a change of language re-draws the screen in place: the game, the clock and any open decision stay as they are
+    onLangChange(() => this.relocalize());
+  }
+
+  /**
+   * Re-draw everything in the new language without touching the game: the shell is rebuilt (header, gauges, map,
+   * feed), the decision panel and the bar at the bottom move over as they are (the panel re-draws its own text),
+   * and focus returns to the language button. On the end page, the ending is drawn again.
+   */
+  private relocalize() {
+    if (!this.s || !this.map) return;
+    if (document.body.classList.contains('ended')) {
+      this.showEnding();
+      tryFocus(this.root.querySelector('#lang-btn'));
+      return;
+    }
+    const game = this.root.querySelector<HTMLElement>('.game');
+    const classes = game?.className ?? 'game';
+    const decide = this.root.querySelector<HTMLElement>('#decide');
+    const dock = this.root.querySelector<HTMLElement>('.dock');
+    this.buildShell();
+    if (decide) this.root.querySelector('#decide')?.replaceWith(decide);
+    if (dock) {
+      this.root.querySelector('.dock')?.replaceWith(dock);
+      dock.setAttribute('aria-label', t('ui.phase.move', 'Your move'));
+      if (this.dockState) this.placeDock();
+    }
+    const g = this.root.querySelector<HTMLElement>('.game');
+    if (g) g.className = classes;
+    this.lastSig = '';
+    this.feedOf = null;
+    this.map.setThreats(this.prevThreats);
+    this.renderAll();
+    this.renderGaugePreview();
+    this.setPhase(this.phase);
+    this.renderDock(false);
+    tryFocus(this.root.querySelector('#lang-btn'));
   }
 
   async boot() {
@@ -115,12 +172,12 @@ export class App {
       history.replaceState(history.state, '', url.toString());
     }
     const said = () => {
-      if (forgotten) announce('Your save and settings are forgotten.');
+      if (forgotten) announce(t('ui.app.forgotten', 'Your save and settings are forgotten.'));
     };
     // a saved game: Continue or New game (a ?seed= or ?fresh link always starts a new game, for tests and replays)
     const saved = params.has('seed') || params.has('fresh') ? null : readSave(this.e.createInitialState(1));
     if (saved) {
-      if ((await showContinue(saveLabel(saved, (r) => this.e.dateLabel(r)))) === 'continue') return this.resume(saved);
+      if ((await showContinue(saveLabel(saved, (r) => this.date(r)))) === 'continue') return this.resume(saved);
       clearSave();
     }
     if (!params.has('skipintro')) {
@@ -132,6 +189,11 @@ export class App {
     this.newGame(params.has('seed') ? Number(params.get('seed')) : undefined);
   }
 
+  /** A round's date in the player's language ("H1 2027", "S1 2027"). */
+  private date(round = this.s.round): string {
+    return tr(this.e.dateLabel(round));
+  }
+
   /** Dev hook for tests: inspect or replace the state. */
   get debug() {
     return { state: () => this.s, set: (s: GameState) => ((this.s = s), this.renderAll()), app: this };
@@ -140,6 +202,17 @@ export class App {
   private newGame(seed = (Date.now() % 2147483646) + 1) {
     clearSave();
     this.start(this.e.createInitialState(seed, { recent: readRecent() }));
+  }
+
+  /** The end page, with the soundtrack's toggle and the language button at its top. */
+  private showEnding() {
+    renderEnding(this.root, this.e.ending(this.s), () => this.newGame());
+    const page = this.root.querySelector('#ending');
+    this.mountSound(page, true);
+    if (page) {
+      page.insertAdjacentHTML('afterbegin', `<div class="end-lang">${langMenuHtml()}</div>`);
+      bindLangMenu(page, (l) => void chooseLang(l));
+    }
   }
 
   /**
@@ -206,11 +279,10 @@ export class App {
     }
     this.clockActive = false;
     document.body.classList.add('ended');
-    renderEnding(this.root, this.e.ending(this.s), () => this.newGame());
-    this.mountSound(this.root.querySelector('#ending'), true);
+    this.showEnding();
     this.sound.setPaused(false);
     this.sound.setWorld({ aiPower: this.s.aiPower, cooperation: this.s.cooperation, tipping: !!this.s.tipping, ending: this.e.ending(this.s).good ? 'good' : 'bad' });
-    announce(`The game is over: ${this.e.ending(this.s).title}.`);
+    announce(t('ui.app.over', 'The game is over: {title}.', { title: tr(this.e.ending(this.s).title) }));
     // the ending is on screen: the game is over, nothing left to resume; the next games repeat its news less
     clearSave();
     rememberGame(this.s.seed, this.e.seen(this.s));
@@ -224,7 +296,7 @@ export class App {
       this.autosave('round');
     }
     const s = this.s;
-    const date = this.e.dateLabel(s.round);
+    const date = this.date(s.round);
     // gauges travel from where they were to where six months take them; a resumed round replays its six months
     // from the start, so its gauges glide again from the values the round began with
     this.from = resumed ? this.startVals() : this.vals(before);
@@ -245,7 +317,7 @@ export class App {
     // a friend's letter opens the round as a postcard (once), then stays in the feed (in full, with their portrait)
     // and as an envelope on the map
     const letter = this.e.letters(s).find((l) => l.round === s.round && l.slot !== 'end');
-    const wrote = letter ? ` ${letter.friend === 'mother' ? 'Your mother' : FRIENDS[letter.friend].name} wrote to you: the letter is in the news.` : '';
+    const wrote = letter ? ` ${t('ui.app.wrote', '{name} wrote to you: the letter is in the news.', { name: tc(`friend.${letter.friend}.name`, FRIENDS[letter.friend].name) })}` : '';
     this.renderAll();
     this.sound.cue('round');
     if (letter?.postcard && this.postcardSeen !== s.round) {
@@ -254,10 +326,11 @@ export class App {
       this.autosave('round');
     }
     const inc = s.influence - before.influence;
-    if (resumed) announce(`Your saved game resumes: ${date}, round ${s.round} of ${TUNING.rounds}. You have ${s.influence} Influence. The clock is running.${wrote}`);
-    else announce(
-      `${date} begins, round ${s.round} of ${TUNING.rounds}. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${wrote}${s.round === 1 ? ' Press question mark for help.' : ''}`,
-    );
+    if (resumed) announce(`${t('ui.app.resumes', 'Your saved game resumes: {date}, round {round} of {rounds}. You have {n} Influence. The clock is running.', { date, round: s.round, rounds: TUNING.rounds, n: s.influence })}${wrote}`);
+    else
+      announce(
+        `${t('ui.app.begins', '{date} begins, round {round} of {rounds}. Influence {inc}: you have {n}. The clock is running.', { date, round: s.round, rounds: TUNING.rounds, inc: signed(inc), n: s.influence })}${wrote}${s.round === 1 ? ` ${t('ui.app.helpKey', 'Press question mark for help.')}` : ''}`,
+      );
     // the tutorial: one tip per gauge, then where the world is heading, then Influence on the decision view;
     // later, only what does not explain itself, the first time it appears.
     // A tip whose part of the screen is not visible waits (it is tried again next round).
@@ -279,15 +352,17 @@ export class App {
 
     // the clock stops: the player takes the lead
     let picks: Pick[] | null = null;
-    const lastWords = this.s.tipping
-      ? 'AI has reached the tipping point. This is your last round of decisions.'
-      : this.s.round === TUNING.rounds
-        ? 'The last six months. This is your last round of decisions.'
-        : 'Six months have passed: what changed is at the top of the news. The clock is stopped: take your time.';
-    const decideLabel = this.s.tipping || this.s.round === TUNING.rounds ? 'Make my last decisions' : 'Make my decisions';
+    const last = !!this.s.tipping || this.s.round === TUNING.rounds;
+    const lastWords = () =>
+      this.s.tipping
+        ? t('ui.app.lastTipping', 'AI has reached the tipping point. This is your last round of decisions.')
+        : this.s.round === TUNING.rounds
+          ? t('ui.app.lastRound', 'The last six months. This is your last round of decisions.')
+          : t('ui.app.sixMonths', 'Six months have passed: what changed is at the top of the news. The clock is stopped: take your time.');
+    const decideLabel = () => (last ? t('ui.app.decideLast', 'Make my last decisions') : t('ui.app.decide', 'Make my decisions'));
     while (!picks) {
       await this.dock(lastWords, [{ id: 'decide', label: decideLabel, primary: true }]);
-      this.setPhase('Your decisions');
+      this.setPhase('decisions');
       // the cards take the map's place; Influence and the cards are explained the first time they show
       const game = this.root.querySelector('.game');
       game?.classList.add('deciding');
@@ -308,8 +383,10 @@ export class App {
     // no stop between rounds: the gauges have moved, the decisions are in the feed, the next six months begin
     // (the player can pause). Only the end waits for the player.
     const end = this.e.endRound(this.s);
-    if (end.outcome === 'ended') await this.dock(picks.length ? 'Your last decisions are made.' : 'You held your cards this round.', [{ id: 'next', label: 'See how it ends', primary: true }]);
-    else if (!picks.length) announce('You held your cards this round.');
+    const played = picks.length;
+    if (end.outcome === 'ended')
+      await this.dock(() => (played ? t('ui.app.lastMade', 'Your last decisions are made.') : t('ui.app.held', 'You held your cards this round.')), [{ id: 'next', label: () => t('ui.app.seeEnd', 'See how it ends'), primary: true }]);
+    else if (!picks.length) announce(t('ui.app.held', 'You held your cards this round.'));
     this.s = end.state;
     return end.outcome;
   }
@@ -317,7 +394,7 @@ export class App {
   /** Play the cards, then show what they changed once, on the map: gauges move, the heading line updates. */
   private async consequences(picks: Pick[]) {
     const before = this.s;
-    const headBefore = this.e.heading(before).text;
+    const headBefore = tr(this.e.heading(before).text);
     for (const p of picks) {
       try {
         this.s = this.e.playCard(this.s, p);
@@ -333,30 +410,30 @@ export class App {
     const played = this.s.played.map((p) => {
       const d = CARD_BY_ID[p.id];
       const n = (before.uses[p.id] ?? 0);
-      const name = d.levels ? d.levels[Math.min(n, d.levels.length - 1)] : d.name;
-      return p.failed ? `${name} (did not work)` : name;
+      const name = tr(d.levels ? d.levels[Math.min(n, d.levels.length - 1)] : d.name);
+      return p.failed ? t('ui.app.didNotWork', '{name} (did not work)', { name }) : name;
     });
     // diplomacy can fail (v4): one plain sentence says why, in the announcement and in the feed
-    const failures = this.s.played.filter((p) => p.failed).map((p) => CARD_BY_ID[p.id].failure?.text ?? '').filter(Boolean);
+    const failures = this.s.played.filter((p) => p.failed).map((p) => tr(CARD_BY_ID[p.id].failure?.text ?? '')).filter(Boolean);
     const a = this.vals(before);
     const b = this.vals();
     const moved: string[] = [];
-    const line = (label: string, x: number, y: number, pre = '') => x !== y && moved.push(`${label} ${pre}${x} → ${pre}${y}`);
-    line(GAUGE_LABEL.aiPower, a.aiPower, b.aiPower);
-    line(GAUGE_LABEL.cooperation, a.cooperation, b.cooperation);
+    const line = (label: string, x: number, y: number) => x !== y && moved.push(`${label} ${x} → ${y}`);
+    line(gaugeName('aiPower'), a.aiPower, b.aiPower);
+    line(gaugeName('cooperation'), a.cooperation, b.cooperation);
     // AI safety: what the labs claim, then what is verified
-    line(this.safety().audited ? GAUGE_LABEL.confidence : `${GAUGE_LABEL.confidence} claimed`, a.confidence, b.confidence);
+    line(this.safety().audited ? gaugeName('confidence') : t('ui.app.safetyClaimed', '{gauge} claimed', { gauge: gaugeName('confidence') }), a.confidence, b.confidence);
     const low = (x: Vals) => Math.max(0, Math.round(x.confidence - x.margin));
-    if (a.margin !== b.margin) moved.push(marginText(low(a), low(b), a.margin, b.margin));
-    line(GAUGE_LABEL.cohesion, a.cohesion, b.cohesion);
-    if (before.europeAi !== this.s.europeAi) moved.push(`Europe’s AI → ${this.s.europeAi === 'open' ? 'Open' : 'Dependent'}`);
-    this.headingWhy = played.length ? `${played.join(' and ')}: ${moved.join(', ') || 'no gauge moved yet'}.` : '';
+    if (a.margin !== b.margin) moved.push(tr(marginText(low(a), low(b), a.margin, b.margin)));
+    line(gaugeName('cohesion'), a.cohesion, b.cohesion);
+    if (before.europeAi !== this.s.europeAi) moved.push(t('ui.app.europeAiTo', 'Europe’s AI → {ai}', { ai: this.s.europeAi === 'open' ? t('ui.europeAi.open', 'Open') : t('ui.europeAi.dependent', 'Dependent') }));
+    this.headingWhy = played.length ? t('ui.app.why', '{cards}: {moved}.', { cards: andList(played), moved: moved.join(', ') || t('ui.app.noMove', 'no gauge moved yet') }) : '';
     this.popChanges(a, b);
     this.prevThreats = this.e.threats(this.s);
     this.map.setThreats(this.prevThreats);
-    this.setPhase(played.length ? 'Consequences' : 'Paused');
+    this.setPhase(played.length ? 'consequences' : 'paused');
     this.renderAll(true);
-    const headAfter = this.e.heading(this.s).text;
+    const headAfter = tr(this.e.heading(this.s).text);
     if (played.length) announce(`${this.headingWhy} ${failures.join(' ')} ${headAfter !== headBefore ? headAfter : ''}`);
     // long enough to see the gauges move before the next six months begin
     await wait(reducedMotion() ? 600 : 1600);
@@ -372,7 +449,7 @@ export class App {
     this.clockActive = true;
     this.running = true;
     this.sound.setPaused(false);
-    this.setPhase('Clock running');
+    this.setPhase('running');
     this.renderClock();
   }
 
@@ -393,8 +470,10 @@ export class App {
       if (x.state === 'wait' && this.t >= x.item.at) {
         x.state = 'live';
         // only the newest headline shows as a banner, briefly; then its icon stays in the region's cluster
-        if (x.kind === 'headline') this.map.flashBanner(x.item.region, x.item.text, 'headline');
-        announce(`${x.kind === 'voice' ? 'Heard in ' + (x.item.place ?? (x.item.region === 'eu' ? 'Europe' : x.item.region === 'us' ? 'the US' : 'China')) : 'Headline'}: ${x.item.text}`);
+        const text = tr(x.item.text);
+        if (x.kind === 'headline') this.map.flashBanner(x.item.region, text, 'headline');
+        const where = x.item.place ? tr(x.item.place) : x.item.region === 'eu' ? t('ui.app.inEurope', 'Europe') : x.item.region === 'us' ? t('ui.app.inUs', 'the US') : t('ui.app.inChina', 'China');
+        announce(x.kind === 'voice' ? t('ui.app.sayVoice', 'Heard in {place}: {text}', { place: where, text }) : t('ui.app.sayHeadline', 'Headline: {text}', { text }));
         if (x.item.id.startsWith('t_')) this.revealThreats();
       }
     }
@@ -402,7 +481,7 @@ export class App {
     for (const st of this.steps) if (!st.told && this.t >= st.at) this.revealStep(st);
     if (s.leak && !this.leakShown && this.t >= s.leak.at) {
       this.leakShown = true;
-      announce(s.leak.readable ? 'A leak from inside the labs: it is in the news, and with the US items on the map.' : 'A leak from inside the labs, but you cannot read it: it is redacted.');
+      announce(s.leak.readable ? t('ui.app.sayLeak', 'A leak from inside the labs: it is in the news, and with the US items on the map.') : t('ui.app.sayLeakRedacted', 'A leak from inside the labs, but you cannot read it: it is redacted.'));
     }
     // a tip just paused the clock: a request or an event due now waits until it is closed (two dialogs at once
     // would replace each other, and the tip's promise would never settle, leaving the clock stopped for good)
@@ -440,7 +519,7 @@ export class App {
     this.map.setThreats(now);
     this.renderGauges();
     if (fresh.length) {
-      announce(`New threat on the map: ${fresh.map((f) => `${f.name}, ${f.stageWord.toLowerCase()}`).join('; ')}.`);
+      announce(t('ui.app.sayThreat', 'New threat on the map: {list}.', { list: fresh.map((f) => `${tr(f.name)}, ${lcFirst(tr(f.stageWord))}`).join('; ') }));
       void this.tipWhilePaused('threat');
     }
   }
@@ -464,10 +543,10 @@ export class App {
     const ev = this.s.event!;
     this.eventShown = true;
     this.eventBusy = true;
-    const date = this.e.dateLabel(this.s.round);
-    this.setPhase('Breaking news');
+    const date = this.date();
+    this.setPhase('breaking');
     this.map.burst(ev.region);
-    this.map.flashBanner(ev.region, ev.headline.replace(/^BREAKING: /, ''), 'breaking', 5000);
+    this.map.flashBanner(ev.region, tr(ev.headline.replace(/^BREAKING: /, '')), 'breaking', 5000);
     // the gauges catch up with the six months so far, so "before" on the screen is what the map shows
     this.catchUp();
     this.renderGauges();
@@ -475,10 +554,10 @@ export class App {
       document.body.classList.add('jolt');
       setTimeout(() => document.body.classList.remove('jolt'), 600);
     }
-    announce(`Breaking news: ${ev.title}.`);
+    announce(t('ui.app.sayBreaking', 'Breaking news: {title}.', { title: tr(ev.title) }));
     this.sound.cue('breaking');
     await wait(800);
-    const names = ev.preparedBy.map((c) => (c === 'inspections' ? 'the inspection accord' : CARD_BY_ID[c].name));
+    const names = ev.preparedBy.map((c) => (c === 'inspections' ? t('ui.app.theAccord', 'the inspection accord') : tr(CARD_BY_ID[c].name)));
     const choice = await showBreaking(ev, date, names);
     try {
       this.s = this.e.resolveEvent(this.s, choice ?? ev.options[0]?.id);
@@ -496,7 +575,7 @@ export class App {
     this.renderAll(true);
     this.follow = 'clock';
     this.from = { ...this.to };
-    this.setPhase('Clock running');
+    this.setPhase('running');
     // a second Breaking news this round (v4): it comes later in the six months, on its own screen
     if (this.s.event) this.eventShown = false;
     this.eventBusy = false;
@@ -508,8 +587,8 @@ export class App {
   /** A character arrives with a request: the clock stops until the player answers (the cost is in the answer). */
   private async fireRequest(v: RequestView) {
     this.eventBusy = true;
-    const date = this.e.dateLabel(this.s.round);
-    this.setPhase('A request');
+    const date = this.date();
+    this.setPhase('request');
     this.catchUp();
     this.renderGauges();
     // the character's region calls for attention while the request is open; its icon stays for the round
@@ -533,7 +612,7 @@ export class App {
     this.renderAll();
     this.follow = 'clock';
     this.from = { ...this.to };
-    this.setPhase('Clock running');
+    this.setPhase('running');
     this.eventBusy = false;
     // the clock was running when this fired: always resume, and redraw the pause button (enabled again)
     if (this.clockActive) this.running = true;
@@ -542,11 +621,11 @@ export class App {
 
   private setRunning(on: boolean, say = true) {
     if (!this.clockActive) return;
-    if (say && on !== this.running) announce(on ? 'Clock running.' : 'Paused.');
+    if (say && on !== this.running) announce(on ? t('ui.app.sayRunning', 'Clock running.') : t('ui.app.sayPaused', 'Paused.'));
     // the music rests while the player pauses the clock (not while a dialog briefly pauses it)
     if (say) this.sound.setPaused(!on);
     this.running = on;
-    this.setPhase(on ? 'Clock running' : 'Paused');
+    this.setPhase(on ? 'running' : 'paused');
     this.renderClock();
   }
 
@@ -653,7 +732,7 @@ export class App {
       cur && cur.round === this.s.round
         ? cur.items
             .filter((x) => onMap.has(x.kind) && x.region && (x.at <= t || (this.feedDone && x.at <= 1)))
-            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: x.label, text: x.kind === 'lea' ? firstSentence(x.text) : x.kind === 'leak' && x.detail ? `${x.text} ${x.detail}` : x.text, social: x.social?.kind, friend: x.friend, mood: x.mood }))
+            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: tr(x.label), text: x.kind === 'lea' ? firstSentence(tr(x.text)) : x.kind === 'leak' && x.detail ? `${tr(x.text)} ${tr(x.detail)}` : tr(x.text), social: x.social?.kind, friend: x.friend, mood: x.mood }))
         : [],
     );
     // social events at their cities (v4)
@@ -665,33 +744,53 @@ export class App {
   }
   /**
    * The game waits on the main screen for the player: a bar with one or two buttons. Enter presses the
-   * primary one. Nothing opens by itself.
+   * primary one. Nothing opens by itself. Texts are functions, so a change of language re-draws the bar.
    */
-  private dock<T extends string>(text: string, buttons: { id: T; label: string; primary?: boolean }[]): Promise<T> {
+  private dockState: { text: () => string; buttons: { id: string; label: () => string; primary?: boolean }[]; go: (id: string) => void } | null = null;
+  private dock<T extends string>(text: () => string, buttons: { id: T; label: () => string; primary?: boolean }[]): Promise<T> {
     const d = $('.dock', this.root);
-    d.innerHTML = `<p id="dock-text">${esc(text)}</p><div class="dock-btns">${buttons
-      .map((b) => `<button type="button" class="${b.primary ? 'btn-primary' : 'btn-quiet'}" data-go="${esc(b.id)}" ${b.primary ? 'aria-keyshortcuts="Enter"' : ''}>${esc(b.label)}${b.primary ? ' <kbd>Enter</kbd>' : ''}</button>`)
-      .join('')}</div>`;
-    // narrow screens: the bar sits between the map and the news, so it never covers the top of the feed
+    this.placeDock();
+    d.hidden = false;
+    this.root.querySelector('.game')?.classList.add('docked');
+    this.setPhase('move');
+    const primary = buttons.find((b) => b.primary) ?? buttons[0];
+    return new Promise((resolve) => {
+      const go = (id: string) => {
+        $('.dock', this.root).hidden = true;
+        this.root.querySelector('.game')?.classList.remove('docked');
+        this.dockResolve = null;
+        this.dockState = null;
+        resolve(id as T);
+      };
+      this.dockResolve = () => go(primary.id);
+      this.dockState = { text, buttons, go };
+      this.renderDock(true);
+    });
+  }
+
+  /** Narrow screens: the bar sits between the map and the news, so it never covers the top of the feed. */
+  private placeDock() {
+    const d = $('.dock', this.root);
     const feed = this.root.querySelector('#feed');
     if (feed && matchMedia('(max-width: 767px), (max-height: 540px)').matches) feed.before(d);
     else this.root.querySelector('.stage')?.after(d);
-    d.hidden = false;
-    this.root.querySelector('.game')?.classList.add('docked');
-    this.setPhase('Your move');
-    const primary = buttons.find((b) => b.primary) ?? buttons[0];
+  }
+
+  /** Draw the bar from dockState (and say it, when it first shows). */
+  private renderDock(say: boolean) {
+    const st = this.dockState;
+    if (!st) return;
+    const d = $('.dock', this.root);
+    const text = st.text();
+    const primary = st.buttons.find((b) => b.primary) ?? st.buttons[0];
+    d.innerHTML = `<p id="dock-text">${esc(text)}</p><div class="dock-btns">${st.buttons
+      .map((b) => `<button type="button" class="${b.primary ? 'btn-primary' : 'btn-quiet'}" data-go="${esc(b.id)}" ${b.primary ? 'aria-keyshortcuts="Enter"' : ''}>${esc(b.label())}${b.primary ? ' <kbd>Enter</kbd>' : ''}</button>`)
+      .join('')}</div>`;
+    d.querySelectorAll<HTMLButtonElement>('[data-go]').forEach((b) => b.addEventListener('click', () => st.go(b.dataset.go!)));
+    if (!say) return;
     tryFocus(d.querySelector(`[data-go="${primary.id}"]`));
-    announce(`${text} ${buttons.map((b) => b.label).join(', or ')}${buttons.length > 1 ? `. Enter: ${primary.label}` : ''}.`);
-    return new Promise((resolve) => {
-      const go = (id: T) => {
-        d.hidden = true;
-        this.root.querySelector('.game')?.classList.remove('docked');
-        this.dockResolve = null;
-        resolve(id);
-      };
-      this.dockResolve = () => go(primary.id);
-      d.querySelectorAll<HTMLButtonElement>('[data-go]').forEach((b) => b.addEventListener('click', () => go(b.dataset.go as T)));
-    });
+    const labels = st.buttons.map((b) => b.label());
+    announce(`${text} ${labels.join(t('ui.app.or', ', or '))}${st.buttons.length > 1 ? `. ${t('ui.app.enterPresses', 'Enter: {label}', { label: primary.label() })}` : ''}.`);
   }
 
   // ------------------------------------------------------------------ shell
@@ -702,75 +801,77 @@ export class App {
     // one line, see fitSubs); the value, its change and a status chip; the bar with its marks; one caption.
     const gauge = (k: GaugeKey, coach: string) => `
       <section class="gauge g-${k}" data-key="${k}" data-coach="${coach}" aria-labelledby="gn-${k}">
-        <div class="g-head"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-alerts" aria-hidden="true"></span>
-          <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(GAUGE_LABEL[k])}" aria-describedby="gd-${k}" title="${esc(GAUGE_SUB[k])}">?</button></div>
-        <p class="g-sub" aria-hidden="true">${esc(GAUGE_SUB[k])}</p>
+        <div class="g-head"><h3 class="g-name" id="gn-${k}">${esc(gaugeName(k))}</h3><span class="g-alerts" aria-hidden="true"></span>
+          <button type="button" class="g-info" data-info="${k}" aria-label="${esc(t('ui.gauge.about', 'About {gauge}', { gauge: gaugeName(k) }))}" aria-describedby="gd-${k}" title="${esc(tc(`gauge.${k}.sub`, GAUGE_SUB[k]))}">?</button></div>
+        <p class="g-sub" aria-hidden="true">${esc(tc(`gauge.${k}.sub`, GAUGE_SUB[k]))}</p>
         <div class="g-line" aria-hidden="true"><span class="g-val num"></span><span class="g-delta"></span><span class="g-after num"></span><span class="g-chip"></span></div>
         <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? '<i class="g-tipzone"></i>' : ''}<i class="g-fill"></i><i class="g-band"></i><i class="g-ghost g-ghost-low" hidden></i><i class="g-ghost" hidden></i><i class="g-target"></i></div>
-        <p class="g-cap" aria-hidden="true">${k === 'aiPower' ? `<span class="long">${esc(TIPPING_LINE(tip))}</span><span class="short">${tip} = the tipping point</span>` : ''}</p>
+        <p class="g-cap" aria-hidden="true">${k === 'aiPower' ? `<span class="long">${esc(tr(TIPPING_LINE(tip)))}</span><span class="short">${esc(t('ui.gauge.tipShort', '{n} = the tipping point', { n: tip }))}</span>` : ''}</p>
         <p class="sr-only" id="gd-${k}"></p>
       </section>`;
     this.root.innerHTML = `
     <div class="game">
       <header class="top">
-        <h1 class="brand" id="game-title" tabindex="-1"><span class="logo">TAKE<i>OFF</i></span><span class="sub">Europe’s Next Move</span></h1>
+        <h1 class="brand" id="game-title" tabindex="-1"><span class="logo">TAKE<i>OFF</i></span><span class="sub">${esc(t('ui.brand.sub', 'Europe’s Next Move'))}</span></h1>
         <div class="when"><span class="date"><span id="date" class="num"></span><span class="round-of" id="round-of"></span></span>
-          <ol class="rounds" id="rounds" aria-label="Progress through the ${TUNING.rounds} rounds">${Array.from({ length: TUNING.rounds }, (_, i) => `<li data-r="${i + 1}"><i></i></li>`).join('')}</ol></div>
+          <ol class="rounds" id="rounds" aria-label="${esc(t('ui.app.progress', 'Progress through the {n} rounds', { n: TUNING.rounds }))}">${Array.from({ length: TUNING.rounds }, (_, i) => `<li data-r="${i + 1}"><i></i></li>`).join('')}</ol></div>
         <span class="top-break" aria-hidden="true"></span>
         <div class="clockctl">
           <button class="iconbtn" id="play" aria-keyshortcuts="Space"></button>
-          <div class="speed" role="group" aria-label="Clock speed"><button type="button" data-speed="1" aria-pressed="true">×1</button><button type="button" data-speed="2" aria-pressed="false">×2</button></div>
+          <div class="speed" role="group" aria-label="${esc(t('ui.app.speed', 'Clock speed'))}"><button type="button" data-speed="1" aria-pressed="true">×1</button><button type="button" data-speed="2" aria-pressed="false">×2</button></div>
           <span class="phase" id="phase" aria-hidden="true"></span>
         </div>
         <div class="inf" data-coach="influence">
           <span class="inf-ico">${ICON.influence}</span><span class="inf-v num" id="inf-v"></span>
-          <span class="inf-l">Influence <small id="inf-next"></small></span>
+          <span class="inf-l">${esc(t('ui.influence.name', 'Influence'))} <small id="inf-next"></small></span>
           <span class="inf-why" id="inf-why"></span>
-          <button type="button" class="g-info inf-help" id="inf-help" aria-label="About Influence: what it is and how to earn it">?</button>
+          <button type="button" class="g-info inf-help" id="inf-help" aria-label="${esc(t('ui.influence.about', 'About Influence: what it is and how to earn it'))}">?</button>
         </div>
         <div class="top-btns">
           ${this.sound.html()}
-          <button type="button" class="iconbtn help-btn" id="help-btn" aria-label="Help and keyboard shortcuts" aria-keyshortcuts="?">?</button>
+          ${langMenuHtml()}
+          <button type="button" class="iconbtn help-btn" id="help-btn" aria-label="${esc(t('ui.app.helpButton', 'Help and keyboard shortcuts'))}" aria-keyshortcuts="?">?</button>
         </div>
       </header>
       <main class="stage">
         <section class="panel" aria-labelledby="gauges-h">
-          <h2 class="sr-only" id="gauges-h">Gauges</h2>
+          <h2 class="sr-only" id="gauges-h">${esc(t('ui.app.gauges', 'Gauges'))}</h2>
           ${gauge('aiPower', 'clock')}${gauge('confidence', 'confidence')}${gauge('cooperation', 'cooperation')}${gauge('cohesion', 'cohesion')}
         </section>
         <section class="heading-line" id="heading-line" data-coach="heading" aria-labelledby="hl-h">
-          <h2 class="sr-only" id="hl-h">Where the world is heading</h2>
+          <h2 class="sr-only" id="hl-h">${esc(t('ui.heading.where', 'Where the world is heading'))}</h2>
           <p class="hl-text" id="hl-text" aria-hidden="true"></p>
           <p class="sr-only" id="hl-words"></p>
           <span class="hl-badge" id="hl-badge"></span>
-          <span class="hl-sep" aria-hidden="true">·</span><button type="button" class="btn-link hl-why" data-worlds aria-label="Why? What this world means, the five worlds, and how to change course">Why?</button>
+          <span class="hl-sep" aria-hidden="true">·</span><button type="button" class="btn-link hl-why" data-worlds aria-label="${esc(t('ui.heading.whyName', 'Why? What this world means, the five worlds, and how to change course'))}">${esc(t('ui.heading.why', 'Why?'))}</button>
         </section>
         <section class="theatre" aria-labelledby="map-h">
-          <h2 class="sr-only" id="map-h" tabindex="-1">World map</h2>
+          <h2 class="sr-only" id="map-h" tabindex="-1">${esc(t('ui.app.map', 'World map'))}</h2>
           <div class="mapwrap" id="mapwrap" data-coach="map"></div>
           <aside class="feed" id="feed" aria-labelledby="feed-h" data-coach="feed"></aside>
           <div class="decide" id="decide" hidden></div>
         </section>
       </main>
-      <section class="dock" aria-label="Your move" hidden></section>
-      <p class="keys-hint" aria-hidden="true"><kbd>Space</kbd> pause · <kbd>Enter</kbd> continue · <kbd>N</kbd> news · <kbd>?</kbd> help</p>
+      <section class="dock" aria-label="${esc(t('ui.phase.move', 'Your move'))}" hidden></section>
+      <p class="keys-hint" aria-hidden="true">${th('ui.app.keys', '{space} pause · {enter} continue · {n} news · {help} help', { space: '<kbd>Space</kbd>', enter: '<kbd>Enter</kbd>', n: '<kbd>N</kbd>', help: '<kbd>?</kbd>' })}</p>
     </div>`;
     this.map = new WorldMap($('#mapwrap', this.root));
     $('#mapwrap', this.root).setAttribute('aria-describedby', this.map.summaryId);
     this.map.onItem = (entry) => {
       this.feed.mark(entry.id);
-      if (entry.kind === 'leak' && this.s.leak) this.openFromMap(() => showLeak(this.s.leak!, this.e.dateLabel(this.s.round)));
+      if (entry.kind === 'leak' && this.s.leak) this.openFromMap(() => showLeak(this.s.leak!, this.date()));
     };
     this.map.onThreat = (id) => {
       this.markFeed((x) => x.threat === id);
-      const t = this.prevThreats.find((x) => x.id === id) ?? this.e.threats(this.s).find((x) => x.id === id);
-      if (t) this.openFromMap(() => showThreat(t, this.e.hand(this.s)));
+      const tv = this.prevThreats.find((x) => x.id === id) ?? this.e.threats(this.s).find((x) => x.id === id);
+      if (tv) this.openFromMap(() => showThreat(tv, this.e.hand(this.s)));
     };
     $('#play', this.root).addEventListener('click', () => this.setRunning(!this.running));
     $('#help-btn', this.root).addEventListener('click', () => this.openHelp());
     $('#inf-help', this.root).addEventListener('click', () => this.openFromMap(() => showInfluenceHelp(this.s.influence, this.e.nextIncome(this.s))));
     this.sound.bind(this.root);
     this.placeSound();
+    bindLangMenu(this.root, (l) => void chooseLang(l));
     $('#heading-line', this.root).addEventListener('click', (ev) => {
       const h = this.e.heading(this.s);
       if ((ev.target as HTMLElement).closest('[data-worlds]')) this.openFromMap(() => showWorlds(h.world, h, this.s.europeAi));
@@ -801,17 +902,27 @@ export class App {
     this.sound.setWorld({ aiPower: this.s.aiPower, cooperation: this.s.cooperation, tipping: !!this.s.tipping });
   }
 
-  /** The header's sound toggle sits beside Help on wider screens, and on phones on the first line, beside the
-   *  date: it moves in the DOM (not with CSS order) so the Tab order follows what the player sees. */
+  /** The header's sound toggle and language button sit beside Help on wider screens, and on phones on the first
+   *  line, beside the date: they move in the DOM (not with CSS order) so the Tab order follows what the player sees. */
   private placeSound() {
     const box = this.root.querySelector<HTMLElement>('.top .snd');
     const brk = this.root.querySelector('.top .top-break');
     const btns = this.root.querySelector('.top .top-btns');
     if (!box || !brk || !btns) return;
-    const focused = box.contains(document.activeElement) ? (document.activeElement as HTMLElement) : null;
+    const lang = this.root.querySelector<HTMLElement>('.top .lang-menu');
+    const active = document.activeElement as HTMLElement | null;
+    const focused = active && (box.contains(active) || lang?.contains(active)) ? active : null;
     if (PHONE.matches) {
-      if (box.nextElementSibling !== brk) brk.before(box);
-    } else if (box.parentElement !== btns) btns.prepend(box);
+      // the language button too: the second row has no room left
+      const ordered = lang ? box.nextElementSibling === lang && lang.nextElementSibling === brk : box.nextElementSibling === brk;
+      if (!ordered) {
+        brk.before(box);
+        if (lang) brk.before(lang);
+      }
+    } else {
+      if (lang && lang.parentElement !== btns) btns.prepend(lang);
+      if (box.parentElement !== btns || box.nextElementSibling !== lang) btns.prepend(box);
+    }
     if (focused && document.activeElement !== focused) focused.focus({ preventScroll: true });
   }
 
@@ -823,26 +934,33 @@ export class App {
     this.sound.bind(host);
   }
 
-  private setPhase(text: string) {
-    const p = this.root.querySelector('#phase');
-    if (p) p.textContent = text;
+  /** The phase shown in the header (decorative: the announcements say it). */
+  private phase: Phase = 'running';
+  private setPhase(p: Phase) {
+    this.phase = p;
+    const el = this.root.querySelector('#phase');
+    if (el) el.textContent = phaseText(p);
   }
 
   private renderTop() {
     const s = this.s;
     const inc = this.e.nextIncome(s);
     $('#inf-v', this.root).textContent = String(s.influence);
-    $('#inf-next', this.root).textContent = inc.nextRoundExists ? `${signed(inc.next)} next round` : 'no next round';
-    $('#inf-why', this.root).textContent = inc.nextRoundExists ? inc.reasons.join(' · ') : '';
-    $('.inf', this.root).setAttribute('aria-label', `Influence ${s.influence}. ${inc.nextRoundExists ? `Next round ${signed(inc.next)}: ${inc.reasons.join(', ')}.` : 'No income will follow.'}`);
+    const reasons = inc.reasons.map(tr);
+    $('#inf-next', this.root).textContent = inc.nextRoundExists ? t('ui.influence.nextShort', '{n} next round', { n: signed(inc.next) }) : t('ui.influence.noNext', 'no next round');
+    $('#inf-why', this.root).textContent = inc.nextRoundExists ? reasons.join(' · ') : '';
+    $('.inf', this.root).setAttribute(
+      'aria-label',
+      `${t('ui.influence.now', 'Influence {n}.', { n: s.influence })} ${inc.nextRoundExists ? t('ui.influence.nextLong', 'Next round {n}: {reasons}.', { n: signed(inc.next), reasons: reasons.join(', ') }) : t('ui.influence.noIncome', 'No income will follow.')}`,
+    );
     $('.inf', this.root).setAttribute('role', 'group');
   }
 
   private renderClock() {
     const s = this.s;
     const r = Math.max(1, s.round);
-    $('#date', this.root).textContent = this.e.dateLabel(r);
-    $('#round-of', this.root).textContent = ` · Round ${r} of ${TUNING.rounds}`;
+    $('#date', this.root).textContent = this.date(r);
+    $('#round-of', this.root).textContent = ` · ${t('ui.app.roundOf', 'Round {round} of {rounds}', { round: r, rounds: TUNING.rounds })}`;
     this.root.querySelectorAll<HTMLElement>('#rounds li').forEach((li) => {
       const n = Number(li.dataset.r);
       li.className = n < s.round ? 'done' : n === s.round ? 'now' : '';
@@ -852,7 +970,7 @@ export class App {
     const play = $<HTMLButtonElement>('#play', this.root);
     play.disabled = !this.clockActive || this.eventBusy;
     play.innerHTML = this.running && this.clockActive ? ICON.pause : ICON.play;
-    play.setAttribute('aria-label', this.running && this.clockActive ? 'Pause the clock (Space)' : 'Resume the clock (Space)');
+    play.setAttribute('aria-label', this.running && this.clockActive ? t('ui.app.pause', 'Pause the clock (Space)') : t('ui.app.resume', 'Resume the clock (Space)'));
     this.root.querySelector('.game')?.classList.toggle('paused', this.clockActive && !this.running);
   }
 
@@ -890,14 +1008,18 @@ export class App {
     this.popChanges(ZERO, st.d);
     if (item?.social) {
       const said = this.changeWords(ZERO, st.d);
-      announce(`${item.label.split(' · ')[0]} in ${item.social.city}, in this story: ${item.text}${said ? ` ${said}.` : ''}`);
+      const kind = tc(`social.kind.${item.social.kind}`, item.label.split(' · ')[0]);
+      announce(`${t('ui.app.saySocial', '{kind} in {city}, in this story: {text}', { kind, city: tr(item.social.city), text: tr(item.text) })}${said ? ` ${said}.` : ''}`);
     }
   }
 
   /** What moved between two sets of values, in words ("Social cohesion down 3"). */
   private changeWords(a: Vals, b: Vals): string {
     return this.gaugeDeltas(a, b)
-      .map(([k, d]) => `${k === 'confidence' ? `${GAUGE_LABEL.confidence}, verified part` : GAUGE_LABEL[k]} ${d > 0 ? 'up' : 'down'} ${Math.abs(d)}`)
+      .map(([k, d]) => {
+        const name = k === 'confidence' ? t('ui.app.verifiedPart', '{gauge}, verified part', { gauge: gaugeName('confidence') }) : gaugeName(k);
+        return d > 0 ? t('ui.app.upBy', '{gauge} up {n}', { gauge: name, n: Math.abs(d) }) : t('ui.app.downBy', '{gauge} down {n}', { gauge: name, n: Math.abs(d) });
+      })
       .join(', ');
   }
 
@@ -999,7 +1121,7 @@ export class App {
   }
 
   private gaugeText(k: GaugeKey): string {
-    return k === 'confidence' && this.safety().audited ? `${this.valueText(k)} audited` : this.valueText(k);
+    return k === 'confidence' && this.safety().audited ? t('ui.gauge.audited', '{n} audited', { n: this.valueText(k) }) : this.valueText(k);
   }
 
   private lastSig = '';
@@ -1053,27 +1175,41 @@ export class App {
       if (g.key === 'cooperation') for (const x of ['r', 'a', 'p']) box.querySelector(`.zone-${x}`)?.classList.toggle('on', x === zoneOf(v).id);
       // threats aimed at this gauge: a small mark by its name (in full in "?", on the map and in the description)
       const alerts = g.markers
-        .map((m) => `<span class="g-alert ${m.prepared ? 'yes' : 'no'}" title="${esc(m.text)}">${m.prepared ? ICON.check : ICON.alert}${esc(m.prepared ? 'ready' : (/[−-]\d+/.exec(m.text)?.[0] ?? 'risk'))}</span>`)
+        .map((m) => `<span class="g-alert ${m.prepared ? 'yes' : 'no'}" title="${esc(tr(m.text))}">${m.prepared ? ICON.check : ICON.alert}${esc(m.prepared ? t('ui.gauge.ready', 'ready') : (/[−-]\d+/.exec(m.text)?.[0] ?? t('ui.gauge.risk', 'risk')))}</span>`)
         .join('');
       const al = box.querySelector<HTMLElement>('.g-alerts')!;
       if (al.innerHTML !== alerts) al.innerHTML = alerts;
       const words =
         g.key === 'aiPower'
-          ? `${v} out of 100. At 80, AI starts improving itself: the tipping point, where the world’s ending is decided.${g.eta ? ` ${g.eta}` : ''}`
+          ? `${t('ui.gauge.descAi', '{n} out of 100. At 80, AI starts improving itself: the tipping point, where the world’s ending is decided.', { n: v })}${g.eta ? ` ${tr(g.eta)}` : ''}`
           : safety
             ? safety.audited
-              ? `${v}, audited: the true value.`
-              : `${safety.low} verified; the labs claim ${safety.claim}. Only the verified part counts toward your goal; the truth lies between ${safety.low} and ${safety.claim}.`
-            : `${v} out of 100.`;
-      const zone = g.key === 'cooperation' ? ` Zone: ${zoneOf(v).name}.` : '';
-      const sub = ` ${g.sub}${/[.?!]$/.test(g.sub) ? '' : '.'}`;
+              ? t('ui.gauge.descAudited', '{n}, audited: the true value.', { n: v })
+              : t('ui.gauge.descSafety', '{low} verified; the labs claim {claim}. Only the verified part counts toward your goal; the truth lies between {low} and {claim}.', { low: safety.low, claim: safety.claim })
+            : t('ui.gauge.descValue', '{n} out of 100.', { n: v });
+      const zone = g.key === 'cooperation' ? ` ${t('ui.gauge.zone', 'Zone: {zone}.', { zone: zoneOf(v).name })}` : '';
+      const gsub = tr(g.sub);
+      const sub = ` ${gsub}${/[.?!]$/.test(gsub) ? '' : '.'}`;
       const og = g.key === hd.decides.key ? hd.decides : g.key === hd.net.key ? hd.net : null;
-      const tgt = og ? ` ${og === hd.decides ? 'Goal' : 'Floor'} for the world you are heading to: ${og.bar}, ${statusOf(og)}.` : '';
-      const dir = delta > 0 ? 'up' : 'down';
+      const tgt = og
+        ? ` ${og === hd.decides ? t('ui.gauge.descGoal', 'Goal for the world you are heading to: {n}, {status}.', { n: og.bar, status: statusWord(statusOf(og)) }) : t('ui.gauge.descFloor', 'Floor for the world you are heading to: {n}, {status}.', { n: og.bar, status: statusWord(statusOf(og)) })}`
+        : '';
       // the + / − sign and the colour show it on the gauge; in words: up or down, and better or worse
-      const better = g.key === 'aiPower' ? '' : delta > 0 ? ', better' : ', worse';
-      const ch = delta ? ` ${safety ? `Verified part ${dir}` : `${dir.charAt(0).toUpperCase()}${dir.slice(1)}`} ${Math.abs(delta)} this round${better}.` : '';
-      const desc = `${words}${g.key === 'aiPower' ? '' : sub}${zone}${tgt}${ch}${g.markers.length ? ` ${g.markers.map((m) => m.text).join('. ')}.` : ''}`;
+      const n = Math.abs(delta);
+      const moveWords =
+        g.key === 'aiPower'
+          ? delta > 0
+            ? t('ui.gauge.upRound', 'Up {n} this round.', { n })
+            : t('ui.gauge.downRound', 'Down {n} this round.', { n })
+          : safety
+            ? delta > 0
+              ? t('ui.gauge.verifiedUpBetter', 'Verified part up {n} this round, better.', { n })
+              : t('ui.gauge.verifiedDownWorse', 'Verified part down {n} this round, worse.', { n })
+            : delta > 0
+              ? t('ui.gauge.upBetter', 'Up {n} this round, better.', { n })
+              : t('ui.gauge.downWorse', 'Down {n} this round, worse.', { n });
+      const ch = delta ? ` ${moveWords}` : '';
+      const desc = `${words}${g.key === 'aiPower' ? '' : sub}${zone}${tgt}${ch}${g.markers.length ? ` ${g.markers.map((m) => tr(m.text)).join('. ')}.` : ''}`;
       const d = box.querySelector<HTMLElement>(`#gd-${g.key}`)!;
       if (d.textContent !== desc) d.textContent = desc;
       if (flash && delta) {
@@ -1112,8 +1248,10 @@ export class App {
         // the caption (tipping point at 80) never changes; the chip says when it looks close
         const eta = this.e.gauges(this.s).find((g) => g.key === 'aiPower')?.eta ?? null;
         if (eta) {
-          const m = /in (~[\d–]+ rounds?)/.exec(eta);
-          chipHtml = both(m ? `tipping in ${m[1]}` : 'tipped', m ? m[1] : 'tipped');
+          const m = /in ~(\d+)(?:–(\d+))? rounds?/.exec(eta);
+          const when = m ? (m[2] ? t('ui.gauge.etaRange', '~{lo}–{hi} rounds', { lo: m[1], hi: m[2] }) : tn('ui.gauge.eta', Number(m[1]), { one: '~{n} round', other: '~{n} rounds' })) : null;
+          const tipped = t('ui.gauge.tipped', 'tipped');
+          chipHtml = both(esc(when ? t('ui.gauge.tippingIn', 'tipping in {when}', { when }) : tipped), esc(when ?? tipped));
           chipCls += ' eta';
         }
       } else {
@@ -1131,8 +1269,8 @@ export class App {
           tg.style.left = pct(og.bar);
           tg.className = `g-target ${role}${moved ? ' pv' : ''}`;
           barHtml = was ? arrow(was.bar, og.bar) : `${og.bar}`;
-          tgt = `${role} ${barHtml}`;
-          chipHtml = stWas && stWas !== st ? both(`${stWas} → ${st}`, st) : st;
+          tgt = role === 'goal' ? th('ui.gauge.goalShort', 'goal {bar}', { bar: barHtml }) : th('ui.gauge.floorShort', 'floor {bar}', { bar: barHtml });
+          chipHtml = stWas && stWas !== st ? both(`${esc(statusWord(stWas))} → ${esc(statusWord(st))}`, esc(statusWord(st))) : esc(statusWord(st));
           chipCls += ` ${st === 'on track' ? 'yes' : 'no'}${moved ? ' pv' : ''}`;
         }
         if (k === 'confidence') {
@@ -1140,11 +1278,11 @@ export class App {
           const a = this.safetyAfter() ?? c;
           const plain = (x: string) => x.replace(/<[^>]+>/g, '');
           // a selection's effect in words before deciding ("Verified 41 up some"): numbers come after Confirm
-          const would = (x: number, y: number) => (x === y ? `${x}` : `${x} <b class="pv">${moveWord(y - x)}</b>`);
-          if (c.audited) setCap(both(`Audited: the true value${tgt ? ` · ${tgt}` : ''}`, `audited${tgt ? ` · ${tgt}` : ''}`));
+          const would = (x: number, y: number) => (x === y ? `${x}` : `${x} <b class="pv">${esc(tr(moveWord(y - x)))}</b>`);
+          if (c.audited) setCap(both(`${esc(t('ui.gauge.auditedTrue', 'Audited: the true value'))}${tgt ? ` · ${tgt}` : ''}`, `${esc(t('ui.gauge.auditedShort', 'audited'))}${tgt ? ` · ${tgt}` : ''}`));
           else {
-            const long = `Verified ${would(c.low, a.low)} · labs claim ${would(c.claim, a.claim)}`;
-            const short = `${would(c.low, a.low)} verified`;
+            const long = th('ui.gauge.capSafety', 'Verified {low} · labs claim {claim}', { low: would(c.low, a.low), claim: would(c.claim, a.claim) });
+            const short = th('ui.gauge.capSafetyShort', '{low} verified', { low: would(c.low, a.low) });
             // the target joins the line when it fits on one line (it is always drawn on the bar)
             setCap(both(plain(long + tgt).length <= 48 && tgt ? `${long} · ${tgt}` : long, plain(short + tgt).length <= 28 && tgt ? `${short} · ${tgt}` : short));
           }
@@ -1152,8 +1290,13 @@ export class App {
           const z = zoneOf(Math.round(this.shown.cooperation));
           const i = pv?.impacts.find((x) => x.key === 'cooperation');
           const za = i ? zoneOf(Number(i.after)) : z;
-          setCap(za.id !== z.id ? both(`<b class="pv">${z.name} → ${za.name}</b> zone`, `<b class="pv">${z.name} → ${za.name}</b>`) : both(`${z.name} zone · ${z.range}`, `${z.name} zone`));
-        } else setCap(og ? both(role === 'goal' ? `Goal ${barHtml}: reach it to end well` : `Floor ${barHtml}: never fall below`, tgt) : '');
+          const moving = `<b class="pv">${esc(z.name)} → ${esc(za.name)}</b>`;
+          setCap(
+            za.id !== z.id
+              ? both(th('ui.gauge.zoneMoving', '{zones} zone', { zones: moving }), moving)
+              : both(esc(t('ui.gauge.zoneRange', '{zone} zone · {range}', { zone: z.name, range: z.range })), esc(t('ui.gauge.zoneName', '{zone} zone', { zone: z.name }))),
+          );
+        } else setCap(og ? both(role === 'goal' ? th('ui.gauge.capGoal', 'Goal {bar}: reach it to end well', { bar: barHtml }) : th('ui.gauge.capFloor', 'Floor {bar}: never fall below', { bar: barHtml }), tgt) : '');
       }
       if (chip.innerHTML !== chipHtml) chip.innerHTML = chipHtml;
       chip.className = chipCls;
@@ -1173,35 +1316,38 @@ export class App {
    *  "claim up a little" when only the claim moves) and shows ghost marks on its bar. Numbers come after Confirm. */
   private renderGaugePreview() {
     const imp = this.pv?.ok ? this.pv.impacts : [];
-    const tone = (t: number) => (t > 0 ? 'good' : t < 0 ? 'bad' : 'flat');
+    const tone = (x: number) => (x > 0 ? 'good' : x < 0 ? 'bad' : 'flat');
     for (const k of KEYS) {
       const box = this.root.querySelector<HTMLElement>(`.gauge[data-key="${k}"]`);
       if (!box) continue;
       const i = imp.find((x) => x.key === k);
       const sa = k === 'confidence' ? this.safetyAfter() : null;
       let text = '';
-      let t = 0;
+      let tn0 = 0;
       let at = NaN;
       let atLow = NaN;
       if (sa) {
         const c = this.safety();
-        text = sa.low !== c.low ? `verified ${moveWord(sa.low - c.low)}` : `claim ${moveWord(sa.claim - c.claim)}`;
-        t = sa.tone;
+        text =
+          sa.low !== c.low
+            ? t('ui.gauge.verifiedMove', 'verified {move}', { move: tr(moveWord(sa.low - c.low)) })
+            : t('ui.gauge.claimMove', 'claim {move}', { move: tr(moveWord(sa.claim - c.claim)) });
+        tn0 = sa.tone;
         if (sa.claim !== c.claim) at = sa.claim;
         if (sa.low !== c.low) atLow = sa.low;
       } else if (i) {
-        text = moveWord(Number(i.after) - Number(i.before));
-        t = i.tone;
+        text = tr(moveWord(Number(i.after) - Number(i.before)));
+        tn0 = i.tone;
         at = Number.parseFloat(i.after);
       }
       const after = box.querySelector<HTMLElement>('.g-after')!;
-      after.innerHTML = text ? `<span class="${tone(t)}">${esc(text)}</span>` : '';
+      after.innerHTML = text ? `<span class="${tone(tn0)}">${esc(text)}</span>` : '';
       box.classList.toggle('previewing', !!text);
       const ghost = (el: HTMLElement, x: number) => {
         el.hidden = !Number.isFinite(x);
         if (Number.isFinite(x)) el.style.left = `${Math.max(0, Math.min(100, x))}%`;
-        el.classList.toggle('good', t > 0);
-        el.classList.toggle('bad', t < 0);
+        el.classList.toggle('good', tn0 > 0);
+        el.classList.toggle('bad', tn0 < 0);
       };
       ghost(box.querySelector<HTMLElement>('.g-ghost:not(.g-ghost-low)')!, at);
       ghost(box.querySelector<HTMLElement>('.g-ghost-low')!, atLow);

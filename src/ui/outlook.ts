@@ -8,11 +8,14 @@
 // Everything shown comes from heading(s) and preview(s): public values only.
 
 import type { HeadingView, OutlookGauge, WorldId } from '../engine/types';
+import { t, th, tr } from '../i18n';
 import { esc } from './format';
 
 /** A target's status, from the low end for AI safety ("could be as low as" must reach it). */
 export type Status = 'on track' | 'short';
 export const statusOf = (g: OutlookGauge): Status => (g.low >= g.bar ? 'on track' : 'short');
+/** A status in the player's language. */
+export const statusWord = (st: Status) => (st === 'on track' ? t('ui.status.onTrack', 'on track') : t('ui.status.short', 'short'));
 
 /** One small icon per world, drawn in the zone's colour (never the only cue: the name is always written). */
 export const WORLD_ICON: Record<WorldId, string> = {
@@ -23,10 +26,18 @@ export const WORLD_ICON: Record<WorldId, string> = {
   plateau_labs: '<svg class="ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 15c3-1 4-7 8-7h8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
 };
 
+/** A world's chip: its icon and its name (already in the player's language). */
 export const worldChip = (world: WorldId, name: string) => `<span class="wchip w-${world}">${WORLD_ICON[world]}<span>${esc(name)}</span></span>`;
 
-/** "a Race", "a Pause", "a Plateau, big labs" */
-const a = (name: string) => `${/^[AEIOU]/.test(name) ? 'an' : 'a'} ${name}`;
+/** "a Race", "a Pause", "a Plateau, big labs": a world named in a sentence, in the player's language. */
+const a = (w: WorldId): string =>
+  ({
+    pause: t('ui.heading.aPause', 'a Pause'),
+    race: t('ui.heading.aRace', 'a Race'),
+    rupture: t('ui.heading.aRupture', 'a Rupture'),
+    plateau_open: t('ui.heading.aPlateauOpen', 'a Plateau, open models'),
+    plateau_labs: t('ui.heading.aPlateauLabs', 'a Plateau, big labs'),
+  })[w];
 
 /**
  * The line under the gauges. `h` is where the world is heading (or would head, if the selected cards are
@@ -41,12 +52,15 @@ export function headingLineHtml(h: HeadingView, before?: HeadingView): { html: s
   const st = statusOf(d);
   const stWas = was ? statusOf(was) : null;
   const stMoved = !!before && (!was || stWas !== st);
-  const lead = h.plateau ? 'AI may stall. Heading for' : 'Heading for';
-  const chips = turned ? `${worldChip(before!.world, before!.name)}<span class="hl-arrow" aria-hidden="true">→</span>${worldChip(h.world, h.name)}` : worldChip(h.world, h.name);
-  const status = `<span class="hm ${st === 'on track' ? 'yes' : 'no'}">${stMoved && stWas ? `${stWas} → ` : ''}${st}</span>`;
-  const html = `${before ? '<span class="hl-if">If you confirm:</span> ' : ''}${esc(lead)} ${chips}<span class="hl-colon">:</span> <span class="hl-goal">${esc(d.label)} must reach <b class="num">${d.bar}</b> ${status}</span>`;
-  const open = h.needsOpen ? ` Europe’s AI must also be Open (it is ${h.needsOpen.now === 'open' ? 'Open' : 'Dependent'}).` : '';
-  const words = `${before ? 'If you confirm: ' : ''}${lead} ${turned ? `${a(before!.name)} turning into ${a(h.name)}` : a(h.name)}: ${d.label} must reach ${d.bar}, ${stMoved && stWas ? `${stWas} would become ${st}` : st}.${open} Safety net: ${h.net.label} at least ${h.net.bar}, ${statusOf(h.net)}.`;
+  const lead = h.plateau ? t('ui.heading.leadStalls', 'AI may stall. Heading for') : t('ui.heading.lead', 'Heading for');
+  const chips = turned ? `${worldChip(before!.world, tr(before!.name))}<span class="hl-arrow" aria-hidden="true">→</span>${worldChip(h.world, tr(h.name))}` : worldChip(h.world, tr(h.name));
+  const status = `<span class="hm ${st === 'on track' ? 'yes' : 'no'}">${stMoved && stWas ? `${esc(statusWord(stWas))} → ` : ''}${esc(statusWord(st))}</span>`;
+  const goal = th('ui.heading.goal', '{gauge} must reach {bar} {status}', { gauge: esc(tr(d.label)), bar: `<b class="num">${d.bar}</b>`, status });
+  const html = `${before ? `<span class="hl-if">${esc(t('ui.heading.ifConfirm', 'If you confirm:'))}</span> ` : ''}${esc(lead)} ${chips}<span class="hl-colon">:</span> <span class="hl-goal">${goal}</span>`;
+  const open = h.needsOpen ? ` ${t('ui.heading.mustBeOpen', 'Europe’s AI must also be Open (it is {ai}).', { ai: h.needsOpen.now === 'open' ? t('ui.europeAi.open', 'Open') : t('ui.europeAi.dependent', 'Dependent') })}` : '';
+  const where = turned ? t('ui.heading.turning', '{a} turning into {b}', { a: a(before!.world), b: a(h.world) }) : a(h.world);
+  const state = stMoved && stWas ? t('ui.heading.wouldBecome', '{was} would become {now}', { was: statusWord(stWas), now: statusWord(st) }) : statusWord(st);
+  const words = `${before ? `${t('ui.heading.ifConfirm', 'If you confirm:')} ` : ''}${t('ui.heading.words', '{lead} {where}: {gauge} must reach {bar}, {state}.', { lead, where, gauge: tr(d.label), bar: d.bar, state })}${open} ${t('ui.heading.net', 'Safety net: {gauge} at least {bar}, {status}.', { gauge: tr(h.net.label), bar: h.net.bar, status: statusWord(statusOf(h.net)) })}`;
   return { html, words };
 }
 
@@ -56,16 +70,20 @@ function lineMoves(h: HeadingView, before: HeadingView): boolean {
   return statusOf(h.decides) !== statusOf(before.decides) || statusOf(h.net) !== statusOf(before.net);
 }
 
-export const BADGE_HINT = 'Decides the ending if AI stalls under a few big labs';
+export const badgeHint = () => t('ui.badge.hint', 'Decides the ending if AI stalls under a few big labs');
 
 /**
  * Europe's AI badge at the end of the line, a one-line chip like the world's: "· If AI stalls: [Europe’s AI:
  * Dependent]" (heading for a plateau with big labs, where only an Open Europe ends well: "· must be Open: [...]"). A button that explains it.
  */
 export function badgeHtml(ai: 'open' | 'dependent', from?: 'open' | 'dependent', plateau = false): string {
-  const word = (x: string) => (x === 'open' ? 'Open' : 'Dependent');
-  const moved = from && from !== ai ? `<span class="badge-was">${word(from)} →</span> ` : '';
+  const word = (x: string) => (x === 'open' ? t('ui.europeAi.open', 'Open') : t('ui.europeAi.dependent', 'Dependent'));
+  const moved = from && from !== ai ? `<span class="badge-was">${esc(word(from))} →</span> ` : '';
+  const hint = badgeHint();
   // the name starts with the visible text (WCAG 2.5.3), in one string so no stray space splits it
-  const name = `Europe’s AI: ${from && from !== ai ? `${word(from)} → ${word(ai)} if you confirm` : word(ai)}. ${BADGE_HINT}: what this means`;
-  return `<span class="hl-sep" aria-hidden="true">·</span> <span class="hl-stall">${plateau ? 'must be Open:' : 'If AI stalls:'}</span> <button type="button" class="badge-btn ${ai}" data-badge data-coach="badge" title="${BADGE_HINT}" aria-label="${name}"><span class="badge-k">Europe’s AI:</span> ${moved}<b>${word(ai)}</b></button>`;
+  const name =
+    from && from !== ai
+      ? t('ui.badge.nameMoved', 'Europe’s AI: {from} → {to} if you confirm. {hint}: what this means', { from: word(from), to: word(ai), hint })
+      : t('ui.badge.name', 'Europe’s AI: {ai}. {hint}: what this means', { ai: word(ai), hint });
+  return `<span class="hl-sep" aria-hidden="true">·</span> <span class="hl-stall">${esc(plateau ? t('ui.badge.mustBeOpen', 'must be Open:') : t('ui.badge.ifStalls', 'If AI stalls:'))}</span> <button type="button" class="badge-btn ${ai}" data-badge data-coach="badge" title="${esc(hint)}" aria-label="${esc(name)}"><span class="badge-k">${esc(t('ui.badge.label', 'Europe’s AI'))}:</span> ${moved}<b>${esc(word(ai))}</b></button>`;
 }

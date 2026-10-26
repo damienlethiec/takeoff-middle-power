@@ -4,12 +4,14 @@
 // hands over), so there is no separate combined-effect bar: only a Confirm row with the Influence left and
 // the preview's notes. Clicking a card toggles it (as many as Influence allows); Details opens a dialog with
 // the full proposal, the real-world example and cost, and its levels. Nothing is committed until Confirm.
-// Cards are toggle buttons (aria-pressed); Escape goes back to the map.
+// Cards are toggle buttons (aria-pressed); Escape goes back to the map. A change of language re-draws the panel
+// in place, keeping the selection.
 
 import type { EngineApi } from '../../engine/api';
 import type { CardView, GameState, Pick, PreviewView, ThreatView } from '../../engine/types';
 import { FAMILIES } from '../../data/cards';
 import { impactWords } from '../../data/effects';
+import { onLangChange, t, tc, tn, tr } from '../../i18n';
 import { announce, reducedMotion } from '../a11y';
 import { ICON, chips, esc, factBox, provTag } from '../format';
 import { glossed } from '../glossary';
@@ -29,73 +31,82 @@ export interface DecisionView {
   onOpen?: () => Promise<void>;
 }
 
-const lc = (x: string) => x.replace(/^(\w)(?=[a-z])/, (c) => c.toLowerCase());
+const lc = (x: string) => x.replace(/^(\p{Lu})(?=\p{Ll})/u, (c) => c.toLowerCase());
+const familyName = (f: { id: string; name: string }) => tc(`family.${f.id}`, f.name);
 
 /** A card that can fail says how likely it is to work, in words (never a number), and what makes it easier or harder. */
 const oddsHtml = (c: CardView) =>
   c.odds
-    ? `<span class="pc-odds o-${c.odds.word === 'Likely to work' ? 'likely' : c.odds.word === 'Uncertain' ? 'uncertain' : 'long'}"><b>${esc(c.odds.word)}</b>${c.odds.why.length ? `<span class="pc-odds-why">: ${esc(c.odds.why.join(', '))}</span>` : ''}</span>`
+    ? `<span class="pc-odds o-${c.odds.word === 'Likely to work' ? 'likely' : c.odds.word === 'Uncertain' ? 'uncertain' : 'long'}"><b>${esc(tr(c.odds.word))}</b>${c.odds.why.length ? `<span class="pc-odds-why">: ${esc(c.odds.why.map(tr).join(t('ui.list.separator', ', ')))}</span>` : ''}</span>`
     : '';
+
+const protectsLine = (c: CardView) => t('ui.card.protects', 'Protects against {threat}', { threat: lc(tr(c.protectsName)) });
 
 function cardHtml(c: CardView, selected: boolean, recommended: boolean, option: string | undefined, fresh: boolean): string {
   const locked = !c.playable && !selected;
   const opts =
     selected && c.options.length
-      ? `<fieldset class="opts"><legend>What to ask for</legend>${c.options
-          .map((o) => `<label><input type="radio" name="opt-${esc(c.id)}" value="${esc(o.id)}" ${(option ?? c.options[0].id) === o.id ? 'checked' : ''}/> ${esc(o.label)} ${chips(o.ups)}</label>`)
+      ? `<fieldset class="opts"><legend>${esc(t('ui.card.askFor', 'What to ask for'))}</legend>${c.options
+          .map((o) => `<label><input type="radio" name="opt-${esc(c.id)}" value="${esc(o.id)}" ${(option ?? c.options[0].id) === o.id ? 'checked' : ''}/> ${esc(tr(o.label))} ${chips(o.ups)}</label>`)
           .join('')}</fieldset>`
       : '';
   return `<li class="pc-wrap${selected ? ' sel' : ''}${locked ? ' locked' : ''}${c.opportunity ? ' opp' : ''}">
     <button type="button" class="pcard" data-card="${esc(c.id)}" aria-pressed="${selected}" aria-describedby="pc-${esc(c.id)}-d${locked && c.reason ? ` pc-${esc(c.id)}-r` : ''}">
-      <span class="pc-top"><span class="pc-name">${esc(c.title)}</span>${fresh ? '<span class="tag new">New</span>' : ''}<span class="pc-cost num"><span class="sr-only">costs </span>${ICON.influence}${c.cost}<span class="sr-only"> Influence</span></span></span>
+      <span class="pc-top"><span class="pc-name">${esc(tr(c.title))}</span>${fresh ? `<span class="tag new">${esc(t('ui.card.new', 'New'))}</span>` : ''}<span class="pc-cost num"><span class="sr-only">${esc(t('ui.card.costs', 'costs'))} </span>${ICON.influence}${c.cost}<span class="sr-only"> ${esc(t('ui.influence.name', 'Influence'))}</span></span></span>
       <span class="pc-chips">${chips(c.ups)}${chips(c.downs)}</span>
-      ${c.protectsName ? `<span class="pc-prot">${ICON.check}Protects against ${esc(lc(c.protectsName))}</span>` : ''}
+      ${c.protectsName ? `<span class="pc-prot">${ICON.check}${esc(protectsLine(c))}</span>` : ''}
       ${oddsHtml(c)}
-      <span class="pc-text" id="pc-${esc(c.id)}-d">${esc(c.text)}</span>
-      ${locked && c.reason ? `<span class="pc-reason" id="pc-${esc(c.id)}-r">${esc(c.reason)}</span>` : ''}
-      <span class="pc-tags">${c.level ? `<span class="pc-level">Level ${c.level} of ${c.levels!.length}</span>` : ''}${provTag(c.basis)}${c.opportunity ? `<span class="tag opp">Opportunity · ${c.expiresIn} round${c.expiresIn === 1 ? '' : 's'} left</span>` : ''}${recommended ? '<span class="tag rec">Recommended</span>' : ''}${selected ? `<span class="tag sel">${ICON.check}Selected</span>` : ''}</span>
+      <span class="pc-text" id="pc-${esc(c.id)}-d">${esc(tr(c.text))}</span>
+      ${locked && c.reason ? `<span class="pc-reason" id="pc-${esc(c.id)}-r">${esc(tr(c.reason))}</span>` : ''}
+      <span class="pc-tags">${c.level ? `<span class="pc-level">${esc(t('ui.card.level', 'Level {level} of {count}', { level: c.level, count: c.levels!.length }))}</span>` : ''}${provTag(c.basis)}${c.opportunity ? `<span class="tag opp">${esc(tn('ui.card.opportunity', c.expiresIn ?? 0, { one: 'Opportunity · {n} round left', other: 'Opportunity · {n} rounds left' }))}</span>` : ''}${recommended ? `<span class="tag rec">${esc(t('ui.card.recommended', 'Recommended'))}</span>` : ''}${selected ? `<span class="tag sel">${ICON.check}${esc(t('ui.card.selected', 'Selected'))}</span>` : ''}</span>
     </button>
     ${opts}
-    <button type="button" class="pc-details btn-link" data-details="${esc(c.id)}" aria-label="Details: ${esc(c.title)}">Details</button>
+    <button type="button" class="pc-details btn-link" data-details="${esc(c.id)}" aria-label="${esc(t('ui.card.detailsOf', 'Details: {name}', { name: tr(c.title) }))}">${esc(t('ui.card.details', 'Details'))}</button>
   </li>`;
 }
 
 /** The full card in a dialog. Resolves 'toggle' when the player selects or removes it there. */
 async function showDetails(c: CardView, selected: boolean, canSelect: boolean): Promise<string> {
+  const level = c.level ? ` · ${t('ui.card.levelLower', 'level {level} of {count}', { level: c.level, count: c.levels!.length })}` : '';
   const m = openModal(
-    `<div class="dateline">Card · ${c.cost} Influence${c.level ? ` · level ${c.level} of ${c.levels!.length}` : ''} ${provTag(c.basis)}</div>
-     <h2>${esc(c.title)}</h2>
-     ${c.levels ? `<ol class="levels">${c.levels.map((l, i) => `<li class="${i + 1 === c.level ? 'now' : i + 1 < (c.level ?? 1) ? 'done' : ''}">${esc(l)}${i + 1 === c.level ? '<span class="sr-only"> (this level)</span>' : i + 1 < (c.level ?? 1) ? '<span class="sr-only"> (done)</span>' : ''}</li>`).join('')}</ol>` : ''}
+    `<div class="dateline">${esc(t('ui.card.dateline', 'Card · {cost} Influence', { cost: c.cost }))}${esc(level)} ${provTag(c.basis)}</div>
+     <h2>${esc(tr(c.title))}</h2>
+     ${c.levels ? `<ol class="levels">${c.levels.map((l, i) => `<li class="${i + 1 === c.level ? 'now' : i + 1 < (c.level ?? 1) ? 'done' : ''}">${esc(tr(l))}${i + 1 === c.level ? `<span class="sr-only"> ${esc(t('ui.card.thisLevel', '(this level)'))}</span>` : i + 1 < (c.level ?? 1) ? `<span class="sr-only"> ${esc(t('ui.card.done', '(done)'))}</span>` : ''}</li>`).join('')}</ol>` : ''}
      <p class="proposal">${glossed(c.proposal)}</p>
-     <p class="muted small">Based on: ${esc(c.basis.ref)}.</p>
+     <p class="muted small">${esc(t('ui.basis.basedOn', 'Based on:'))} <span lang="en">${esc(c.basis.ref)}</span>.</p>
      <p class="pc-chips">${chips(c.ups)}${chips(c.downs)}</p>
-     ${c.options.length ? `<p class="label">You choose what to ask for</p><ul class="plain">${c.options.map((o) => `<li>${esc(o.label)}: ${chips(o.ups)}</li>`).join('')}</ul>` : ''}
-     ${c.protectsName ? `<p class="pc-prot">${ICON.check}Protects against ${esc(lc(c.protectsName))}.</p>` : ''}
-     ${c.odds ? `<p class="pc-odds-p">${oddsHtml(c)}. Diplomacy can fail: if it does, the Influence is spent and nothing else happens. You can try again in a later round.</p>` : ''}
-     ${c.example ? factBox(c.example, 'Real-world example') : ''}
-     ${c.costLine ? factBox(c.costLine, 'What this costs in the real world') : ''}
-     ${!c.playable && !selected && c.reason ? `<p class="bad-text">${esc(c.reason)}</p>` : ''}
+     ${c.options.length ? `<p class="label">${esc(t('ui.card.youChoose', 'You choose what to ask for'))}</p><ul class="plain">${c.options.map((o) => `<li>${esc(tr(o.label))}: ${chips(o.ups)}</li>`).join('')}</ul>` : ''}
+     ${c.protectsName ? `<p class="pc-prot">${ICON.check}${esc(protectsLine(c))}.</p>` : ''}
+     ${c.odds ? `<p class="pc-odds-p">${oddsHtml(c)}. ${esc(t('ui.card.canFail', 'Diplomacy can fail: if it does, the Influence is spent and nothing else happens. You can try again in a later round.'))}</p>` : ''}
+     ${c.example ? factBox(c.example, t('ui.card.example', 'Real-world example')) : ''}
+     ${c.costLine ? factBox(c.costLine, t('ui.card.realCost', 'What this costs in the real world')) : ''}
+     ${!c.playable && !selected && c.reason ? `<p class="bad-text">${esc(tr(c.reason))}</p>` : ''}
      <div class="row-btns">
-       ${selected ? '<button type="button" class="btn-quiet" data-action="toggle">Remove this card</button>' : canSelect ? '<button type="button" class="btn-quiet" data-action="toggle">Select this card</button>' : ''}
-       <button type="button" class="btn-primary" data-primary data-escape data-action="ok">Back to the cards <kbd>Esc</kbd></button>
+       ${selected ? `<button type="button" class="btn-quiet" data-action="toggle">${esc(t('ui.card.remove', 'Remove this card'))}</button>` : canSelect ? `<button type="button" class="btn-quiet" data-action="toggle">${esc(t('ui.card.select', 'Select this card'))}</button>` : ''}
+       <button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.card.back', 'Back to the cards'))} <kbd>Esc</kbd></button>
      </div>`,
-    { cls: 'info card-details', label: c.title, describedBy: '.proposal' },
+    { cls: 'info card-details', label: tr(c.title), describedBy: '.proposal' },
   );
   return m.result;
 }
 
 /** The active threats beside the grid: stage, whether Europe is prepared, and what protects against each. */
 function threatsHtml(list: ThreatView[], covering: Map<string, string>): string {
-  const live = list.filter((t) => t.stage > 0 && !t.struck);
-  if (!live.length) return '<p class="muted small">No threat on the map yet.</p>';
+  const live = list.filter((x) => x.stage > 0 && !x.struck);
+  if (!live.length) return `<p class="muted small">${esc(t('ui.threats.none', 'No threat on the map yet.'))}</p>`;
   return `<ul class="dk-thr">${live
-    .map((t) => {
-      const by = covering.get(t.id);
-      const ok = t.prepared || !!by;
-      return `<li class="${ok ? 'yes' : 'no'}${by && !t.prepared ? ' soon' : ''}">
+    .map((x) => {
+      const by = covering.get(x.id);
+      const ok = x.prepared || !!by;
+      const state = x.prepared
+        ? t('ui.threats.prepared', 'Prepared')
+        : by
+          ? t('ui.threats.ifConfirm', 'Prepared if you confirm ({card})', { card: tr(by) })
+          : t('ui.threats.notPrepared', 'Not prepared · protects: {names}', { names: tr(x.protectedByNames) });
+      return `<li class="${ok ? 'yes' : 'no'}${by && !x.prepared ? ' soon' : ''}">
         <span class="dk-thr-ico">${ok ? ICON.check : ICON.alert}</span>
-        <span class="dk-thr-b"><b>${esc(t.name)}</b> <small>${esc(t.stageWord)}${t.certainty === 'possible' ? ' · possible' : ''}</small>
-          <span class="dk-thr-p">${t.prepared ? 'Prepared' : by ? `Prepared if you confirm (${esc(by)})` : `Not prepared · protects: ${esc(t.protectedByNames)}`}</span></span>
+        <span class="dk-thr-b"><b>${esc(tr(x.name))}</b> <small>${esc(tr(x.stageWord))}${x.certainty === 'possible' ? ` · ${esc(t('ui.threat.possible', 'possible'))}` : ''}</small>
+          <span class="dk-thr-p">${esc(state)}</span></span>
       </li>`;
     })
     .join('')}</ul>`;
@@ -107,43 +118,52 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   const threats = e.threats(s);
   const picks: Pick[] = [];
   const host = view.host;
-  host.innerHTML = `
+  const families = FAMILIES.map((f) => ({ ...f, ids: hand.filter((c) => c.family === f.id).map((c) => c.id) })).filter((f) => f.ids.length);
+  // "New" marks a card that arrived this round (not the opening hand of round 1)
+  const fresh = (c: CardView) => c.isNew && s.round > 1;
+  let handEl!: HTMLElement;
+  let notesEl!: HTMLElement;
+  let thrEl!: HTMLElement;
+  let ok!: HTMLButtonElement;
+
+  /** The panel's frame (everything but the cards, the notes and the threats, which render() fills). */
+  const frame = () => {
+    host.innerHTML = `
     <section class="dk-main" aria-labelledby="dk-h">
       <header class="dk-head">
-        <div class="dk-title"><div class="dateline">${esc(date)} · Your decisions</div><h2 id="dk-h" tabindex="-1">Play your cards</h2></div>
+        <div class="dk-title"><div class="dateline">${esc(date)} · ${esc(t('ui.decide.dateline', 'Your decisions'))}</div><h2 id="dk-h" tabindex="-1">${esc(t('ui.decide.title', 'Play your cards'))}</h2></div>
         <div class="dk-say">
-          <p class="dk-adv"><span class="ava" aria-hidden="true">CS</span><span><b>Your chief of staff:</b> ${esc(adv.text)}</span></p>
-          <p class="dk-hint" id="dk-hint">${ICON.influence}Play as many cards as your Influence allows.</p>
+          <p class="dk-adv"><span class="ava" aria-hidden="true">${esc(t('ui.decide.chiefInitials', 'CS'))}</span><span><b>${esc(t('ui.decide.chief', 'Your chief of staff:'))}</b> ${esc(tr(adv.text))}</span></p>
+          <p class="dk-hint" id="dk-hint">${ICON.influence}${esc(t('ui.decide.hint', 'Play as many cards as your Influence allows.'))}</p>
         </div>
       </header>
-      <div class="hand" role="group" aria-label="Your cards" aria-describedby="dk-hint" data-coach="hand"></div>
+      <div class="hand" role="group" aria-label="${esc(t('ui.decide.cards', 'Your cards'))}" aria-describedby="dk-hint" data-coach="hand"></div>
       <div class="dk-bar">
-        <p class="dec-inf" data-coach="dec-influence"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">Influence left</span></p>
+        <p class="dec-inf" data-coach="dec-influence"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">${esc(t('ui.decide.left', 'Influence left'))}</span></p>
         <p class="dec-notes" id="dec-notes" aria-live="off"></p>
         <div class="dec-btns">
-          <button type="button" class="btn-quiet" data-action="map">Back to the map <kbd>Esc</kbd></button>
-          <button type="button" class="btn-quiet" data-action="none">Play no card</button>
+          <button type="button" class="btn-quiet" data-action="map">${esc(t('ui.common.backToMap', 'Back to the map'))} <kbd>Esc</kbd></button>
+          <button type="button" class="btn-quiet" data-action="none">${esc(t('ui.decide.none', 'Play no card'))}</button>
           <button type="button" class="btn-primary" data-action="confirm" id="dec-ok"></button>
         </div>
       </div>
     </section>
     <aside class="dk-side" aria-labelledby="dk-th">
-      <h3 class="dk-side-h" id="dk-th">Active threats</h3>
+      <h3 class="dk-side-h" id="dk-th">${esc(t('ui.decide.threats', 'Active threats'))}</h3>
       <div id="dk-threats"></div>
-      <p class="dk-side-note muted small">Your selection shows on the gauges above and in the line under them.</p>
+      <p class="dk-side-note muted small">${esc(t('ui.decide.sideNote', 'Your selection shows on the gauges above and in the line under them.'))}</p>
     </aside>`;
+    handEl = host.querySelector<HTMLElement>('.hand')!;
+    // the families follow each other in balanced columns on a wide screen, one under the other on a phone (see .hand
+    // in styles.css); a small hand gets no more columns than it has cards
+    handEl.classList.toggle('few', hand.length <= 4);
+    handEl.style.setProperty('--cols', String(Math.max(1, hand.length)));
+    notesEl = host.querySelector<HTMLElement>('#dec-notes')!;
+    thrEl = host.querySelector<HTMLElement>('#dk-threats')!;
+    ok = host.querySelector<HTMLButtonElement>('#dec-ok')!;
+  };
+  frame();
   host.hidden = false;
-  const handEl = host.querySelector<HTMLElement>('.hand')!;
-  // the families follow each other in balanced columns on a wide screen, one under the other on a phone (see .hand in
-  // styles.css); a small hand gets no more columns than it has cards
-  const families = FAMILIES.map((f) => ({ ...f, ids: hand.filter((c) => c.family === f.id).map((c) => c.id) })).filter((f) => f.ids.length);
-  handEl.classList.toggle('few', hand.length <= 4);
-  handEl.style.setProperty('--cols', String(Math.max(1, hand.length)));
-  // "New" marks a card that arrived this round (not the opening hand of round 1)
-  const fresh = (c: CardView) => c.isNew && s.round > 1;
-  const notesEl = host.querySelector<HTMLElement>('#dec-notes')!;
-  const thrEl = host.querySelector<HTMLElement>('#dk-threats')!;
-  const ok = host.querySelector<HTMLButtonElement>('#dec-ok')!;
 
   /** The hand as it would be after the picks so far: what is still affordable, what is locked. */
   const views = () => {
@@ -159,7 +179,11 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   const showPreview = () => {
     const pv = picks.length ? e.preview(s, picks) : null;
     view.onPreview(pv);
-    notesEl.innerHTML = pv ? (pv.ok ? esc(pv.notes.join(' ')) : `<span class="bad-text">${esc(pv.reason ?? '')}</span>`) : '<span class="muted">Select cards: their effect shows on the gauges, their targets and the line under them before you confirm.</span>';
+    notesEl.innerHTML = pv
+      ? pv.ok
+        ? esc(pv.notes.map(tr).join(' '))
+        : `<span class="bad-text">${esc(tr(pv.reason ?? ''))}</span>`
+      : `<span class="muted">${esc(t('ui.decide.selectHint', 'Select cards: their effect shows on the gauges, their targets and the line under them before you confirm.'))}</span>`;
     const covering = new Map<string, string>();
     for (const p of picks) {
       const c = hand.find((x) => x.id === p.id);
@@ -182,8 +206,8 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   };
   // the chief of staff speaks over the cards on a phone, and over the threats on a wide screen, where the cards need
   // the height (not focusable: moving it changes no Tab order)
-  const advEl = host.querySelector<HTMLElement>('.dk-adv')!;
   const placeAdv = () => {
+    const advEl = host.querySelector<HTMLElement>('.dk-adv')!;
     const to = host.querySelector<HTMLElement>(WIDE?.matches ? '.dk-side' : '.dk-say')!;
     if (advEl.parentElement !== to) to.prepend(advEl);
   };
@@ -201,13 +225,15 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
           .map((f) => {
             const list = f.ids.map((id) => cards.find((c) => c.id === id)!);
             const nNew = list.filter(fresh).length;
-            return `<section class="fam" aria-labelledby="fam-${f.id}"><h3 class="fam-h" id="fam-${f.id}">${esc(f.name)}${nNew ? ` <span class="fam-new">· ${nNew} new</span>` : ''}</h3><ul class="fam-cards">${list.map(card).join('')}</ul></section>`;
+            return `<section class="fam" aria-labelledby="fam-${f.id}"><h3 class="fam-h" id="fam-${f.id}">${esc(familyName(f))}${nNew ? ` <span class="fam-new">· ${esc(t('ui.decide.nNew', '{n} new', { n: nNew }))}</span>` : ''}</h3><ul class="fam-cards">${list.map(card).join('')}</ul></section>`;
           })
           .join('')}</div>`
-      : '<p class="muted">No cards in your hand.</p>';
-    host.querySelector('#dec-inf')!.innerHTML = picks.length ? `${after.influence}<small> of ${s.influence}</small>` : String(after.influence);
+      : `<p class="muted">${esc(t('ui.decide.empty', 'No cards in your hand.'))}</p>`;
+    host.querySelector('#dec-inf')!.innerHTML = picks.length ? `${after.influence}<small> ${esc(t('ui.decide.ofTotal', 'of {n}', { n: s.influence }))}</small>` : String(after.influence);
     const cost = picks.reduce((a, p) => a + (hand.find((c) => c.id === p.id)?.cost ?? 0), 0);
-    ok.innerHTML = picks.length ? `Confirm ${picks.length === 1 ? '1 card' : `${picks.length} cards`} <small>(${cost} Influence)</small>` : 'Pick a card first';
+    ok.innerHTML = picks.length
+      ? `${esc(tn('ui.decide.confirm', picks.length, { one: 'Confirm 1 card', other: 'Confirm {n} cards' }))} <small>${esc(t('ui.decide.cost', '({n} Influence)', { n: cost }))}</small>`
+      : esc(t('ui.decide.pickFirst', 'Pick a card first'));
     ok.disabled = !picks.length;
     showPreview();
     handEl.querySelectorAll<HTMLInputElement>('input[type=radio]').forEach((r) =>
@@ -228,25 +254,30 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     const i = picks.findIndex((p) => p.id === id);
     if (i >= 0) {
       picks.splice(i, 1);
-      announce(`Removed ${c.title}. ${picks.length ? `${picks.length} card${picks.length > 1 ? 's' : ''} selected.` : 'No card selected.'}`);
+      announce(
+        `${t('ui.decide.sayRemoved', 'Removed {name}.', { name: tr(c.title) })} ${picks.length ? tn('ui.decide.saySelected', picks.length, { one: '{n} card selected.', other: '{n} cards selected.' }) : t('ui.decide.sayNone', 'No card selected.')}`,
+      );
       return true;
     }
     const v = views().cards.find((x) => x.id === id);
     if (!v?.playable) {
-      announce(`${c.title}: ${v?.reason ?? 'not available'}`);
+      announce(`${tr(c.title)}: ${v?.reason ? tr(v.reason) : t('ui.decide.notAvailable', 'not available')}`);
       return false;
     }
     picks.push({ id: c.id as Pick['id'], ...(c.options.length ? { option: c.options[0].id } : {}) });
     const pv = e.preview(s, picks);
+    const turn = pv.worldAfter !== pv.worldBefore ? ` ${t('ui.decide.sayTurn', 'The world would turn from {from} to {to}.', { from: tr(pv.worldBefore), to: tr(pv.worldAfter) })}` : '';
     announce(
-      `Selected ${c.title}. ${pv.impacts.map(impactWords).join(', ')}.${pv.worldAfter !== pv.worldBefore ? ` The world would turn from ${pv.worldBefore} to ${pv.worldAfter}.` : ''} ${pv.influenceAfter > 0 ? 'You can add another card, or' : ''} Tab to Confirm.`,
+      `${t('ui.decide.saySelectedCard', 'Selected {name}.', { name: tr(c.title) })} ${pv.impacts.map((x) => tr(impactWords(x))).join(', ')}.${turn} ${pv.influenceAfter > 0 ? t('ui.decide.sayAnother', 'You can add another card, or Tab to Confirm.') : t('ui.decide.sayConfirm', 'Tab to Confirm.')}`,
     );
     return true;
   };
 
-  handEl.addEventListener('click', async (ev) => {
-    const t = ev.target as HTMLElement;
-    const det = t.closest<HTMLButtonElement>('[data-details]');
+  // delegated to the host: the frame may be re-drawn (a change of language) while the panel is open
+  host.addEventListener('click', async (ev) => {
+    const tg = ev.target as HTMLElement;
+    if (!handEl.contains(tg)) return;
+    const det = tg.closest<HTMLButtonElement>('[data-details]');
     if (det) {
       const id = det.dataset.details!;
       const v = views().cards.find((x) => x.id === id)!;
@@ -256,7 +287,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
       render(`[data-details="${id}"]`, moved ? { id, on: !sel } : undefined);
       return;
     }
-    const b = t.closest<HTMLButtonElement>('.pcard');
+    const b = tg.closest<HTMLButtonElement>('.pcard');
     if (!b) return;
     const id = b.dataset.card!;
     const was = picks.some((p) => p.id === id);
@@ -276,10 +307,33 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
       if (!host.contains(document.activeElement)) focusFirst();
     });
   });
-  announce(`Your decisions, ${date}. ${hand.length} cards in ${families.length === 1 ? 'one family' : `${families.length} families`}: ${families.map((f) => f.name).join(', ')}. Play as many as your Influence allows: ${s.influence}. ${adv.text}`);
+  announce(
+    t('ui.decide.sayOpen', 'Your decisions, {date}. {cards} {families}: {names}. Play as many as your Influence allows: {n}. {advice}', {
+      date,
+      cards: tn('ui.decide.sayCards', hand.length, { one: '{n} card in', other: '{n} cards in' }),
+      families: tn('ui.decide.sayFamilies', families.length, { one: 'one family', other: '{n} families' }),
+      names: families.map(familyName).join(t('ui.list.separator', ', ')),
+      n: s.influence,
+      advice: tr(adv.text),
+    }),
+  );
+
+  // a change of language re-draws the panel in place, the selection and focus kept
+  const relabel = onLangChange(() => {
+    const focused = document.activeElement as HTMLElement | null;
+    const keep = focused && host.contains(focused) ? (focused.dataset.card ? `[data-card="${focused.dataset.card}"]` : focused.dataset.details ? `[data-details="${focused.dataset.details}"]` : null) : null;
+    frame();
+    placeAdv();
+    handEl.classList.remove(...DENSITY);
+    render(keep ?? undefined);
+  });
 
   const a = await new Promise<string>((resolve) => {
-    host.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((b) => b.addEventListener('click', () => resolve(b.dataset.action!)));
+    // delegated: the frame may be re-drawn (a change of language) while the panel is open
+    host.addEventListener('click', (ev) => {
+      const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('[data-action]');
+      if (b && host.contains(b) && !b.disabled) resolve(b.dataset.action!);
+    });
     host.addEventListener('keydown', (ev) => {
       if (ev.key === 'Escape' && !modalOpen()) {
         ev.preventDefault();
@@ -287,6 +341,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
       }
     });
   });
+  relabel();
   // played: the chosen cards rise with a small "Played" stamp for a moment before the map comes back (skipped with
   // reduced motion: the gauges' change says it). Nothing can be pressed meanwhile.
   if (a === 'confirm' && picks.length && !reducedMotion()) {

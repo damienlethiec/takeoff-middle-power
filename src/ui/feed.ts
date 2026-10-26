@@ -13,6 +13,7 @@
 // items stay in the page (a map pin opens their group) and are still announced as they arrive.
 
 import type { Change, FeedItem, FeedRound, SocialKind } from '../engine/types';
+import { t, tn, tr } from '../i18n';
 import { esc, provTag } from './format';
 import { friendPortrait } from './friends';
 
@@ -72,10 +73,10 @@ export class Feed {
   ) {
     host.innerHTML = `
       <div class="feed-head">
-        <h2 class="feed-h" id="feed-h">News</h2>
+        <h2 class="feed-h" id="feed-h">${esc(t('ui.feed.title', 'News'))}</h2>
         <div class="feed-tabs" role="tablist" aria-labelledby="feed-h">
-          <button type="button" role="tab" id="feed-tab-now" aria-selected="true" aria-controls="feed-now">This round</button>
-          <button type="button" role="tab" id="feed-tab-past" aria-selected="false" aria-controls="feed-past" tabindex="-1">Earlier</button>
+          <button type="button" role="tab" id="feed-tab-now" aria-selected="true" aria-controls="feed-now">${esc(t('ui.feed.now', 'This round'))}</button>
+          <button type="button" role="tab" id="feed-tab-past" aria-selected="false" aria-controls="feed-past" tabindex="-1">${esc(t('ui.feed.past', 'Earlier'))}</button>
         </div>
       </div>
       <div class="feed-panel" role="tabpanel" id="feed-now" aria-labelledby="feed-tab-now" tabindex="0"></div>
@@ -131,20 +132,20 @@ export class Feed {
    * Show the feed: the current round's items up to time `t` (0–1 while the clock runs; 1 or more after it),
    * with "What changed" on top once the six months are over, and earlier rounds in their tab.
    */
-  render(rounds: FeedRound[], t: number, done: boolean) {
+  render(rounds: FeedRound[], time: number, done: boolean) {
     this.rounds = rounds;
-    this.lastT = t;
+    this.lastT = time;
     this.lastDone = done;
     const cur = rounds.at(-1);
-    const items = cur ? cur.items.filter((x) => x.at <= t || (done && x.at <= 1)) : [];
+    const items = cur ? cur.items.filter((x) => x.at <= time || (done && x.at <= 1)) : [];
     const sig = `${cur?.round}:${items.map((x) => x.id + (x.detail ?? '')).join()}:${done}`;
     const keep = this.focusedId();
     if (sig !== this.shownSig) {
       this.shownSig = sig;
       const summary = done && cur ? this.summary(cur.summary, 'h3') : '';
       const list = [...items].reverse();
-      this.now.innerHTML = `${summary}<h3 class="feed-date">${cur ? esc(cur.date) : 'Before the first round'}</h3>${
-        list.length ? this.list(list, `now-${cur?.round ?? 0}`) : '<p class="muted small">Nothing yet: news appears here as the six months play out.</p>'
+      this.now.innerHTML = `${summary}<h3 class="feed-date">${esc(cur ? tr(cur.date) : t('ui.feed.before', 'Before the first round'))}</h3>${
+        list.length ? this.list(list, `now-${cur?.round ?? 0}`) : `<p class="muted small">${esc(t('ui.feed.nothing', 'Nothing yet: news appears here as the six months play out.'))}</p>`
       }`;
     }
     const earlier = rounds.slice(0, -1).reverse();
@@ -154,12 +155,12 @@ export class Feed {
       this.past.innerHTML = earlier.length
         ? earlier
             .map(
-              (r) => `<section class="feed-round" aria-labelledby="fr-${r.round}"><h3 class="feed-date" id="fr-${r.round}">${esc(r.date)} · round ${r.round}</h3>
+              (r) => `<section class="feed-round" aria-labelledby="fr-${r.round}"><h3 class="feed-date" id="fr-${r.round}">${esc(t('ui.feed.dateRound', '{date} · round {round}', { date: tr(r.date), round: r.round }))}</h3>
                 ${this.summary(r.summary)}
                 ${this.list([...r.items].reverse(), `past-${r.round}`)}</section>`,
             )
             .join('')
-        : '<p class="muted small">Earlier rounds appear here.</p>';
+        : `<p class="muted small">${esc(t('ui.feed.earlier', 'Earlier rounds appear here.'))}</p>`;
     }
     // re-rendering never takes focus away from the item the player is on
     if (keep && document.activeElement === document.body) this.el.querySelector<HTMLElement>(`[data-id="${CSS.escape(keep)}"]`)?.focus({ preventScroll: true });
@@ -171,9 +172,10 @@ export class Feed {
   }
 
   private summary(list: Change[], h = 'h4'): string {
-    if (!list.length) return `<section class="fd-sum" aria-label="What changed"><${h} class="fd-sum-h">What changed</${h}><p class="muted small">A quiet six months: only the usual drift as the race goes on.</p></section>`;
-    return `<section class="fd-sum" aria-label="What changed"><${h} class="fd-sum-h">What changed</${h}><ul>${list
-      .map((c) => `<li class="${c.tone > 0 ? 'good' : c.tone < 0 ? 'bad' : 'flat'}"><b class="num">${esc(c.text)}</b> <span>${esc(c.cause)}</span><span class="sr-only">${c.tone > 0 ? ' (good for you)' : c.tone < 0 ? ' (bad for you)' : ''}</span></li>`)
+    const title = esc(t('ui.feed.changed', 'What changed'));
+    if (!list.length) return `<section class="fd-sum" aria-label="${title}"><${h} class="fd-sum-h">${title}</${h}><p class="muted small">${esc(t('ui.feed.quiet', 'A quiet six months: only the usual drift as the race goes on.'))}</p></section>`;
+    return `<section class="fd-sum" aria-label="${title}"><${h} class="fd-sum-h">${title}</${h}><ul>${list
+      .map((c) => `<li class="${c.tone > 0 ? 'good' : c.tone < 0 ? 'bad' : 'flat'}"><b class="num">${esc(tr(c.text))}</b> <span>${esc(tr(c.cause))}</span><span class="sr-only">${c.tone > 0 ? ` ${esc(t('ui.feed.good', '(good for you)'))}` : c.tone < 0 ? ` ${esc(t('ui.feed.bad', '(bad for you)'))}` : ''}</span></li>`)
       .join('')}</ul></section>`;
   }
 
@@ -186,7 +188,7 @@ export class Feed {
     const rest = items.filter((x) => folded.has(x.id));
     const open = this.open.has(key) || rest.some((x) => x.id === this.selected);
     const more = rest.length
-      ? `<li class="fd-more"><button type="button" class="fd-more-btn" data-id="more-${esc(key)}" data-key="${esc(key)}" data-n="${rest.length}" data-what="${esc(foldWord(rest))}" aria-expanded="${open}" aria-controls="fdm-${esc(key)}">${esc(foldLabel(rest.length, foldWord(rest), open))}</button>
+      ? `<li class="fd-more"><button type="button" class="fd-more-btn" data-id="more-${esc(key)}" data-key="${esc(key)}" data-n="${rest.length}" data-what="${esc(foldWhat(rest))}" aria-expanded="${open}" aria-controls="fdm-${esc(key)}">${esc(foldLabel(rest.length, foldWhat(rest), open))}</button>
         <ul class="fd-list fd-more-list" id="fdm-${esc(key)}"${open ? '' : ' hidden'}>${rest.map((x) => this.item(x)).join('')}</ul></li>`
       : '';
     return `<ul class="fd-list">${shown.map((x) => this.item(x)).join('')}${more}</ul>`;
@@ -198,7 +200,7 @@ export class Feed {
     if (open) this.open.add(key);
     else this.open.delete(key);
     b.setAttribute('aria-expanded', String(open));
-    b.textContent = foldLabel(Number(b.dataset.n), b.dataset.what!, open);
+    b.textContent = foldLabel(Number(b.dataset.n), b.dataset.what as FoldWhat, open);
     const list = this.el.querySelector<HTMLElement>(`#fdm-${CSS.escape(key)}`);
     if (list) list.hidden = !open;
   }
@@ -207,8 +209,8 @@ export class Feed {
     const tone = x.tone > 0 ? ' good' : x.tone < 0 ? ' bad' : '';
     return `<li><button type="button" class="fd-item k-${x.kind}${x.social ? ` s-${x.social.kind}` : ''}${tone}${isFlavour(x) ? ' light' : ''}${this.selected === x.id ? ' on' : ''}" data-id="${esc(x.id)}" aria-pressed="${this.selected === x.id}">
       <span class="fd-ico">${x.kind === 'lea' && x.mood ? friendPortrait(x.friend ?? 'lea', x.mood) : itemIcon(x)}</span>
-      <span class="fd-body"><span class="fd-kl"><span class="fd-k">${esc(x.label)}</span>${x.prov ? ` ${provTag(x.prov)}` : ''}</span><span class="fd-t">${esc(x.text)}</span>${x.detail ? `<span class="fd-d">${esc(x.detail)}</span>` : ''}</span>
-      <span class="sr-only">: show on the map</span>
+      <span class="fd-body"><span class="fd-kl"><span class="fd-k">${esc(tr(x.label))}</span>${x.prov ? ` ${provTag(x.prov)}` : ''}</span><span class="fd-t">${esc(tr(x.text))}</span>${x.detail ? `<span class="fd-d">${esc(tr(x.detail))}</span>` : ''}</span>
+      <span class="sr-only">${esc(t('ui.feed.showOnMap', ': show on the map'))}</span>
     </button></li>`;
   }
 
@@ -248,11 +250,20 @@ export class Feed {
   }
 }
 
-/** "headlines", "voices" or "headlines and voices", for what a fold holds. */
-function foldWord(items: FeedItem[]): string {
+type FoldWhat = 'both' | 'headlines' | 'voices';
+/** What a fold holds: headlines, voices, or both. */
+function foldWhat(items: FeedItem[]): FoldWhat {
   const h = items.some((x) => x.kind === 'headline');
   const v = items.some((x) => x.kind === 'voice');
-  return h && v ? 'headlines and voices' : h ? (items.length > 1 ? 'headlines' : 'headline') : items.length > 1 ? 'voices' : 'voice';
+  return h && v ? 'both' : h ? 'headlines' : 'voices';
 }
 /** "+5 more headlines" when folded, "Hide 5 headlines" when open. */
-const foldLabel = (n: number, what: string, open: boolean) => (open ? `Hide ${n} ${what}` : `+${n} more ${what}`);
+function foldLabel(n: number, what: FoldWhat, open: boolean): string {
+  if (what === 'both')
+    return open
+      ? tn('ui.feed.hideBoth', n, { one: 'Hide {n} headline or voice', other: 'Hide {n} headlines and voices' })
+      : tn('ui.feed.moreBoth', n, { one: '+{n} more headline or voice', other: '+{n} more headlines and voices' });
+  if (what === 'headlines')
+    return open ? tn('ui.feed.hideHeadlines', n, { one: 'Hide {n} headline', other: 'Hide {n} headlines' }) : tn('ui.feed.moreHeadlines', n, { one: '+{n} more headline', other: '+{n} more headlines' });
+  return open ? tn('ui.feed.hideVoices', n, { one: 'Hide {n} voice', other: 'Hide {n} voices' }) : tn('ui.feed.moreVoices', n, { one: '+{n} more voice', other: '+{n} more voices' });
+}

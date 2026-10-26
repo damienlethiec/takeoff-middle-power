@@ -14,6 +14,8 @@ export function pseudo(en: string): string {
     .join('');
   // lengthen by about a third (German and Polish run about 30% longer than English)
   const letters = en.replace(/\{\w+\}/g, '').length;
-  const pad = letters > 3 ? ' ' + '~'.repeat(Math.max(1, Math.round(letters * 0.35) - 1)) : '';
+  // in words of up to six characters, as real text breaks (German compounds aside)
+  const extra = letters > 3 ? Math.max(1, Math.round(letters * 0.35) - 1) : 0;
+  const pad = extra ? ` ${'~'.repeat(extra).replace(/(.{6})(?=.)/g, '$1 ')}` : '';
   return `⟦${out}${pad}⟧`;
 }

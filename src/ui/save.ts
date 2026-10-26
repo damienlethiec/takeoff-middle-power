@@ -13,6 +13,7 @@
 
 import type { GameState } from '../engine/types';
 import { TUNING } from '../data/tuning';
+import { t } from '../i18n';
 
 export const SAVE_KEY = 'takeoff.v4.save';
 /** Bump when the envelope changes. A GameState of another shape is caught by `sameShape` anyway. */
@@ -125,10 +126,10 @@ export function clearSave(s?: Store) {
 
 /**
  * Every localStorage key this game writes, all prefixed `takeoff.` (the save, the tutorial switch, the sound and its
- * volume, single-key shortcuts). Other games served from the same origin keep their own keys. A test checks that
+ * volume, single-key shortcuts, the news seen in the last games, the language). Other games served from the same origin keep their own keys. A test checks that
  * every `takeoff.` key in src/ui is listed here.
  */
-export const GAME_KEYS = [SAVE_KEY, 'takeoff.v4.tutorial', 'takeoff.sound', 'takeoff.soundVolume', 'takeoff.singleKeyShortcuts', 'takeoff.recent'] as const;
+export const GAME_KEYS = [SAVE_KEY, 'takeoff.v4.tutorial', 'takeoff.sound', 'takeoff.soundVolume', 'takeoff.singleKeyShortcuts', 'takeoff.recent', 'takeoff.lang'] as const;
 
 /** What the player saw in their last two finished games: { games: [{ seed, ids }] }, newest last. The next game
  *  draws those headlines, voices, letters, social events and requests less often (TUNING.news.recentWeight). */
@@ -189,9 +190,9 @@ export function resumeRound(env: SaveEnvelope): number {
   return env.stage === 'between' && env.state.phase === 'play' ? env.state.round + 1 : env.state.round;
 }
 
-/** "H2 2028, round 4", or "the ending" when only the ending was left. */
+/** "H2 2028, round 4", or "see how it ends" when only the ending was left (`dateLabel` in the player's language). */
 export function saveLabel(env: SaveEnvelope, dateLabel: (round: number) => string): string {
-  if (env.state.phase === 'ended') return 'see how it ends';
+  if (env.state.phase === 'ended') return t('ui.save.ending', 'see how it ends');
   const r = resumeRound(env);
-  return `${dateLabel(r)}, round ${r}`;
+  return t('ui.save.label', '{date}, round {round}', { date: dateLabel(r), round: r });
 }

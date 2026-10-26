@@ -11,6 +11,13 @@
 //
 // `musicFor` is the pure part (world → musical parameters), unit-tested; `Soundtrack` plays it.
 
+import { t } from '../i18n';
+import { esc } from './format';
+
+/** "Sound on" / "Sound off" (the toggle's name; its visible state word is stateWord). */
+const soundName = (on: boolean) => (on ? t('ui.sound.on', 'Sound on') : t('ui.sound.off', 'Sound off'));
+const stateWord = (on: boolean) => (on ? t('ui.sound.stateOn', 'on') : t('ui.sound.stateOff', 'off'));
+
 export type Mood = 'calm' | 'tense' | 'tipped' | 'hope' | 'sombre';
 export interface MusicWorld {
   aiPower: number;
@@ -181,9 +188,9 @@ export class Soundtrack {
    * "Sound on" or "Sound off". */
   html(): string {
     if (!this.supported) return '';
-    return `<div class="snd" role="group" aria-label="Soundtrack">
-      <button type="button" class="snd-btn" data-snd-toggle aria-label="Sound ${this.on ? 'on' : 'off'}" title="Sound" aria-pressed="${this.on}"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="snd-wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="snd-mute" d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="snd-word">Sound</span> <span class="snd-state">${this.on ? 'on' : 'off'}</span></button>
-      <label class="snd-pop" ${this.on ? '' : 'hidden'}><span class="snd-vl">Music volume</span><input type="range" class="snd-vol" data-snd-vol min="0" max="100" step="5" value="${this.volume}" aria-valuetext="${this.volume}%" /></label>
+    return `<div class="snd" role="group" aria-label="${esc(t('ui.sound.group', 'Soundtrack'))}">
+      <button type="button" class="snd-btn" data-snd-toggle aria-label="${esc(soundName(this.on))}" title="${esc(t('ui.sound.word', 'Sound'))}" aria-pressed="${this.on}"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="snd-wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="snd-mute" d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="snd-word">${esc(t('ui.sound.word', 'Sound'))}</span> <span class="snd-state">${esc(stateWord(this.on))}</span></button>
+      <label class="snd-pop" ${this.on ? '' : 'hidden'}><span class="snd-vl">${esc(t('ui.sound.volume', 'Music volume'))}</span><input type="range" class="snd-vol" data-snd-vol min="0" max="100" step="5" value="${this.volume}" aria-valuetext="${this.volume}%" /></label>
     </div>`;
   }
 
@@ -226,9 +233,9 @@ export class Soundtrack {
       const btn = box.querySelector('[data-snd-toggle]');
       btn?.setAttribute('aria-pressed', String(on));
       // the name carries the state too (it matches the visible "Sound on"; on phones the button is icon-only)
-      btn?.setAttribute('aria-label', `Sound ${on ? 'on' : 'off'}`);
+      btn?.setAttribute('aria-label', soundName(on));
       const st = box.querySelector('.snd-state');
-      if (st) st.textContent = on ? 'on' : 'off';
+      if (st) st.textContent = stateWord(on);
       const pop = box.querySelector<HTMLElement>('.snd-pop');
       if (pop) pop.hidden = !on;
       if (!on) this.openPop(box, false);

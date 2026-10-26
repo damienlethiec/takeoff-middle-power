@@ -6,51 +6,81 @@
 
 import type { AnswerView, RequestOutcome, RequestView, Side } from '../../engine/types';
 import { announce, reducedMotion, tryFocus } from '../a11y';
+import { t, tc, th, tr } from '../../i18n';
 import { chips, esc, link } from '../format';
 import { glossed } from '../glossary';
 import { openModal, wait } from '../modal';
 import { isFriend, portrait } from '../portraits';
 
+const safetyTag = () => t('ui.request.tagSafety', 'Real safety work');
+const claimTag = () => t('ui.request.tagClaim', 'The lab’s own claim');
+const noChange = () => t('ui.request.noChange', 'No visible change');
+const charName = (v: RequestView) => tc(`character.${v.character.id}.name`, v.character.name);
+const charRole = (v: RequestView) => tc(`character.${v.character.id}.role`, v.character.role);
+
+/** An answer's effects in words, for its accessible name and the announcement when the player looks at it. */
+function answerWords(a: AnswerView): string {
+  const parts = [tr(a.words)];
+  if (a.world) parts.push(t('ui.request.worldWouldTurn', 'The world would turn: {world}', { world: tr(a.world) }));
+  if (a.why) parts.push(t('ui.request.cost', 'Cost: {why}', { why: tr(a.why) }));
+  if (a.tag === 'safety') parts.push(safetyTag());
+  if (a.tag === 'claim') parts.push(claimTag());
+  return parts.join('. ');
+}
+
 function answerButton(a: AnswerView): string {
   const arrow = a.side === 'left' ? '←' : '→';
-  const tag = a.tag === 'safety' ? '<span class="ans-tag safety">Real safety work</span>' : a.tag === 'claim' ? '<span class="ans-tag claim">The lab’s own claim</span>' : '';
+  const tag = a.tag === 'safety' ? `<span class="ans-tag safety">${esc(safetyTag())}</span>` : a.tag === 'claim' ? `<span class="ans-tag claim">${esc(claimTag())}</span>` : '';
   // named by its content: the label, then the effects in words (the chips are hidden from screen readers, which hear the words)
-  const words = `. ${a.words}${a.world ? `. The world would turn: ${a.world}` : ''}${a.why ? `. Cost: ${a.why}` : ''}${a.tag === 'safety' ? '. Real safety work' : a.tag === 'claim' ? '. The lab’s own claim' : ''}`;
+  const words = `. ${answerWords(a)}`;
   return `<button type="button" class="ans ans-${a.side}" data-side="${a.side}" aria-keyshortcuts="Arrow${a.side === 'left' ? 'Left' : 'Right'}">
-    <span class="ans-top"><kbd aria-hidden="true">${arrow}</kbd><span class="ans-label">${esc(a.label)}</span><span class="sr-only">${esc(words)}</span></span>
-    <span class="ans-chips" aria-hidden="true">${a.chips.length ? chips(a.chips, false) : '<span class="chip flat">No visible change</span>'}</span>
-    ${a.world ? `<span class="ans-world" aria-hidden="true">If AI tipped now: ${esc(a.world)}</span>` : ''}
-    ${a.why ? `<span class="ans-why" aria-hidden="true">${esc(a.why)}</span>` : ''}
+    <span class="ans-top"><kbd aria-hidden="true">${arrow}</kbd><span class="ans-label">${esc(tr(a.label))}</span><span class="sr-only">${esc(words)}</span></span>
+    <span class="ans-chips" aria-hidden="true">${a.chips.length ? chips(a.chips, false) : `<span class="chip flat">${esc(noChange())}</span>`}</span>
+    ${a.world ? `<span class="ans-world" aria-hidden="true">${esc(t('ui.request.ifTipped', 'If AI tipped now: {world}', { world: tr(a.world) }))}</span>` : ''}
+    ${a.why ? `<span class="ans-why" aria-hidden="true">${esc(tr(a.why))}</span>` : ''}
     ${tag ? `<span aria-hidden="true">${tag}</span>` : ''}
   </button>`;
 }
 
 const KIND = (v: RequestView) =>
-  v.kind === 'prepares' && v.threatName ? `About a growing threat: ${v.threatName}` : v.kind === 'followup' ? 'Follow-up to an earlier answer' : v.kind === 'opportunity' ? 'Opportunity' : '';
+  v.kind === 'prepares' && v.threatName
+    ? t('ui.request.kindThreat', 'About a growing threat: {threat}', { threat: tr(v.threatName) })
+    : v.kind === 'followup'
+      ? t('ui.request.kindFollowup', 'Follow-up to an earlier answer')
+      : v.kind === 'opportunity'
+        ? t('ui.request.kindOpportunity', 'Opportunity')
+        : '';
 
 function requestHtml(v: RequestView, date: string): string {
   const kind = KIND(v);
   // glossary terms: marked once on the card, in the request first
   const seen = new Set<string>();
-  const basis = v.basis.kind === 'ai2027' ? 'AI 2027' : v.basis.kind === 'cfg' ? 'the CFG scenarios' : v.basis.kind === 'game' ? 'a device of the game' : 'the real world today';
+  const basis =
+    v.basis.kind === 'ai2027'
+      ? t('ui.request.echoAi2027', 'This request echoes AI 2027:')
+      : v.basis.kind === 'cfg'
+        ? t('ui.request.echoCfg', 'This request echoes the CFG scenarios:')
+        : v.basis.kind === 'game'
+          ? t('ui.request.echoGame', 'This request echoes a device of the game:')
+          : t('ui.request.echoReal', 'This request echoes the real world today:');
   return `<div class="req-card asking c-${v.character.id}" data-coach="request">
-    <div class="req-top"><span class="dateline">${esc(date)} · Request${v.count > 1 ? ` ${v.index} of ${v.count}` : ''}</span>${kind ? `<span class="req-kind k-${v.kind}">${esc(kind)}</span>` : ''}</div>
-    <div class="req-who">${portrait(v.character.id, 'worried')}<div><h2 id="req-name" tabindex="-1" data-autofocus>${esc(v.character.name)}</h2><p class="req-role">${esc(v.character.role)}</p></div></div>
-    <p class="req-text" id="req-text">“${glossed(v.text, seen)}”</p>
-    <p class="req-free">Free of Influence: the cost is in the answer.</p>
-    <div class="req-answers" role="group" aria-label="Your answer">${answerButton(v.left)}${answerButton(v.right)}</div>
-    <details class="learn"><summary>Learn more</summary><p>${glossed(v.learnMore.text, seen)}</p><p class="src">Source: ${link(v.learnMore.source)}</p><p class="basis">This request echoes ${esc(basis)}: ${esc(v.basis.ref)}.</p></details>
-    <p class="req-hint" aria-hidden="true">Click an answer, swipe the card, or press <kbd>←</kbd> <kbd>→</kbd> (once to look, twice to answer).</p>
+    <div class="req-top"><span class="dateline">${esc(date)} · ${esc(v.count > 1 ? t('ui.request.nOfCount', 'Request {index} of {count}', { index: v.index, count: v.count }) : t('ui.request.dateline', 'Request'))}</span>${kind ? `<span class="req-kind k-${v.kind}">${esc(kind)}</span>` : ''}</div>
+    <div class="req-who">${portrait(v.character.id, 'worried')}<div><h2 id="req-name" tabindex="-1" data-autofocus>${esc(charName(v))}</h2><p class="req-role">${esc(charRole(v))}</p></div></div>
+    <p class="req-text" id="req-text">${esc(t('ui.quote.open', '“'))}${glossed(v.text, seen)}${esc(t('ui.quote.close', '”'))}</p>
+    <p class="req-free">${esc(t('ui.request.free', 'Free of Influence: the cost is in the answer.'))}</p>
+    <div class="req-answers" role="group" aria-label="${esc(t('ui.request.yourAnswer', 'Your answer'))}">${answerButton(v.left)}${answerButton(v.right)}</div>
+    <details class="learn"><summary>${esc(t('ui.request.learnMore', 'Learn more'))}</summary><p>${glossed(v.learnMore.text, seen)}</p><p class="src">${esc(t('ui.fact.source', 'Source:'))} ${link(v.learnMore.source)}</p><p class="basis">${esc(basis)} <span lang="en">${esc(v.basis.ref)}</span>.</p></details>
+    <p class="req-hint" aria-hidden="true">${th('ui.request.hint', 'Click an answer, swipe the card, or press {left} {right} (once to look, twice to answer).', { left: '<kbd>←</kbd>', right: '<kbd>→</kbd>' })}</p>
   </div>`;
 }
 
 function outcomeHtml(v: RequestView, a: AnswerView, o: RequestOutcome): string {
   return `<div class="req-card answered c-${v.character.id}">
-    <div class="req-who">${portrait(v.character.id, isFriend(v.character.id) ? 'relieved' : 'hopeful')}<div><h2 id="req-name" tabindex="-1">${esc(v.character.name)}</h2><p class="req-role">You answered: <b>${esc(a.label)}</b></p></div></div>
-    <p class="reaction" id="req-reaction">“${esc(o.reaction)}”</p>
-    <p class="pc-chips" aria-label="What changed">${o.chips.length ? chips(o.chips) : '<span class="chip flat">No visible change</span>'}</p>
-    ${o.notes.map((n) => `<p class="note-line">${esc(n)}</p>`).join('')}
-    <div class="row-btns"><button type="button" class="btn-primary" data-primary data-action="ok">Back to the map <kbd>Enter</kbd></button></div>
+    <div class="req-who">${portrait(v.character.id, isFriend(v.character.id) ? 'relieved' : 'hopeful')}<div><h2 id="req-name" tabindex="-1">${esc(charName(v))}</h2><p class="req-role">${th('ui.request.answered', 'You answered: {label}', { label: `<b>${esc(tr(a.label))}</b>` })}</p></div></div>
+    <p class="reaction" id="req-reaction">${esc(t('ui.quote.open', '“'))}${esc(tr(o.reaction))}${esc(t('ui.quote.close', '”'))}</p>
+    <p class="pc-chips" aria-label="${esc(t('ui.request.whatChanged', 'What changed'))}">${o.chips.length ? chips(o.chips) : `<span class="chip flat">${esc(noChange())}</span>`}</p>
+    ${o.notes.map((n) => `<p class="note-line">${esc(tr(n))}</p>`).join('')}
+    <div class="row-btns"><button type="button" class="btn-primary" data-primary data-action="ok">${esc(t('ui.common.backToMap', 'Back to the map'))} <kbd>Enter</kbd></button></div>
   </div>`;
 }
 
@@ -131,7 +161,8 @@ export async function showRequest(v: RequestView, date: string, answer: (side: S
     await wait(reducedMotion() ? 120 : 260);
     c.outerHTML = outcomeHtml(v, a, outcome);
     tryFocus(m.el.querySelector('[data-primary]'));
-    announce(`You answered ${a.label}. ${v.character.name}: ${outcome.reaction} ${outcome.chips.map((x) => `${x.tone === 'up' ? 'Plus' : 'Minus'}: ${x.text}`).join(', ')}.`);
+    const moved = outcome.chips.map((x) => `${x.tone === 'up' ? t('ui.chip.plus', 'Plus:') : t('ui.chip.minus', 'Minus:')} ${tr(x.text)}`).join(', ');
+    announce(t('ui.request.sayAnswered', 'You answered {label}. {name}: {reaction} {moved}.', { label: tr(a.label), name: charName(v), reaction: tr(outcome.reaction), moved }));
   };
 
   m.el.addEventListener('click', (e) => {
@@ -147,11 +178,15 @@ export async function showRequest(v: RequestView, date: string, answer: (side: S
     if (a?.matches(`.ans-${side}`)) void choose(side);
     else {
       look(side, true);
-      announce(`${v[side].label}. ${v[side].words}. Press ${e.key === 'ArrowLeft' ? 'left' : 'right'} again to answer.`);
+      announce(
+        side === 'left'
+          ? t('ui.request.sayLookLeft', '{label}. {words}. Press left again to answer.', { label: tr(v[side].label), words: tr(v[side].words) })
+          : t('ui.request.sayLookRight', '{label}. {words}. Press right again to answer.', { label: tr(v[side].label), words: tr(v[side].words) }),
+      );
     }
   });
   enableSwipe(card(), (s) => look(s, false), (s) => void choose(s));
-  announce(`${v.character.name}, ${v.character.role}, has a request. The clock is stopped.`);
+  announce(t('ui.request.sayArrives', '{name}, {role}, has a request. The clock is stopped.', { name: charName(v), role: charRole(v) }));
   // after focus has moved into the card (openModal does it on the next frame)
   if (onOpen) requestAnimationFrame(() => requestAnimationFrame(() => void onOpen()));
 

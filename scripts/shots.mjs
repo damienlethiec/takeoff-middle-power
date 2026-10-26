@@ -1,5 +1,6 @@
 // Screenshots of every v4 screen at 1280×800 and 390×844, for review and for docs/screenshots/v4.
 //   node scripts/shots.mjs [outDir]   (builds the game and serves it on port 5177, or SHOTS_PORT; A11Y_URL reuses a server)
+//   SHOTS_QUERY=lang=xx node scripts/shots.mjs /tmp/xx   adds to the address (here the pseudo-locale, to spot cut or untranslated text)
 // Seed 9: a fast game (tipping point), with the friends' postcards (Léa in round 1, Malik in round 2), requests,
 // threats, a leak and Breaking news.
 // The intro and the tutorial are on, so the first tips are captured too.
@@ -35,7 +36,7 @@ try {
       await page.keyboard.press('Escape');
       await advance(page, 300);
     };
-    await page.goto(`${server.url}?seed=9`);
+    await page.goto(`${server.url}?seed=9${process.env.SHOTS_QUERY ? `&${process.env.SHOTS_QUERY}` : ''}`);
     await freeze(page);
     await advance(page, 400);
     await shot('intro-1');

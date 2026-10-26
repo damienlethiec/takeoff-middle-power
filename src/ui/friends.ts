@@ -3,7 +3,9 @@
 // Lyon; Malik, your old flatmate, an engineer at an AI lab in San Francisco. Decorative wherever the name is
 // already given in words; with `alt`, an image with that name. Colours are in styles.css (.friend-face.f-<id>).
 
+import { FRIENDS } from '../data/friends';
 import type { FriendId, FriendMood } from '../engine/types';
+import { t, tc } from '../i18n';
 
 type FriendKey = FriendId;
 type Mood = FriendMood;
@@ -28,6 +30,11 @@ const MOUTH: Record<Mood, string> = {
 };
 
 export const MOOD_WORD: Record<Mood, string> = { hopeful: 'hopeful', worried: 'worried', relieved: 'relieved', sad: 'sad' };
+/** A mood in the player's language (for a portrait's name). */
+export const moodWord = (m: Mood): string =>
+  ({ hopeful: t('ui.mood.hopeful', 'hopeful'), worried: t('ui.mood.worried', 'worried'), relieved: t('ui.mood.relieved', 'relieved'), sad: t('ui.mood.sad', 'sad') })[m];
+/** A friend's name as the game says it ("Léa", "Your mother"), in the player's language. */
+export const friendName = (f: FriendKey): string => tc(`friend.${f}.name`, FRIENDS[f].name);
 
 /** What each friend looks like, layer by layer: behind the head, the body, the head, on top of it, over the face. */
 interface Look {

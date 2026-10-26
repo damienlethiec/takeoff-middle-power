@@ -86,6 +86,9 @@ const translated = (key: string): string | undefined => {
 };
 const untranslated = (en: string) => (current === 'xx' ? pseudo(en) : en);
 
+/** Does the current language translate this key? */
+export const has = (key: string): boolean => translated(key) !== undefined;
+
 /** A UI string in the current language. */
 export function t(key: string, en: string, vars?: Vars): string {
   return fill(translated(key) ?? untranslated(en), vars);
@@ -123,7 +126,8 @@ export function tr(en: string | null | undefined): string {
   return matcher.resolve(en) ?? untranslated(en);
 }
 
-const englishMatcher = () => makeMatcher(englishEntries(), () => undefined, { untranslated: (x) => x, plural: () => 'other', lowerFirst: true, isTemplate });
+let english: Matcher | null = null;
+const englishMatcher = () => (english ??= makeMatcher(englishEntries(), () => undefined, { untranslated: (x) => x, plural: () => 'other', lowerFirst: true, isTemplate }));
 
 /** Is this English string known to the catalog (an entry, or a template whose parts are known)? For tests. */
 export function known(en: string): boolean {
@@ -144,6 +148,9 @@ export function tc(key: string, en: string): string {
   if (current === 'en') return en;
   return translated(key) ?? tr(en);
 }
+
+/** A word lowered for the middle of a sentence ("Watch" → "watch"); German keeps its capitals (nouns). */
+export const lcFirst = (s: string) => (current === 'de' ? s : s.replace(/^(\p{Lu})(?=\p{Ll})/u, (c) => c.toLowerCase()));
 
 /** A number in the current language (integers stay as they are; decimals get the local separator). */
 export function num(n: number): string {

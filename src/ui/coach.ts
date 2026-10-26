@@ -5,6 +5,7 @@
 // tips off never saw v4's: that is why the first-run tutorial seemed gone.
 
 import { TIPS, type TipId } from '../data/copy';
+import { t, tc } from '../i18n';
 import { esc } from './format';
 import { modalOpen, openModal } from './modal';
 
@@ -85,10 +86,10 @@ export class Coach {
     if (!this.enabled) return;
     for (const el of els) el.classList.add('coach-target');
     const m = openModal(
-      `<div class="dateline">Tip</div>
-       <h2>${esc(tip.title)}</h2>
-       <div class="coach-text">${tipHtml(tip.text)}</div>
-       <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">Got it <kbd>Enter</kbd></button><button type="button" class="btn-link" data-action="off">Turn off tips</button></div>`,
+      `<div class="dateline">${esc(t('ui.tip.dateline', 'Tip'))}</div>
+       <h2>${esc(tc(`tip.${id}.title`, tip.title))}</h2>
+       <div class="coach-text">${tipHtml(tc(`tip.${id}.text`, tip.text))}</div>
+       <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.tip.ok', 'Got it'))} <kbd>Enter</kbd></button><button type="button" class="btn-link" data-action="off">${esc(t('ui.tip.off', 'Turn off tips'))}</button></div>`,
       // over a dialog already open (the decision screen), the tip stacks on it instead of closing it
       { cls: 'coach', overlayCls: 'coach-ov', describedBy: '.coach-text', stacked: modalOpen() },
     );

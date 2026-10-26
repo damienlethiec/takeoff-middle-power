@@ -8,6 +8,8 @@
 
 import type { EuropeAi, FriendId, FriendMood, RegionId, SocialKind, ThreatView } from '../engine/types';
 import { THREAT_BY_ID } from '../data/threats';
+import { FRIENDS } from '../data/friends';
+import { lcFirst, t, tc, tn, tr } from '../i18n';
 import { esc, ICON } from './format';
 import { KIND_ICON, SOCIAL_ICON } from './feed';
 import { friendPortrait } from './friends';
@@ -34,6 +36,10 @@ export const PARTNERS: { zone: Zone; name: string; level: number; lon: number; l
   { zone: 'jp', name: 'Japan', level: 3, lon: 138, lat: 37 },
   { zone: 'kr', name: 'Korea', level: 3, lon: 127.8, lat: 36.3 },
 ];
+
+/** A coalition partner's name in the player's language. */
+export const partnerName = (z: Zone): string =>
+  ({ uk: t('ui.map.uk', 'UK'), no: t('ui.map.norway', 'Norway'), ca: t('ui.map.canada', 'Canada'), jp: t('ui.map.japan', 'Japan'), kr: t('ui.map.korea', 'Korea') })[z as 'uk'] ?? z;
 
 export const geo = (lon: number, lat: number) => ({ x: (lon - MAPDATA.lon0) / MAPDATA.step, y: (MAPDATA.lat0 - lat) / MAPDATA.step });
 const cellLonLat = (i: number, j: number) => ({ lon: MAPDATA.lon0 + (i + 0.5) * MAPDATA.step, lat: MAPDATA.lat0 - (j + 0.5) * MAPDATA.step });
@@ -140,22 +146,38 @@ const CLUSTER_SPOT: Record<RegionId, { lon: number; lat: number }> = {
   eu: { lon: 22, lat: 60 },
   cn: { lon: 92, lat: 46 },
 };
-const REGION_NAME: Record<RegionId, string> = { us: 'the US', eu: 'Europe', cn: 'China and Asia' };
-const REGION_TITLE: Record<RegionId, string> = { us: 'The US', eu: 'Europe', cn: 'China and Asia' };
-const KIND_WORD: Record<string, string> = {
-  headline: 'headline',
-  voice: 'voice',
-  lea: 'letter',
-  leak: 'leak',
-  event: 'breaking story',
-  request: 'request',
-  's-jobs': 'job loss',
-  's-strike': 'strike',
-  's-protest': 'protest',
-  's-scandal': 'scandal',
-  's-breakthrough': 'piece of good news',
-};
-const plural = (k: string, n: number) => (n === 1 ? KIND_WORD[k] : k === 's-breakthrough' ? 'pieces of good news' : `${KIND_WORD[k]}s`);
+const regionName = (r: RegionId) => ({ us: t('ui.map.inUs', 'the US'), eu: t('ui.map.inEu', 'Europe'), cn: t('ui.map.inCn', 'China and Asia') })[r];
+const regionTitle = (r: RegionId) => ({ us: t('ui.map.us', 'The US'), eu: t('ui.map.eu', 'Europe'), cn: t('ui.map.cn', 'China and Asia') })[r];
+/** "3 headlines", "1 piece of good news": a group of the round's items, counted. */
+function kindCount(k: string, n: number): string {
+  switch (k) {
+    case 'headline':
+      return tn('ui.map.headlines', n, { one: '{n} headline', other: '{n} headlines' });
+    case 'voice':
+      return tn('ui.map.voices', n, { one: '{n} voice', other: '{n} voices' });
+    case 'leak':
+      return tn('ui.map.leaks', n, { one: '{n} leak', other: '{n} leaks' });
+    case 'event':
+      return tn('ui.map.events', n, { one: '{n} breaking story', other: '{n} breaking stories' });
+    case 'request':
+      return tn('ui.map.requests', n, { one: '{n} request', other: '{n} requests' });
+    case 's-jobs':
+      return tn('ui.map.jobs', n, { one: '{n} job loss', other: '{n} job losses' });
+    case 's-strike':
+      return tn('ui.map.strikes', n, { one: '{n} strike', other: '{n} strikes' });
+    case 's-protest':
+      return tn('ui.map.protests', n, { one: '{n} protest', other: '{n} protests' });
+    case 's-scandal':
+      return tn('ui.map.scandals', n, { one: '{n} scandal', other: '{n} scandals' });
+    case 's-breakthrough':
+      return tn('ui.map.goodNews', n, { one: '{n} piece of good news', other: '{n} pieces of good news' });
+    default:
+      return tn('ui.map.letters', n, { one: '{n} letter', other: '{n} letters' });
+  }
+}
+/** A social event's kind in a sentence ("Paris (strike)"). */
+const kindWord = (k: SocialKind): string =>
+  ({ jobs: t('ui.map.kindJobs', 'job loss'), strike: t('ui.map.kindStrike', 'strike'), protest: t('ui.map.kindProtest', 'protest'), scandal: t('ui.map.kindScandal', 'scandal'), breakthrough: t('ui.map.kindGood', 'piece of good news') })[k];
 /** The icon group of an entry: milestones read as headlines; social events by their kind. */
 const groupOf = (x: MapEntry) => (x.kind === 'milestone' ? 'headline' : x.kind === 'social' && x.social ? `s-${x.social}` : x.kind);
 const ICONS: Record<string, string> = {
@@ -191,8 +213,13 @@ export interface MapEntry {
 
 /** A letter's icon: the face of the friend who wrote, with a small envelope. */
 const letterIcon = (x: MapEntry) => `${friendPortrait(x.friend ?? 'lea', x.mood ?? 'hopeful')}<span class="env">${KIND_ICON.lea}</span>`;
-/** "letter from Malik, your old flatmate in San Francisco" (from the feed's label). */
-const letterWords = (x: MapEntry) => x.label.replace(/^Letter\b/, 'letter');
+/** Who wrote a letter, in a sentence: "Malik, your old flatmate in San Francisco", "your mother, a retired nurse in Lyon". */
+const letterWho = (x: MapEntry): string => {
+  const f = x.friend ?? 'lea';
+  return f === 'mother'
+    ? t('ui.map.motherWho', 'your mother, {label}', { label: tc('friend.mother.label', FRIENDS.mother.label) })
+    : t('ui.map.friendWho', '{name}, {label}', { name: tc(`friend.${f}.name`, FRIENDS[f].name), label: tc(`friend.${f}.label`, FRIENDS[f].label) });
+};
 
 function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}, parent?: Element): SVGElementTagNameMap[K] {
   const e = document.createElementNS(NS, tag);
@@ -272,11 +299,11 @@ export class WorldMap {
         const t = el('text', { x: p.x, y: p.y, class: `m-label ${cls}` }, this.layers.labels);
         t.textContent = text;
       };
-      label('UNITED STATES', -100, 33, 'l-us');
-      label('EUROPE', 26, 50, 'l-eu');
-      label('CHINA', 100, 28.5, 'l-cn');
+      label(t('ui.map.labelUs', 'UNITED STATES'), -100, 33, 'l-us');
+      label(t('ui.map.labelEu', 'EUROPE'), 26, 50, 'l-eu');
+      label(t('ui.map.labelCn', 'CHINA'), 100, 28.5, 'l-cn');
       PARTNERS.forEach((p) =>
-        label(p.name, p.lon + (p.zone === 'kr' ? -3 : p.zone === 'jp' ? 4.5 : p.zone === 'no' ? -6 : p.zone === 'uk' ? -8.5 : 0), p.lat + (p.zone === 'no' ? -2.5 : p.zone === 'uk' ? 0.5 : p.zone === 'kr' ? 4.5 : 3.6), `l-partner l-${p.zone}`),
+        label(partnerName(p.zone), p.lon + (p.zone === 'kr' ? -3 : p.zone === 'jp' ? 4.5 : p.zone === 'no' ? -6 : p.zone === 'uk' ? -8.5 : 0), p.lat + (p.zone === 'no' ? -2.5 : p.zone === 'uk' ? 0.5 : p.zone === 'kr' ? 4.5 : 3.6), `l-partner l-${p.zone}`),
       );
     }
     container.appendChild(svg);
@@ -413,25 +440,25 @@ export class WorldMap {
   setThreats(views: ThreatView[]) {
     const live = new Set<string>();
     let changed = false;
-    for (const t of views.filter((x) => !x.struck && x.stage > 0)) {
-      live.add(t.id);
-      let b = this.threatBtns.get(t.id);
+    for (const tv of views.filter((x) => !x.struck && x.stage > 0)) {
+      live.add(tv.id);
+      let b = this.threatBtns.get(tv.id);
       if (!b) {
         b = this.mk('button', 'threat-btn') as HTMLButtonElement;
         b.type = 'button';
-        b.dataset.threat = t.id;
-        b.addEventListener('click', () => this.onThreat?.(t.id, b!));
-        this.threatBtns.set(t.id, b);
-        const w = THREAT_BY_ID[t.id].where;
+        b.dataset.threat = tv.id;
+        b.addEventListener('click', () => this.onThreat?.(tv.id, b!));
+        this.threatBtns.set(tv.id, b);
+        const w = THREAT_BY_ID[tv.id].where;
         this.placed.set(b, { lon: w.lon, lat: w.lat });
         changed = true;
       }
-      const sig = `${t.stage}:${t.prepared}`;
+      const sig = `${tv.stage}:${tv.prepared}`;
       if (b.dataset.sig === sig) continue;
-      const grew = b.dataset.sig && Number(b.dataset.sig.split(':')[0]) < t.stage;
+      const grew = b.dataset.sig && Number(b.dataset.sig.split(':')[0]) < tv.stage;
       b.dataset.sig = sig;
-      b.className = `threat-btn ${STAGE_SIZE[t.stage]} ${t.prepared ? 'prepared' : ''} ${grew ? 'grew' : ''}`;
-      b.innerHTML = `<span class="sr-only">Threat: </span><span class="tb-ico">${t.prepared ? ICON.check : ICON.alert}</span><span class="tb-txt"><b>${esc(t.name)}</b> <small>${esc(t.stageWord)}${t.certainty === 'possible' ? ' · possible' : ''}${t.prepared ? ' · prepared' : ' · not prepared'}</small></span><span class="sr-only">: what it is and what protects against it</span>`;
+      b.className = `threat-btn ${STAGE_SIZE[tv.stage]} ${tv.prepared ? 'prepared' : ''} ${grew ? 'grew' : ''}`;
+      b.innerHTML = `<span class="sr-only">${esc(t('ui.map.threat', 'Threat:'))} </span><span class="tb-ico">${tv.prepared ? ICON.check : ICON.alert}</span><span class="tb-txt"><b>${esc(tr(tv.name))}</b> <small>${esc(tr(tv.stageWord))}${tv.certainty === 'possible' ? ` · ${esc(t('ui.threat.possible', 'possible'))}` : ''} · ${esc(tv.prepared ? t('ui.map.prepared', 'prepared') : t('ui.map.notPrepared', 'not prepared'))}</small></span><span class="sr-only">${esc(t('ui.map.threatMore', ': what it is and what protects against it'))}</span>`;
       changed = true;
     }
     for (const [id, b] of this.threatBtns) {
@@ -441,12 +468,12 @@ export class WorldMap {
       this.threatBtns.delete(id);
       changed = true;
     }
-    this.summaryParts.threats = views.filter((x) => !x.struck && x.stage > 0).length
-      ? ` Threats on the map: ${views
-          .filter((x) => !x.struck && x.stage > 0)
-          .map((x) => `${x.name} (${x.stageWord.toLowerCase()}, ${x.prepared ? 'prepared' : 'not prepared'})`)
-          .join('; ')}.`
-      : ' No threat on the map yet.';
+    const live2 = views.filter((x) => !x.struck && x.stage > 0);
+    this.summaryParts.threats = live2.length
+      ? ` ${t('ui.map.sumThreats', 'Threats on the map: {list}.', {
+          list: live2.map((x) => `${tr(x.name)} (${lcFirst(tr(x.stageWord))}, ${x.prepared ? t('ui.map.prepared', 'prepared') : t('ui.map.notPrepared', 'not prepared')})`).join('; '),
+        })}`
+      : ` ${t('ui.threats.none', 'No threat on the map yet.')}`;
     this.writeSummary();
     if (changed) this.layout();
   }
@@ -473,13 +500,15 @@ export class WorldMap {
       const letter = mine.filter((x) => x.kind === 'lea').at(-1);
       const counts = kinds.map((k) => {
         const n = mine.filter((x) => groupOf(x) === k).length;
-        return k === 'lea' && letter ? `${n} ${n === 1 ? letterWords(letter) : letterWords(letter).replace(/^letter/, 'letters, the last')}` : `${n} ${plural(k, n)}`;
+        if (k === 'lea' && letter)
+          return n === 1 ? t('ui.map.letterFrom', '1 letter from {who}', { who: letterWho(letter) }) : t('ui.map.lettersLast', '{n} letters, the last from {who}', { n, who: letterWho(letter) });
+        return kindCount(k, n);
       });
       b.innerHTML = `<span class="mc-icons" aria-hidden="true">${kinds
         .slice(0, 3)
         .map((k) => (k === 'lea' && letter ? `<span class="mc-i mc-face k-lea">${letterIcon(letter)}</span>` : `<span class="mc-i k-${k}">${ICONS[k]}</span>`))
-        .join('')}</span>${mine.length > 1 ? `<span class="mc-n" aria-hidden="true">${mine.length}</span>` : ''}<span class="sr-only">${esc(REGION_TITLE[r])} this round: ${counts.join(', ')}. Show them</span>`;
-      b.title = `${REGION_TITLE[r]} this round: ${counts.join('; ')}`;
+        .join('')}</span>${mine.length > 1 ? `<span class="mc-n" aria-hidden="true">${mine.length}</span>` : ''}<span class="sr-only">${esc(t('ui.map.clusterName', '{region} this round: {list}. Show them', { region: regionTitle(r), list: counts.join(', ') }))}</span>`;
+      b.title = t('ui.map.clusterTitle', '{region} this round: {list}', { region: regionTitle(r), list: counts.join('; ') });
       b.classList.toggle('new', true);
       setTimeout(() => b.classList.remove('new'), 900);
     }
@@ -487,7 +516,13 @@ export class WorldMap {
       if (this.clusters[this.popRegion].hidden) this.closePop(false);
       else this.renderPop();
     }
-    this.summaryParts.items = list.length ? ` This round: ${REGIONS.filter((r) => list.some((x) => x.region === r)).map((r) => `${list.filter((x) => x.region === r).length} in ${REGION_NAME[r]}`).join(', ')}; their text is in the news.` : '';
+    this.summaryParts.items = list.length
+      ? ` ${t('ui.map.sumItems', 'This round: {list}; their text is in the news.', {
+          list: REGIONS.filter((r) => list.some((x) => x.region === r))
+            .map((r) => t('ui.map.sumIn', '{n} in {region}', { n: list.filter((x) => x.region === r).length, region: regionName(r) }))
+            .join(', '),
+        })}`
+      : '';
     this.writeSummary();
     this.layout();
   }
@@ -496,7 +531,10 @@ export class WorldMap {
   setCalling(region: RegionId | null) {
     if (this.calling) this.clusters[this.calling]?.classList.remove('calling');
     this.calling = region;
-    if (region) this.clusters[region]?.classList.add('calling');
+    if (region) {
+      this.clusters[region]?.classList.add('calling');
+      this.clusters[region]?.setAttribute('data-calling', t('ui.map.calling', 'Request'));
+    }
   }
 
   /** The newest headline (or breaking news), briefly as a banner by its region's cluster; then only its icon stays. */
@@ -506,7 +544,7 @@ export class WorldMap {
     clearTimeout(this.bannerTimer);
     const b = this.mk('div', `m-banner ${kind} b-${region}`);
     b.setAttribute('aria-hidden', 'true');
-    b.innerHTML = `<span class="bn-k">${kind === 'breaking' ? 'Breaking' : 'Headline'}</span>${esc(text)}`;
+    b.innerHTML = `<span class="bn-k">${esc(kind === 'breaking' ? t('ui.map.breaking', 'Breaking') : t('ui.map.headline', 'Headline'))}</span>${esc(text)}`;
     this.banner = b;
     const c = CLUSTER_SPOT[region];
     this.placed.set(b, { lon: c.lon, lat: c.lat + 8 });
@@ -582,12 +620,12 @@ export class WorldMap {
     if (!r || !this.pop) return;
     const mine = this.entries.filter((x) => x.region === r);
     this.pop.setAttribute('role', 'group');
-    this.pop.setAttribute('aria-label', `${REGION_TITLE[r]} this round`);
+    this.pop.setAttribute('aria-label', t('ui.map.popLabel', '{region} this round', { region: regionTitle(r) }));
     this.pop.className = `m-pop p-${r}`;
-    this.pop.innerHTML = `<p class="mp-h">${esc(REGION_TITLE[r])} · this round</p><ul>${mine
+    this.pop.innerHTML = `<p class="mp-h">${esc(t('ui.map.popTitle', '{region} · this round', { region: regionTitle(r) }))}</p><ul>${mine
       .map(
         (x) =>
-          `<li><button type="button" class="mp-item k-${groupOf(x)}" data-item="${esc(x.id)}"${x.kind === 'lea' ? ` title="${esc(x.label)}"` : ''}><span class="mp-ico${x.kind === 'lea' ? ' mp-face' : ''}" aria-hidden="true">${x.kind === 'lea' ? letterIcon(x) : ICONS[groupOf(x)]}</span><span class="mp-b"><span class="mp-k">${esc(x.label)}</span><span class="mp-t">${esc(x.text)}</span></span><span class="sr-only">${x.kind === 'leak' ? ': read it' : ': show in the news'}</span></button></li>`,
+          `<li><button type="button" class="mp-item k-${groupOf(x)}" data-item="${esc(x.id)}"${x.kind === 'lea' ? ` title="${esc(x.label)}"` : ''}><span class="mp-ico${x.kind === 'lea' ? ' mp-face' : ''}" aria-hidden="true">${x.kind === 'lea' ? letterIcon(x) : ICONS[groupOf(x)]}</span><span class="mp-b"><span class="mp-k">${esc(x.label)}</span><span class="mp-t">${esc(x.text)}</span></span><span class="sr-only">${esc(x.kind === 'leak' ? t('ui.map.readIt', ': read it') : t('ui.map.showNews', ': show in the news'))}</span></button></li>`,
       )
       .join('')}</ul>`;
     this.placePop();
@@ -645,7 +683,7 @@ export class WorldMap {
       el('circle', { r: 0.6, class: 'protest-core' }, g);
     });
     if (this.summary) {
-      this.summaryParts.unrest = level ? ` Protests in ${level === 1 ? 'a few' : 'many'} European cities.` : '';
+      this.summaryParts.unrest = level ? ` ${level === 1 ? t('ui.map.protestsFew', 'Protests in a few European cities.') : t('ui.map.protestsMany', 'Protests in many European cities.')}` : '';
       this.writeSummary();
     }
   }
@@ -669,7 +707,7 @@ export class WorldMap {
       el('circle', { r: 2.1, class: 'ce-ring' }, g);
       el('circle', { r: 0.75, class: 'ce-core' }, g);
     }
-    this.summaryParts.cities = list.length ? ` In European cities: ${list.map((c) => `${c.city} (${KIND_WORD[`s-${c.kind}`]})`).join(', ')}.` : '';
+    this.summaryParts.cities = list.length ? ` ${t('ui.map.sumCities', 'In European cities: {list}.', { list: list.map((c) => `${tr(c.city)} (${kindWord(c.kind)})`).join(', ') })}` : '';
     this.writeSummary();
   }
   private citySig = '';
@@ -720,12 +758,12 @@ export class WorldMap {
     });
 
     if (this.summary) {
-      const joined = PARTNERS.filter((p) => v.coalition >= p.level).map((p) => p.name);
-      const zone = v.cooperation >= 60 ? 'cooperating (Pause)' : v.cooperation >= 30 ? 'racing (Race)' : 'breaking apart (Rupture)';
+      const joined = PARTNERS.filter((p) => v.coalition >= p.level).map((p) => partnerName(p.zone));
+      const zone = v.cooperation >= 60 ? t('ui.map.zonePause', 'The US and China are cooperating (Pause).') : v.cooperation >= 30 ? t('ui.map.zoneRace', 'The US and China are racing (Race).') : t('ui.map.zoneRupture', 'The US and China are breaking apart (Rupture).');
       this.summaryParts.state =
-        `Map of the world. The US and China are ${zone}. ` +
-        (joined.length ? `Standing with Europe: ${joined.join(', ')}.` : 'No partner stands with Europe yet.') +
-        ` Europe’s AI: ${v.europeAi === 'open' ? 'Open' : 'Dependent'}.`;
+        `${t('ui.map.summary', 'Map of the world.')} ${zone} ` +
+        (joined.length ? t('ui.map.standing', 'Standing with Europe: {list}.', { list: joined.join(', ') }) : t('ui.map.noPartner', 'No partner stands with Europe yet.')) +
+        ` ${t('ui.map.europeAi', 'Europe’s AI: {ai}.', { ai: v.europeAi === 'open' ? t('ui.europeAi.open', 'Open') : t('ui.europeAi.dependent', 'Dependent') })}`;
       this.writeSummary();
     }
   }
