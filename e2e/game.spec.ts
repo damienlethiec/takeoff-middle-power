@@ -37,6 +37,16 @@ async function advance(page: Page, ms: number, answer = true) {
     }
   }
 }
+/** Stop the page's time where it is; on a busy machine the target can pass before the call lands, so retry further ahead. */
+async function freeze(page: Page) {
+  for (let ahead = 20; ; ahead *= 2) {
+    try {
+      return await page.clock.pauseAt((await page.evaluate(() => Date.now())) + ahead);
+    } catch (e) {
+      if (ahead > 2000 || !/to the past/.test(String(e))) throw e;
+    }
+  }
+}
 const dialog = (page: Page) => page.locator('.overlay:not(.leaving) [role="dialog"]').last();
 const dockButton = (page: Page, name: RegExp) => page.locator('.dock:not([hidden])').getByRole('button', { name });
 /** The decisions, drawn in place of the map and the feed (not a dialog). */
@@ -292,7 +302,7 @@ test.describe('key interactions', () => {
     await dk.getByRole('button', { name: /^Diplomatic talks/ }).click();
     await dk.getByRole('button', { name: /^AI Office capacity/ }).click();
     // time stands still while the consequences are checked (the next round's income would follow them)
-    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 20);
+    await freeze(page);
     await dk.getByRole('button', { name: /^Confirm 2 cards/ }).click();
     await expect(page.locator('#inf-v')).toHaveText(String(inf - spent));
     await expect(page.locator('#heading-why')).toHaveText(/^Diplomatic talks and AI Office capacity: /);
