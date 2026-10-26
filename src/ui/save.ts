@@ -12,6 +12,7 @@
 // are discarded silently.
 
 import type { GameState } from '../engine/types';
+import { TUNING } from '../data/tuning';
 
 export const SAVE_KEY = 'takeoff.v4.save';
 /** Bump when the envelope changes. A GameState of another shape is caught by `sameShape` anyway. */
@@ -76,7 +77,7 @@ export function decodeSave(raw: string | null, fresh: GameState): SaveEnvelope |
     if (env.stage !== 'round' && env.stage !== 'between') return null;
     if (!sameShape(env.state, fresh)) return null;
     const st = env.state;
-    if (st.round < 0 || st.round > 12 || (env.stage === 'round' && (st.round < 1 || st.phase !== 'play'))) return null;
+    if (st.round < 0 || st.round > TUNING.rounds || (env.stage === 'round' && (st.round < 1 || st.phase !== 'play'))) return null;
     const postcard = Number(env.postcard) || 0;
     return { v: env.v, savedAt: Number(env.savedAt) || 0, stage: env.stage, tips: Array.isArray(env.tips) ? env.tips.filter((t) => typeof t === 'string') : [], postcard, state: st };
   } catch {

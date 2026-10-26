@@ -68,9 +68,14 @@ const clamp = (x: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, x));
 const signed = (x: number) => (x > 0 ? `+${x}` : x < 0 ? `−${Math.abs(x)}` : '0');
 const THREAT_IDS: ThreatId[] = ['theft', 'opaque', 'incident', 'ransomware', 'blackmail'];
 
+/** The year a round falls in: rounds 1–2 are 2027, … rounds 9–10 are 2031. */
+export function yearOf(round: number): number {
+  return 2027 + Math.floor((Math.max(1, round) - 1) / 2);
+}
+
 export function dateLabel(round: number): string {
   const r = Math.max(1, round);
-  return `${r % 2 ? 'H1' : 'H2'} ${2027 + Math.floor((r - 1) / 2)}`;
+  return `${r % 2 ? 'H1' : 'H2'} ${yearOf(r)}`;
 }
 
 export function zoneOf(cooperation: number): Zone {
@@ -1627,6 +1632,7 @@ export function ending(s: GameState): EndingView {
     world,
     worldName: wd.name,
     dateLabel: dateLabel(s.round),
+    year: yearOf(s.round),
     story: def.story,
     sentence,
     gauges: gaugesEnd,

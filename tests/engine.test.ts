@@ -42,15 +42,16 @@ describe('creation and the clock', () => {
     expect(['slow', 'steady', 'fast']).toContain(s.pace);
   });
 
-  it('labels rounds as half-years from H1 2027 to H2 2032', () => {
+  it('labels rounds as half-years from H1 2027 to H2 2031 (ten rounds)', () => {
     expect(dateLabel(1)).toBe('H1 2027');
     expect(dateLabel(2)).toBe('H2 2027');
-    expect(dateLabel(12)).toBe('H2 2032');
+    expect(T.rounds).toBe(10);
+    expect(dateLabel(T.rounds)).toBe('H2 2031');
   });
 
   it('never mutates its input', () => {
     let s = freeze(createInitialState(3));
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < T.rounds; i++) {
       s = freeze(startRound(s));
       if (s.event) s = freeze(resolveEvent(s, s.event.options[0]?.id));
       s = freeze(answerAll(s));
@@ -71,7 +72,7 @@ describe('creation and the clock', () => {
     ending(s);
   });
 
-  it('games last 12 rounds, or end at the tipping point from round 6 on', () => {
+  it('games last 10 rounds, or end at the tipping point from round 6 on', () => {
     for (const seed of SEEDS) {
       const f = playGame(seed, passive).final;
       expect(f.phase).toBe('ended');
@@ -97,7 +98,7 @@ describe('creation and the clock', () => {
   it('keeps the true AI safety between the low end and the reported value (v4: uncertainty only downward)', () => {
     for (const seed of SEEDS.slice(0, 40)) {
       let s = createInitialState(seed);
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < T.rounds; i++) {
         s = nextRound(s);
         const c = s.confidence;
         expect(c.truth).toBeLessThanOrEqual(c.estimate);
@@ -262,7 +263,7 @@ describe('threats and events', () => {
   it('a threat strikes only after a round at the imminent stage', () => {
     for (const seed of SEEDS.slice(0, 60)) {
       let s = createInitialState(seed);
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < T.rounds; i++) {
         const before = s.threats;
         s = startRound(s);
         if (s.event && !s.event.id.startsWith('job_')) {
@@ -296,7 +297,7 @@ describe('threats and events', () => {
   it('a Breaking news screen shows each change as before → after, without hidden values', () => {
     for (const seed of SEEDS.slice(0, 60)) {
       let s = createInitialState(seed);
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < T.rounds; i++) {
         s = startRound(s);
         if (s.event) {
           for (const imp of s.event.impacts) expect(`${imp.before}${imp.after}`).toMatch(/^\w+$/);
@@ -347,7 +348,7 @@ describe('threats and events', () => {
   it('job shocks hit Cohesion, softened by flexicurity', () => {
     for (const seed of SEEDS.slice(0, 30)) {
       let s = createInitialState(seed);
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < T.rounds; i++) {
         s = startRound(s);
         if (s.event?.id === 'job_shock_1') {
           const r = resolveEvent(s);
@@ -392,14 +393,14 @@ describe('hidden values never leak', () => {
       expect(texts[0]).not.toMatch(/slow|steady|fast/);
     }
     // far off: no estimate at all
-    expect(gauges(fresh(1, { round: 10, aiPower: 50, lastRise: 3 }))[0].eta).toBeNull();
+    expect(gauges(fresh(1, { round: 8, aiPower: 50, lastRise: 3 }))[0].eta).toBeNull();
     expect(gauges(fresh(1, { round: 3, aiPower: 40, lastRise: 6 }))[0].eta).toBeNull();
   });
 
   it('the advisor never uses numbers', () => {
     for (const seed of SEEDS.slice(0, 60)) {
       let s = createInitialState(seed);
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < T.rounds; i++) {
         s = nextRound(s);
         expect(advisor(s).text).not.toMatch(/\d/);
         const e = endRound(s);
@@ -482,7 +483,7 @@ describe('heading, report, letters', () => {
   it('the report lists at most three changes, each with its cause', () => {
     for (const seed of SEEDS.slice(0, 30)) {
       let s = createInitialState(seed);
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < T.rounds; i++) {
         s = nextRound(s);
         const r = report(s);
         expect(r.changes.length).toBeLessThanOrEqual(3);
@@ -564,12 +565,21 @@ describe('endings', () => {
       [{ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 62, estimate: 70, margin: 15 } }, 'loss_of_control'],
       [{ ...tip, cooperation: 10, cohesion: 90, confidence: { truth: 70, estimate: 70, margin: 3 } }, 'multipolar_world'],
       [{ ...tip, cooperation: 10, cohesion: 70, confidence: { truth: 70, estimate: 70, margin: 3 } }, 'hot_war'],
-      [{ round: 12, tipping: null, europeAi: 'open', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'bright_winter'],
-      [{ round: 12, tipping: null, europeAi: 'open', cohesion: 50, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'decentralised_mayhem'],
-      [{ round: 12, tipping: null, europeAi: 'dependent', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'agent_economy'],
-      [{ round: 12, tipping: null, europeAi: 'dependent', cohesion: 65, confidence: { truth: 30, estimate: 40, margin: 12 } }, 'silicon_blackmail'],
+      [{ round: T.rounds, tipping: null, europeAi: 'open', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'bright_winter'],
+      [{ round: T.rounds, tipping: null, europeAi: 'open', cohesion: 50, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'decentralised_mayhem'],
+      [{ round: T.rounds, tipping: null, europeAi: 'dependent', cohesion: 65, confidence: { truth: 50, estimate: 50, margin: 5 } }, 'agent_economy'],
+      [{ round: T.rounds, tipping: null, europeAi: 'dependent', cohesion: 65, confidence: { truth: 30, estimate: 40, margin: 12 } }, 'silicon_blackmail'],
     ];
     for (const [patch, id] of cases) expect(ended(patch).ending, id).toBe(id);
+  });
+
+  it('dates the ending by the round it came in: the tipping point’s year, or 2031 after the last round', () => {
+    const early = ending(ended({ ...tip, tipping: { round: 7 }, round: 7 }));
+    expect(early.dateLabel).toBe('H1 2030');
+    expect(early.year).toBe(2030);
+    const late = ending(ended({ round: T.rounds, tipping: null }));
+    expect(late.dateLabel).toBe('H2 2031');
+    expect(late.year).toBe(2031);
   });
 
   it('decides on the true Confidence, and says so in one sentence', () => {

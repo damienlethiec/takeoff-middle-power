@@ -1,7 +1,7 @@
 // The end screen: the ending and its story, why in one sentence, the four gauges with the world's target and
 // floor, the reveal (true AI safety and the uncertainty around it, AI pace, unread leaks), what would have changed it, your decisions in
 // order with their plus and minus, the threats you were or were not ready for, and Play again. After the world's story,
-// "Back home, 2032": a last word from each of the three friends (Léa, your mother, Malik).
+// "Back home, <year>" (the year the game ended): a last word from each of the three friends (Léa, your mother, Malik).
 
 import type { EndingView } from '../../engine/types';
 import { ICON, chips, esc, link } from '../format';
@@ -55,14 +55,14 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
     </header>
     ${TEAM_HUMAN_CTA}
     <section class="end-story" aria-labelledby="st-h">
-      <h2 id="st-h">The world in 2032</h2>
+      <h2 id="st-h">The world in ${v.year}</h2>
       <p>${esc(v.story)}</p>
       <p class="muted small">Scenario: ${link(v.source)}. Basis: ${esc(v.basis.ref)}.</p>
     </section>
     ${
       v.friends.length
         ? `<section class="end-friends" aria-labelledby="bh-h">
-      <h2 id="bh-h">Back home, 2032</h2>
+      <h2 id="bh-h">Back home, ${v.year}</h2>
       <ul>${v.friends
         .map((f) => {
           const who = FRIENDS[f.friend];

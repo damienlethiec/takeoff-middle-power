@@ -1,6 +1,6 @@
 # Takeoff: Middle Power
 
-A Plague Inc.-style browser game about AI governance for the general public. You are the EU's AI Envoy: you cannot stop the US–China race, but you can prepare the world for the moment AI starts improving itself. Twelve rounds of six months; one AI clock, a Cooperation heading, two pillars (Confidence in AI, Cohesion) and one resource, Influence.
+A Plague Inc.-style browser game about AI governance for the general public. You are the EU's AI Envoy: you cannot stop the US–China race, but you can prepare the world for the moment AI starts improving itself. Ten rounds of six months (2027–2031); one AI clock, a Cooperation heading, two pillars (Confidence in AI, Cohesion) and one resource, Influence.
 
 - Game design spec (v3): [docs/V3_SPEC.md](docs/V3_SPEC.md)
 - What the game takes from AI 2027 and CFG: [docs/SCENARIO_BASIS.md](docs/SCENARIO_BASIS.md)

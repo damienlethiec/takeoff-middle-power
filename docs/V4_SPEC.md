@@ -18,6 +18,7 @@ v3 simplified the model, but its screen still asked the player to find things: t
 | v3 | v4 |
 | --- | --- |
 | Title *Takeoff: Middle Power* | *Takeoff: Europe’s Next Move* |
+| 12 rounds of six months, H1 2027–H2 2032 | **10 rounds**, H1 2027–H2 2031 (user decision, 26 Oct; rebalancing to follow) |
 | Gauges beside the map: AI power, Cooperation, Confidence in AI, Cohesion | Gauges on top, four aligned cards: **AI capabilities**, **AI safety**, **US–China cooperation**, **Social cohesion**, each with a one-line question ("Does AI do what we intend?") |
 | Confidence as an estimate ± margin (the truth could be above or below) | **AI safety as verified and claimed**: "40–57", a solid bar up to what is verified and a hatched part up to what the labs claim. The truth is never above the claim and never below what is verified (see Realism) |
 | The heading line, "Heading: Race. Goal: Confidence 75 (you: 62 ± 15)" | Targets drawn on the gauges ("goal 75 · short", "floor 55 · on track") and one line: **"Heading for [Race]: AI safety must reach 75 [short] · If AI stalls: [Europe’s AI: Dependent] · Why?"** |
@@ -34,7 +35,7 @@ v3 simplified the model, but its screen still asked the player to find things: t
 
 From top to bottom:
 
-- **The header**: the title, the date and round ("H1 2028 · Round 3 of 12" with a 12-step progress bar), pause and speed (×1, ×2), the phase in words ("Clock running", "A request", "Your decisions"), Influence with next round's income and its reasons and a "?" (what Influence is, what each round brings, how to earn more), and Help.
+- **The header**: the title, the date and round ("H1 2028 · Round 3 of 10" with a 10-step progress bar), pause and speed (×1, ×2), the phase in words ("Clock running", "A request", "Your decisions"), Influence with next round's income and its reasons and a "?" (what Influence is, what each round brings, how to earn more), and Help.
 - **The four gauges**, one card each, the same rows aligned across them: name and "?", the value with this round's change and a status chip, the bar with its marks, one caption.
   - *AI capabilities*: the clock; the tipping point at 80 is a hatched zone. When the tipping point looks at most four rounds away (visible values only), "tipping in ~2–4 rounds".
   - *AI safety*: verified–claimed ("40–56"), the goal when it is the deciding gauge, caption "Verified 40 · labs claim 56 · goal 75".
@@ -54,7 +55,7 @@ From top to bottom:
 4. **Breaking news may strike**: the clock stops for its screen (impact before → after, prepared or not, an "Already real" fact), then resumes.
 5. **The clock stops.** "What changed" (the three biggest changes with their cause) tops the feed. Nothing opens by itself; the dock offers "Make my decisions".
 6. **Decisions** (below), then **consequences**: the gauges move and show their change, the decisions enter the feed with what they changed, and the next six months begin.
-7. The game ends at the **tipping point** (capabilities 80, never before round 6) or after **round 12**: "See how it ends".
+7. The game ends at the **tipping point** (capabilities 80, never before round 6) or after **round 10** (H2 2031; 12 rounds to H2 2032 until 26 Oct): "See how it ends".
 
 ## Requests
 
@@ -102,7 +103,7 @@ Léa used to be the game's human heart; she had become one feed item among other
 
 **Letters.** Seven a game at most, one a round, each **opening its round full screen as a postcard** before the clock starts, then kept in full in the feed with the friend's small portrait and in their region's map group (Malik's in the US group): round 1 Léa, 2 Malik, 3 your mother, 5 Léa, 6 Malik, 7 your mother, 9 Léa (`letters.schedule`; a game that tips early sees fewer). Each letter comes from a pool picked by the world's **visible** state (Léa: job shocks and Social cohesion, flexicurity; Malik: US–China cooperation, Europe's AI, whether AI 2027's self-improving AI is reached; your mother: what is verified about AI safety, whether the labs have declared their model aligned), with variants drawn from the seed. Letters **move no gauge** and never hint at the true AI safety or the pace. First person, short, no policy words, no numbers, signed "L.", "Love, Mum", "M.".
 
-**Epilogues.** The end screen has "Back home": one short epilogue per friend (≤ 35 words) for each of the ten endings, with their mood. It replaces Léa's last letter.
+**Epilogues.** The end screen has "Back home, <year>" (the year the game ended, like "The world in <year>" above it): one short epilogue per friend (≤ 35 words) for each of the ten endings, with their mood. It replaces Léa's last letter.
 
 **Requests.** Léa keeps her three; your mother brings two (back her old hospital's AI triage pilot; make hospitals report near misses) and Malik two (fast-track visas for AI researchers such as his Chinese colleague; welcome his lab's Paris office, which would bring him home but make Europe's AI Dependent).
 

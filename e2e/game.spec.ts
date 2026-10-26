@@ -151,9 +151,12 @@ async function checkEnding(page: Page, s: Session) {
   await expect(end.getByRole('heading', { level: 1 })).toBeFocused();
   await expect(end.getByText(/^A (good|bad) ending$/)).toBeVisible();
   await expect(end.locator('.end-why')).toContainText(/: [a-z].+\.$/);
-  for (const h of ['The world in 2032', 'The four gauges at the end', 'The reveal', 'What would have changed it', 'Your decisions, in order'])
+  // the year in the headings is the year the game ended (the tipping point's, or 2031 after the last round)
+  const year = /^H[12] (20\d\d) · /.exec((await end.locator('.dateline').first().textContent()) ?? '')?.[1];
+  expect(year).toBeTruthy();
+  for (const h of [`The world in ${year}`, 'The four gauges at the end', 'The reveal', 'What would have changed it', 'Your decisions, in order'])
     await expect(end.getByRole('heading', { level: 2, name: h })).toBeVisible();
-  await expect(end.getByRole('heading', { level: 2, name: 'Back home, 2032' })).toBeVisible();
+  await expect(end.getByRole('heading', { level: 2, name: `Back home, ${year}` })).toBeVisible();
   await expect(end.locator('.end-friend')).toHaveCount(3);
   for (const name of [/^Léa, /, /^Your mother, /, /^Malik, /]) await expect(end.getByRole('img', { name })).toBeVisible();
   await expect(end.locator('.reveal-big')).toContainText(/(It was|AI safety was) \d+\./);
@@ -176,7 +179,7 @@ test.describe('a full game', () => {
     const s = await boot(page, '?skipintro&notutorial&seed=9');
     const seen = await playToEnd(page, s);
     expect(seen.rounds).toBeGreaterThanOrEqual(6);
-    expect(seen.rounds).toBeLessThan(12);
+    expect(seen.rounds).toBeLessThan(10);
     expect(seen.breaking).toBeGreaterThan(0);
     expect(seen.requests).toBeGreaterThan(0);
     await checkEnding(page, s);
@@ -190,12 +193,12 @@ test.describe('a full game', () => {
     expect(s.errors).toEqual([]);
   });
 
-  test('slow pace (seed 3): twelve rounds, AI plateaus, a plateau world', async ({ page }) => {
+  test('slow pace (seed 3): ten rounds, AI plateaus, a plateau world', async ({ page }) => {
     const s = await boot(page, '?skipintro&notutorial&seed=3');
     const seen = await playToEnd(page, s);
-    expect(seen.rounds).toBe(12);
+    expect(seen.rounds).toBe(10);
     await checkEnding(page, s);
-    await expect(page.locator('.ending-page .dateline').first()).toHaveText(/^H2 2032 · Plateau, (open models|big labs)$/);
+    await expect(page.locator('.ending-page .dateline').first()).toHaveText(/^H2 2031 · Plateau, (open models|big labs)$/);
     expect(s.badText).toEqual([]);
     expect(s.errors).toEqual([]);
   });
@@ -220,7 +223,7 @@ test.describe('key interactions', () => {
     await advance(page, 600);
     await expect(intro).toHaveCount(0);
     await expect(page.locator('#date')).toHaveText('H1 2027');
-    await expect(page.locator('#round-of')).toHaveText(' · Round 1 of 12');
+    await expect(page.locator('#round-of')).toHaveText(' · Round 1 of 10');
     await expect(page.locator('#game-title')).toContainText('Europe’s Next Move');
     expect(s.errors).toEqual([]);
   });

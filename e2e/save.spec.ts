@@ -120,7 +120,7 @@ test.describe('save and resume', () => {
     await expect(dialog(page).getByRole('button', { name: 'New game' })).toBeVisible();
     await go.click();
     await page.clock.fastForward(300); // the title's dialog leaves; the clock does not run on by itself
-    await expect(page.locator('#round-of')).toContainText('Round 3 of 12');
+    await expect(page.locator('#round-of')).toContainText('Round 3 of 10');
     await expect(page.locator('#date')).toHaveText(date);
     // nothing was applied twice, and the earlier rounds are back in the feed
     expect(await saved(page)).toEqual(before);
@@ -170,7 +170,7 @@ test.describe('save and resume', () => {
     await go.click();
     await advance(page, 600);
     await expect(page.locator('.modal.postcard')).toHaveCount(0);
-    await expect(page.locator('#round-of')).toContainText('Round 1 of 12');
+    await expect(page.locator('#round-of')).toContainText('Round 1 of 10');
     expect(errors).toEqual([]);
   });
 
@@ -192,7 +192,7 @@ test.describe('save and resume', () => {
     await dialog(page).getByRole('button', { name: 'New game' }).click();
     await dialog(page).getByRole('button', { name: 'Start over' }).click();
     await page.clock.fastForward(300);
-    await expect(page.locator('#round-of')).toContainText('Round 1 of 12');
+    await expect(page.locator('#round-of')).toContainText('Round 1 of 10');
     await advance(page, 400);
     const second = await saved(page);
     expect(second?.state.round).toBe(1);
@@ -200,7 +200,7 @@ test.describe('save and resume', () => {
 
     await page.evaluate((k) => localStorage.setItem(k, '{"v":1,"stage":"round","state":{"round":'), KEY);
     await reload(page);
-    await expect(page.locator('#round-of')).toContainText('Round 1 of 12');
+    await expect(page.locator('#round-of')).toContainText('Round 1 of 10');
     await expect(page.getByRole('button', { name: /^Continue your game/ })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
@@ -235,7 +235,7 @@ test.describe('save and resume', () => {
     // (round 1's postcard may open meanwhile, with a live region of its own)
     await until(page, () => expect(page.locator('.sr-live').filter({ hasText: 'Your save and settings are forgotten.' })).toHaveCount(1, { timeout: 100 }));
     expect(page.url()).not.toContain('forgotten');
-    await expect(page.locator('#round-of')).toContainText('Round 1 of 12');
+    await expect(page.locator('#round-of')).toContainText('Round 1 of 10');
     const left = await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)])));
     expect(left['takeoff.sound']).toBeUndefined();
     expect(left['takeoff.singleKeyShortcuts']).toBeUndefined();

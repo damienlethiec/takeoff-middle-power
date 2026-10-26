@@ -276,7 +276,7 @@ export const LETTER_BY_ID: Record<string, LetterDef> = Object.fromEntries(ALL_LE
 /** How each friend signs. */
 export const SIGNATURE: Record<FriendId, RegExp> = { lea: /L\.$/, mother: /Love, Mum$/, malik: /M\.$/ };
 
-// ---------------------------------------------------------------- epilogues: back home, 2032
+// ---------------------------------------------------------------- epilogues: back home, at the end
 
 /** One short epilogue per friend for each ending (≤ 35 words), with their mood. */
 export const EPILOGUES: Record<EndingId, Record<FriendId, { mood: FriendMood; text: string }>> = {

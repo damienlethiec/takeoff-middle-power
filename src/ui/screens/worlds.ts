@@ -60,7 +60,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
   const m = openModal(
     `<div class="dateline">${h ? 'Why this world' : 'The five worlds'}</div>
      <h2>Where the world can go</h2>
-     <p class="why">The game ends when AI reaches the tipping point, or in late 2032. What the world looks like then decides how hard a good ending is: the calmer the world, the lower the bar.</p>
+     <p class="why">The game ends when AI reaches the tipping point, or in late 2031. What the world looks like then decides how hard a good ending is: the calmer the world, the lower the bar.</p>
      ${now}
      ${diagram}
      ${badge}

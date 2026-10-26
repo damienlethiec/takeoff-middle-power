@@ -4,7 +4,8 @@
 import type { CardId, FriendId, Pace } from '../engine/types';
 
 export const TUNING = {
-  rounds: 12,
+  /** Ten rounds of six months, H1 2027 to H2 2031 (12 → 10, user decision of 26 Oct; rebalancing to follow). */
+  rounds: 10,
   /** The tipping point: AI can do AI research by itself. */
   tippingAt: 80,
   /** No tipping point before this round. */

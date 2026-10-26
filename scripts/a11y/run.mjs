@@ -3,7 +3,7 @@
 //   A11Y_URL=http://localhost:5173/takeoff-middle-power/ npm run a11y   reuses a running server
 //   A11Y_SHOTS=/some/dir npm run a11y  also saves a screenshot of each screen
 // Runs: seed 9 (fast pace, tipping point) at 1280×800 with the intro and the tutorial; seed 3 (slow pace,
-// twelve rounds) with prefers-reduced-motion at 640×400 (the 1280×800 screen at 200% zoom); seed 4 at 390×844.
+// ten rounds) with prefers-reduced-motion at 640×400 (the 1280×800 screen at 200% zoom); seed 4 at 390×844.
 // Fails on any serious or critical axe violation, console error, focus escaping a dialog, or a missed check.
 
 import fs from 'node:fs';

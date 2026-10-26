@@ -82,7 +82,7 @@ export const INTRO: IntroScreen[] = [
     paragraphs: [
       'Europe cannot stop the race. It can shape it, with Influence and policies.',
       'Your goal: when AI reaches the tipping point, have AI we can trust, superpowers who talk, and a society that holds. The calmer the world, the easier a good ending.',
-      'Twelve rounds of six months, from 2027 to 2032. Each round, watch the world move, then play as many cards as your Influence allows.',
+      'Ten rounds of six months, from 2027 to 2031. Each round, watch the world move, then play as many cards as your Influence allows.',
     ],
     friends: [
       { friend: 'lea', line: 'Léa, your oldest friend, translates for a living in Lyon. She wonders whether there will still be work for people like her.' },
@@ -108,7 +108,7 @@ export const TIPS = {
   safety: { anchor: 'confidence', title: 'AI safety', text: '**AI safety**: the solid part is verified, the hatched part is only what the labs claim. Only the verified part counts: inspections and audits grow it.' },
   cooperation: { anchor: 'cooperation', title: 'US–China cooperation', text: '**US–China cooperation** sets the kind of world at the tipping point. Pause 60+, Race 30–59, Rupture below 30: the calmer, the easier a good ending.' },
   cohesion: { anchor: 'cohesion', title: 'Social cohesion', text: '**Social cohesion** is whether Europe holds together: jobs, trust, safety from misuse. If it falls too low, even a calm world ends badly.' },
-  outlook: { anchor: 'heading', title: 'Where the world is heading', text: 'If AI tipped now, this is the world you would get and what it needs to end well. Each round is six months from 2027; the game ends at the tipping point, or after 12 rounds.' },
+  outlook: { anchor: 'heading', title: 'Where the world is heading', text: 'If AI tipped now, this is the world you would get and what it needs to end well. Each round is six months from 2027; the game ends at the tipping point, or after 10 rounds.' },
   influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.' },
   request: { anchor: 'request', title: 'A request', text: 'Someone needs an answer. Look at an answer first (click it, or press ← → once), then answer (again). It is free of Influence: the cost is in the answer.' },
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages before they strike. Prepare with cards marked “Protects against”, or with some answers to requests. Open an icon to see what protects Europe.' },
@@ -126,7 +126,7 @@ export const HELP = {
     ['← →', 'In a request: look at an answer, press again to answer'],
   ] as [string, string][],
   rules: [
-    'AI capabilities rise every round. At 80, AI starts improving itself: the tipping point (never before round 6). Where the world stands then decides the ending. If it never gets there, the game ends after round 12.',
+    'AI capabilities rise every round. At 80, AI starts improving itself: the tipping point (never before round 6). Where the world stands then decides the ending. If it never gets there, the game ends after round 10.',
     'At the tipping point, the US–China cooperation zone sets the world: Pause, Race or Rupture. Without a tipping point, Europe’s AI badge sets it.',
     'In each world, one gauge decides (its goal) and the other pillar is a safety net (its floor). Both are marked on their gauges, and the line under the gauges names the world you are heading for. Europe’s AI, at the end of that line, decides the world if AI never tips.',
     'AI safety shows what is verified and what the labs claim (for example 40–57). Only the verified part counts toward your goal. The truth lies in between and is revealed at the end. Oversight (the AI Office, inspections, audits) grows the verified part; secrecy and opaque AI shrink it.',

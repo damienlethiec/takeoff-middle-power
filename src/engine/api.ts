@@ -21,7 +21,7 @@
 //   s = playCard(s, pick)    as many cards as Influence covers, each at most once a round
 //   { state, outcome } = endRound(s)
 //     'next'  → startRound again (no stop between rounds)
-//     'ended' → the tipping point was reached this round, or round 12 is over; s.phase === 'ended'
+//     'ended' → the tipping point was reached this round, or the last round (TUNING.rounds, 10) is over; s.phase === 'ended'
 //   ending(s)                the ending, its one-sentence explanation, the reveal and the debrief
 //
 // Always available: gauges(s), heading(s), threats(s), nextIncome(s), letters(s), feed(s), report(s) (this round's

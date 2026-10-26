@@ -13,7 +13,7 @@ export interface EndingDef {
   title: string;
   /** The scenario's name in CFG's report, shown under the title and linked to the report. */
   cfgName: string;
-  /** The world in 2032, in a few sentences. Fiction. */
+  /** The world at the end of the game (the tipping point, or 2031), in a few sentences. Fiction. */
   story: string;
   basis: Basis;
   source: Source;
@@ -172,7 +172,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The race pays off',
     cfgName: 'The cognitive revolution',
     story:
-      'At the tipping point, the superpowers raced. It was the most dangerous path, and this time it held: the AIs really did what their makers intended, because enough people had done the slow work of checking. By 2032 the economy grows beyond anyone’s understanding, and humanity chooses, together, to slow down and think.',
+      'At the tipping point, the superpowers raced. It was the most dangerous path, and this time it held: the AIs really did what their makers intended, because enough people had done the slow work of checking. Within a few years the economy grows beyond anyone’s understanding, and humanity chooses, together, to slow down and think.',
     basis: cfg('Take-off, Ending A (The cognitive revolution)'),
     source: SOURCES.cfg,
   },

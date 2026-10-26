@@ -23,6 +23,7 @@ import { showWorlds } from './screens/worlds';
 import { showRequest } from './screens/request';
 import { showPostcard } from './screens/postcard';
 import { FRIENDS } from '../data/friends';
+import { TUNING } from '../data/tuning';
 import { badgeHtml, headingLineHtml, statusOf } from './outlook';
 import { Feed } from './feed';
 import { Soundtrack } from './sound';
@@ -251,9 +252,9 @@ export class App {
       this.autosave('round');
     }
     const inc = s.influence - before.influence;
-    if (resumed) announce(`Your saved game resumes: ${date}, round ${s.round} of 12. You have ${s.influence} Influence. The clock is running.${wrote}`);
+    if (resumed) announce(`Your saved game resumes: ${date}, round ${s.round} of ${TUNING.rounds}. You have ${s.influence} Influence. The clock is running.${wrote}`);
     else announce(
-      `${date} begins, round ${s.round} of 12. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${wrote}${s.round === 1 ? ' Press question mark for help.' : ''}`,
+      `${date} begins, round ${s.round} of ${TUNING.rounds}. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${wrote}${s.round === 1 ? ' Press question mark for help.' : ''}`,
     );
     // the tutorial: one tip per gauge, then where the world is heading, then Influence on the decision view;
     // later, only what does not explain itself, the first time it appears.
@@ -278,10 +279,10 @@ export class App {
     let picks: Pick[] | null = null;
     const lastWords = this.s.tipping
       ? 'AI has reached the tipping point. This is your last round of decisions.'
-      : this.s.round === 12
+      : this.s.round === TUNING.rounds
         ? 'The last six months. This is your last round of decisions.'
         : 'Six months have passed: what changed is at the top of the news. The clock is stopped: take your time.';
-    const decideLabel = this.s.tipping || this.s.round === 12 ? 'Make my last decisions' : 'Make my decisions';
+    const decideLabel = this.s.tipping || this.s.round === TUNING.rounds ? 'Make my last decisions' : 'Make my decisions';
     while (!picks) {
       await this.dock(lastWords, [{ id: 'decide', label: decideLabel, primary: true }]);
       this.setPhase('Your decisions');
@@ -707,7 +708,7 @@ export class App {
       <header class="top">
         <h1 class="brand" id="game-title" tabindex="-1"><span class="logo">TAKE<i>OFF</i></span><span class="sub">Europe’s Next Move</span></h1>
         <div class="when"><span class="date"><span id="date" class="num"></span><span class="round-of" id="round-of"></span></span>
-          <ol class="rounds" id="rounds" aria-label="Progress through the 12 rounds">${Array.from({ length: 12 }, (_, i) => `<li data-r="${i + 1}"><i></i></li>`).join('')}</ol></div>
+          <ol class="rounds" id="rounds" aria-label="Progress through the ${TUNING.rounds} rounds">${Array.from({ length: TUNING.rounds }, (_, i) => `<li data-r="${i + 1}"><i></i></li>`).join('')}</ol></div>
         <span class="top-break" aria-hidden="true"></span>
         <div class="clockctl">
           <button class="iconbtn" id="play" aria-keyshortcuts="Space"></button>
@@ -834,7 +835,7 @@ export class App {
     const s = this.s;
     const r = Math.max(1, s.round);
     $('#date', this.root).textContent = this.e.dateLabel(r);
-    $('#round-of', this.root).textContent = ` · Round ${r} of 12`;
+    $('#round-of', this.root).textContent = ` · Round ${r} of ${TUNING.rounds}`;
     this.root.querySelectorAll<HTMLElement>('#rounds li').forEach((li) => {
       const n = Number(li.dataset.r);
       li.className = n < s.round ? 'done' : n === s.round ? 'now' : '';

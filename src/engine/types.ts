@@ -377,7 +377,7 @@ export interface GameState {
   version: 3;
   seed: number;
   rng: number;
-  /** 0 before the first round, then 1..12. */
+  /** 0 before the first round, then 1..TUNING.rounds (10). */
   round: number;
   phase: 'play' | 'ended';
   pace: Pace; // hidden
@@ -592,7 +592,7 @@ export interface LetterView {
   basis: Basis;
 }
 
-/** One friend's epilogue on the ending screen ("Back home, 2032"). */
+/** One friend's epilogue on the ending screen ("Back home, 2031": the year the game ended). */
 export interface FriendEpilogue {
   friend: FriendId;
   mood: FriendMood;
@@ -618,6 +618,8 @@ export interface EndingView {
   world: WorldId;
   worldName: string;
   dateLabel: string;
+  /** The year the game ended in (the tipping point's, or 2031 after the last round): "The world in 2029". */
+  year: number;
   story: string;
   sentence: string;
   gauges: EndingGauge[];

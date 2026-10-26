@@ -23,7 +23,7 @@ Start: AI power 18, Cooperation 52, Confidence truth 52 / estimate 55 ± 15, Coh
 7. **The tipping point**: AI power ≥ 80, from round 6, and only once every earlier AI 2027 milestone has been reached; otherwise AI power stops at 79. The round in which it is reached is the last round of decisions.
 8. **Map content**: milestone headlines, then threat-stage headlines, then a world headline from the pool when there is room (two at most); one or two public voices; a leak every two or three rounds from round 2; a friend's letter on the schedule of `letters.schedule` (rounds 1 Léa, 2 Malik, 3 your mother, 5 Léa, 6 Malik, 7 your mother, 9 Léa). Letters move no gauge and draw their variant from their own seeded stream (seed and round); the main generator still makes one unused draw at rounds 1, 4 and 8 (`letters.legacyDraws`, where Léa's letters drew before 26 Oct) so seeded games are unchanged. Each pool is picked from public values only (see `src/data/letters.ts`).
 
-Then the player may read the report (at most three changes with a cause, routine drift left out, and the threats that moved), and play up to two cards (`playCard`), never the same card twice in a round. `endRound` ends the game at the tipping point or after round 12.
+Then the player may read the report (at most three changes with a cause, routine drift left out, and the threats that moved), and play up to two cards (`playCard`), never the same card twice in a round. `endRound` ends the game at the tipping point or after the last round (`TUNING.rounds`: 10 since 26 Oct, was 12).
 
 ## Events (Breaking news)
 
@@ -120,6 +120,27 @@ v4 changed three rules (requests, no cap on cards a round, AI safety uncertainty
 | Saver target in the sim | Saver no better than thoughtful | Saver at least 10 points below thoughtful | Owner's decision: with no cap on cards a round, acting early must matter (threat windows, compounding effects, the Influence cap). | |
 | Threat windows: theft (`threats.theft.stages`), opaque reasoning (`threats.opaque.stages`), ransomware (`threats.ransomware.stages`) | 28 / 36 / 42; 45 / 50 / 55; 32 / 40 / 48 | 28 / 33 / 38; 45 / 48 / 51; 32 / 37 / 42 | After the Social cohesion mechanics (008c176) the saver was 70.5% vs thoughtful 73.0%: holding Influence for a burst cost almost nothing. Shorter windows between "seen" and "imminent" reward preparing early; the first stage (when the threat appears) is unchanged. A lower Influence cap (7 or 8) was tried: it hurt the thoughtful player as much as the saver. | Quick sim (n=200 a strategy): passive 0.0%, random 21.0%, thoughtful 77.0%, cooperation-only 0.0%, home-first 56.0%, advised 46.0%, saver 63.5%; every target passes (every ending ≥ 2%: lowest *The race pays off* 3.0%, thoughtful). |
 | Friends' requests (new, 26 Oct): your mother (`mum_triage_pilot`, `mum_near_miss`) and Malik (`mk_visa`, `mk_paris_office`) | 46 requests from 11 characters | 50 from 13 | The three friends back home replace Léa as the game's human heart; each gets personal requests. Effects sized like Léa's (2–3 points, a later cost on the tempting side). | Quick sim (100 games a strategy), before → after: random 16% → 15%, thoughtful 74% → 73%, passive, cooperation-only, home-first, advised and saver unchanged (0, 0, 57, 43, 59%); every target passes. |
+| Rounds (`rounds`), user decision of 26 Oct | 12 (H1 2027–H2 2032) | 10 (H1 2027–H2 2031) | A shorter game (five years). Only what the round count and the end year require changed: copy, the progress bar, the ending's year (now the year the game ended, "The world in 2030"), tests. **No other number was retuned: rebalancing to follow.** The requests test's "rounds without a request" floor was relaxed from 10% to 8% (9.7% now) until then. | Sim before rebalancing below. |
+
+### Ten rounds, before rebalancing (26 Oct, `npm run sim`, 100 games a strategy)
+
+Only `rounds` changed (12 → 10); every other number as in the table above. Before → after (before: the friends' requests row above): passive 0% → 0%, random 15% → 20%, thoughtful 73% → 68%, cooperation-only 0% → 8%, home-first 57% → 59%, advised 43% → 43%, saver 59% → 60%.
+
+| Target | Result |
+| --- | --- |
+| passive good endings < 15% | PASS 0.0% |
+| random good endings 15–30% | PASS 20.0% |
+| thoughtful good endings 55–80% | PASS 68.0% |
+| every ending ≥ 2% for some strategy | PASS (lowest *The race pays off* 2.0%) |
+| cooperation-only clearly worse than thoughtful (−20 pts) | PASS 8.0% vs 68.0% |
+| home-first clearly worse than thoughtful (−15 pts) | **FAIL** 59.0% vs 68.0% |
+| thoughtful: no card above 20% of its plays | PASS talks 17.3% |
+| saver clearly worse than thoughtful (−10 pts) | **FAIL** 60.0% vs 68.0% |
+| 6–10 requests a game | PASS 100% |
+| thoughtful: AI safety uncertainty at the end ≤ 30 (median) | PASS ±22 |
+| tipping point never before round 6 | PASS earliest round 6 |
+
+What moved: a slow pace never reaches the tipping point in ten rounds (AI capabilities end around 56–64), and its plateau worlds are easy (advised and saver win 100% of their slow games); a steady pace now tips around round 9.5, a fast one around 7.2, so tipping worlds come late and leave less time to prepare (advised wins 3% of steady games, 0% of fast ones). Slow games stop at AI 2027's *alignment inconclusive* or *national security* milestone (the order holds; the later ones are simply not reached).
 
 ## Final simulation (2,000 games per strategy)
 
