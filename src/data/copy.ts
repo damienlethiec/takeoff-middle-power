@@ -142,6 +142,8 @@ export const HELP = {
     'AI safety shows what is verified and what the labs claim (for example 40–57). Only the verified part counts toward your goal. The truth lies in between and is revealed at the end. Checks (the AI Office, inspections, audits) grow the verified part; secrecy and AI whose thinking nobody can read shrink it.',
     'Requests: the right answer goes along with what is asked, the left one refuses or puts it off. Both cost something.',
     'Influence is your political weight in Brussels and abroad: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Play as many cards a round as your Influence covers, each card once.',
+    'Before you decide, a card says how much it moves each gauge in words: a little, some, a lot. The numbers show once it is played.',
+    'Diplomacy can fail. The talks, the coalition, accords, the ASML lever, pacts, the pause call and the treaty say how likely they are to work. If one fails, its Influence is spent, nothing else happens, and the news says why.',
   ],
   /** The Privacy section: what the game keeps, and where. The host's statement is linked after the last line. */
   privacy: [
