@@ -253,7 +253,7 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .hl-if { color: var(--align); font-weight: 600; }
 .hl-goal b { font-weight: 700; }
 .hl-badge:empty { display: none; }
-.heading-line .badge-btn { transform: none; position: static; flex-direction: row; gap: 6px; align-items: baseline; min-height: 32px; padding: 2px 8px; }
+.heading-line .badge-btn { transform: none; position: static; flex-direction: row; gap: 6px; align-items: baseline; min-height: 28px; padding: 1px 8px; }
 .hl-why { padding: 0 2px; font-size: 13px; color: var(--align); margin-left: auto; }
 .heading-line .heading-why { flex: 1 1 100%; margin: 0; }
 .wchip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 10px 1px 7px; border: 1.5px solid currentColor; font-family: var(--f-display); font-weight: 800; font-size: 17px; letter-spacing: .04em; line-height: 1.3; background: color-mix(in srgb, currentColor 14%, transparent); white-space: nowrap; }
@@ -802,8 +802,14 @@ body.ended { overflow: auto; }
   .mc-i + .mc-i { display: none; }
   .threat-btn { padding: 2px; border-radius: 50%; min-width: 44px; justify-content: center; }
   .threat-btn .tb-txt { display: none; }
-  .badge-btn { padding: 2px 6px; }
-  .badge-btn .badge-k { font-size: 9px; }
+  /* the line under the gauges flows as text: two lines at most, the badge and Why? inline at its end */
+  .heading-line { display: block; padding: 5px 10px; font-size: 13.5px; line-height: 1.55; }
+  .hl-text, .hl-badge { display: inline; font-size: 13.5px; }
+  .hl-text .wchip { font-size: 13.5px; vertical-align: 1px; }
+  .heading-line .badge-btn { display: inline-flex; min-height: 24px; padding: 0 6px; margin-left: 4px; vertical-align: middle; }
+  .heading-line .badge-btn .badge-k { font-size: 9px; }
+  .hl-why { display: inline-block; min-height: 24px; margin-left: 6px; vertical-align: middle; }
+  .heading-line .heading-why { margin-top: 3px; font-size: 12.5px; line-height: 1.35; }
   .leak-btn span { display: none; }
   .jt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .top-btns { margin-left: auto; }

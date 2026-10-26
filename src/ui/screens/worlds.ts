@@ -6,7 +6,7 @@ import { GAUGE_LABEL } from '../../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../../data/endings';
 import { SOURCES } from '../../data/sources';
 import { TUNING as T } from '../../data/tuning';
-import type { HeadingView, WorldId } from '../../engine/types';
+import type { EuropeAi, HeadingView, WorldId } from '../../engine/types';
 import { esc, link } from '../format';
 import { openModal } from '../modal';
 import { statusOf, worldChip } from '../outlook';
@@ -14,7 +14,7 @@ import { statusOf, worldChip } from '../outlook';
 const ORDER: WorldId[] = ['pause', 'race', 'rupture', 'plateau_open', 'plateau_labs'];
 
 /** With `h` (where the world is heading now), the dialog opens on that world and how to change course. */
-export async function showWorlds(current: WorldId, h?: HeadingView): Promise<void> {
+export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeAi): Promise<void> {
   const here = (w: WorldId) => (w === current ? ' here' : '');
   const youAreHere = (w: WorldId) => (w === current ? '<em class="wd-here">you are heading here</em>' : '');
   const z = T.zones;
@@ -46,6 +46,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView): Promise<voi
          <p>${esc(h.meaning)} ${esc(WORLDS[h.world].explain)}</p>
          <p>To end well here: ${esc(h.decides.label)} must reach ${h.decides.bar} (you: ${esc(h.decides.you)}, ${statusOf(h.decides)}), and ${esc(h.net.label)} must stay at ${h.net.bar} or more (you: ${esc(h.net.you)}, ${statusOf(h.net)}).</p>
          ${h.alt ? `<p class="wd-alt"><b>Change course:</b> ${esc(h.alt.text)}</p>` : ''}
+         ${ai ? `<p>Europe’s AI is <b>${ai === 'open' ? 'Open' : 'Dependent'}</b>: it decides the world if AI never tips (a plateau with ${ai === 'open' ? 'open models' : 'big labs'}).</p>` : ''}
        </section>`
     : '';
   const m = openModal(

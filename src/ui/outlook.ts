@@ -1,9 +1,10 @@
 // Where the world is heading (v4, simplest form). No column and no band: the targets are drawn on the gauges
 // themselves ("goal 75 · short", "floor 55 · on track", see app.ts), and one line under the gauges names the
 // world and what decides it: "Heading for a Race: AI safety must reach 75." with a Why? button (the five worlds
-// dialog: what this world means, the five worlds, how to change course). On a plateau, Europe's AI badge
-// (which picks the plateau) sits next to the line as a small chip. While the player selects cards, the line
-// previews the selection ("Race → Pause", "short → on track").
+// dialog: what this world means, the five worlds, how to change course). Europe's AI badge (which decides the
+// world if AI never tips) ends the line as a small chip, always. While the player selects cards, the line
+// previews the selection ("Race → Pause", "short → on track", "Dependent → Open"), and says "If you confirm:"
+// only when the world or a goal's status would change.
 // Everything shown comes from heading(s) and preview(s): public values only.
 
 import type { HeadingView, OutlookGauge, WorldId } from '../engine/types';
@@ -32,6 +33,8 @@ const a = (name: string) => `${/^[AEIOU]/.test(name) ? 'an' : 'a'} ${name}`;
  * confirmed: then `before` is where it heads now). Returns the visible HTML and the same in words.
  */
 export function headingLineHtml(h: HeadingView, before?: HeadingView): { html: string; words: string } {
+  // a selection that changes neither the world nor a status reads as the line without a preview
+  if (before && !lineMoves(h, before)) return headingLineHtml(h);
   const turned = !!before && before.world !== h.world;
   const d = h.decides;
   const was = before && before.decides.key === d.key ? before.decides : null;
@@ -46,9 +49,17 @@ export function headingLineHtml(h: HeadingView, before?: HeadingView): { html: s
   return { html, words };
 }
 
-/** Europe's AI badge, a small chip next to the line on a plateau: Open or Dependent, a button that explains it. */
+/** Would the selection change what the line says: the world, or the status of its goal or safety net? */
+function lineMoves(h: HeadingView, before: HeadingView): boolean {
+  if (h.world !== before.world || h.decides.key !== before.decides.key || h.net.key !== before.net.key) return true;
+  return statusOf(h.decides) !== statusOf(before.decides) || statusOf(h.net) !== statusOf(before.net);
+}
+
+export const BADGE_HINT = 'Decides the world if AI never tips';
+
+/** Europe's AI badge, a small chip at the end of the line: Open or Dependent, a button that explains it. */
 export function badgeHtml(ai: 'open' | 'dependent', from?: 'open' | 'dependent'): string {
   const word = (x: string) => (x === 'open' ? 'Open' : 'Dependent');
   const moved = from && from !== ai ? `<span class="badge-was">${word(from)} →</span> ` : '';
-  return `<button type="button" class="badge-btn ${ai}" data-badge data-coach="badge"><span class="badge-k">Europe’s AI</span> ${moved}<b>${word(ai)}</b>${moved ? '<span class="sr-only"> if you confirm</span>' : ''}<span class="sr-only">: what this means</span></button>`;
+  return `<button type="button" class="badge-btn ${ai}" data-badge data-coach="badge" title="${BADGE_HINT}"><span class="badge-k">Europe’s AI</span> ${moved}<b>${word(ai)}</b>${moved ? '<span class="sr-only"> if you confirm</span>' : ''}<span class="sr-only">. ${BADGE_HINT}: what this means</span></button>`;
 }

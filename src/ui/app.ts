@@ -151,7 +151,8 @@ export class App {
     // Influence on the decision view); later, only what does not explain itself, the first time it appears.
     // A tip whose part of the screen is not visible waits (it is tried again next round).
     for (const id of ['race', 'world', 'outlook'] as const) await this.coach.show(id, s.round, this.root);
-    if (s.round >= 3 || s.europeAi === 'open' || this.e.heading(s).plateau) await this.coach.show('badge', s.round, this.root);
+    // Europe's AI is always on the line now: its tip comes once the first decisions are made
+    if (s.round >= 2) await this.coach.show('badge', s.round, this.root);
 
     this.beginClock();
     await new Promise<void>((r) => (this.clockDone = r));
@@ -611,7 +612,7 @@ export class App {
     $('#help-btn', this.root).addEventListener('click', () => this.openHelp());
     $('#heading-line', this.root).addEventListener('click', (ev) => {
       const h = this.e.heading(this.s);
-      if ((ev.target as HTMLElement).closest('[data-worlds]')) this.openFromMap(() => showWorlds(h.world, h));
+      if ((ev.target as HTMLElement).closest('[data-worlds]')) this.openFromMap(() => showWorlds(h.world, h, this.s.europeAi));
       if ((ev.target as HTMLElement).closest('[data-badge]')) this.openFromMap(() => showBadge(this.s.europeAi, this.s.europeAiLocked));
     });
     this.feed = new Feed($('#feed', this.root), { onSelect: (it) => this.showOnMap(it) });
@@ -897,10 +898,10 @@ export class App {
       }
     }
     $('#heading-why', this.root).textContent = this.headingWhy;
-    // Europe's AI picks the world when AI stalls: on a plateau, its badge sits next to the line
+    // Europe's AI picks the world if AI never tips: its badge always ends the line (and previews a selection)
     const badge = $('#hl-badge', this.root);
     const ai = pv?.impacts.some((i) => i.key === 'europeAi') ? (this.s.europeAi === 'open' ? 'dependent' : 'open') : this.s.europeAi;
-    const bsig = h.plateau || now.plateau ? `${this.s.europeAi}>${ai}` : '';
+    const bsig = `${this.s.europeAi}>${ai}`;
     if (badge.dataset.v !== bsig) {
       const hadFocus = badge.contains(document.activeElement);
       badge.dataset.v = bsig;
