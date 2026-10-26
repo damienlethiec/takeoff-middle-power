@@ -82,7 +82,9 @@ async function playRun(browser, base, run) {
 
   /** A glossary word in a dialog (a toggletip): Enter shows its meaning, Escape hides it without closing the dialog. */
   async function checkGlossary(name) {
-    if (!(await page.evaluate((m) => !!document.querySelector(`${m} .gl-term`), MODAL)) || !once('glossary')) return;
+    // a word in a closed "Learn more" is not reachable until it opens: only visible words count
+    const visible = (m) => [...document.querySelectorAll(`${m} .gl-term`)].some((b) => b.checkVisibility());
+    if (!(await page.evaluate(visible, MODAL)) || !once('glossary')) return;
     if (!(await tabTo(page, `${MODAL} .gl-term`, { max: 20 }))) return fail(`${name}: could not Tab to a glossary word`);
     await press('Enter');
     await advance(page, 150);
