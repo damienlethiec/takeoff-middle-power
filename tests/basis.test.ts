@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { CARDS } from '../src/data/cards';
 import { ENDINGS } from '../src/data/endings';
-import { LEA_END, LEA_END_BASIS, LEA_R1, LEA_R4, LEA_R8 } from '../src/data/lea';
+import { ALL_LETTERS, EPILOGUE_BASIS, EPILOGUES } from '../src/data/letters';
 import { LEAKS } from '../src/data/leaks';
 import { VOICES, WORLD_HEADLINES } from '../src/data/mapcontent';
 import { MILESTONES } from '../src/data/milestones';
@@ -28,9 +28,9 @@ describe('every piece of content has a basis', () => {
   it('headlines', () => WORLD_HEADLINES.forEach((h) => check(`headline ${h.id}`, h.basis)));
   it('public voices', () => VOICES.forEach((v) => check(`voice ${v.id}`, v.basis)));
   it('leaks', () => LEAKS.forEach((l) => check(`leak ${l.id}`, l.basis)));
-  it('Léa letters', () => {
-    [...LEA_R1, ...LEA_R4.hard, ...LEA_R4.calm, ...LEA_R8.retrained, ...LEA_R8.holding, ...LEA_R8.breaking].forEach((l) => check(`letter ${l.id}`, l.basis));
-    (Object.keys(LEA_END) as EndingId[]).forEach((id) => check(`end letter ${id}`, LEA_END_BASIS(id)));
+  it('friends’ letters and epilogues', () => {
+    ALL_LETTERS.forEach((l) => check(`letter ${l.id}`, l.basis));
+    (Object.keys(EPILOGUES) as EndingId[]).forEach((id) => check(`epilogues ${id}`, EPILOGUE_BASIS(id)));
   });
   it('endings', () => ENDINGS.forEach((e) => check(`ending ${e.id}`, e.basis)));
 

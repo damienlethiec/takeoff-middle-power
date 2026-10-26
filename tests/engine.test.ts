@@ -494,19 +494,38 @@ describe('heading, report, letters', () => {
     }
   });
 
-  it('Léa writes at rounds 1, 4 and 8 and at the end, with variants across games', () => {
+  it('the friends write on schedule, one letter a round at most, then all three write an epilogue', () => {
     const ids = new Set<string>();
     for (const seed of SEEDS.slice(0, 40)) {
       const f = playGame(seed, randomStrategy).final;
       const ls = letters(f);
-      const slots = ls.map((l) => l.slot);
-      expect(slots[0]).toBe('r1');
-      expect(slots.at(-1)).toBe('end');
-      expect(ls.at(-1)!.id).toMatch(new RegExp(`^end_${f.ending}_`));
+      const rounds = ls.filter((l) => l.slot !== 'end');
+      expect(rounds[0]).toMatchObject({ slot: 'r1', friend: 'lea', postcard: true });
+      for (const l of rounds) expect(T.letters.schedule.find((x) => x.round === l.round)?.friend).toBe(l.friend);
+      expect(new Set(rounds.map((l) => l.round)).size).toBe(rounds.length);
+      const end = ls.filter((l) => l.slot === 'end');
+      expect(end.map((l) => l.friend)).toEqual(['lea', 'mother', 'malik']);
+      for (const l of end) expect(l.id).toMatch(new RegExp(`^end_${f.ending}_`));
+      expect(ending(f).friends.map((x) => x.friend)).toEqual(['lea', 'mother', 'malik']);
       ls.forEach((l) => ids.add(l.id));
     }
-    expect([...ids].filter((i) => i.startsWith('r1_')).length).toBeGreaterThan(1);
-    expect([...ids].filter((i) => i.startsWith('r4_')).length).toBeGreaterThan(1);
+    for (const p of ['r1_', 'm1_', 'mum1_', 'm2_', 'mum2_']) expect([...ids].filter((i) => i.startsWith(p)).length, p).toBeGreaterThan(1);
+  });
+
+  it('letters never change the game: the same seed plays the same without them', () => {
+    const saved = [...T.letters.schedule];
+    for (const seed of SEEDS.slice(0, 5)) {
+      const a = playGame(seed, randomStrategy).final;
+      T.letters.schedule.splice(0);
+      try {
+        const b = playGame(seed, randomStrategy).final;
+        expect(b.letters.filter((l) => l.slot !== 'end')).toHaveLength(0);
+        expect({ ...b, letters: [] }).toEqual({ ...a, letters: [], history: b.history });
+        expect(b.history.map((r) => ({ ...r, letter: null }))).toEqual(a.history.map((r) => ({ ...r, letter: null })));
+      } finally {
+        T.letters.schedule.splice(0, Infinity, ...saved);
+      }
+    }
   });
 
   it('leaks are readable only with enough oversight', () => {

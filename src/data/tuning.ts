@@ -1,7 +1,7 @@
 // Every number of the v3 rules. Change them only through the simulation (npm run sim) and record each
 // change, its old value and the reason in the "Tuning changes" table of docs/DEVELOPER_NOTES.md.
 
-import type { CardId, Pace } from '../engine/types';
+import type { CardId, FriendId, Pace } from '../engine/types';
 
 export const TUNING = {
   rounds: 12,
@@ -131,11 +131,38 @@ export const TUNING = {
   /** Oversight points: AI Office 2, each inspection level 1, an audit 1. */
   oversight: { aiOffice: 2, perInspection: 1, audit: 1 },
 
-  /** Gap (estimate − truth) above which leaks and letters hint that the labs are too optimistic. */
+  /** Gap (estimate − truth) above which leaks hint that the labs are too optimistic. */
   overconfidentGap: 6,
 
-  /** Léa writes at these rounds, and at the end. */
-  letters: { r1: 1, r4: 4, r8: 8 },
+  /** v4: the three friends write at these rounds (each letter opens its round as a postcard); each friend's
+   *  n-th letter in the schedule is their first, second or third (src/data/letters.ts). All write an epilogue at
+   *  the end. The pools are picked from public values only: */
+  letters: {
+    schedule: [
+      { round: 1, friend: 'lea' },
+      { round: 2, friend: 'malik' },
+      { round: 3, friend: 'mother' },
+      { round: 5, friend: 'lea' },
+      { round: 6, friend: 'malik' },
+      { round: 7, friend: 'mother' },
+      { round: 9, friend: 'lea' },
+    ] as { round: number; friend: FriendId }[],
+    /** Rounds where the game's generator still makes one unused draw, where Léa's letters drew before the friends
+     *  (26 Oct), so seeded games and the simulation stay identical. Not a balance setting. */
+    legacyDraws: [1, 4, 8] as number[],
+    /** Léa's second letter is the hard one after a job shock or below this Social cohesion; her third is the
+     *  "holding" one at or above `leaHolding`. */
+    leaHard: 55,
+    leaHolding: 50,
+    /** Malik's first letter is tense below this US–China cooperation; his second tells of rupture below `malikRupture`. */
+    malikTense: 45,
+    malikRupture: 30,
+    /** Your mother's letters follow what is verified about AI safety (the low end of the band): doubt below
+     *  `motherDoubt` (first letter), a near miss below `motherNearMiss` (second), checked at `motherChecked`+. */
+    motherDoubt: 42,
+    motherNearMiss: 45,
+    motherChecked: 60,
+  },
 
   /** v4: AI weighs on jobs every round (automation spreading, AI 2027's agents taking office work): Social
    *  cohesion loses round(min(max, (AI capabilities − from) / per) × factor) a round. The factor is 1, minus

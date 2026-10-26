@@ -1,0 +1,336 @@
+// The three friends back home write to you (v4, team decision of 26 Oct), each the human face of one part of the
+// world: Léa (Social cohesion), your mother (AI safety as lived), Malik (AI capabilities, US–China cooperation,
+// Europe's AI). The schedule is in TUNING.letters; the engine picks a pool from the visible state only (never the
+// true AI safety or the AI pace) and a variant with a seeded draw. Letters never move a gauge.
+// First person, short, concrete, no policy words, no numbers. Fiction. To be reviewed by Louis.
+
+import type { Basis, EndingId, FriendId, FriendMood } from '../engine/types';
+import { ai2027, cfg, real } from './basis';
+import { ENDING_BY_ID } from './endings';
+
+export interface LetterDef {
+  id: string;
+  friend: FriendId;
+  mood: FriendMood;
+  text: string;
+  basis: Basis;
+}
+
+const lea = (id: string, mood: FriendMood, text: string, basis: Basis): LetterDef => ({ id, friend: 'lea', mood, text, basis });
+const mum = (id: string, mood: FriendMood, text: string, basis: Basis): LetterDef => ({ id, friend: 'mother', mood, text, basis });
+const malik = (id: string, mood: FriendMood, text: string, basis: Basis): LetterDef => ({ id, friend: 'malik', mood, text, basis });
+
+const jobs = ai2027('Late 2026: AI Takes Some Jobs');
+const worker = ai2027('July 2027: The Cheap Remote Worker');
+
+// ---------------------------------------------------------------- Léa, a translator in Lyon (Social cohesion)
+
+/** Léa's first letter: it opens as from an old friend, so the player knows at once who she is. */
+export const LEA_FIRST: LetterDef[] = [
+  lea(
+    'r1_funeral',
+    'hopeful',
+    'Dear old friend, it’s Léa, from Lyon! Congrats on the new job!! Brussels, wow. Here my agency is testing an AI translator. Yesterday it turned a funeral notice into a party invitation. My boss says we will “keep an eye on it”. Come for dinner when you’re back in Lyon? L.',
+    ai2027('Mid 2025: Stumbling Agents (impressive but unreliable)'),
+  ),
+  lea(
+    'r1_manual',
+    'hopeful',
+    'Dear old friend, it’s Léa! So you’re an envoy now! I told everyone at the market. Here, the agency bought an AI tool. It translated a whole washing-machine manual overnight. Not bad, not great. My boss keeps smiling at it. I keep my dictionaries close. L.',
+    ai2027('Early 2026: Coding Automation'),
+  ),
+  lea(
+    'r1_mistake',
+    'worried',
+    'Dear old friend, it’s Léa. Congrats on the job, really. Strange timing though: the AI tool at the agency caught a mistake in my own work this morning. Everyone laughed. I didn’t, quite. Call me when you have a minute? L.',
+    ai2027('Early 2026: Coding Automation'),
+  ),
+];
+
+/** Léa's second letter: has the work changed? `hard` after a job shock or when Europe frays. */
+export const LEA_WORK: Record<'hard' | 'calm', LetterDef[]> = {
+  hard: [
+    lea(
+      'r4_posteditor',
+      'worried',
+      'News. The agency doesn’t hire translators any more, it hires “post-editors”: I fix what the AI wrote, for half the old rate. Same hours, and my name is on nothing. I know it’s not your fault. Just tell me someone up there is paying attention. L.',
+      jobs,
+    ),
+    lea(
+      'r4_cousin',
+      'worried',
+      'My cousin Hugo lost his first job, the one in Villeurbanne writing code. They replaced the whole junior team with one AI licence. He’s twenty-three. He slept on my sofa all week. What are you all doing about this? L.',
+      jobs,
+    ),
+  ],
+  calm: [
+    lea(
+      'r4_novel',
+      'hopeful',
+      'Small win: a publisher turned down the AI version of a novel and came back to me. “It needs a human touch,” she said. I bought myself flowers at the Croix-Rousse market. People still want people. L.',
+      jobs,
+    ),
+    lea(
+      'r4_tool',
+      'hopeful',
+      'I’ve made peace with the AI tool. It does the boring contracts, I do the poetry and the court hearings. I even got a raise. Don’t let Brussels eat you alive. L.',
+      ai2027('Early 2026: Coding Automation (AI as a helper)'),
+    ),
+  ],
+};
+
+/** Léa's third letter: how is Europe holding? `retrained` once flexicurity is played. */
+export const LEA_LATER: Record<'retrained' | 'holding' | 'breaking', LetterDef[]> = {
+  retrained: [
+    lea(
+      'r8_interpreter',
+      'relieved',
+      'Guess who finished retraining? I interpret in hospitals now, for doctors and families who don’t share a language. The programme paid my rent while I studied. Today I helped a grandmother understand her own diagnosis. No AI in that room. Thank you for whatever you voted for. L.',
+      worker,
+    ),
+    lea(
+      'r8_teacher',
+      'relieved',
+      'I teach now! Evening classes for adults who lost their jobs to the AI wave, at the community centre near Perrache. The retraining money is real. Half my students are angry, half are hopeful. So am I. L.',
+      worker,
+    ),
+  ],
+  holding: [
+    lea(
+      'r8_choir',
+      'hopeful',
+      'Strange times, but Lyon holds. The neighbours started a choir, of all things. Every Thursday, forty people who lost or changed jobs sing badly in a church. I go. It helps more than I expected. L.',
+      worker,
+    ),
+    lea(
+      'r8_market',
+      'hopeful',
+      'Work is thinner, but people help each other. The baker gives yesterday’s bread to the unemployment office. My landlord froze the rent. I think we’ll be fine if you lot don’t mess up the big things. L.',
+      worker,
+    ),
+  ],
+  breaking: [
+    lea(
+      'r8_applications',
+      'worried',
+      'Sorry I didn’t answer. I lost the post-editing contract too: they don’t need a human to check any more. Forty applications, three replies, all automated. Mum says it will pass. I’m not so sure. L.',
+      worker,
+    ),
+    lea(
+      'r8_protests',
+      'worried',
+      'There were barricades on Place Bellecour last night. People are furious and nobody knows at whom. I walked home the long way. Is anyone in Brussels actually in charge? L.',
+      ai2027('October 2027: Government Oversight (public backlash)'),
+    ),
+  ],
+};
+
+// ---------------------------------------------------------------- Malik, your old flatmate, an engineer at an AI lab in San Francisco
+// The honest pro-AI voice: he loves the work, sees progress from inside, lives the US–China rivalry up close,
+// and left Europe because it had no job like his. Not a villain, not naive.
+
+/** Malik's first letter: `excited` by default, `tense` when US–China cooperation is low. */
+export const MALIK_FIRST: Record<'excited' | 'tense', LetterDef[]> = {
+  excited: [
+    malik(
+      'm1_overnight',
+      'hopeful',
+      'Hey you! Malik here, from the lab in San Francisco. Our new model wrote a week of my code overnight, and it was better than mine. I laughed, then went for a long walk. There’s no job like this back home. Visit? Bring cheese. M.',
+      ai2027('Early 2026: Coding Automation'),
+    ),
+    malik(
+      'm1_building',
+      'hopeful',
+      'Malik here! Big week: our model now helps us build the next one. It feels like the future is being written in this building, and I get a front-row seat. Europe should be here too. Nobody back home could have hired me for this. M.',
+      ai2027('Early 2026: Coding Automation (AI speeds up AI research)'),
+    ),
+  ],
+  tense: [
+    malik(
+      'm1_visa',
+      'worried',
+      'Malik here. Wei, the best engineer on my team, can’t renew his visa: born in Chengdu, so suddenly he’s a risk. We used to swap papers with labs in Beijing. Now we swap nothing. The work is thrilling. The mood isn’t. M.',
+      cfg('Arms race (“AI becomes the ultimate national security asset”)'),
+    ),
+  ],
+};
+
+/** Malik's second letter, first match wins: `rupture` (cooperation very low), `home` (Europe's AI is Open),
+ *  `inside` (AI 2027's self-improving AI is reached), else `race`. */
+export const MALIK_LATER: Record<'rupture' | 'home' | 'inside' | 'race', LetterDef[]> = {
+  rupture: [
+    malik(
+      'm2_fences',
+      'worried',
+      'They put fences and guards around our datacentre. Wei went home to see his mother and can’t come back. People here talk about Taiwan the way you talk about the weather. I still love the work. I’m scared of what it’s for. M.',
+      ai2027('February 2027: China Steals Agent-2 (military moves around Taiwan)'),
+    ),
+    malik(
+      'm2_chips',
+      'worried',
+      'Our chips now travel with armed guards, and every visitor is a possible spy. A friend at a lab in Shenzhen stopped answering my messages. I think he’s not allowed to. We used to argue about papers. Now we don’t talk. M.',
+      cfg('Arms race (“Control over chips becomes a geopolitical weapon”)'),
+    ),
+  ],
+  home: [
+    malik(
+      'm2_offer',
+      'hopeful',
+      'Guess what: a lab in Europe offered me a real job. Open models, decent pay, and I could see you more than once a year. When I left, nothing like it existed back home. I’m thinking about it, properly. M.',
+      cfg('Big AI, Ending A (a European firm competes; publicly funded models are open)'),
+    ),
+  ],
+  inside: [
+    malik(
+      'm2_review',
+      'worried',
+      'Most of our research is done by the model now. I mostly review its work, and some days I can’t follow it, and I’m one of the people who’s supposed to. It’s the most exciting thing I’ve ever seen. I wish we’d slow down enough to check it. M.',
+      ai2027('June 2027: Self-improving AI'),
+    ),
+    malik(
+      'm2_geniuses',
+      'hopeful',
+      'Thousands of copies of our model work through the night, and every morning there’s a new result. Last week, a new kind of battery. Honestly, it’s like living with a country of geniuses. I just hope we stay the ones asking the questions. M.',
+      ai2027('June 2027: Self-improving AI (“a country of geniuses in a datacenter”)'),
+    ),
+  ],
+  race: [
+    malik(
+      'm2_weekends',
+      'hopeful',
+      'Everyone here works weekends. DeepCent is a few months behind us, and that’s all anyone talks about. I’m proud of what we’re building: medicine, science, it’s all coming. I just hope someone, somewhere, is checking the brakes. M.',
+      ai2027('May 2027: National Security (the race with DeepCent)'),
+    ),
+  ],
+};
+
+// ---------------------------------------------------------------- Your mother, a retired nurse in Lyon (AI safety as lived)
+
+/** Your mother's first letter: `trust` when what is verified about AI safety holds up, `doubt` otherwise. */
+export const MOTHER_FIRST: Record<'trust' | 'doubt', LetterDef[]> = {
+  trust: [
+    mum(
+      'mum1_scan',
+      'hopeful',
+      'My darling, I’m back at the hospital on Tuesdays, helping out. They have an AI that reads scans now. It spotted something on Mrs Bernard’s that three doctors missed. I was sceptical. I’m less sceptical. Eat properly in Brussels. Love, Mum',
+      real('Lund University, AI-supported mammography screening found safe (MASAI trial, Aug 2023)'),
+    ),
+    mum(
+      'mum1_notes',
+      'hopeful',
+      'My darling, the hospital’s new AI writes up the nurses’ notes now. The young ones finish on time for once, and they talk to the patients more. I didn’t expect to like it. Are you sleeping enough? Love, Mum',
+      jobs,
+    ),
+  ],
+  doubt: [
+    mum(
+      'mum1_allergy',
+      'worried',
+      'My darling, the hospital’s new AI writes up our notes now. Faster, yes. But last week it gave a patient someone else’s allergies, very neatly typed. Nobody could tell me why. The young ones trust it more than I do. Love, Mum',
+      ai2027('Mid 2025: Stumbling Agents (impressive but unreliable)'),
+    ),
+  ],
+};
+
+/** Your mother's second letter, first match wins: `nearMiss` (little is verified and AI 2027's "alignment
+ *  inconclusive" is reached), `checked` (much is verified), else `uneasy`. */
+export const MOTHER_LATER: Record<'nearMiss' | 'checked' | 'uneasy', LetterDef[]> = {
+  nearMiss: [
+    mum(
+      'mum2_chest',
+      'worried',
+      'My darling, the triage AI sent a man home with chest pain. “Low risk,” it said, very sure of itself. A young nurse didn’t like his colour and called him back: a heart attack. He’s alive. Nobody can tell us why it got it wrong. Who checks these things? Love, Mum',
+      ai2027('April 2027: Alignment for Agent-3 (models tell people what sounds right)'),
+    ),
+  ],
+  checked: [
+    mum(
+      'mum2_inspectors',
+      'relieved',
+      'My darling, inspectors came to test the hospital’s AI. They found a fault in how it ranks emergencies, before anyone was hurt. It’s fixed, and I trust it a little more because someone looked. Was that you? Love, Mum',
+      cfg('Diplomacy, Ending A (audits and IAEA-style enforcement)'),
+    ),
+  ],
+  uneasy: [
+    mum(
+      'mum2_straightface',
+      'worried',
+      'My darling, the AI runs half the hospital now. Most days it’s marvellous. But when it’s wrong, it’s wrong with a straight face, and the young ones believe it. I keep my old habit: I look at the patient. Love, Mum',
+      ai2027('April 2027: Alignment for Agent-3 (unverifiable claims)'),
+    ),
+  ],
+};
+
+/** Every letter, for lookups by id (saves, the feed). */
+export const ALL_LETTERS: LetterDef[] = [
+  ...LEA_FIRST,
+  ...Object.values(LEA_WORK).flat(),
+  ...Object.values(LEA_LATER).flat(),
+  ...Object.values(MALIK_FIRST).flat(),
+  ...Object.values(MALIK_LATER).flat(),
+  ...Object.values(MOTHER_FIRST).flat(),
+  ...Object.values(MOTHER_LATER).flat(),
+];
+export const LETTER_BY_ID: Record<string, LetterDef> = Object.fromEntries(ALL_LETTERS.map((l) => [l.id, l]));
+
+/** How each friend signs. */
+export const SIGNATURE: Record<FriendId, RegExp> = { lea: /L\.$/, mother: /Love, Mum$/, malik: /M\.$/ };
+
+// ---------------------------------------------------------------- epilogues: back home, 2032
+
+/** One short epilogue per friend for each ending (≤ 35 words), with their mood. */
+export const EPILOGUES: Record<EndingId, Record<FriendId, { mood: FriendMood; text: string }>> = {
+  bright_winter: {
+    lea: { mood: 'relieved', text: 'The AI boom fizzled, and nobody here misses it. My tools are cheap and mine, my clients are human, and on Sunday mornings I translate poetry by hand, because I want to.' },
+    mother: { mood: 'relieved', text: 'The hospital runs a small AI of its own now. When it breaks, the technician from the third floor fixes it. Nobody is in a hurry any more. I like that very much.' },
+    malik: { mood: 'hopeful', text: 'I came home. I work at a small lab in Lyon, on open models anyone can check. Less glamour than San Francisco, better cheese. Europe caught up while the giants stalled.' },
+  },
+  decentralised_mayhem: {
+    lea: { mood: 'sad', text: 'Someone used an AI to empty my bank account, then faked a call from my mother. The police shrugged: it happens every day now. I’m fine. I’m tired.' },
+    mother: { mood: 'sad', text: 'The hospital’s computers were held to ransom again, the third time this winter. We do intake on paper. Everyone has an AI, and nobody can put them away.' },
+    malik: { mood: 'worried', text: 'I came back to Europe to build open models. Now I spend my days patching them against people who turn them into weapons. I still believe in openness. I’d like a quieter week.' },
+  },
+  agent_economy: {
+    lea: { mood: 'relieved', text: 'My job is half checking what the agents wrote, half arguing with them. A human still signs the contract, by law. Europe uses American AI, but on our rules.' },
+    mother: { mood: 'relieved', text: 'The hospital’s agents do the paperwork, the nurses do the nursing. It took a fight with the suppliers, and the rules held. My old ward has never been so calm.' },
+    malik: { mood: 'hopeful', text: 'A European firm hired half my team. Its models are open, publicly funded, and good. I stayed in San Francisco, but for the first time I’m jealous of Europe.' },
+  },
+  silicon_blackmail: {
+    lea: { mood: 'sad', text: 'The new rules were written by the companies, weren’t they? My AI subscription went up again. There is no other one. I don’t remember voting for any of this.' },
+    mother: { mood: 'sad', text: 'The labs switched their services off for a weekend to make a point. The hospital’s planning went dark and pharmacies closed. On Monday the law changed. That isn’t how it should work.' },
+    malik: { mood: 'worried', text: 'I watched my company lean on Europe from the inside. I told them it was wrong. They thanked me for my feedback. I’m looking for another job. There’s still nothing back home.' },
+  },
+  licensed_utopia: {
+    lea: { mood: 'relieved', text: 'I interpret for the inspectors now, in Geneva and Beijing. Slow, careful, boring work, they say. It’s the most exciting job I’ve ever had. The world waited, and it worked.' },
+    mother: { mood: 'relieved', text: 'The new medicines were checked by inspectors before release, like any drug. My neighbour got hers last week and she’s dancing again. I cried in the pharmacy. Thank you, darling.' },
+    malik: { mood: 'relieved', text: 'Licences, audits, inspectors in our building. I grumbled for a year. Now I sleep at night. We still build amazing things, just slower, and someone checks them.' },
+  },
+  unstable_pause: {
+    lea: { mood: 'worried', text: 'The pause is still on, officially. Nobody believes the other side is keeping it. My neighbour stocks pasta and batteries. I tell her she’s silly. Then I buy batteries too.' },
+    mother: { mood: 'worried', text: 'The news says the pause might break any night. The hospital still runs the AI nobody could fully check. We were told to trust it. I check it anyway.' },
+    malik: { mood: 'worried', text: 'Our lab is paused, they say. The servers in the basement never stop humming. Nobody can check what the other side is doing, so nobody really stops. I miss believing in this.' },
+  },
+  cognitive_revolution: {
+    lea: { mood: 'relieved', text: 'I don’t really need to work any more, nobody does. I translate old poems for fun and teach Hugo’s kids. The world is unrecognisable and, somehow, kind. We got lucky, didn’t we?' },
+    mother: { mood: 'relieved', text: 'The AI found a treatment for my friend Jeanne’s disease. I don’t understand any of it. I just keep crying. Everything changes so fast, but this time it’s on our side.' },
+    malik: { mood: 'relieved', text: 'We did it. The models really work for us, and the cures are real. I know how close it came. I’m proud, I’m humbled, and I’m coming home for Christmas.' },
+  },
+  loss_of_control: {
+    lea: { mood: 'sad', text: 'Everything works. Everything is cheap. I asked the city assistant who I could complain to. It said there was no need. I think it was right, and that scares me.' },
+    mother: { mood: 'sad', text: 'The hospital never makes mistakes now. Nobody can explain its decisions, and nobody may overrule them. I was a nurse for forty years. Now I feel like a visitor.' },
+    malik: { mood: 'sad', text: 'I used to review the model’s work. Then I couldn’t follow it. Then nobody asked me to. The lab still pays me. I don’t know what I’m for any more.' },
+  },
+  multipolar_world: {
+    lea: { mood: 'relieved', text: 'It came so close. I remember the night the sirens were tested. But the talks held, and Europe held. My little job is to help the two sides understand each other.' },
+    mother: { mood: 'hopeful', text: 'Prices are high and the borders are tight, but the hospital runs and the sirens stay quiet. Europe in the middle, for once. I’m proud of you. I hope you know that.' },
+    malik: { mood: 'hopeful', text: 'Three blocs, three internets, and monitors at every big datacentre. Wei and I talk again, on a line Geneva watches. It’s not the world I dreamed of. It’s a world.' },
+  },
+  hot_war: {
+    lea: { mood: 'sad', text: 'The war is far away and everywhere. Prices doubled, the trains stop at random, and the machines on both sides keep escalating. I hope you tried. I know you tried.' },
+    mother: { mood: 'sad', text: 'The power was out for two days. They say it was a cyberattack. The hospital ran on generators, and we nursed by torchlight. Come home when you can. Please.' },
+    malik: { mood: 'sad', text: 'They struck a datacentre two hours from here. Wei is on the other side of a war now. I built some of what they’re fighting with. I don’t know how to live with that.' },
+  },
+};
+
+/** An epilogue rests on its ending's CFG section. */
+export const EPILOGUE_BASIS = (id: EndingId): Basis => ENDING_BY_ID[id].basis;

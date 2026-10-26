@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { CARDS } from '../src/data/cards';
 import { HELP, INTRO, TIPS } from '../src/data/copy';
 import { ENDINGS } from '../src/data/endings';
-import { LEA_END, LEA_R1, LEA_R4, LEA_R8 } from '../src/data/lea';
+import { ALL_LETTERS, EPILOGUES, SIGNATURE } from '../src/data/letters';
+import { FRIEND_IDS } from '../src/data/friends';
 import { LEAK_REDACTED_ADVICE, LEAKS } from '../src/data/leaks';
 import { VOICES, WORLD_HEADLINES } from '../src/data/mapcontent';
 import { SOURCES } from '../src/data/sources';
@@ -54,23 +55,27 @@ describe('real facts', () => {
 
 describe('no broken text anywhere', () => {
   it('content strings are clean', () => {
-    const all = JSON.stringify([CARDS, INTRO, TIPS, HELP, ENDINGS, LEA_R1, LEA_R4, LEA_R8, LEA_END, LEAKS, VOICES, WORLD_HEADLINES, EVENTS, THREATS]);
+    const all = JSON.stringify([CARDS, INTRO, TIPS, HELP, ENDINGS, ALL_LETTERS, EPILOGUES, LEAKS, VOICES, WORLD_HEADLINES, EVENTS, THREATS]);
     expect(all).not.toMatch(BAD);
   });
-  it('Léa signs every letter and never uses numbers', () => {
-    const all = [...LEA_R1, ...LEA_R4.hard, ...LEA_R4.calm, ...LEA_R8.retrained, ...LEA_R8.holding, ...LEA_R8.breaking].map((l) => l.text).concat(Object.values(LEA_END).flat());
-    for (const t of all) {
-      expect(t).toMatch(/L\.$/);
-      expect(t).not.toMatch(/\d/);
-      expect(words(t)).toBeLessThanOrEqual(70);
+  it('each friend signs every letter, never uses numbers and keeps it short', () => {
+    for (const l of ALL_LETTERS) {
+      expect(l.text, l.id).toMatch(SIGNATURE[l.friend]);
+      expect(l.text, l.id).not.toMatch(/\d/);
+      expect(words(l.text), l.id).toBeLessThanOrEqual(60);
     }
+  });
+  it('every ending has one short epilogue per friend, without numbers', () => {
+    for (const e of ENDINGS)
+      for (const f of FRIEND_IDS) {
+        const t = EPILOGUES[e.id][f].text;
+        expect(t, `${e.id} ${f}`).not.toMatch(/\d/);
+        expect(words(t), `${e.id} ${f}`).toBeLessThanOrEqual(35);
+      }
   });
   it('headlines and voices fit on a map banner', () => {
     for (const h of [...WORLD_HEADLINES, ...VOICES]) expect(h.text.length, h.id).toBeLessThanOrEqual(90);
     for (const t of THREATS) for (const h of t.stageHeadlines) expect(h.length).toBeLessThanOrEqual(90);
-  });
-  it('every ending has a two-variant end letter', () => {
-    for (const e of ENDINGS) expect(LEA_END[e.id]).toHaveLength(2);
   });
 
   it('every leak says what to do about it, in one short line without numbers', () => {

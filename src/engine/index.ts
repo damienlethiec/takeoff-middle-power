@@ -7,8 +7,8 @@ import { CHARACTERS } from '../data/characters';
 import { REQUEST_BY_ID, REQUESTS } from '../data/requests';
 import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, lowText, marginText, verifiedWord } from '../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../data/endings';
-import { FRIENDS, letterLabel } from '../data/friends';
-import { LEA_END, LEA_END_BASIS, LEA_END_MOOD, LEA_R1, LEA_R4, LEA_R8, type LetterDef } from '../data/lea';
+import { FRIEND_IDS, FRIENDS, letterLabel } from '../data/friends';
+import { EPILOGUE_BASIS, EPILOGUES, LEA_FIRST, LEA_LATER, LEA_WORK, LETTER_BY_ID, MALIK_FIRST, MALIK_LATER, MOTHER_FIRST, MOTHER_LATER, type LetterDef } from '../data/letters';
 import { LEAK_REDACTED_ADVICE, LEAKS } from '../data/leaks';
 import { VOICES, WORLD_HEADLINES, type MapLine, type PublicWorld } from '../data/mapcontent';
 import { MILESTONES, MILESTONE_BY_ID } from '../data/milestones';
@@ -48,6 +48,8 @@ import type {
   RegionId,
   FeedItem,
   FeedRound,
+  FriendEpilogue,
+  FriendId,
   Pick,
   PreviewView,
   ReportView,
@@ -584,12 +586,32 @@ function arrive(s: GameState) {
   }
 }
 
-function letterFor(s: GameState, h: RngHolder): LetterDef | null {
+/** The friend's letter that opens this round, if the schedule has one. The pool depends on public values only
+ *  (never the true AI safety or the pace); the variant is drawn from a generator derived from the seed and the
+ *  round, so letters never shift the game's own random draws. */
+function letterFor(s: GameState): LetterDef | null {
   const L = T.letters;
-  if (s.round === L.r1) return pick(h, LEA_R1);
-  if (s.round === L.r4) return pick(h, s.jobShocks > 0 || s.cohesion < 55 ? LEA_R4.hard : LEA_R4.calm);
-  if (s.round === L.r8) return pick(h, used(s, 'flexicurity') ? LEA_R8.retrained : s.cohesion >= 50 ? LEA_R8.holding : LEA_R8.breaking);
-  return null;
+  const at = L.schedule.findIndex((x) => x.round === s.round);
+  if (at < 0) return null;
+  const friend = L.schedule[at].friend;
+  const nth = L.schedule.slice(0, at).filter((x) => x.friend === friend).length;
+  const h: RngHolder = { rng: seedToRng((s.seed >>> 0) ^ Math.imul(s.round, 0x9e3779b1)) };
+  const verified = lowEnd(s.confidence);
+  if (friend === 'lea') {
+    if (nth === 0) return pick(h, LEA_FIRST);
+    if (nth === 1) return pick(h, s.jobShocks > 0 || s.cohesion < L.leaHard ? LEA_WORK.hard : LEA_WORK.calm);
+    return pick(h, used(s, 'flexicurity') ? LEA_LATER.retrained : s.cohesion >= L.leaHolding ? LEA_LATER.holding : LEA_LATER.breaking);
+  }
+  if (friend === 'malik') {
+    if (nth === 0) return pick(h, s.cooperation < L.malikTense ? MALIK_FIRST.tense : MALIK_FIRST.excited);
+    const pool =
+      s.cooperation < L.malikRupture ? MALIK_LATER.rupture : s.europeAi === 'open' ? MALIK_LATER.home : reached(s, 'self_improving') ? MALIK_LATER.inside : MALIK_LATER.race;
+    return pick(h, pool);
+  }
+  if (nth === 0) return pick(h, verified < L.motherDoubt ? MOTHER_FIRST.doubt : MOTHER_FIRST.trust);
+  const pool =
+    verified < L.motherNearMiss && reached(s, 'alignment_inconclusive') ? MOTHER_LATER.nearMiss : verified >= L.motherChecked ? MOTHER_LATER.checked : MOTHER_LATER.uneasy;
+  return pick(h, pool);
 }
 
 export function startRound(state: GameState): GameState {
@@ -705,9 +727,11 @@ export function startRound(state: GameState): GameState {
     s.leaks.push(s.leak);
   }
 
-  // 7. Léa's letter
-  const letter = letterFor(s, h);
-  if (letter) s.letters.push({ slot: `r${s.round}`, round: s.round, id: letter.id, friend: 'lea' });
+  // 7. a friend's letter (no effect on the gauges, no draw from the game's generator). Léa's letters used to draw
+  // from it at these rounds: the same draws are kept so that every seeded game plays exactly as before.
+  if (T.letters.legacyDraws.includes(s.round)) random(h);
+  const letter = letterFor(s);
+  if (letter) s.letters.push({ slot: `r${s.round}`, round: s.round, id: letter.id, friend: letter.friend });
 
   // 8. cards that arrive now
   arrive(s);
@@ -1228,8 +1252,7 @@ function finish(s: GameState) {
   const good = gaugeValueTrue(s, w.decides) >= w.target && gaugeValueTrue(s, w.net) >= w.floor;
   s.ending = good ? WORLDS[world].good : WORLDS[world].bad;
   s.phase = 'ended';
-  const variant = randomInt(h, 0, 1);
-  s.letters.push({ slot: 'end', round: s.round, id: `end_${s.ending}_${variant}`, friend: 'lea' });
+  for (const friend of FRIEND_IDS) s.letters.push({ slot: 'end', round: s.round, id: `end_${s.ending}_${friend}`, friend });
   s.rng = h.rng;
 }
 
@@ -1497,16 +1520,23 @@ export function advisor(s: GameState): AdvisorView {
 }
 
 function letterDef(id: string): LetterDef | null {
-  const all = [...LEA_R1, ...LEA_R4.hard, ...LEA_R4.calm, ...LEA_R8.retrained, ...LEA_R8.holding, ...LEA_R8.breaking];
-  return all.find((l) => l.id === id) ?? null;
+  return LETTER_BY_ID[id] ?? null;
+}
+
+/** Each friend's epilogue for this ending. */
+function epilogues(ending: EndingId): FriendEpilogue[] {
+  return FRIEND_IDS.map((friend) => ({ friend, ...EPILOGUES[ending][friend], basis: EPILOGUE_BASIS(ending) }));
 }
 
 export function letters(s: GameState): LetterView[] {
   return s.letters.map((l) => {
     if (l.slot === 'end') {
-      const m = /^end_(.+)_(\d)$/.exec(l.id)!;
+      // end_<ending>_<friend>; saves from before the friends have end_<ending>_<0|1>, Léa's
+      const m = /^end_(.+)_(lea|mother|malik|\d)$/.exec(l.id)!;
       const ending = m[1] as EndingId;
-      return { slot: 'end', round: l.round, id: l.id, friend: l.friend ?? 'lea', mood: LEA_END_MOOD(ending), text: LEA_END[ending][Number(m[2])], postcard: false, basis: LEA_END_BASIS(ending) };
+      const friend: FriendId = /^\d$/.test(m[2]) ? 'lea' : (m[2] as FriendId);
+      const e = EPILOGUES[ending][friend];
+      return { slot: 'end', round: l.round, id: l.id, friend, mood: e.mood, text: e.text, postcard: false, basis: EPILOGUE_BASIS(ending) };
     }
     const d = letterDef(l.id)!;
     // saves from before the friends (26 Oct) have no `friend`: those letters were all Léa's
@@ -1616,9 +1646,7 @@ export function ending(s: GameState): EndingView {
     counterfactuals: cf.slice(0, 2),
     decisions,
     threats: threatList,
-    friends: letters(s)
-      .filter((l) => l.slot === 'end')
-      .map((l) => ({ friend: l.friend, mood: l.mood, text: l.text, basis: l.basis })),
+    friends: epilogues(s.ending!),
     lea: letters(s).find((l) => l.slot === 'end' && l.friend === 'lea')!,
     basis: def.basis,
     source: def.source,
@@ -1659,7 +1687,7 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
   const base = { round: r.round, detail: null, threat: null, tone: 0 as const };
   // A friend's letter in full, with their mood (the feed shows a small portrait); it opened the round as a postcard
   const def = r.letter ? letterDef(r.letter) : null;
-  const friend = r.letter ? (s.letters.find((l) => l.id === r.letter && l.round === r.round)?.friend ?? 'lea') : 'lea';
+  const friend = def?.friend ?? 'lea';
   if (def)
     out.push({ ...base, id: `lea_${r.round}`, at: 0.03, kind: 'lea', label: letterLabel(friend), text: def.text, region: FRIENDS[friend].region, friend, mood: def.mood, postcard: true });
   for (const h of r.headlines) {
