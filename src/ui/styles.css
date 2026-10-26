@@ -832,9 +832,11 @@ body.ended { overflow: auto; }
 .snd-pop { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--mute); }
 .snd-pop[hidden] { display: none; }
 .snd-vol { width: 120px; accent-color: var(--align); min-height: 24px; margin: 0; }
-/* the slider drops down under the button on hover or keyboard focus, so the header keeps its rows */
+/* the slider drops down under the button, so the header keeps its rows */
 .snd-pop { position: absolute; top: 100%; right: 0; z-index: 40; padding: 8px 10px; background: var(--deck); border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 6px 18px rgb(0 0 0 / .35); opacity: 0; pointer-events: none; }
-.snd:hover .snd-pop, .snd:focus-within .snd-pop { opacity: 1; pointer-events: auto; }
+/* the slider drops down on hover, on keyboard focus, and once a click or tap opens it (.open, see sound.ts) */
+.snd:hover .snd-pop, .snd:focus-within .snd-pop, .snd.open .snd-pop { opacity: 1; pointer-events: auto; }
+.snd.shut .snd-pop { opacity: 0; pointer-events: none; }
 /* phones: an icon-only button, the size of the help button, in the top right corner beside the date (the
    second row has no room left), so the header keeps its two rows */
 @media (max-width: 560px) {
