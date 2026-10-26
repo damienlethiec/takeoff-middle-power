@@ -1767,18 +1767,6 @@ export function feed(s: GameState): FeedRound[] {
   }));
 }
 
-export function trends(s: GameState): Record<GaugeKey, number[]> {
-  const st = T.start;
-  const pts: PublicValues[] = [{ aiPower: st.aiPower, cooperation: st.cooperation, estimate: st.estimate, margin: st.margin, cohesion: st.cohesion }, ...s.history.map((r) => r.values)];
-  if (s.round > 0 && !s.history.some((r) => r.round === s.round)) pts.push(publicValues(s));
-  return {
-    aiPower: pts.map((p) => p.aiPower),
-    cooperation: pts.map((p) => p.cooperation),
-    confidence: pts.map((p) => p.estimate),
-    cohesion: pts.map((p) => p.cohesion),
-  };
-}
-
 export const engine: EngineApi = {
   createInitialState,
   startRound,
@@ -1798,6 +1786,5 @@ export const engine: EngineApi = {
   letters,
   ending,
   feed,
-  trends,
   dateLabel,
 };

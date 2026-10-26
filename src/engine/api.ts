@@ -24,7 +24,7 @@
 //   ending(s)                the ending, its one-sentence explanation, the reveal and the debrief
 //
 // Always available: gauges(s), heading(s), threats(s), nextIncome(s), letters(s), feed(s), report(s) (this round's
-// biggest changes), trends(s), dateLabel(round).
+// biggest changes), dateLabel(round).
 // Hidden values (the true AI safety, the AI pace) appear only in ending(s), and in gauges(s) while an
 // independent audit runs (by the player's choice).
 
@@ -33,7 +33,6 @@ import type {
   CardView,
   EndingView,
   FeedRound,
-  GaugeKey,
   GameState,
   GaugeView,
   HeadingView,
@@ -70,8 +69,6 @@ export interface EngineApi {
   ending(state: GameState): EndingView;
   /** The live feed: every round so far, the current one last; the UI reveals the current round's items at their `at`. */
   feed(state: GameState): FeedRound[];
-  /** Public values over time (start, then the end of each round, then now), for sparklines. */
-  trends(state: GameState): Record<GaugeKey, number[]>;
   /** "H1 2028" */
   dateLabel(round: number): string;
 }
