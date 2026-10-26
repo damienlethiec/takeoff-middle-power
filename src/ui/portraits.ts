@@ -2,7 +2,7 @@
 // recognisable silhouette; Léa has a few expressions that follow her mood. Decorative: the name is always in text.
 
 import type { CharacterId, LeaMood } from '../engine/types';
-import { leaPortrait } from './lea';
+import { leaPortrait } from './friends';
 
 interface Look {
   bg: string;
@@ -106,7 +106,7 @@ const AI = `<rect width="64" height="64" rx="12" fill="#0f1729"/><g fill="none" 
 
 /** The portrait of a character, as an inline SVG string (decorative). */
 export function portrait(id: CharacterId, mood: LeaMood = 'hopeful', cls = ''): string {
-  if (id === 'lea') return leaPortrait(mood).replace('class="lea-face', `class="portrait ${cls} lea-face`);
+  if (id === 'lea') return leaPortrait(mood).replace('class="friend-face', `class="portrait ${cls} friend-face`);
   const inner = id === 'ai' ? AI : person(LOOKS[id]);
   return `<svg class="portrait ${cls}" viewBox="0 0 64 64" aria-hidden="true" focusable="false">${inner}</svg>`;
 }

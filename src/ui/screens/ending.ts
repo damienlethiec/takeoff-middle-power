@@ -4,7 +4,7 @@
 
 import type { EndingView } from '../../engine/types';
 import { ICON, chips, esc, link } from '../format';
-import { MOOD_WORD, leaPortrait } from '../lea';
+import { MOOD_WORD, leaPortrait } from '../friends';
 import { ENDING_BY_ID } from '../../data/endings';
 
 function gaugeRow(g: EndingView['gauges'][number]): string {

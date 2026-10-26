@@ -150,7 +150,7 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .fd-ico { color: var(--c, var(--mute)); padding-top: 2px; }
 .fd-ico .ico { width: 16px; height: 16px; }
 .fd-item.k-lea { grid-template-columns: 30px minmax(0, 1fr); }
-.fd-ico .lea-face { width: 28px; height: 28px; border-radius: 50%; display: block; }
+.fd-ico .friend-face { width: 28px; height: 28px; border-radius: 50%; display: block; }
 .k-lea .fd-t { font-family: var(--f-diary); font-size: 14px; line-height: 1.45; }
 .fd-item { border-left-color: var(--c, var(--rule)); }
 .fd-body { display: grid; gap: 1px; min-width: 0; }
@@ -420,7 +420,7 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .intro h2 { font-size: 48px; }
 .intro p { font-size: 17px; }
 .intro-lea { display: flex; gap: 14px; align-items: flex-start; margin: 14px 0; padding: 12px 14px; border-left: 3px solid var(--warn); background: rgba(255, 255, 255, .04); border-radius: 6px; }
-.intro-lea .lea-face { width: 60px; height: 60px; flex: none; }
+.intro-lea .friend-face { width: 60px; height: 60px; flex: none; }
 .intro-lea p { margin: 0 0 6px; }
 .stakes { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 8px; }
 .stakes li { font-family: var(--f-display); font-weight: 600; font-size: 24px; letter-spacing: .02em; padding-left: 18px; border-left: 3px solid var(--align); }
@@ -445,21 +445,47 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .redacted-body span { display: block; height: 13px; background: #000; border-radius: 2px; }
 .redacted-body span.short { width: 55%; }
 
-/* Léa's letters */
+/* letters from the friends back home */
 .paper { background: var(--paper); color: var(--paper-ink); border-radius: 4px 4px 14px 4px; box-shadow: 0 12px 30px rgba(0, 0, 0, .4); padding: 14px 18px; margin: 14px 0 0; font-family: var(--f-diary); font-size: 17px; line-height: 1.55; background-image: repeating-linear-gradient(transparent 0 25px, var(--paper-rule) 25px 26px); }
 .paper p { margin: 0; }
 .paper .dateline { color: var(--paper-mute); font-size: 11px; margin-bottom: 4px; }
 .older summary { cursor: pointer; margin-top: 12px; color: var(--mute); }
-.lea-face .lf-bg { fill: #2d3d63; }
-.lea-face .lf-coat { fill: #2a6f73; }
-.lea-face .lf-scarf { fill: #e58f5b; }
-.lea-face .lf-skin { fill: #f0c8a4; }
-.lea-face .lf-hair { fill: #7a3a24; }
-.lea-face .lf-ink { fill: #1f2533; color: #1f2533; }
-.lea-face .lf-brow { stroke: #4a2416; }
-.lea-face .lf-mouth { stroke: #8e3b34; }
-.lea-face .lf-cheek { fill: #e8968b; opacity: .45; }
+/* the three friends' faces (friends.ts): Léa, your mother, Malik */
+.friend-face .lf-bg { fill: #2d3d63; }
+.friend-face .lf-coat { fill: #2a6f73; }
+.friend-face .lf-scarf { fill: #e58f5b; }
+.friend-face .lf-skin { fill: #f0c8a4; }
+.friend-face .lf-hair { fill: #7a3a24; }
+.friend-face .lf-ink { fill: #1f2533; color: #1f2533; }
+.friend-face .lf-brow { stroke: #4a2416; }
+.friend-face .lf-mouth { stroke: #8e3b34; }
+.friend-face .lf-cheek { fill: #e8968b; opacity: .45; }
+.friend-face .lf-seam { stroke: #e7edf7; opacity: .8; }
 .mood-relieved .lf-cheek { opacity: .7; }
+.f-mother .lf-bg { fill: #4a3b5c; }
+.f-mother .lf-coat { fill: #b5563f; }
+.f-mother .lf-collar { fill: #f4f1ea; }
+.f-mother .lf-seam { stroke: #7e3a2a; opacity: 1; }
+.f-mother .lf-brooch { fill: #f2c14e; }
+.f-mother .lf-skin { fill: #f2cfb3; }
+.f-mother .lf-hair { fill: #d5d9e0; }
+.f-mother .lf-line { stroke: #c9997d; }
+.f-mother .lf-brow { stroke: #8a8f99; }
+.f-mother .lf-mouth { stroke: #9a4b45; }
+.f-mother .lf-glasses { stroke: #3a3f4b; }
+.f-malik .lf-bg { fill: #1f4a5a; }
+.f-malik .lf-coat { fill: #d9893a; }
+.f-malik .lf-hood { fill: #b56d27; }
+.f-malik .lf-seam { stroke: #f4f1ea; opacity: 1; }
+.f-malik .lf-skin { fill: #b07552; }
+.f-malik .lf-stubble { fill: #3a2418; opacity: .32; }
+.f-malik .lf-hair { fill: #1b1512; }
+.f-malik .lf-ink { fill: #14100e; color: #14100e; }
+.f-malik .lf-brow { stroke: #1b1512; }
+.f-malik .lf-mouth { stroke: #4e221b; }
+.f-malik .lf-cheek { fill: #c46a55; opacity: .35; }
+.f-malik .lf-phones { stroke: #1d2433; }
+.f-malik .lf-phones-cup { fill: #1d2433; }
 
 /* help and journal */
 .modal.help { max-width: 620px; }
@@ -596,7 +622,7 @@ body.ended { overflow: auto; }
 .ending-page h3 { margin: 18px 0 8px; }
 .end-story > p { font-size: 17px; }
 .end-lea { display: flex; gap: 14px; align-items: flex-start; margin-top: 14px; }
-.end-lea .lea-face { width: 64px; height: 64px; flex: none; }
+.end-lea .friend-face { width: 64px; height: 64px; flex: none; }
 .end-lea .paper { margin: 0; flex: 1; }
 .end-gauges { list-style: none; padding: 0; display: grid; gap: 22px; margin: 0; }
 .eg { display: grid; gap: 6px; }

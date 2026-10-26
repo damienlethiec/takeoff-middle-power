@@ -9,7 +9,7 @@
 
 import type { Change, FeedItem, FeedRound, SocialKind } from '../engine/types';
 import { esc } from './format';
-import { leaPortrait } from './lea';
+import { leaPortrait } from './friends';
 
 const I = (d: string) => `<svg class="ico" viewBox="0 0 20 20" aria-hidden="true">${d}</svg>`;
 export const KIND_ICON: Record<FeedItem['kind'], string> = {

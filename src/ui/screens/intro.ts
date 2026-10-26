@@ -2,7 +2,7 @@
 
 import { CREDITS, INTRO } from '../../data/copy';
 import { esc, factBox } from '../format';
-import { leaPortrait } from '../lea';
+import { leaPortrait } from '../friends';
 import { openModal } from '../modal';
 
 export async function showIntro(): Promise<void> {

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { chips, esc, factBox, impactLine, link } from '../src/ui/format';
-import { leaPortrait } from '../src/ui/lea';
+import { friendPortrait, leaPortrait } from '../src/ui/friends';
 
 describe('rendering helpers', () => {
   it('escapes HTML', () => {
@@ -34,5 +34,13 @@ describe('rendering helpers', () => {
     expect(leaPortrait('worried', 'Léa, worried')).toContain('role="img" aria-label="Léa, worried"');
     const moods = ['hopeful', 'worried', 'relieved', 'sad'] as const;
     expect(new Set(moods.map((m) => leaPortrait(m))).size).toBe(4);
+  });
+  it('each friend has a face of their own, one per mood, named only when asked', () => {
+    const moods = ['hopeful', 'worried', 'relieved', 'sad'] as const;
+    const friends = ['lea', 'mother', 'malik'] as const;
+    const all = friends.flatMap((f) => moods.map((m) => friendPortrait(f, m)));
+    expect(new Set(all).size).toBe(12);
+    for (const svg of all) expect(svg).toContain('aria-hidden="true"');
+    expect(friendPortrait('malik', 'sad', 'Malik, "sad" & <tired>')).toContain('aria-label="Malik, &quot;sad&quot; &amp; &lt;tired>"');
   });
 });

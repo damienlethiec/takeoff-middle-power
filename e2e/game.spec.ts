@@ -383,7 +383,7 @@ test.describe('key interactions', () => {
     const letter = page.locator('.feed .fd-item.k-lea');
     await expect(letter).toContainText('Letter from Léa, your friend in Lyon');
     await expect(letter.locator('.fd-t')).toHaveText(/^Dear old friend, it’s Léa/);
-    await expect(letter.locator('.lea-face')).toBeVisible();
+    await expect(letter.locator('.friend-face')).toBeVisible();
     const full = (await letter.locator('.fd-t').textContent())!.trim();
     expect(full.length).toBeGreaterThan(120);
 
