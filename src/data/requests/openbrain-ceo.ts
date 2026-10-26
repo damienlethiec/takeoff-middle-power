@@ -9,7 +9,7 @@ export const OPENBRAIN_CEO: RequestCard[] = [
   {
     id: 'ob_light_rules',
     character: 'openbrain_ceo',
-    text: 'Your AI rules slow us down. Give OpenBrain a lighter regime and Europe gets our best agents first, not last.',
+    text: 'Your AI rules slow us down. Give OpenBrain lighter rules and Europe gets our best AI assistants first, not last.',
     left: {
       label: 'Rules stay',
       stance: 'refuse',
@@ -36,7 +36,7 @@ export const OPENBRAIN_CEO: RequestCard[] = [
   {
     id: 'ob_access_deal',
     character: 'openbrain_ceo',
-    text: 'Every European administration could run on OpenBrain agents at half price for five years. One signature. Your citizens get faster services tomorrow.',
+    text: 'Every European administration could run on OpenBrain’s AI assistants at half price for five years. One signature. Your citizens get faster services tomorrow.',
     left: {
       label: 'Too much dependence',
       stance: 'refuse',
@@ -115,7 +115,7 @@ export const OPENBRAIN_CEO: RequestCard[] = [
   {
     id: 'ob_datacenter',
     character: 'openbrain_ceo',
-    text: 'OpenBrain wants to build Europe’s largest datacenter. Thousands of jobs. We need cheap power and permits within the year. Will you back us with the governments?',
+    text: 'OpenBrain wants to build Europe’s largest data centre, full of AI computers. Thousands of jobs. We need cheap power and permits within the year. Will you back us with the governments?',
     left: {
       label: 'Not on our grid',
       stance: 'refuse',
@@ -128,13 +128,13 @@ export const OPENBRAIN_CEO: RequestCard[] = [
       stance: 'accept',
       effects: { cohesion: 4, ai: 3 },
       badge: 'dependent',
-      why: 'More compute for the race',
+      why: 'More computing power for the race',
       reaction: 'We break ground in March.',
     },
     when: { minRound: 2, maxRound: 9 },
     basis: { kind: 'cfg', ref: 'CFG, Big AI, main scenario (gigafactory siting and permitting delays); AI 2027, "Late 2025: The World’s Most Expensive AI"' },
     learnMore: {
-      text: 'In AI 2027, OpenBrain builds the biggest datacenters the world has seen, able to train a model with a thousand times GPT-4’s compute.',
+      text: 'In AI 2027, OpenBrain builds the biggest data centres the world has seen, able to train a model with a thousand times the computing power of GPT-4.',
       source: SOURCES.ai2027,
     },
   },

@@ -8,7 +8,7 @@ export const US_ENVOY: RequestCard[] = [
   {
     id: 'us_chip_controls',
     character: 'us_envoy',
-    text: 'Washington is tightening chip export controls on China. We want Europe’s governments in: no advanced chips or chip tools for Chinese labs. Allies stand together, or they don’t.',
+    text: 'Washington is tightening its ban on selling advanced chips to China. We want Europe’s governments in: no advanced chips or chip-making tools for Chinese labs. Allies stand together, or they don’t.',
     left: {
       label: 'Keep trading',
       stance: 'refuse',
@@ -60,7 +60,7 @@ export const US_ENVOY: RequestCard[] = [
   {
     id: 'us_strike_support',
     character: 'us_envoy',
-    text: 'If talks fail, the Pentagon has plans to hit Chinese datacenters. We need to know Europe will back us in public.',
+    text: 'If talks fail, the Pentagon has plans to strike the Chinese data centres where their AI runs. We need to know Europe will back us in public.',
     left: {
       label: 'Refuse publicly',
       stance: 'refuse',
@@ -78,14 +78,14 @@ export const US_ENVOY: RequestCard[] = [
     when: { milestone: 'geopolitics' },
     basis: { kind: 'ai2027', ref: 'AI 2027, "Aug 2027: The Geopolitics of Superintelligence" (Pentagon plans for kinetic attacks on Chinese datacenters)' },
     learnMore: {
-      text: 'In AI 2027, as AI nears superhuman research, the White House weighs “kinetic attacks” on Chinese datacenters if the race turns against it.',
+      text: 'In AI 2027, as AI nears out-researching humans, the White House weighs military strikes (“kinetic attacks”) on Chinese data centres if the race turns against it.',
       source: SOURCES.ai2027,
     },
   },
   {
     id: 'us_compute_club',
     character: 'us_envoy',
-    text: 'Join our trusted compute club: American chips for Europe’s new AI gigafactories, as long as every one follows US security rules and buys US models.',
+    text: 'Join our trusted chip club: American chips for Europe’s new giant AI computer centres, as long as each one follows US security rules and buys US models.',
     left: {
       label: 'Build our own way',
       stance: 'refuse',
@@ -111,7 +111,7 @@ export const US_ENVOY: RequestCard[] = [
   {
     id: 'us_tariffs',
     character: 'us_envoy',
-    text: 'You kept selling chip tools to China. Washington has just put tariffs on European cars and machines. Join our export controls now, and they go away.',
+    text: 'You kept selling chip-making tools to China. Washington has just put tariffs on European cars and machines. Join our export controls now, and they go away.',
     left: {
       label: 'Hold our line',
       stance: 'refuse',

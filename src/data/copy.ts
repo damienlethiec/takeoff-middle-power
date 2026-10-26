@@ -41,7 +41,7 @@ export const GAUGE_HELP: Record<GaugeKey, string> = {
   cooperation:
     'Trust between the US and China. Pause 60+, Race 30–59, Rupture below 30. The zone at the tipping point sets the kind of world.',
   confidence:
-    'Does AI do what we intend? The labs report a number, but nobody has checked all of it. Only the verified part counts toward your goal: the solid part of the bar. The hatched part is what the labs claim and nobody has verified. The AI Office, inspections and audits grow the verified part; secrecy and opaque AI shrink it. The truth lies in between, revealed at the end.',
+    'Does AI do what we intend? The labs report a number, but nobody has checked all of it. Only the verified part counts toward your goal: the solid part of the bar. The hatched part is what the labs claim and nobody has verified. The AI Office, inspections and audits grow the verified part; secrecy and AI whose thinking nobody can read shrink it. The truth lies in between, revealed at the end.',
   cohesion: 'Whether European society holds together: jobs, trust in institutions, safety from misuse.',
 };
 
@@ -119,7 +119,7 @@ export const TIPS = {
   cooperation: { anchor: 'cooperation', title: 'US–China cooperation', text: '**US–China cooperation** sets the kind of world at the tipping point. Pause 60+, Race 30–59, Rupture below 30: the calmer, the easier a good ending.' },
   cohesion: { anchor: 'cohesion', title: 'Social cohesion', text: '**Social cohesion** is whether Europe holds together: jobs, trust, safety from misuse. If it falls too low, even a calm world ends badly.' },
   outlook: { anchor: 'heading', title: 'Where the world is heading', text: 'If AI tipped now, this is the world you would get and what it needs to end well. Each round is six months from 2027; the game ends at the tipping point, or after 10 rounds.' },
-  influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.' },
+  influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your political weight, and your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.' },
   request: { anchor: 'request', title: 'A request', text: 'Someone needs an answer. Look at an answer first (click it, or press ← → once), then answer (again). It is free of Influence: the cost is in the answer.' },
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages before they strike. Prepare with cards marked “Protects against”, or with some answers to requests. Open an icon to see what protects Europe.' },
   badge: { anchor: 'badge', title: 'Europe’s AI', text: 'Open or Dependent: does Europe run its own models? If AI never reaches the tipping point, this badge decides the kind of world.' },
@@ -139,9 +139,9 @@ export const HELP = {
     'AI capabilities rise every round. At 80, AI starts improving itself: the tipping point (never before round 6). Where the world stands then decides the ending. If it never gets there, the game ends after round 10.',
     'At the tipping point, the US–China cooperation zone sets the world: Pause, Race or Rupture. Without a tipping point, Europe’s AI badge sets it.',
     'In each world, one gauge decides (its goal) and the other pillar is a safety net (its floor). Both are marked on their gauges, and the line under the gauges names the world you are heading for. Europe’s AI, at the end of that line, decides the ending if AI stalls under a few big labs.',
-    'AI safety shows what is verified and what the labs claim (for example 40–57). Only the verified part counts toward your goal. The truth lies in between and is revealed at the end. Oversight (the AI Office, inspections, audits) grows the verified part; secrecy and opaque AI shrink it.',
+    'AI safety shows what is verified and what the labs claim (for example 40–57). Only the verified part counts toward your goal. The truth lies in between and is revealed at the end. Checks (the AI Office, inspections, audits) grow the verified part; secrecy and AI whose thinking nobody can read shrink it.',
     'Requests: the right answer goes along with what is asked, the left one refuses or puts it off. Both cost something.',
-    'Influence: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Play as many cards a round as your Influence covers, each card once.',
+    'Influence is your political weight in Brussels and abroad: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Play as many cards a round as your Influence covers, each card once.',
   ],
   /** The Privacy section: what the game keeps, and where. The host's statement is linked after the last line. */
   privacy: [

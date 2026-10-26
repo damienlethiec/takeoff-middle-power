@@ -8,7 +8,7 @@ export const OPEN_SOURCE: RequestCard[] = [
   {
     id: 'os_public_open',
     character: 'open_source',
-    text: 'Make every AI model paid for with public money open-weight. Citizens paid for it; they should be able to inspect it, run it and fix it.',
+    text: 'Every AI model paid for with public money should be open: published so anyone can inspect it, run it and fix it. Citizens paid for it.',
     left: {
       label: 'Funders decide',
       stance: 'refuse',
@@ -28,14 +28,14 @@ export const OPEN_SOURCE: RequestCard[] = [
     when: { minRound: 3 },
     basis: { kind: 'cfg', ref: 'CFG, Big AI, Ending A "The agent economy" (the EU requires publicly funded models to be open-weight)' },
     learnMore: {
-      text: 'In CFG’s agent economy ending, the EU requires publicly funded AI models to be open-weight, and a European firm launches a competitive model.',
+      text: 'In CFG’s agent economy ending, the EU requires publicly funded AI models to be open for anyone to use, and a European firm launches a competitive model.',
       source: SOURCES.cfg,
     },
   },
   {
     id: 'os_exemption',
     character: 'open_source',
-    text: 'Brussels may lower the size at which an AI model counts as a “systemic risk”. Push to keep small open models out of those rules, or Europe’s open scene dies.',
+    text: 'Brussels may lower the size at which an AI model counts as a “systemic risk”, with the strictest rules. Push to keep small open models out, or Europe’s open scene dies.',
     left: {
       label: 'Same rules for all',
       stance: 'refuse',
@@ -62,7 +62,7 @@ export const OPEN_SOURCE: RequestCard[] = [
   {
     id: 'os_safer_releases',
     character: 'open_source',
-    text: 'Criminals strip the guardrails off open models. We can build releases that resist tampering and track misuse, but it takes a year and real money.',
+    text: 'Criminals strip the safety locks off open models. We can build releases that resist tampering and track misuse, but it takes a year and real money.',
     left: {
       label: 'Not our problem',
       stance: 'refuse',
@@ -90,7 +90,7 @@ export const OPEN_SOURCE: RequestCard[] = [
   {
     id: 'os_gigafactory',
     character: 'open_source',
-    text: 'Europe is building AI gigafactories. Let open-model teams like mine train there first, not only the big firms with deep pockets.',
+    text: 'Europe is building giant AI computer centres. Let open-model teams like mine train there first, not only the big firms with deep pockets.',
     left: {
       label: 'Big firms first',
       stance: 'refuse',

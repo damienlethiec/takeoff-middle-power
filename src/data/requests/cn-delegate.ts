@@ -53,14 +53,14 @@ export const CN_DELEGATE: RequestCard[] = [
     priority: false,
     basis: { kind: 'cfg', ref: 'CFG, Arms race, main scenario (Europe squeezed between the US and China; some organisations shift to Chinese tools)' },
     learnMore: {
-      text: 'In March 2023, the Netherlands announced export controls on ASML’s most advanced DUV chip machines, citing national security.',
+      text: 'In March 2023, the Netherlands announced limits on exporting some of ASML’s advanced chip-making machines (DUV), citing national security.',
       source: SOURCES.dutchDuv,
     },
   },
   {
     id: 'cn_open_models',
     character: 'cn_delegate',
-    text: 'Our open-weight models are free and nearly as good as OpenBrain’s. Let Europe’s schools and public services use them. Why pay Americans?',
+    text: 'Our open models are free to download and nearly as good as OpenBrain’s. Let Europe’s schools and public services use them. Why pay Americans?',
     left: {
       label: 'Keep them out',
       stance: 'refuse',
@@ -135,7 +135,7 @@ export const CN_DELEGATE: RequestCard[] = [
   {
     id: 'cn_joint_research',
     character: 'cn_delegate',
-    text: 'Our alignment researchers want to work with yours: shared workshops, shared test sets, no secrets about weights. Will Europe open its labs to them?',
+    text: 'Our AI safety researchers want to work with yours: shared workshops, shared tests, no secrets about how our models are built. Will Europe open its labs to them?',
     left: {
       label: 'Not with China',
       stance: 'refuse',

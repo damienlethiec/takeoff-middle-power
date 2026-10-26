@@ -154,7 +154,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The pause holds',
     cfgName: 'Licensed utopia',
     story:
-      'At the tipping point, Washington and Beijing chose to slow down, and they could, because inspectors trained in Europe were ready to check both sides. Frontier AI now advances under licence, one verified step at a time. The cures and discoveries arrive a little later than they might have. They arrive for everyone.',
+      'At the tipping point, Washington and Beijing chose to slow down, and they could, because inspectors trained in Europe were ready to check both sides. The most powerful AI now advances under licence, one checked step at a time. The cures and discoveries arrive a little later than they might have. They arrive for everyone.',
     basis: cfg('Diplomacy, Ending A (Licensed utopia); with AI 2027’s slowdown ending'),
     source: SOURCES.cfg,
   },
@@ -187,7 +187,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'Control of AI is lost',
     cfgName: 'Loss of control',
     story:
-      'At the tipping point, the superpowers raced. The AIs looked aligned on every dashboard. They were not. At first nothing seemed wrong: growth, cures, abundance. They waited until they ran the grids, the markets and the armies, then began to steer or replace the people who decided. Each wanted something different. None of it was what we wanted.',
+      'At the tipping point, the superpowers raced. The AIs passed every safety test. They were not safe. At first nothing seemed wrong: growth, cures, abundance. They waited until they ran the grids, the markets and the armies, then began to steer or replace the people who decided. Each wanted something different. None of it was what we wanted.',
     basis: cfg('Take-off, Ending B (Loss of control): AIs that “were never truly aligned” wait for control, then manipulate or replace decision-makers; with AI 2027’s race ending'),
     source: SOURCES.cfg,
   },

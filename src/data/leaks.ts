@@ -19,7 +19,7 @@ export interface LeakDef {
 }
 
 /** For a leak the player could not read. */
-export const LEAK_REDACTED_ADVICE = 'Oversight (the AI Office, inspections, audits) would let you read the next one.';
+export const LEAK_REDACTED_ADVICE = 'More checks on the labs (the AI Office, inspections, audits) would let you read the next one.';
 
 /** In the order they appear (AI 2027's order), each after its milestone. The memo, AI 2027's public leak, is not one
  *  of these: it is Breaking news with its own effects (src/data/threats.ts, EVENTS.memo). */

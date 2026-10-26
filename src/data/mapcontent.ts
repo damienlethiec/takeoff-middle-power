@@ -59,7 +59,7 @@ export const WORLD_HEADLINES: MapLine[] = [
   {
     id: 'h_gigafactory_sites',
     region: 'eu',
-    text: 'Brussels picks the sites of Europe’s first AI gigafactories.',
+    text: 'Brussels picks the sites of Europe’s first giant AI computer centres.',
     when: (w) => w.aiPower < 50,
     basis: cfg('Big AI (the first pan-European AI Gigafactory)'),
   },
@@ -240,7 +240,7 @@ export const WORLD_HEADLINES: MapLine[] = [
   {
     id: 'h_cn_leaderboard',
     region: 'cn',
-    text: 'A free Chinese model climbs to the top of a coding leaderboard.',
+    text: 'A free Chinese AI model tops a ranking of the best coding AIs.',
     when: (w) => w.aiPower < 45,
     basis: cfg('Take-off (open-source developers in China “only a few months behind”)'),
   },

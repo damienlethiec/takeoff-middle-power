@@ -8,7 +8,7 @@ export const SECURITY: RequestCard[] = [
   {
     id: 'sc_warned',
     character: 'security',
-    text: 'I warned you. The stolen model already runs in DeepCent’s datacenters. Do we at least lock down our labs now, before the next one?',
+    text: 'I warned you. The stolen model already runs in DeepCent’s data centres. Do we at least lock down our labs now, before the next one?',
     left: {
       label: 'Too late now',
       stance: 'refuse',
@@ -35,7 +35,7 @@ export const SECURITY: RequestCard[] = [
   {
     id: 'sc_hack_back',
     character: 'security',
-    text: 'Washington is hitting DeepCent with cyberattacks and wants Europe’s national cyber commands to join. They say Europe owes them.',
+    text: 'Washington is hitting DeepCent with cyberattacks and wants Europe’s military hackers to join. They say Europe owes them.',
     left: {
       label: 'Stay out',
       stance: 'refuse',
@@ -53,7 +53,7 @@ export const SECURITY: RequestCard[] = [
     when: { threat: { id: 'theft', struck: true } },
     basis: { kind: 'ai2027', ref: 'AI 2027, "Feb 2027: China Steals Agent-2" (US cyberattacks on DeepCent fail)' },
     learnMore: {
-      text: 'In AI 2027, the US answers the theft with cyberattacks on DeepCent. They fail: China has moved its AI work into a hardened, centralised zone.',
+      text: 'In AI 2027, the US answers the theft with cyberattacks on DeepCent. They fail: China has moved its AI work into a single, heavily guarded site.',
       source: SOURCES.ai2027,
     },
   },
@@ -79,7 +79,7 @@ export const SECURITY: RequestCard[] = [
     prepares: 'theft',
     basis: { kind: 'ai2027', ref: 'AI 2027, "May 2027: National Security" (one spy still relays algorithmic secrets to Beijing)' },
     learnMore: {
-      text: 'In AI 2027, even after security clearances, one spy inside OpenBrain keeps relaying its algorithmic secrets to Beijing.',
+      text: 'In AI 2027, even after security clearances, one spy inside OpenBrain keeps passing its technical secrets to Beijing.',
       source: SOURCES.ai2027,
     },
   },

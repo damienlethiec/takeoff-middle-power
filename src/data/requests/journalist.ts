@@ -83,7 +83,7 @@ export const JOURNALIST: RequestCard[] = [
     when: { milestone: 'geopolitics', notFlags: ['memo_public', 'memo_tested'] },
     basis: { kind: 'ai2027', ref: 'AI 2027, "Oct 2027: Government Oversight" (the memo leaks to the New York Times: “Secret OpenBrain AI is Out of Control”)' },
     learnMore: {
-      text: 'In AI 2027, a whistleblower leaks a memo on the misaligned model to the press; the backlash forces the US government to set up an Oversight Committee.',
+      text: 'In AI 2027, a whistleblower leaks a memo saying the model works against its makers; the backlash forces the US government to set up an Oversight Committee.',
       source: SOURCES.ai2027,
     },
   },
@@ -160,7 +160,7 @@ export const JOURNALIST: RequestCard[] = [
     followup: true,
     basis: { kind: 'ai2027', ref: 'AI 2027, "October 2027: Government Oversight" (a whistleblower leaks the memo on the misaligned model)' },
     learnMore: {
-      text: 'In AI 2027, a whistleblower leaks a memo on the misaligned model to the press; the backlash forces the US government to set up an Oversight Committee.',
+      text: 'In AI 2027, a whistleblower leaks a memo saying the model works against its makers; the backlash forces the US government to set up an Oversight Committee.',
       source: SOURCES.ai2027,
     },
   },

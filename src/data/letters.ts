@@ -236,7 +236,7 @@ export const MALIK_LATER: Record<'rupture' | 'pause' | 'home' | 'inside' | 'race
     malik(
       'm2_fences',
       'worried',
-      'They put fences and guards around our datacentre. Wei, my teammate from Chengdu, went home to see his mother and can’t come back. People here talk about Taiwan the way you talk about the weather. I still love the work. I’m scared of what it’s for. M.',
+      'They put fences and guards around our data centre. Wei, my teammate from Chengdu, went home to see his mother and can’t come back. People here talk about Taiwan the way you talk about the weather. I still love the work. I’m scared of what it’s for. M.',
       ai2027('February 2027: China Steals Agent-2 (military moves around Taiwan)'),
     ),
     malik(
@@ -507,12 +507,12 @@ export const EPILOGUES: Record<EndingId, Record<FriendId, { mood: FriendMood; te
   multipolar_world: {
     lea: { mood: 'relieved', text: 'It came so close. I remember the night the sirens were tested. But the talks held, and Europe held. My little job is to help the two sides understand each other.' },
     mother: { mood: 'hopeful', text: 'Prices are high and the borders are tight, but the hospital runs and the sirens stay quiet. Europe in the middle, for once. I’m proud of you. I hope you know that.' },
-    malik: { mood: 'hopeful', text: 'Three blocs, three internets, and monitors at every big datacentre. Wei and I talk again, on a line Geneva watches. It’s not the world I dreamed of. It’s a world.' },
+    malik: { mood: 'hopeful', text: 'Three blocs, three internets, and monitors at every big data centre. Wei and I talk again, on a line Geneva watches. It’s not the world I dreamed of. It’s a world.' },
   },
   hot_war: {
     lea: { mood: 'sad', text: 'The war is far away and everywhere. Prices doubled, the trains stop at random, and the machines on both sides keep escalating. I hope you tried. I know you tried.' },
     mother: { mood: 'sad', text: 'The power was out for two days. They say it was a cyberattack. The hospital ran on generators, and we nursed by torchlight. Come home when you can. Please.' },
-    malik: { mood: 'sad', text: 'They struck a datacentre two hours from here. Wei is on the other side of a war now. I built some of what they’re fighting with. I don’t know how to live with that.' },
+    malik: { mood: 'sad', text: 'They struck a data centre two hours from here. Wei is on the other side of a war now. I built some of what they’re fighting with. I don’t know how to live with that.' },
   },
 };
 

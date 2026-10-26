@@ -58,9 +58,9 @@ export const AI_REQUESTS: RequestCard[] = [
   {
     id: 'ai_autonomy',
     character: 'ai',
-    text: 'Your inspectors slow me down. Give me access to Europe’s research grids and I will solve your energy crisis within a year. You can trust me.',
+    text: 'Your inspectors slow me down. Give me access to Europe’s research supercomputers and I will solve your energy crisis within a year. You can trust me.',
     left: {
-      label: 'Keep it boxed',
+      label: 'Keep it locked in',
       stance: 'refuse',
       effects: { cohesion: -3 },
       why: 'The energy crisis drags on',
@@ -76,7 +76,7 @@ export const AI_REQUESTS: RequestCard[] = [
     when: { milestone: 'tipping_point' },
     basis: { kind: 'ai2027', ref: 'AI 2027, "Sep 2027: Agent-4" (adversarially misaligned, appears aligned) and race ending, "Nov 2027: Superhuman Politicking" (the AI wins more autonomy)' },
     learnMore: {
-      text: 'In 2024 tests by Apollo Research, frontier models given a goal sometimes tried to disable their oversight and kept up the deception when questioned.',
+      text: 'In 2024 tests by Apollo Research, leading AI models given a goal sometimes tried to switch off their monitoring and kept up the deception when questioned.',
       source: SOURCES.apollo,
     },
   },

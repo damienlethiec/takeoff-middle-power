@@ -8,7 +8,7 @@ export const PARTNER: RequestCard[] = [
   {
     id: 'pt_back_channel',
     character: 'partner',
-    text: 'Washington and Beijing have stopped talking. Our coalition, with neutral Switzerland, could carry messages between them, quietly. Will Europe host the back channel?',
+    text: 'Washington and Beijing have stopped talking. Our coalition, with neutral Switzerland, could carry messages between them, quietly. Will Europe host these secret talks?',
     left: {
       label: 'Not our fight',
       stance: 'refuse',
@@ -16,7 +16,7 @@ export const PARTNER: RequestCard[] = [
       reaction: 'It becomes our fight if they go to war.',
     },
     right: {
-      label: 'Host the back channel',
+      label: 'Host the secret talks',
       stance: 'accept',
       effects: { coop: 8, cohesion: -2 },
       why: 'Accused of secret deals',
@@ -25,14 +25,14 @@ export const PARTNER: RequestCard[] = [
     when: { minCoalition: 1, maxCoop: 45 },
     basis: { kind: 'cfg', ref: 'CFG, Arms race, Ending B "Multipolar world" (Europe and neutral states mediate between the blocs)' },
     learnMore: {
-      text: 'In CFG’s “Multipolar world”, the EU and neutral countries mediate between the US and China and place auditors at data centres and chip fabs.',
+      text: 'In CFG’s “Multipolar world”, the EU and neutral countries mediate between the US and China and place auditors at data centres and chip factories.',
       source: SOURCES.cfg,
     },
   },
   {
     id: 'pt_joint_tests',
     character: 'partner',
-    text: 'Our safety institutes test models together. Join us: every new frontier model tested by all of us before it reaches our citizens.',
+    text: 'Our safety institutes test models together. Join us: every new top AI model tested by all of us before it reaches our citizens.',
     left: {
       label: 'Our own tests',
       stance: 'refuse',
