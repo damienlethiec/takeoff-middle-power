@@ -1,6 +1,7 @@
-// The game controller (v3). It builds the main screen (header, map, gauges, heading line, dock), runs each
-// round's six months on the map, stops for Breaking news, waits for the player ("See what changed",
-// "Make my decisions"), shows the consequences once on the map, and ends with the end screen.
+// The game controller (v4). It builds the main screen (header, gauges, outlook, map, feed, dock), runs each
+// round's six months on the map, stops for Breaking news and requests, waits for the player ("Make my
+// decisions"), shows the consequences on the gauges and in the feed, then starts the next six months
+// directly (the player can pause), and ends with the end screen.
 // It talks to the engine only through EngineApi.
 
 import type { EngineApi } from '../engine/api';
@@ -188,9 +189,11 @@ export class App {
     }
     await this.consequences(picks);
 
+    // no stop between rounds: the gauges have moved, the decisions are in the feed, the next six months begin
+    // (the player can pause). Only the end waits for the player.
     const end = this.e.endRound(this.s);
-    const label = end.outcome === 'ended' ? 'See how it ends' : `Start ${this.e.dateLabel(this.s.round + 1)}`;
-    await this.dock(picks.length ? 'The world takes note.' : 'You held your cards this round.', [{ id: 'next', label, primary: true }]);
+    if (end.outcome === 'ended') await this.dock(picks.length ? 'Your last decisions are made.' : 'You held your cards this round.', [{ id: 'next', label: 'See how it ends', primary: true }]);
+    else if (!picks.length) announce('You held your cards this round.');
     this.s = end.state;
     return end.outcome;
   }
@@ -231,7 +234,8 @@ export class App {
     this.renderAll(true);
     const headAfter = this.e.heading(this.s).text;
     if (played.length) announce(`${this.headingWhy} ${headAfter !== headBefore ? headAfter : ''}`);
-    await wait(reducedMotion() ? 100 : 1200);
+    // long enough to see the gauges move before the next six months begin
+    await wait(reducedMotion() ? 600 : 1600);
   }
 
   // ------------------------------------------------------------------ clock
