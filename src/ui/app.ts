@@ -224,7 +224,8 @@ export class App {
     line(GAUGE_LABEL.aiPower, a.aiPower, b.aiPower);
     line(GAUGE_LABEL.cooperation, a.cooperation, b.cooperation);
     line(GAUGE_LABEL.confidence, a.confidence, b.confidence);
-    if (a.margin !== b.margin) moved.push(marginText(a.margin, b.margin));
+    const low = (x: Vals) => Math.max(0, Math.round(x.confidence - x.margin));
+    if (a.margin !== b.margin) moved.push(marginText(low(a), low(b), a.margin, b.margin));
     line(GAUGE_LABEL.cohesion, a.cohesion, b.cohesion);
     if (before.europeAi !== this.s.europeAi) moved.push(`Europe’s AI → ${this.s.europeAi === 'open' ? 'Open' : 'Dependent'}`);
     this.headingWhy = played.length ? `${played.join(' and ')}: ${moved.join(', ') || 'no gauge moved yet'}.` : '';
@@ -734,7 +735,7 @@ export class App {
   private gaugeText(k: GaugeKey): string {
     const g = this.e.gauges(this.s).find((x) => x.key === k)!;
     const v = Math.round(k === 'confidence' ? this.shown.confidence : this.shown[k]);
-    if (k === 'confidence') return g.audited ? `${v} audited` : `${v} ± ${Math.round(this.shown.margin)}`;
+    if (k === 'confidence') return g.audited ? `${v} audited` : `${v}, could be as low as ${Math.max(0, v - Math.round(this.shown.margin))}`;
     return String(v);
   }
 
@@ -752,7 +753,20 @@ export class App {
       const v = Math.round(this.shown[g.key]);
       const base = g.key === 'confidence' ? start.estimate : start[g.key];
       const delta = this.s.round > 0 ? v - Math.round(base) : 0;
-      box.querySelector('.g-val')!.textContent = g.key === 'confidence' && !g.audited ? `${v} ±${Math.round(this.shown.margin)}` : g.audited ? `${v}` : String(v);
+      box.querySelector('.g-val')!.textContent = String(v);
+      // AI safety: the reported value, and how low it could really be (the uncertainty lies only below)
+      const lowV = g.key === 'confidence' && !g.audited ? Math.max(0, v - Math.round(this.shown.margin)) : null;
+      if (g.key === 'confidence') {
+        let lowEl = box.querySelector<HTMLElement>('.g-low');
+        if (!lowEl) {
+          lowEl = document.createElement('p');
+          lowEl.className = 'g-low';
+          lowEl.setAttribute('aria-hidden', 'true');
+          box.querySelector('.g-bar')!.after(lowEl);
+        }
+        const t = g.audited ? 'Audited: the true value' : `Could be as low as ${lowV}`;
+        if (lowEl.textContent !== t) lowEl.textContent = t;
+      }
       const dEl = box.querySelector<HTMLElement>('.g-delta')!;
       const good = g.key === 'aiPower' ? 0 : Math.sign(delta);
       dEl.textContent = delta ? signed(delta) : '';
@@ -761,8 +775,9 @@ export class App {
       (box.querySelector('.g-fill') as HTMLElement).style.width = pct(this.shown[g.key]);
       const band = box.querySelector<HTMLElement>('.g-band')!;
       if (g.key === 'confidence' && !g.audited) {
+        // the band lies only below the reported value
         band.style.left = pct(this.shown.confidence - this.shown.margin);
-        band.style.width = `${Math.min(100, this.shown.confidence + this.shown.margin) - Math.max(0, this.shown.confidence - this.shown.margin)}%`;
+        band.style.width = `${Math.min(100, this.shown.confidence) - Math.max(0, this.shown.confidence - this.shown.margin)}%`;
         band.hidden = false;
       } else band.hidden = true;
       const tg = box.querySelector<HTMLElement>('.g-target')!;
@@ -789,7 +804,7 @@ export class App {
           : g.key === 'confidence'
             ? g.audited
               ? `${v}, audited: the true value.`
-              : `${v}, plus or minus ${Math.round(this.shown.margin)}: the truth lies between ${Math.max(0, v - Math.round(this.shown.margin))} and ${Math.min(100, v + Math.round(this.shown.margin))}.`
+              : `${v}, as the labs report it. It could be as low as ${lowV}: the truth lies between ${lowV} and ${v}, never higher.`
             : `${v} out of 100.`;
       const zone = g.key === 'cooperation' ? ` Zone: ${v >= 60 ? 'Pause' : v >= 30 ? 'Race' : 'Rupture'}.` : '';
       const sub = ` ${g.sub}.`;

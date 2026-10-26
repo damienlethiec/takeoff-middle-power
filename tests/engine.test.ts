@@ -94,17 +94,19 @@ describe('creation and the clock', () => {
       }
   }, 60_000);
 
-  it('keeps the true Confidence inside estimate ± margin', () => {
+  it('keeps the true AI safety between the low end and the reported value (v4: uncertainty only downward)', () => {
     for (const seed of SEEDS.slice(0, 40)) {
       let s = createInitialState(seed);
       for (let i = 0; i < 12; i++) {
         s = nextRound(s);
         const c = s.confidence;
-        expect(Math.abs(c.estimate - c.truth)).toBeLessThanOrEqual(c.margin);
+        expect(c.truth).toBeLessThanOrEqual(c.estimate);
+        expect(c.truth).toBeGreaterThanOrEqual(c.estimate - c.margin);
         const p = randomStrategy.decide(s, { rng: seed + i });
         for (const x of p) if (hand(s).find((h) => h.id === x.id)?.playable) s = playCard(s, x);
         const cc = s.confidence;
-        expect(Math.abs(cc.estimate - cc.truth)).toBeLessThanOrEqual(cc.margin);
+        expect(cc.truth).toBeLessThanOrEqual(cc.estimate);
+        expect(cc.truth).toBeGreaterThanOrEqual(cc.estimate - cc.margin);
         const e = endRound(s);
         s = e.state;
         if (e.outcome === 'ended') break;
@@ -372,7 +374,7 @@ describe('hidden values never leak', () => {
     for (const seed of SEEDS.slice(0, 40)) {
       const s = { ...fresh(seed), confidence: { truth: 55, estimate: 60, margin: 10 }, hand: ['talks', 'inspections', 'ai_office', 'alignment'] as GameState['hand'] };
       const a = twin(s, 51);
-      const b = twin(s, 69);
+      const b = twin(s, 59);
       for (const id of ['inspections', 'alignment', 'ai_office'] as const) expect(preview(a, [{ id }])).toEqual(preview(b, [{ id }]));
       expect(advisor(a)).toEqual(advisor(b));
       expect(heading(a)).toEqual(heading(b));
@@ -407,6 +409,40 @@ describe('hidden values never leak', () => {
     }
   });
 
+  it('no card widens the AI safety uncertainty (v4: player actions only narrow it)', () => {
+    for (const seed of SEEDS.slice(0, 10)) {
+      const s = { ...fresh(seed), confidence: { truth: 50, estimate: 60, margin: 15 }, hand: CARDS.map((c) => c.id) as GameState['hand'] };
+      for (const c of CARDS) {
+        const opts = c.options?.map((o) => o.id) ?? [undefined];
+        for (const option of opts) {
+          const pv = preview(s, [{ id: c.id, ...(option ? { option } : {}) }]);
+          if (!pv.ok) continue;
+          const m = pv.impacts.find((i) => i.key === 'margin');
+          if (m) expect(m.label, c.id).toMatch(/more certain/);
+          // played for real, with any truth: the low end never drops below where it was
+          for (const truth of [45, 50, 60]) {
+            const after = playCard({ ...s, confidence: { truth, estimate: 60, margin: 15 } }, { id: c.id, ...(option ? { option } : {}) });
+            const k = after.confidence;
+            expect(k.truth, c.id).toBeLessThanOrEqual(k.estimate);
+            expect(k.truth, c.id).toBeGreaterThanOrEqual(k.estimate - k.margin);
+            // open models lower both values; an audit shows the truth (the band moves down to it)
+            if (c.id !== 'open_models' && c.id !== 'audit') expect(k.estimate - k.margin, `${c.id} low end`).toBeGreaterThanOrEqual(45);
+          }
+        }
+      }
+    }
+  });
+
+  it('oversight narrows the band without revealing the truth exactly in the preview', () => {
+    const s = fresh(1, { hand: ['ai_office'], confidence: { truth: 50, estimate: 70, margin: 30 } });
+    const pv = preview(s, [{ id: 'ai_office' }]);
+    expect(pv.impacts.find((i) => i.key === 'margin')).toMatchObject({ before: '40', after: '55', tone: 1 });
+    // played for real with a truth below the previewed low end, the narrowing stops short near the truth
+    const a = playCard(s, { id: 'ai_office' }).confidence;
+    expect(a.estimate - a.margin).toBeLessThanOrEqual(50);
+    expect(a.estimate - a.margin).toBeGreaterThanOrEqual(48);
+  });
+
   it('alignment research previews only the estimate it moves', () => {
     const s = fresh(1, { hand: ['alignment'], confidence: { truth: 50, estimate: 55, margin: 15 } });
     const pv = preview(s, [{ id: 'alignment' }]);
@@ -418,10 +454,11 @@ describe('hidden values never leak', () => {
 describe('heading, report, letters', () => {
   it('the heading line names the world, the goal and the safety net', () => {
     const s = fresh(1, { cooperation: 50, cohesion: 58, confidence: { truth: 60, estimate: 62, margin: 15 } });
-    expect(heading(s).text).toBe('If AI tipped now: Race. To end well: AI safety 75 (you: 62 ± 15) and Social cohesion 55 or more (you: 58).');
+    expect(heading(s).text).toBe('If AI tipped now: Race. To end well: AI safety 75 (you: 62, could be as low as 47) and Social cohesion 55 or more (you: 58).');
     expect(heading(s).meaning).toMatch(/race/i);
     expect(heading(s).basis.kind).toBe('cfg');
-    expect(heading(s).decides).toMatchObject({ key: 'confidence', bar: 75, low: 47, high: 77, met: 'maybe' });
+    expect(heading(s).decides).toMatchObject({ key: 'confidence', bar: 75, low: 47, high: 62, met: 'no' });
+    expect(heading({ ...s, confidence: { truth: 70, estimate: 80, margin: 15 } }).decides).toMatchObject({ low: 65, high: 80, met: 'maybe' });
     expect(heading({ ...s, cooperation: 65 }).world).toBe('pause');
     expect(heading({ ...s, cooperation: 20 }).world).toBe('rupture');
   });
@@ -519,16 +556,16 @@ describe('endings', () => {
   it('decides on the true Confidence, and says so in one sentence', () => {
     const s = ended({ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 62, estimate: 70, margin: 15 } });
     const v = ending(s);
-    expect(v.sentence).toBe('The superpowers raced. AI safety was 62 (you saw 70 ± 15), below the 75 a race needs: loss of control.');
+    expect(v.sentence).toBe('The superpowers raced. AI safety was 62 (they reported 70, could be as low as 55), below the 75 a race needs: loss of control.');
     expect(v.reveal.truth).toBe(62);
     expect(v.counterfactuals[0]).toMatch(/^With US–China cooperation at 60 or more at the tipping point/);
   });
 
   it('the reveal gives the band the player saw and names what widened it', () => {
-    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, requests: [], values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less certain (±15 → ±30)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
+    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, requests: [], values: { aiPower: 60, cooperation: 45, estimate: 70, margin: 30, cohesion: 60 }, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less certain (could be as low as 56 → 41)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
     const v = ending(ended({ ...tip, history, cooperation: 45, cohesion: 60, confidence: { truth: 48, estimate: 71, margin: 30 } }));
-    expect(v.reveal).toMatchObject({ low: 41, high: 100, truth: 48, audited: false });
-    expect(v.reveal.widened[0]).toBe('Opaque reasoning doubled your uncertainty (±15 → ±30).');
+    expect(v.reveal).toMatchObject({ low: 41, high: 71, truth: 48, audited: false });
+    expect(v.reveal.widened[0]).toBe('Opaque reasoning made you less certain: AI safety could be as low as 41, not 56.');
   });
 
   it('a safety net that fails is named', () => {

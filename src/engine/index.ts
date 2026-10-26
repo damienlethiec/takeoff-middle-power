@@ -5,7 +5,7 @@
 import { CARD_BY_ID, CARDS, cardCost, cardUses, type CardDef } from '../data/cards';
 import { CHARACTERS } from '../data/characters';
 import { REQUEST_BY_ID, REQUESTS } from '../data/requests';
-import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, marginText } from '../data/copy';
+import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, lowText, marginText } from '../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../data/endings';
 import { LEA_END, LEA_END_BASIS, LEA_END_MOOD, LEA_R1, LEA_R4, LEA_R8, type LetterDef } from '../data/lea';
 import { LEAKS } from '../data/leaks';
@@ -86,13 +86,29 @@ export function oversight(s: GameState): number {
   return (used(s, 'ai_office') ? T.oversight.aiOffice : 0) + s.inspections * T.oversight.perInspection + (used(s, 'audit') ? T.oversight.audit : 0);
 }
 
-/** Keep the confidence triple consistent: margin within bounds, the truth always inside estimate ± margin. */
-function settleConfidence(s: GameState) {
+/**
+ * Keep AI safety consistent (v4: the uncertainty only goes downward). The estimate is what the labs and testers
+ * report; the truth is never above it and never below estimate − margin ("could be as low as").
+ * - A hidden gain that would lift the truth above the report is capped at the report (no visible trace).
+ * - A hidden loss stops at the low end (see applyFx): nothing visible moves.
+ * - When oversight narrows the band past the truth, the narrowing stops short, a hidden 0–2 points below
+ *   the truth, and never lower than the low end before: what you learn is real, never exact.
+ */
+function settleConfidence(s: GameState, before?: { estimate: number; margin: number }) {
   const c = s.confidence;
-  c.truth = clamp(Math.round(c.truth));
-  c.margin = clamp(Math.round(c.margin), T.confidence.minMargin, T.confidence.maxMargin);
-  c.estimate = clamp(Math.round(clamp(c.estimate, c.truth - c.margin, c.truth + c.margin)));
+  c.estimate = clamp(Math.round(c.estimate));
+  c.truth = Math.min(clamp(Math.round(c.truth)), c.estimate);
+  c.margin = Math.min(c.estimate, clamp(Math.round(c.margin), T.confidence.minMargin, T.confidence.maxMargin));
+  if (c.truth < c.estimate - c.margin) {
+    const prevLow = before ? before.estimate - before.margin : 0;
+    const cushion = Math.abs(s.seed * 31 + s.round * 7 + c.truth) % 3;
+    const low = Math.max(0, Math.min(prevLow, c.truth), c.truth - cushion);
+    c.margin = c.estimate - low;
+  }
 }
+
+/** The low end of the AI safety band: how low the truth could be. */
+export const lowEnd = (c: { estimate: number; margin: number }) => Math.max(0, c.estimate - c.margin);
 
 // ---------------------------------------------------------------- effects
 
@@ -124,6 +140,7 @@ const snap = (s: GameState): Snapshot => ({
 });
 
 function applyFx(s: GameState, fx: Fx[]) {
+  const before = { estimate: s.confidence.estimate, margin: s.confidence.margin };
   for (const f of fx) {
     switch (f.key) {
       case 'aiPower':
@@ -138,9 +155,12 @@ function applyFx(s: GameState, fx: Fx[]) {
       case 'estimate':
         s.confidence.estimate += f.amount;
         break;
-      case 'truth':
-        s.confidence.truth += f.amount;
+      case 'truth': {
+        // a hidden loss never pushes the truth below what the player can rule out: it stops at the low end
+        const t = s.confidence.truth;
+        s.confidence.truth = f.amount >= 0 ? t + f.amount : Math.max(t + f.amount, Math.min(t, lowEnd(s.confidence)));
         break;
+      }
       case 'margin':
         s.confidence.margin += f.amount;
         break;
@@ -155,7 +175,7 @@ function applyFx(s: GameState, fx: Fx[]) {
         break;
     }
   }
-  settleConfidence(s);
+  settleConfidence(s, before);
 }
 
 /** Visible before → after lines between two snapshots (public values only). */
@@ -167,7 +187,15 @@ function impacts(a: Snapshot, b: Snapshot): Impact[] {
   line('aiPower', GAUGE_LABEL.aiPower, a.aiPower, b.aiPower, 0);
   line('cooperation', GAUGE_LABEL.cooperation, a.cooperation, b.cooperation, 1);
   line('confidence', GAUGE_LABEL.confidence, a.estimate, b.estimate, 1);
-  line('margin', `${GAUGE_LABEL.confidence} uncertainty`, a.margin, b.margin, -1);
+  // the uncertainty, told by how low AI safety could be (only when the uncertainty itself changes)
+  if (a.margin !== b.margin)
+    out.push({
+      key: 'margin',
+      label: `${GAUGE_LABEL.confidence}: ${b.margin > a.margin ? 'less' : 'more'} certain, could be as low as`,
+      before: String(lowEnd(a)),
+      after: String(lowEnd(b)),
+      tone: b.margin < a.margin ? 1 : -1,
+    });
   line('cohesion', GAUGE_LABEL.cohesion, a.cohesion, b.cohesion, 1);
   if (a.europeAi !== b.europeAi)
     out.push({ key: 'europeAi', label: 'Europe’s AI', before: cap(a.europeAi), after: cap(b.europeAi), tone: b.europeAi === 'open' ? 1 : -1 });
@@ -180,7 +208,7 @@ const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 function recordChanges(s: GameState, a: Snapshot, b: Snapshot, cause: string, by?: Change['by']) {
   for (const i of impacts(a, b)) {
     if (i.key === 'influence') continue;
-    const text = i.key === 'margin' ? marginText(i.before, i.after) : `${i.label} ${i.before} → ${i.after}`;
+    const text = i.key === 'margin' ? marginText(lowEnd(a), lowEnd(b), a.margin, b.margin) : `${i.label} ${i.before} → ${i.after}`;
     s.changes.push({ round: s.round, key: i.key, text, cause, tone: i.tone, ...(by ? { by } : {}) });
   }
 }
@@ -280,9 +308,16 @@ function drift(s: GameState) {
   const D = T.drift;
   s.cooperation = clamp(s.cooperation + D.cooperation + (s.aiPower >= D.cooperationHighPower ? D.cooperationHigh : 0));
   s.cohesion = clamp(s.cohesion + D.cohesion + (s.aiPower >= D.cohesionHighPower ? D.cohesionHigh : 0) + (zoneOf(s.cooperation) === 'rupture' ? D.cohesionRupture : 0));
-  if (s.aiPower >= D.truthHighPower) s.confidence.truth += D.truth;
+  const before = { estimate: s.confidence.estimate, margin: s.confidence.margin };
+  // harder to align as AI grows: the truth slips, and everyone knows it could be lower
+  if (s.aiPower >= D.truthHighPower) {
+    s.confidence.truth += D.truth;
+    s.confidence.margin -= D.truth;
+  }
+  // the labs' reports flatter: the reported value rises, nobody outside can check it, the low end stays
   s.confidence.estimate += D.labReports;
-  settleConfidence(s);
+  s.confidence.margin += D.labReports;
+  settleConfidence(s, before);
 }
 
 /** Threat stages from public values; stages never go back down. */
@@ -345,7 +380,10 @@ function reach(s: GameState, id: MilestoneId, out: MapItem[]) {
   if (m.effect) {
     const a = snap(s);
     const key = m.effect.key === 'confidence' ? 'estimate' : m.effect.key;
-    applyFx(s, [{ key: key as FxKey, amount: m.effect.amount }]);
+    // a lab's claim lifts the reported value but not the low end: nobody outside checked it
+    const fx: Fx[] = [{ key: key as FxKey, amount: m.effect.amount }];
+    if (key === 'estimate' && m.effect.amount > 0) fx.push({ key: 'margin', amount: m.effect.amount });
+    applyFx(s, fx);
     recordChanges(s, a, snap(s), m.effect.cause);
   }
 }
@@ -699,12 +737,15 @@ function answerChips(before: GameState, after: GameState, a: Answer): Chip[] {
   for (const i of impacts(snap(before), snap(after))) {
     if (i.key === 'influence') continue;
     const d = Number(i.after) - Number(i.before);
-    if (i.key === 'margin') out.push({ text: `${GAUGE_LABEL.confidence}: ${d > 0 ? 'less' : 'more'} certain`, tone: d > 0 ? 'down' : 'up' });
+    if (i.key === 'margin') {
+      const m = after.confidence.margin - before.confidence.margin;
+      out.push({ text: marginText(i.before, i.after, 0, m), tone: m > 0 ? 'down' : 'up' });
+    }
     else if (i.key === 'europeAi') out.push({ text: `Europe’s AI → ${i.after}`, tone: i.tone > 0 ? 'up' : 'down' });
     else if (i.key === 'aiPower') out.push({ text: `${i.label} ${signed(d)}`, tone: d > 0 ? 'down' : 'up' });
     else out.push({ text: `${i.label} ${signed(d)}`, tone: d > 0 ? 'up' : 'down' });
   }
-  if ((a.effects.truth ?? 0) > 0) out.push({ text: 'Real safety: more than shown', tone: 'up' });
+  if ((a.effects.truth ?? 0) > 0) out.push({ text: 'Real safety up (not shown)', tone: 'up' });
   if (a.coalition && after.coalition > before.coalition) out.push({ text: 'A partner joins the coalition', tone: 'up' });
   if (a.inspections && after.inspections > before.inspections) out.push({ text: 'Inspections: one level up', tone: 'up' });
   for (const t of a.grow ?? []) if (!before.threats[t].struck && before.threats[t].stage < 3) out.push({ text: `${THREAT_BY_ID[t].name} grows`, tone: 'down' });
@@ -1124,7 +1165,7 @@ function shown(s: GameState, key: GaugeKey): { text: string; low: number; high: 
   if (key === 'confidence') {
     const c = s.confidence;
     if (audited(s)) return { text: `${c.truth} (audited)`, low: c.truth, high: c.truth };
-    return { text: `${c.estimate} ± ${c.margin}`, low: c.estimate - c.margin, high: c.estimate + c.margin };
+    return { text: lowText(c.estimate, lowEnd(c)), low: lowEnd(c), high: c.estimate };
   }
   const v = s[key];
   return { text: String(v), low: v, high: v };
@@ -1399,7 +1440,7 @@ export function ending(s: GameState): EndingView {
   const wd = WORLDS[world];
   const w = T.worlds[world];
   const c = s.confidence;
-  const seen = `you saw ${c.estimate} ± ${c.margin}`;
+  const seen = `they reported ${c.estimate}, could be as low as ${lowEnd(c)}`;
   const val = (k: GaugeKey) => gaugeValueTrue(s, k);
   const label = (k: GaugeKey) => GAUGE_LABEL[k];
   const withSeen = (k: GaugeKey) => (k === 'confidence' && (c.estimate !== c.truth || c.margin > 0) ? ` (${seen})` : '');
@@ -1421,7 +1462,7 @@ export function ending(s: GameState): EndingView {
     value: val(k),
     target: k === 'aiPower' ? T.tippingAt : k === w.decides ? w.target : k === w.net ? w.floor : null,
     targetKind: (k === 'aiPower' ? 'tipping' : k === w.decides ? 'goal' : k === w.net ? 'floor' : null) as EndingView['gauges'][number]['targetKind'],
-    seen: k === 'confidence' ? `${c.estimate} ± ${c.margin}` : null,
+    seen: k === 'confidence' ? lowText(c.estimate, lowEnd(c)) : null,
     met: k === w.decides ? dOk : k === w.net ? nOk : null,
   }));
 
@@ -1474,8 +1515,8 @@ export function ending(s: GameState): EndingView {
       truth: c.truth,
       estimate: c.estimate,
       margin: c.margin,
-      low: clamp(c.estimate - c.margin),
-      high: clamp(c.estimate + c.margin),
+      low: lowEnd(c),
+      high: c.estimate,
       audited: audited(s),
       widened: widenedBy(s),
       pace: s.pace,
@@ -1498,17 +1539,14 @@ function widenedBy(s: GameState): string[] {
   const out: { text: string; by: number }[] = [];
   for (const ch of all) {
     if (ch.key !== 'margin') continue;
-    const m = /±(\d+) → ±(\d+)/.exec(ch.text);
+    const m = /less certain \(could be as low as (\d+) → (\d+)\)/.exec(ch.text);
     if (!m) continue;
     const a = Number(m[1]);
     const b = Number(m[2]);
-    if (b <= a) continue;
-    const verb = b >= a * 1.8 ? 'doubled' : 'widened';
-    const text =
-      ch.cause === EVENTS.opaque.title
-        ? `${THREAT_BY_ID.opaque.name} ${verb} your uncertainty (±${a} → ±${b}).`
-        : `${ch.cause}: that ${verb} your uncertainty (±${a} → ±${b}).`;
-    out.push({ text, by: b - a });
+    if (b >= a) continue;
+    const what = `AI safety could be as low as ${b}, not ${a}`;
+    const text = ch.cause === EVENTS.opaque.title ? `${THREAT_BY_ID.opaque.name} made you less certain: ${what}.` : `${ch.cause}: ${what}.`;
+    out.push({ text, by: a - b });
   }
   return out.sort((x, y) => y.by - x.by).slice(0, 3).map((x) => x.text);
 }

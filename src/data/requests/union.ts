@@ -34,8 +34,9 @@ export const UNION: RequestCard[] = [
     text: 'Offices are emptying. My members call a general strike unless Europe guarantees a job or paid training for everyone laid off by AI.',
     left: {
       label: 'Guarantee it',
-      effects: { cohesion: 8, margin: 3 },
-      why: 'Paid for by cutting AI testing',
+      effects: { cohesion: 8 },
+      later: { rounds: 2, effects: { cohesion: -3 }, why: 'Other budgets are cut to pay for it' },
+      why: 'A huge bill, paid later',
       reaction: 'The strike is off. Thank you.',
     },
     right: {

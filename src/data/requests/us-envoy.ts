@@ -42,7 +42,7 @@ export const US_ENVOY: RequestCard[] = [
     },
     left: {
       label: 'Demand open access',
-      effects: { margin: 4, coop: 2 },
+      effects: { coop: 2 },
       why: 'Europe stays in the dark',
       reaction: 'Open access? Not while China is two months behind.',
     },
@@ -65,7 +65,7 @@ export const US_ENVOY: RequestCard[] = [
     },
     right: {
       label: 'Refuse publicly',
-      effects: { coop: 5, margin: 3, cohesion: -2 },
+      effects: { coop: 5, cohesion: -2 },
       why: 'Washington shares less with Europe',
       reaction: 'Brussels just told Beijing we’re divided. Thanks.',
     },

@@ -107,7 +107,7 @@ export interface ReqEffects {
   coop?: number;
   /** the AI safety estimate (what the labs and testers report) */
   conf?: number;
-  /** the uncertainty: negative narrows it (oversight), positive widens it */
+  /** the uncertainty below the reported value: negative narrows it (oversight). v4: answers never widen it. */
   margin?: number;
   cohesion?: number;
   /** hidden: the true AI safety */
@@ -360,7 +360,7 @@ export interface GameState {
   /** AI power gained over the last six months (public). */
   lastRise: number;
   cooperation: number;
-  /** truth is hidden; the estimate ± margin is what the player sees. The truth always lies inside. */
+  /** v4: the estimate is what the labs report; the truth (hidden) is never above it and never below estimate − margin. */
   confidence: { truth: number; estimate: number; margin: number };
   cohesion: number;
   europeAi: EuropeAi;
@@ -449,7 +449,7 @@ export interface OutlookGauge {
   label: string;
   /** The deciding gauge's target, or the safety net's floor. */
   bar: number;
-  /** "62 ± 15", "58", or "60 (audited)". */
+  /** "62, could be as low as 47", "58", or "60 (audited)". */
   you: string;
   /** The value shown, and the band it may lie in (equal to it for every gauge but AI safety). */
   value: number;
@@ -472,7 +472,7 @@ export interface HeadingView {
   net: OutlookGauge;
   /** The nearest other world and what it takes, only when it is within reach and would help. */
   alt: { world: WorldId; name: string; text: string } | null;
-  /** Full sentence, e.g. "If AI tipped now: Race. To end well: AI safety 75 (you: 62 ± 15) and Social cohesion 55 or more (you: 58)." */
+  /** Full sentence, e.g. "If AI tipped now: Race. To end well: AI safety 75 (you: 62, could be as low as 47) and Social cohesion 55 or more (you: 58)." */
   text: string;
 }
 
@@ -585,7 +585,7 @@ export interface EndingView {
     truth: number;
     estimate: number;
     margin: number;
-    /** The band the player saw: estimate ± margin, within 0–100. */
+    /** The band the player saw: from estimate − margin (low, ≥ 0) up to the reported estimate (high). */
     low: number;
     high: number;
     /** The player saw the truth at the end (an independent audit was running). */

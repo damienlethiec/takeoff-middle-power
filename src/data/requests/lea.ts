@@ -10,9 +10,10 @@ export const LEA_REQUESTS: RequestCard[] = [
     text: 'My agency just replaced half of us with AI. There’s an EU retraining fund, but it takes a year to see a cent. Can you make it faster for people like me?',
     right: {
       label: 'Speed it up',
-      effects: { cohesion: 4, margin: 2 },
+      effects: { cohesion: 4 },
       set: ['retraining'],
-      why: 'Money moved from AI testing',
+      later: { rounds: 2, effects: { cohesion: -2 }, why: 'Other programmes are cut to pay for it' },
+      why: 'Money taken from other programmes',
       reaction: 'You did that? I owe you a dinner.',
     },
     left: {
@@ -60,7 +61,7 @@ export const LEA_REQUESTS: RequestCard[] = [
     right: {
       label: 'Set an age limit',
       effects: { cohesion: 3 },
-      later: { rounds: 1, effects: { cohesion: -1, margin: 1 }, why: 'Teens move to unregulated apps' },
+      later: { rounds: 1, effects: { cohesion: -1 }, why: 'Teens move to unregulated apps' },
       reaction: 'He’ll hate you. I don’t.',
     },
     left: {

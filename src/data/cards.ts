@@ -93,9 +93,9 @@ export const CARDS: CardDef[] = [
     name: 'Fund alignment research',
     text: 'Pay independent teams to make AI systems truly safe. The real gain is larger than the labs’ reports will show.',
     proposal:
-      'Europe funds independent alignment teams in universities and institutes, with access to frontier models. Their work makes the systems genuinely safer, but most of it never shows in the labs’ reports, so your estimate moves less than the truth. The money comes out of other budgets.',
+      'Europe funds independent alignment teams in universities and institutes, with access to frontier models. Their work makes the systems genuinely safer, but most of it never shows in the labs’ reports, so the reported value moves less than the real one. The money comes out of other budgets.',
     costLine: { text: 'In July 2025, the UK’s AI Security Institute launched a fund of over £15 million for alignment research.', source: SOURCES.aisiAlignment },
-    ups: [up(`AI safety ${n(C.alignment.estimate)} shown`), up('Real safety: more than shown')],
+    ups: [up(`AI safety ${n(C.alignment.estimate)} shown`), up('Real safety up (not shown)')],
     downs: [down(`Social cohesion ${n(C.alignment.cohesion)}`)],
     arrives: { round: TUNING.arrive.alignment },
     basis: ai2027('Slowdown ending: outside alignment researchers are brought in and build Safer-1'),
@@ -122,7 +122,7 @@ export const CARDS: CardDef[] = [
     name: 'Independent audit',
     text: 'Send independent auditors into the labs. For two rounds you see the true AI safety. Nothing else moves.',
     proposal:
-      'Europe pays independent auditors to test the labs’ models before release, with full access. For two rounds, your AI safety gauge shows the truth instead of the labs’ estimate. It changes nothing by itself: you spend a turn learning where you really stand.',
+      'Europe pays independent auditors to test the labs’ models before release, with full access. For two rounds, your AI safety gauge shows the truth instead of the labs’ reports. It changes nothing by itself: you spend a turn learning where you really stand.',
     example: {
       text: 'In December 2024, the UK and US AI Safety Institutes jointly tested OpenAI’s o1 model before its public release.',
       source: SOURCES.aisiO1,

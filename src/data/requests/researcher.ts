@@ -43,7 +43,7 @@ export const RESEARCHER: RequestCard[] = [
     },
     right: {
       label: 'Trust the report',
-      effects: { conf: 3, margin: 3 },
+      effects: {},
       tag: 'claim',
       why: 'We only see what OpenBrain shows',
       reaction: 'I hope you’re right.',
@@ -67,7 +67,7 @@ export const RESEARCHER: RequestCard[] = [
     },
     left: {
       label: 'Wait for proof',
-      effects: { ai: 1, margin: 3 },
+      effects: { ai: 1 },
       why: 'The signs stay buried',
       reaction: 'By the time there is proof, it may be too late.',
     },
@@ -91,7 +91,7 @@ export const RESEARCHER: RequestCard[] = [
     },
     left: {
       label: 'Let it deploy',
-      effects: { cohesion: 2, margin: 2 },
+      effects: { cohesion: 2, truth: -2 },
       why: 'Nobody outside OpenBrain checked it',
       reaction: 'Then we learn about its flaws in production.',
     },
@@ -116,7 +116,7 @@ export const RESEARCHER: RequestCard[] = [
     },
     right: {
       label: 'Keep our word',
-      effects: { margin: 3 },
+      effects: {},
       why: 'The model that matters stays unseen',
       reaction: 'Then we are testing yesterday’s model.',
     },

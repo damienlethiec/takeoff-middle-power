@@ -18,7 +18,7 @@ export const SECURITY: RequestCard[] = [
     },
     left: {
       label: 'Too late now',
-      effects: { ai: 1, margin: 2 },
+      effects: { ai: 1 },
       why: 'Other models leak too',
       reaction: 'It is never too late to stop the next one.',
     },
@@ -42,8 +42,8 @@ export const SECURITY: RequestCard[] = [
     },
     right: {
       label: 'Stay out',
-      effects: { coop: 2, margin: 2 },
-      why: 'Washington shares less with us',
+      effects: { coop: 2, cohesion: -1 },
+      why: 'Hawks at home call it weakness',
       reaction: 'Wise, I think. Washington won’t agree.',
     },
     when: { threat: { id: 'theft', struck: true } },
@@ -90,7 +90,7 @@ export const SECURITY: RequestCard[] = [
     },
     right: {
       label: 'Leave it to others',
-      effects: { coop: -2, margin: 2 },
+      effects: { coop: -2 },
       why: 'Nobody checks the dangerous uses',
       reaction: 'Then pray nobody tries.',
     },

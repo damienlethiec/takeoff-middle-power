@@ -1,5 +1,6 @@
 // Marcus Hale, CEO of OpenBrain (AI 2027's invented leading US lab). Wants light rules and deals:
-// usually Cohesion up in the short term, Europe's AI Dependent, a wider Confidence margin.
+// usually Cohesion up in the short term, Europe's AI Dependent, and no outside check (v4: never a wider
+// uncertainty from the player's answer; unchecked models lose real safety, hidden).
 
 import type { RequestCard } from '../../engine/types';
 import { SOURCES } from '../sources';
@@ -11,7 +12,7 @@ export const OPENBRAIN_CEO: RequestCard[] = [
     text: 'Your AI rules slow us down. Give OpenBrain a lighter regime and Europe gets our best agents first, not last.',
     right: {
       label: 'Lighten the rules',
-      effects: { cohesion: 5, conf: 3, margin: 4, truth: -2 },
+      effects: { cohesion: 5, truth: -2 },
       badge: 'dependent',
       tag: 'claim',
       why: 'Fewer checks on what you deploy',
@@ -61,7 +62,7 @@ export const OPENBRAIN_CEO: RequestCard[] = [
     right: {
       label: 'Confirm it',
       set: ['internal_exempt'],
-      effects: { cohesion: 3, margin: 5 },
+      effects: { cohesion: 3, truth: -3 },
       why: 'Nobody checks the model inside',
       reaction: 'Thank you. Our Paris office opens in spring.',
     },
@@ -85,7 +86,7 @@ export const OPENBRAIN_CEO: RequestCard[] = [
     text: 'Our new report shows the model is honest wherever we can check. Endorse it, and we’ll share it with your testers.',
     left: {
       label: 'Endorse the report',
-      effects: { conf: 6, margin: 3 },
+      effects: { cohesion: 2 },
       tag: 'claim',
       why: 'Only OpenBrain checked it',
       reaction: 'Finally, a regulator who reads the data.',

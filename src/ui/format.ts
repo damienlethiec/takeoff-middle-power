@@ -1,6 +1,5 @@
 // Small rendering helpers shared by the screens. Every string that reaches innerHTML goes through esc().
 
-import { GAUGE_LABEL } from '../data/copy';
 import type { Chip, Fact, Impact, Source } from '../engine/types';
 
 export const esc = (s: unknown): string =>
@@ -30,8 +29,9 @@ export function chips(list: Chip[], hiddenLabel = true): string {
 export function impactLine(i: Impact): string {
   const tone = i.tone > 0 ? 'good' : i.tone < 0 ? 'bad' : 'flat';
   const word = i.tone > 0 ? 'better' : i.tone < 0 ? 'worse' : '';
-  const v = (x: string) => (i.key === 'margin' ? `±${x}` : x);
-  const label = i.key === 'margin' ? `${GAUGE_LABEL.confidence}: ${Number(i.after) > Number(i.before) ? 'less' : 'more'} certain` : i.label;
+  // the uncertainty line: its label says more or less certain, its values are how low AI safety could be
+  const v = (x: string) => x;
+  const label = i.label;
   return `<li class="imp ${tone}"><span class="imp-l">${esc(label)}</span> <span class="imp-v num">${esc(v(i.before))} → <b>${esc(v(i.after))}</b></span>${word ? `<span class="imp-w">${word}</span>` : ''}</li>`;
 }
 

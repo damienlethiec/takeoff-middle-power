@@ -34,14 +34,16 @@ export const TUNING = {
     cohesionHighPower: 60,
     /** In the Rupture zone the arms race hits Europe too (sanctions, energy, cyberattacks): Cohesion lost each round. */
     cohesionRupture: -1,
-    /** Harder to align as AI grows: true Confidence lost each round past `truthHighPower`. */
+    /** Harder to align as AI grows: true Confidence lost each round past `truthHighPower` (the low end drops with it). */
     truth: -1,
     truthHighPower: 60,
-    /** The labs' reports push the estimate up each round. */
+    /** The labs' reports push the reported value up each round; the uncertainty widens by as much (the low end stays). */
     labReports: 2,
   },
 
-  confidence: { minMargin: 3, maxMargin: 30 },
+  /** AI safety (v4): the uncertainty lies only below the reported value. No upper cap but the low end stays ≥ 0
+   *  (v3 capped it at 30; with the labs' reports widening it each round, a cap would lift the low end unchecked). */
+  confidence: { minMargin: 3, maxMargin: 100 },
 
   /** "At this pace" on the capabilities gauge, from public values only (the last rise): the range of rounds
    *  left to the tipping point is (gap / last rise) × these factors. Low under 1 because AI speeds up AI. */

@@ -1,6 +1,6 @@
 // The "If AI tipped now" outlook (v4): a column left of the map on wide screens, a band above it below ~1200 px. Left: the world chip and what it means, with a button
 // that explains the five worlds. Middle: "To end well here", the deciding gauge against its target and the
-// safety net against its floor, each with a mini bar (estimate ± uncertainty for AI safety) and a status word.
+// safety net against its floor, each with a mini bar (for AI safety, the reported value and the band below it) and a status word.
 // Right: "Or change course", the nearest other world when it is within reach and would help.
 // On small screens the band collapses to the chip and one line, with a button to expand it.
 // Everything shown comes from heading(s): public values only.
@@ -40,7 +40,7 @@ function row(g: OutlookGauge, kind: 'goal' | 'floor'): string {
     ${mini(g, kind)}
     <span class="ol-you">you <b class="num">${esc(g.you)}</b></span>
     <span class="hm ${g.met === 'yes' ? 'yes' : g.met === 'no' ? 'no' : 'maybe'}">${STATUS[g.met]}</span>
-    <span class="sr-only">${esc(words)}: you have ${esc(g.you.replace('±', 'plus or minus'))}, ${STATUS[g.met]}.</span>
+    <span class="sr-only">${esc(words)}: you have ${esc(g.you)}, ${STATUS[g.met]}.</span>
   </li>`;
 }
 

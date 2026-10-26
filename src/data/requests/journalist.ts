@@ -1,5 +1,6 @@
 // Sam Okafor, an investigative journalist. Asks for transparency and leaks on the record:
-// usually a narrower Confidence margin (the truth comes out), at a cost to Cooperation or Cohesion.
+// usually a narrower AI safety uncertainty (the truth comes out), at a cost to Cooperation or Cohesion.
+// Refusing never widens it (v4: only events do); it just leaves it where it is.
 
 import type { RequestCard } from '../../engine/types';
 import { SOURCES } from '../sources';
@@ -19,7 +20,7 @@ export const JOURNALIST: RequestCard[] = [
     },
     left: {
       label: 'Keep it voluntary',
-      effects: { margin: 2 },
+      effects: {},
       why: 'Labs publish only good news',
       reaction: 'Voluntary means “when it flatters us”.',
     },
@@ -42,7 +43,7 @@ export const JOURNALIST: RequestCard[] = [
     },
     right: {
       label: 'No comment',
-      effects: { margin: 2, cohesion: 1 },
+      effects: { cohesion: 1 },
       why: 'The warning stays buried',
       reaction: 'Then I’ll run it with “officials declined to comment”.',
     },
@@ -66,7 +67,7 @@ export const JOURNALIST: RequestCard[] = [
     },
     left: {
       label: 'Refuse to comment',
-      effects: { margin: 3 },
+      effects: {},
       why: 'The truth stays hidden',
       reaction: 'It will come out. It always does.',
     },
@@ -113,7 +114,7 @@ export const JOURNALIST: RequestCard[] = [
     },
     left: {
       label: 'Not our business',
-      effects: { margin: 2 },
+      effects: {},
       why: 'Insiders stay silent',
       reaction: 'Then the next warning will die in a drawer.',
     },
@@ -136,7 +137,7 @@ export const JOURNALIST: RequestCard[] = [
     },
     right: {
       label: 'Stay out of it',
-      effects: { margin: 3 },
+      effects: {},
       why: 'The logs stay a rumour',
       reaction: 'Then I publish alone, and they call it gossip.',
     },

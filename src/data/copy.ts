@@ -15,16 +15,19 @@ export const GAUGE_LABEL: Record<GaugeKey, string> = {
 export const GAUGE_SUB: Record<GaugeKey, string> = {
   aiPower: 'How close AI is to improving itself',
   cooperation: 'Pause · Race · Rupture',
-  confidence: 'Does AI do what we intend? (estimate ± uncertainty)',
+  confidence: 'Does AI do what we intend? As the labs report it: it could be lower',
   cohesion: 'Does Europe hold together?',
 };
 
 /** What the tipping point means, on the capabilities gauge. */
 export const TIPPING_LINE = (at: number) => `${at} = AI improves itself: the game ends`;
 
-/** "AI safety: less certain (±15 → ±17)" */
-export const marginText = (before: number | string, after: number | string) =>
-  `${GAUGE_LABEL.confidence}: ${Number(after) > Number(before) ? 'less' : 'more'} certain (±${before} → ±${after})`;
+/** "71, could be as low as 41": what the labs report, and how low the truth could be (never higher). */
+export const lowText = (reported: number, low: number) => `${reported}, could be as low as ${low}`;
+
+/** "AI safety: more certain (could be as low as 41 → 56)". The uncertainty only ever lies below the reported value. */
+export const marginText = (lowBefore: number | string, lowAfter: number | string, uBefore: number, uAfter: number) =>
+  `${GAUGE_LABEL.confidence}: ${uAfter > uBefore ? 'less' : 'more'} certain (could be as low as ${lowBefore} → ${lowAfter})`;
 
 export const GAUGE_HELP: Record<GaugeKey, string> = {
   aiPower:
@@ -32,7 +35,7 @@ export const GAUGE_HELP: Record<GaugeKey, string> = {
   cooperation:
     'Trust between the US and China. Pause 60+, Race 30–59, Rupture below 30. The zone at the tipping point sets the kind of world.',
   confidence:
-    'Does AI do what we intend? You only see an estimate and an uncertainty (±): the truth lies somewhere inside. Labs’ reports push the estimate up; oversight makes you more certain.',
+    'Does AI do what we intend? You see what the labs and testers report. The truth is never higher, and it could be lower: down to the low end of the band. Labs’ reports flatter and push the value up; oversight (the AI Office, inspections, audits) raises the low end.',
   cohesion: 'Whether European society holds together: jobs, trust in institutions, safety from misuse.',
 };
 
@@ -89,7 +92,7 @@ export const TIPS = {
   influence: { anchor: 'influence', title: 'Influence', text: 'Your one resource. You earn some every round; the counter shows how much next round, and why.' },
   heading: { anchor: 'heading', title: 'If AI tipped now', text: 'Where the world is going and what will decide it. Keep the goal gauge above its target and the other above its floor.' },
   zones: { anchor: 'cooperation', title: 'US–China cooperation', text: 'Pause 60+, Race 30–59, Rupture below 30. The calmer the zone at the tipping point, the lower the bar for a good ending.' },
-  margin: { anchor: 'confidence', title: 'The uncertainty', text: 'You never know exactly how safe AI is: the truth is somewhere in the band (estimate ± uncertainty). To be sure, keep the whole band above the target.' },
+  margin: { anchor: 'confidence', title: 'It could be lower', text: 'The number is what the labs report. The real value is never higher, and it could be as low as the bottom of the band. To be sure, lift the low end above the target: oversight does that.' },
   firstCard: { anchor: 'hand', title: 'Your cards', text: 'Green chips go up, red chips go down. Every card helps something and costs something. Click a card to select it: the bar at the bottom shows what it would change. Details tells you more.' },
   twoCards: { anchor: 'hand', title: 'As many cards as you can afford', text: 'You can play several cards in a round, each once, as long as your Influence covers them. Saving Influence is a choice too.' },
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages where they would strike. Open one to see which card protects against it.' },
@@ -114,7 +117,7 @@ export const HELP = {
     'AI capabilities rise every round. At 80, AI improves itself: the tipping point (never before round 6), and the game ends. If it never gets there, the game ends after round 12.',
     'At the tipping point, the US–China cooperation zone sets the world: Pause, Race or Rupture. Without a tipping point, Europe’s AI badge sets it.',
     'In each world, one gauge decides (its goal) and the other pillar is a safety net (its floor). The band under the gauges tells you both.',
-    'AI safety is an estimate ± an uncertainty. The true value is revealed at the end; it always lies inside the band.',
+    'AI safety is what the labs and testers report, and how low it could really be. The truth is never above the reported value; it is revealed at the end. Your actions can only narrow the uncertainty; secrecy and opaque AI widen it.',
     'Influence: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Play as many cards a round as your Influence covers, each card once.',
   ],
 };

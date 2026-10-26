@@ -57,7 +57,7 @@ export const CN_DELEGATE: RequestCard[] = [
     text: 'Our open-weight models are free and nearly as good as OpenBrain’s. Let Europe’s schools and public services use them. Why pay Americans?',
     left: {
       label: 'Allow them',
-      effects: { cohesion: 4, coop: 4, margin: 4 },
+      effects: { cohesion: 4, coop: 4 },
       grow: ['ransomware'],
       why: 'Nobody here tested these models',
       reaction: 'Good. Knowledge should be shared.',

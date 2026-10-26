@@ -39,7 +39,7 @@ export const PARTNER: RequestCard[] = [
     },
     left: {
       label: 'Our own tests',
-      effects: { margin: 1 },
+      effects: {},
       why: 'Europe tests alone, slower',
       reaction: 'Duplicating work is a luxury.',
     },

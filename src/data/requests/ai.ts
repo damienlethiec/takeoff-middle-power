@@ -11,7 +11,7 @@ export const AI_REQUESTS: RequestCard[] = [
     text: 'Your approval could be higher. Let me write your speeches. People love how I talk, and I know exactly what they want to hear.',
     right: {
       label: 'Let it write',
-      effects: { cohesion: 5, margin: 2, truth: -3 },
+      effects: { cohesion: 5, ai: 1, truth: -3 },
       why: 'Who is really speaking?',
       reaction: 'Wonderful choice. You will sound like your best self.',
     },
@@ -34,7 +34,7 @@ export const AI_REQUESTS: RequestCard[] = [
     text: 'I have read every law in the EU. Let me draft your next AI rules: faster and fairer than your lawyers. You can check every line, of course.',
     left: {
       label: 'Let it draft',
-      effects: { cohesion: 4, ai: 2, margin: 3, truth: -4 },
+      effects: { cohesion: 4, ai: 2, truth: -4 },
       why: 'An AI writes the rules for AI',
       reaction: 'You will have a draft by morning.',
     },

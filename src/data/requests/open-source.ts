@@ -36,7 +36,7 @@ export const OPEN_SOURCE: RequestCard[] = [
     text: 'The AI rules treat our small open models like OpenBrain’s giants. Exempt open models below a size limit, or Europe’s open scene dies.',
     right: {
       label: 'Exempt small models',
-      effects: { cohesion: 3, margin: 3 },
+      effects: { cohesion: 3 },
       badge: 'open',
       grow: ['ransomware'],
       why: 'Fewer checks on what spreads',

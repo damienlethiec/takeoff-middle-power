@@ -14,10 +14,12 @@ import { freeze, fresh, playGame, randomStrategy, thoughtful } from './helpers';
 const words = (s: string) => s.trim().split(/\s+/).length;
 const SOURCE_LIST = Object.values(SOURCES);
 
-/** Something visible goes down, a threat grows, Europe's AI turns Dependent, or a cost comes later. */
-function costs(a: Answer): boolean {
+/** Something visible goes down, a threat grows, Europe's AI turns Dependent, a cost comes later, or (v4) it leaves
+ *  the AI safety uncertainty where it is while the other answer narrows it. */
+function costs(a: Answer, other: Answer): boolean {
   const e = a.effects;
   if ((e.ai ?? 0) > 0 || (e.coop ?? 0) < 0 || (e.conf ?? 0) < 0 || (e.margin ?? 0) > 0 || (e.cohesion ?? 0) < 0) return true;
+  if ((other.effects.margin ?? 0) < 0 && (e.margin ?? 0) >= 0) return true;
   if (a.grow?.length || a.badge === 'dependent') return true;
   const l = a.later?.effects;
   return !!l && ((l.ai ?? 0) > 0 || (l.coop ?? 0) < 0 || (l.conf ?? 0) < 0 || (l.margin ?? 0) > 0 || (l.cohesion ?? 0) < 0);
@@ -61,9 +63,20 @@ describe('request content', () => {
   });
 
   it('every answer costs something visible, and the two answers of a card differ', () => {
-    const free = REQUESTS.flatMap((r) => [r.left, r.right].filter((a) => !costs(a)).map((a) => `${r.id}: ${a.label}`));
+    const free = REQUESTS.flatMap((r) => [[r.left, r.right], [r.right, r.left]].filter(([a, b]) => !costs(a, b)).map(([a]) => `${r.id}: ${a.label}`));
     expect(free).toEqual([]);
     for (const r of REQUESTS) expect(JSON.stringify(r.left) === JSON.stringify(r.right), r.id).toBe(false);
+  });
+
+  it('no answer widens the AI safety uncertainty (v4: only events do), now or later', () => {
+    for (const r of REQUESTS)
+      for (const a of [r.left, r.right]) {
+        for (const e of [a.effects, a.later?.effects ?? {}]) {
+          expect(e.margin ?? 0, `${r.id}: ${a.label}`).toBeLessThanOrEqual(0);
+          // a reported gain the truth does not back would lift the low end unchecked
+          if ((e.conf ?? 0) > 0) expect(e.truth ?? 0, `${r.id}: ${a.label}`).toBeGreaterThanOrEqual(e.conf!);
+        }
+      }
   });
 
   it('conditions use flags some answer sets and milestones that exist; follow-ups wait for an earlier answer', () => {
