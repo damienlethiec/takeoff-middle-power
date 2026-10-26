@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { CARDS } from '../src/data/cards';
 import { BUILT_ON, HELP, INTRO, TIPS } from '../src/data/copy';
 import { ENDINGS } from '../src/data/endings';
-import { ALL_LETTERS, EPILOGUES, SIGNATURE } from '../src/data/letters';
+import { ALL_LETTERS, EPILOGUES, EPILOGUES_GAVE_IN, SIGNATURE } from '../src/data/letters';
 import { FRIEND_IDS } from '../src/data/friends';
 import { LEAK_REDACTED_ADVICE, LEAKS } from '../src/data/leaks';
 import { VOICES, WORLD_HEADLINES } from '../src/data/mapcontent';
@@ -79,6 +79,10 @@ describe('no broken text anywhere', () => {
         expect(t, `${e.id} ${f}`).not.toMatch(/\d/);
         expect(words(t), `${e.id} ${f}`).toBeLessThanOrEqual(35);
       }
+    for (const f of FRIEND_IDS) {
+      expect(EPILOGUES_GAVE_IN[f].text, `gave in ${f}`).not.toMatch(/\d/);
+      expect(words(EPILOGUES_GAVE_IN[f].text), `gave in ${f}`).toBeLessThanOrEqual(35);
+    }
   });
   it('headlines and voices fit on a map banner', () => {
     for (const h of [...WORLD_HEADLINES, ...VOICES]) expect(h.text.length, h.id).toBeLessThanOrEqual(90);

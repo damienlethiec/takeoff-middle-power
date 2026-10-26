@@ -283,7 +283,8 @@ export const WORLD_HEADLINES: MapLine[] = [
     id: 'h_taiwan',
     region: 'cn',
     text: 'Warships gather near Taiwan, home of the world’s chip factories.',
-    when: (w) => w.zone === 'rupture',
+    // a sign before the crisis itself (Breaking news), not an echo of it
+    when: (w) => w.zone === 'rupture' && !flag(w, 'taiwan_done'),
     basis: cfg('Arms race: chip chokepoints, especially Taiwan’s fabrication plants'),
   },
   {
@@ -307,6 +308,14 @@ export const WORLD_HEADLINES: MapLine[] = [
     text: 'DeepCent releases a free model that runs on a laptop. Europe’s startups download it.',
     when: (w) => at(w, 'ai_takes_jobs'),
     basis: cfg('Take-off (Chinese open-source developers “only a few months behind”; Chinese open-source agents “broadly available”)'),
+  },
+  {
+    id: 'h_after_taiwan',
+    region: 'cn',
+    text: 'Months after the Taiwan crisis, chips are still scarce; Europe’s car plants ration parts.',
+    when: (w) => flag(w, 'taiwan_done'),
+    echo: true,
+    basis: cfg('Arms race (chip chokepoints, Taiwan’s fabrication plants; “triggering a global crisis”)'),
   },
   {
     id: 'h_treaty_offer',
@@ -509,6 +518,38 @@ export const VOICES: MapLine[] = [
     when: (w) => w.inspections >= 1 && w.zone !== 'rupture',
     echo: true,
     basis: cfg('Diplomacy (auditors stationed at each other’s fabs; “frequent monitoring and audits”)'),
+  },
+  {
+    id: 'v_toolmaker_comply',
+    region: 'eu',
+    text: 'A toolmaker in Veldhoven: “Our Chinese orders vanished overnight. Washington said jump.”',
+    when: (w) => flag(w, 'chip_ban_comply'),
+    echo: true,
+    basis: cfg('Arms race (the US blocks European chip-equipment sales to China)'),
+  },
+  {
+    id: 'v_toolmaker_protest',
+    region: 'eu',
+    text: 'A toolmaker in Veldhoven: “Brussels stood up for us. I hope we don’t pay for it.”',
+    when: (w) => flag(w, 'chip_ban_protest'),
+    echo: true,
+    basis: cfg('Arms race (the dispute subsides after the US threatens to withdraw its AI from Europe)'),
+  },
+  {
+    id: 'v_open_keep',
+    region: 'eu',
+    text: 'A developer in Brno: “Our model stays online. For once, Brussels didn’t blink.”',
+    when: (w) => flag(w, 'open_ban_keep'),
+    echo: true,
+    basis: cfg('Plateau, Ending B (the superpowers ban open publication of large models)'),
+  },
+  {
+    id: 'v_open_join',
+    region: 'eu',
+    text: 'A developer in Brno takes her model offline: “I hope their rules bind them too.”',
+    when: (w) => flag(w, 'open_ban_join'),
+    echo: true,
+    basis: cfg('Plateau, Ending B (the superpowers ban open publication of large models)'),
   },
   // ------------------------------------------------------------ the US
   {

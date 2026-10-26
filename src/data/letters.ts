@@ -475,14 +475,14 @@ export const EPILOGUES: Record<EndingId, Record<FriendId, { mood: FriendMood; te
     malik: { mood: 'worried', text: 'I came back to Europe to build open models. Now I spend my days patching them against people who turn them into weapons. I still believe in openness. I’d like a quieter week.' },
   },
   agent_economy: {
-    lea: { mood: 'relieved', text: 'My job is half checking what the agents wrote, half arguing with them. A human still signs the contract, by law. Europe uses American AI, but on our rules.' },
+    lea: { mood: 'relieved', text: 'My job is half checking what the agents wrote, half arguing with them. A human still signs the contract, by law. Half the agents are European now, and anyone can inspect them.' },
     mother: { mood: 'relieved', text: 'The hospital’s agents do the paperwork, the nurses do the nursing. It took a fight with the suppliers, and the rules held. My old ward has never been so calm.' },
     malik: { mood: 'hopeful', text: 'A European firm hired half my team. Its models are open, publicly funded, and good. I stayed in San Francisco, but for the first time I’m jealous of Europe.' },
   },
   silicon_blackmail: {
-    lea: { mood: 'sad', text: 'The new rules were written by the companies, weren’t they? My AI subscription went up again. There is no other one. I don’t remember voting for any of this.' },
-    mother: { mood: 'sad', text: 'The labs switched their services off for a weekend to make a point. The hospital’s planning went dark and pharmacies closed. On Monday the law changed. That isn’t how it should work.' },
-    malik: { mood: 'worried', text: 'I watched my company lean on Europe from the inside. I told them it was wrong. They thanked me for my feedback. I’m looking for another job. There’s still nothing back home.' },
+    lea: { mood: 'sad', text: 'When the American firms switched Europe off, my translation tools went dark with them. We kept our laws. I kept my dictionaries. Half of Lyon is learning to work slowly again.' },
+    mother: { mood: 'sad', text: 'The day the American AI went off, the hospital’s planning went dark and the pharmacies closed early. We did the rotas on paper for months. Europe kept its rules. My feet paid for them.' },
+    malik: { mood: 'worried', text: 'My company switched Europe off to make a point. I told them it was wrong. They thanked me for my feedback. Europe is building its own now, slowly. Maybe there’ll be a job for me.' },
   },
   licensed_utopia: {
     lea: { mood: 'relieved', text: 'I interpret for the inspectors now, in Geneva and Beijing. Slow, careful, boring work, they say. It’s the most exciting job I’ve ever had. The world waited, and it worked.' },
@@ -490,9 +490,9 @@ export const EPILOGUES: Record<EndingId, Record<FriendId, { mood: FriendMood; te
     malik: { mood: 'relieved', text: 'Licences, audits, inspectors in our building. I grumbled for a year. Now I sleep at night. We still build amazing things, just slower, and someone checks them.' },
   },
   unstable_pause: {
-    lea: { mood: 'worried', text: 'The pause is still on, officially. Nobody believes the other side is keeping it. My neighbour stocks pasta and batteries. I tell her she’s silly. Then I buy batteries too.' },
-    mother: { mood: 'worried', text: 'The news says the pause might break any night. The hospital still runs the AI nobody could fully check. We were told to trust it. I check it anyway.' },
-    malik: { mood: 'worried', text: 'Our lab is paused, they say. The servers in the basement never stop humming. Nobody can check what the other side is doing, so nobody really stops. I miss believing in this.' },
+    lea: { mood: 'worried', text: 'The pause is over, though nobody says so: they call it a “controlled pilot”. My neighbour stocks pasta and batteries again. I tell her she’s silly. Then I buy batteries too.' },
+    mother: { mood: 'worried', text: 'The news says the pause was only ever paused. The hospital still runs the AI nobody could fully check. We were told to trust it. I check it anyway.' },
+    malik: { mood: 'worried', text: 'They called it a pilot, in a sealed building. Within a week everyone knew it was the race again. Nobody could check the other side, so nobody really stopped. I miss believing in this.' },
   },
   cognitive_revolution: {
     lea: { mood: 'relieved', text: 'I don’t really need to work any more, nobody does. I translate old poems for fun and teach Hugo’s kids. The world is unrecognisable and, somehow, kind. We got lucky, didn’t we?' },
@@ -514,6 +514,13 @@ export const EPILOGUES: Record<EndingId, Record<FriendId, { mood: FriendMood; te
     mother: { mood: 'sad', text: 'The power was out for two days. They say it was a cyberattack. The hospital ran on generators, and we nursed by torchlight. Come home when you can. Please.' },
     malik: { mood: 'sad', text: 'They struck a datacentre two hours from here. Wei is on the other side of a war now. I built some of what they’re fighting with. I don’t know how to live with that.' },
   },
+};
+
+/** Silicon blackmail when the player gave in to the blackmail (the ending's other story): the rules bent. */
+export const EPILOGUES_GAVE_IN: Record<FriendId, { mood: FriendMood; text: string }> = {
+  lea: { mood: 'sad', text: 'The new rules were written by the companies, weren’t they? My AI subscription went up again. There is no other one. I don’t remember voting for any of this.' },
+  mother: { mood: 'sad', text: 'The labs threatened to switch their services off, and the law changed within a week. The hospital runs on their tools, at their price. That isn’t how it should work.' },
+  malik: { mood: 'worried', text: 'I watched my company lean on Europe from the inside. I told them it was wrong. They thanked me for my feedback. I’m looking for another job. There’s still nothing back home.' },
 };
 
 /** An epilogue rests on its ending's CFG section. */

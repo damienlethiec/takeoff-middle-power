@@ -9,7 +9,7 @@ import { REQUEST_BY_ID, REQUESTS } from '../data/requests';
 import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, lowText, marginText, verifiedWord } from '../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../data/endings';
 import { FRIEND_IDS, FRIENDS, letterLabel } from '../data/friends';
-import { EPILOGUE_BASIS, EPILOGUES, LEA_FIRST, LEA_LATER, LEA_WORK, LETTER_BY_ID, MALIK_FIRST, MALIK_LATER, MOTHER_FIRST, MOTHER_LATER, type LetterDef } from '../data/letters';
+import { EPILOGUE_BASIS, EPILOGUES, EPILOGUES_GAVE_IN, LEA_FIRST, LEA_LATER, LEA_WORK, LETTER_BY_ID, MALIK_FIRST, MALIK_LATER, MOTHER_FIRST, MOTHER_LATER, type LetterDef } from '../data/letters';
 import { LEAK_REDACTED_ADVICE, LEAKS } from '../data/leaks';
 import { VOICES, WORLD_HEADLINES, type MapLine, type PublicWorld } from '../data/mapcontent';
 import { MILESTONES, MILESTONE_BY_ID } from '../data/milestones';
@@ -1822,8 +1822,10 @@ function letterDef(id: string): LetterDef | null {
 }
 
 /** Each friend's epilogue for this ending. */
-function epilogues(ending: EndingId): FriendEpilogue[] {
-  return FRIEND_IDS.map((friend) => ({ friend, ...EPILOGUES[ending][friend], basis: EPILOGUE_BASIS(ending) }));
+function epilogues(s: GameState, ending: EndingId): FriendEpilogue[] {
+  // Silicon blackmail: Europe refused and was switched off (CFG), unless the player gave in to the blackmail
+  const set = ending === 'silicon_blackmail' && s.threats.blackmail.choice === 'give_in' ? EPILOGUES_GAVE_IN : EPILOGUES[ending];
+  return FRIEND_IDS.map((friend) => ({ friend, ...set[friend], basis: EPILOGUE_BASIS(ending) }));
 }
 
 export function letters(s: GameState): LetterView[] {
@@ -1952,7 +1954,7 @@ export function ending(s: GameState): EndingView {
     counterfactuals: cf.slice(0, 2),
     decisions,
     threats: threatList,
-    friends: epilogues(s.ending!),
+    friends: epilogues(s, s.ending!),
     committee: s.committee ? { ...s.committee, shift: committeeShift(s.committee) } : null,
     basis: def.basis,
     source: def.source,
