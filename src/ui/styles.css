@@ -427,9 +427,13 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .intro .logo { font-size: 40px; }
 .intro h2 { font-size: 48px; }
 .intro p { font-size: 17px; }
-.intro-lea { display: flex; gap: 14px; align-items: flex-start; margin: 14px 0; padding: 12px 14px; border-left: 3px solid var(--warn); background: rgba(255, 255, 255, .04); border-radius: 6px; }
-.intro-lea .friend-face { width: 60px; height: 60px; flex: none; }
-.intro-lea p { margin: 0 0 6px; }
+/* the three friends back home: a face and one line each (the line names them; the faces are decorative) */
+.intro-friends { margin: 16px 0 14px; padding: 10px 14px 12px; border-left: 3px solid var(--warn); background: rgba(255, 255, 255, .04); border-radius: 6px; }
+.intro-friends h3 { margin: 0 0 8px; font-family: var(--f-data); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--warn); }
+.intro-friends ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.intro-friends li { display: flex; gap: 12px; align-items: center; }
+.intro-friends .friend-face { width: 48px; height: 48px; flex: none; }
+.intro .intro-friends p { margin: 0; font-size: 15.5px; line-height: 1.4; }
 .stakes { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 8px; }
 .stakes li { font-family: var(--f-display); font-weight: 600; font-size: 24px; letter-spacing: .02em; padding-left: 18px; border-left: 3px solid var(--align); }
 .credits { font-size: 13px !important; color: var(--mute); }
@@ -807,6 +811,9 @@ body.ended { overflow: auto; }
   .modal { padding: 18px 16px; }
   .modal h2 { font-size: 28px; }
   .intro h2 { font-size: 36px; }
+  .intro-friends { padding: 8px 10px 10px; }
+  .intro-friends .friend-face { width: 40px; height: 40px; }
+  .intro .intro-friends p { font-size: 14.5px; }
   .stakes li { font-size: 20px; }
   .overlay { padding: 12px 8px; }
   .hand { grid-template-columns: 1fr; gap: 8px; }

@@ -1,8 +1,9 @@
-// The two intro screens: the world today, then you, your goal and your friend Léa. Skip goes straight to round 1.
+// The two intro screens: the world today, then you, your goal and the three friends back home (the people you are
+// doing this for). Skip goes straight to round 1.
 
 import { CREDITS, INTRO } from '../../data/copy';
 import { esc, factBox } from '../format';
-import { leaPortrait } from '../friends';
+import { friendPortrait } from '../friends';
 import { openModal } from '../modal';
 
 export async function showIntro(): Promise<void> {
@@ -16,7 +17,13 @@ export async function showIntro(): Promise<void> {
         <h2 tabindex="-1" data-autofocus>${esc(sc.title)}</h2>
         ${sc.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')}
         ${sc.stakes ? `<ul class="stakes">${sc.stakes.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
-        ${sc.lea ? `<div class="intro-lea">${leaPortrait('hopeful', 'Léa')}<div>${sc.lea.map((p) => `<p>${esc(p)}</p>`).join('')}</div></div>` : ''}
+        ${
+          sc.friends?.length
+            ? `<section class="intro-friends" aria-labelledby="intro-friends-h"><h3 id="intro-friends-h">The people you’re doing this for</h3><ul>${sc.friends
+                .map((f) => `<li>${friendPortrait(f.friend, 'hopeful')}<p>${esc(f.line)}</p></li>`)
+                .join('')}</ul></section>`
+            : ''
+        }
         ${sc.fact ? factBox(sc.fact) : ''}
         ${last ? `<p class="credits">${esc(CREDITS)}</p>` : ''}
         <div class="row-btns">

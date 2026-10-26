@@ -209,7 +209,9 @@ test.describe('key interactions', () => {
     await page.keyboard.press('Enter');
     await advance(page, 300);
     await expect(intro.getByRole('heading', { level: 2 })).toHaveText(INTRO[1].title);
-    await expect(intro.getByRole('img', { name: 'Léa' })).toBeVisible();
+    await expect(intro.getByRole('heading', { level: 3, name: 'The people you’re doing this for' })).toBeVisible();
+    await expect(intro.locator('.intro-friends li')).toHaveCount(3);
+    await expect(intro.locator('.intro-friends li .friend-face')).toHaveCount(3);
     await intro.getByRole('button', { name: 'Back' }).click();
     await advance(page, 300);
     await intro.getByRole('button', { name: 'Skip to round 1' }).click();
