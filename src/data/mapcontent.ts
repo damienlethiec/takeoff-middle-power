@@ -57,6 +57,13 @@ const retraining = (w: PublicWorld) => played(w, 'flexicurity') || flag(w, 'retr
 export const WORLD_HEADLINES: MapLine[] = [
   // ------------------------------------------------------------ Europe
   {
+    id: 'h_gigafactory_sites',
+    region: 'eu',
+    text: 'Brussels picks the sites of Europe’s first AI gigafactories.',
+    when: (w) => w.aiPower < 50,
+    basis: cfg('Big AI (the first pan-European AI Gigafactory)'),
+  },
+  {
     id: 'h_pause',
     region: 'eu',
     text: 'US and Chinese officials meet quietly in Geneva to talk AI safety.',
@@ -132,6 +139,26 @@ export const WORLD_HEADLINES: MapLine[] = [
     basis: cfg('Plateau (European policymakers question how all this computing fits decarbonisation targets)'),
   },
   // ------------------------------------------------------------ the US
+  {
+    id: 'h_agents_lunch',
+    region: 'us',
+    text: 'OpenBrain’s new AI agent books flights and orders lunch. Mostly right.',
+    when: (w) => w.aiPower < 40,
+    basis: ai2027('Mid 2025: Stumbling Agents (“impressive in theory … but in practice unreliable”)'),
+  },
+  {
+    id: 'h_own_code',
+    region: 'us',
+    text: 'OpenBrain says its AI now writes most of the lab’s own code.',
+    when: (w) => w.aiPower < 50,
+    basis: ai2027('Early 2026: Coding Automation (AI speeds up AI research)'),
+  },
+  {
+    id: 'h_city_power',
+    region: 'us',
+    text: 'OpenBrain’s next data centre will use as much power as a city.',
+    basis: cfg('Take-off, baseline (“data centres consuming as much power as small cities”); AI 2027, Late 2025'),
+  },
   {
     id: 'h_race_money',
     region: 'us',
@@ -211,6 +238,27 @@ export const WORLD_HEADLINES: MapLine[] = [
   },
   // ------------------------------------------------------------ China
   {
+    id: 'h_cn_leaderboard',
+    region: 'cn',
+    text: 'A free Chinese model climbs to the top of a coding leaderboard.',
+    when: (w) => w.aiPower < 45,
+    basis: cfg('Take-off (open-source developers in China “only a few months behind”)'),
+  },
+  {
+    id: 'h_cn_pool',
+    region: 'cn',
+    text: 'Beijing orders China’s AI labs to pool their chips under DeepCent.',
+    when: (w) => at(w, 'china_wakes_up'),
+    basis: ai2027('Mid 2026: China Wakes Up (“the nationalization of Chinese AI research”; a DeepCent-led collective)'),
+  },
+  {
+    id: 'h_cn_short',
+    region: 'cn',
+    text: 'China’s labs run short of chips as US export limits bite.',
+    when: (w) => w.zone !== 'pause' && w.aiPower < 55,
+    basis: ai2027('Mid 2026: China Wakes Up (chip export controls; China keeps about 12% of the world’s AI compute)'),
+  },
+  {
     id: 'h_cdz',
     region: 'cn',
     text: 'DeepCent’s giant computing zone doubles in size.',
@@ -271,6 +319,36 @@ export const WORLD_HEADLINES: MapLine[] = [
 
 export const VOICES: MapLine[] = [
   // ------------------------------------------------------------ Europe, from the first round
+  {
+    id: 'v_homework',
+    region: 'eu',
+    text: 'A grandfather in Liège: “My grandson’s AI does his homework. Who does the thinking?”',
+    basis: ai2027('Mid 2025: Stumbling Agents (AI personal assistants)'),
+  },
+  {
+    id: 'v_callcentre',
+    region: 'eu',
+    text: 'A call-centre worker in Seville: “They gave us an AI helper. Then they timed us.”',
+    basis: real('Klarna, AI assistant handles two-thirds of customer service chats (Feb 2024)'),
+  },
+  {
+    id: 'v_investors',
+    region: 'eu',
+    text: 'A founder in Ljubljana: “Every investor asks the same thing: what’s your AI story?”',
+    basis: ai2027('Late 2025: The World’s Most Expensive AI'),
+  },
+  {
+    id: 'v_tester',
+    region: 'eu',
+    text: 'A software tester in Cork: “The AI finds bugs faster than I do. It also invents a few.”',
+    basis: ai2027('Early 2026: Coding Automation; Mid 2025: Stumbling Agents (unreliable)'),
+  },
+  {
+    id: 'v_radio',
+    region: 'eu',
+    text: 'A Riga radio show asks: do you trust AI’s answers? The phones ring all night.',
+    basis: cfg('Plateau (public debate as AI tools spread)'),
+  },
   {
     id: 'v_nurse',
     region: 'eu',
