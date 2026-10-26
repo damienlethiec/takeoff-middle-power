@@ -44,10 +44,15 @@ export const SOURCES = {
     label: 'US Department of Justice (N.D. Cal.), Former Google engineer found guilty of economic espionage and theft of confidential AI technology (29 Jan 2026)',
     url: 'https://www.justice.gov/usao-ndca/pr/former-google-engineer-found-guilty-economic-espionage-and-theft-confidential-ai',
   },
-  euAttribution2021: {
-    label: 'Council of the EU, Declaration on malicious cyber activities from China (19 Jul 2021)',
-    url: 'https://www.consilium.europa.eu/ga/press/press-releases/2021/07/19/declaration-by-the-high-representative-on-behalf-of-the-eu-urging-china-to-take-action-against-malicious-cyber-activities-undertaken-from-its-territory/',
+  euCzechia2025: {
+    label: 'Council of the EU, Statement by the High Representative on malicious behaviour in cyberspace against Czechia (28 May 2025)',
+    url: 'https://www.consilium.europa.eu/en/press/press-releases/2025/05/28/cyber-statement-by-the-high-representative-on-behalf-of-the-european-union-on-malicious-behaviour-in-cyberspace-against-czechia/',
   },
+  nexperiaWbg: {
+    label: 'Government of the Netherlands, Update on invoking the Goods Availability Act (Nexperia, 6 Nov 2025)',
+    url: 'https://www.government.nl/documents/2025/11/06/update-on-invoking-goods-availability-act-wbg-6th-of-november-2025',
+  },
+  anthropicCaisi: { label: 'Anthropic, Strengthening our safeguards through collaboration with US CAISI and UK AISI (Sept 2025)', url: 'https://www.anthropic.com/news/strengthening-our-safeguards-through-collaboration-with-us-caisi-and-uk-aisi' },
   // requests (v4, from the hybrid; checked there, see docs/V4_BUILD_NOTES.md)
   aisiNetwork: { label: 'International Network of AI Safety Institutes, mission statement (Nov 2024)', url: 'https://www.nist.gov/document/international-network-ai-safety-institutes-mission-statement' },
   seoulCommitments: { label: 'UK Government, Frontier AI Safety Commitments, AI Seoul Summit (May 2024)', url: 'https://gov.uk/government/news/historic-first-as-companies-spanning-north-america-asia-europe-and-middle-east-agree-safety-commitments-on-development-of-ai' },

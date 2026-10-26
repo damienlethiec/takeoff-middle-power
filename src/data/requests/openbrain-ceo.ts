@@ -29,7 +29,7 @@ export const OPENBRAIN_CEO: RequestCard[] = [
     when: { maxRound: 7 },
     basis: { kind: 'real', ref: 'EU obligations for general-purpose AI models (from Aug 2025); labs’ public pressure for lighter EU rules (Meta, July 2024)' },
     learnMore: {
-      text: 'Since August 2025, makers of new general-purpose AI models offered in the EU must follow EU rules. From August 2026, the Commission can enforce them with fines.',
+      text: 'Since August 2025, makers of new general-purpose AI models offered in the EU must follow EU rules. Since August 2026, the Commission can enforce them with fines.',
       source: SOURCES.gpaiGuidelines,
     },
   },

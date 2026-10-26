@@ -349,7 +349,10 @@ export const EVENTS: Record<EventId, EventDef> = {
     },
     preparedText: '',
     unpreparedText: '',
-    fact: null,
+    fact: {
+      text: 'In autumn 2025, after the Dutch government used emergency powers over chipmaker Nexperia, China blocked exports from Nexperia’s Chinese plants, whose chips Europe’s car industry uses.',
+      source: SOURCES.nexperiaWbg,
+    },
     basis: cfg('Arms race: “Chinese naval vessels encircle Taiwan, triggering a global crisis” (with AI 2027, February and August 2027: forces around Taiwan)'),
   },
   open_ban: {

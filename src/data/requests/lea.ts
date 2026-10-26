@@ -54,7 +54,7 @@ export const LEA_REQUESTS: RequestCard[] = [
     when: { minRound: 2 },
     basis: { kind: 'real', ref: 'EU AI Act, Article 50 (AI-generated content must be marked, from August 2026); CFG, Plateau, Ending B (disinformation)' },
     learnMore: {
-      text: 'Under the EU AI Act, from August 2026, makers of AI that generates text, images or sound must mark what it produces as AI-made, in a machine-readable way.',
+      text: 'Under the EU AI Act, since August 2026, makers of new AI that generates text, images or sound must mark what it produces as AI-made, in a machine-readable way.',
       source: SOURCES.aiActOj,
     },
   },

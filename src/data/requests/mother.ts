@@ -27,7 +27,7 @@ export const MOTHER_REQUESTS: RequestCard[] = [
     when: { milestone: 'ai_takes_jobs' },
     basis: { kind: 'real', ref: 'EU AI Act, Annex III, point 5(d) (emergency healthcare patient triage systems are high-risk)' },
     learnMore: {
-      text: 'Under the EU AI Act, AI used to sort emergency patients counts as “high-risk”: from August 2026 it must be tested, documented and overseen by people.',
+      text: 'Under the EU AI Act, AI used to sort emergency patients counts as “high-risk”: it will have to be tested, documented and overseen by people.',
       source: SOURCES.aiActOj,
     },
   },

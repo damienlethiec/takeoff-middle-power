@@ -90,7 +90,7 @@ export const INTRO: IntroScreen[] = [
       { friend: 'malik', line: 'Malik, your old flatmate, builds AI at a lab in San Francisco. He loves it, and he has no job like it back home.' },
     ],
     fact: {
-      text: 'Since August 2025, makers of new general-purpose AI models offered in the EU must follow EU rules. From August 2026, the European Commission can enforce them, with fines.',
+      text: 'Since August 2025, makers of new general-purpose AI models offered in the EU must follow EU rules. Since August 2026, the European Commission can enforce them, with fines.',
       source: SOURCES.gpaiGuidelines,
     },
   },

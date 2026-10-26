@@ -347,8 +347,8 @@ export const CARDS: CardDef[] = [
     proposal:
       'With your coalition partners, Europe publicly names who stole the model, with the evidence. Washington feels supported and keeps its retaliation limited; Beijing gets a firm but calm message instead of more attacks. The window closes in two rounds.',
     example: {
-      text: 'In July 2021, the EU said malicious cyber activity, including the Microsoft Exchange hack, was “undertaken from the territory of China”.',
-      source: SOURCES.euAttribution2021,
+      text: 'In May 2025, the EU backed Czechia in publicly naming APT31, a group linked to China’s Ministry of State Security, for hacking its foreign ministry.',
+      source: SOURCES.euCzechia2025,
     },
     ups: [up(COOP(C.attribution.cooperation)), up('Less US escalation')],
     downs: [down('Only for two rounds')],

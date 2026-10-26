@@ -482,10 +482,10 @@ export const SOCIAL_EVENTS: SocialEventDef[] = [
     lon: 2.3,
     lat: 48.82,
     headline: 'Independent testers in Paris publish a deep check of a top AI model.',
-    why: 'Real precedent: in 2024, the UK and US AI safety institutes tested OpenAI’s o1 before its release.',
+    why: 'Real precedent: in 2025, UK and US government testers probed Anthropic’s safeguards before release and found weaknesses.',
     effects: [up('small', 'verified')],
-    basis: real('UK AI Security Institute, Pre-deployment evaluation of OpenAI’s o1 model (Dec 2024)'),
-    source: 'aisiO1',
+    basis: real('Anthropic, Strengthening our safeguards through collaboration with US CAISI and UK AISI (Sept 2025)'),
+    source: 'anthropicCaisi',
   },
   {
     id: 'se_inspectors_test',
