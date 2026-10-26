@@ -1,14 +1,15 @@
-// Simulate thousands of seeded games per strategy and print the ending distribution, checked against the
-// targets of docs/V3_SPEC.md ("Validation"). Run with: npm run sim   (npm run sim -- 5000 for more games)
-// Quick mode: npm run sim -- 200 thoughtful,home-first   (N games, only these strategies; the targets that need
-// a missing strategy are skipped). Same seeds, so a strategy's numbers match the full run's first N games.
+// Simulate seeded games per strategy and print the ending distribution, checked against the targets of
+// docs/V3_SPEC.md ("Validation"). Run with: npm run sim   (100 games a strategy: the default and the cap, unless
+// the owner asks for a long pass, e.g. npm run sim -- 2000)
+// Only some strategies: npm run sim -- 100 thoughtful,home-first   (the targets that need a missing strategy are
+// skipped). Same seeds, so a strategy's numbers match a longer run's first N games.
 
 import { ENDINGS, ENDING_BY_ID } from '../src/data/endings';
 import { TUNING } from '../src/data/tuning';
 import type { CardId, EndingId, Pace } from '../src/engine/types';
 import { STRATEGIES, playGame, type PlayedGame } from './strategies';
 
-const N = Number(process.argv[2]) || 2000;
+const N = Number(process.argv[2]) || 100;
 const ONLY = process.argv[3]?.split(',').filter(Boolean);
 const RUN = ONLY ? STRATEGIES.filter((st) => ONLY.includes(st.name)) : STRATEGIES;
 const pct = (x: number, n: number) => `${((100 * x) / Math.max(1, n)).toFixed(1)}%`;

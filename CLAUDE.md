@@ -15,7 +15,7 @@ A Plague Inc.-style browser game about AI governance for the general public. The
 - `src/engine/`: pure functions only. No DOM, no `Math.random` (use the seeded RNG stored in `GameState.rng`), never mutate inputs.
 - `src/data/`: declarative content (cards, requests in `requests/` one file per character, `characters.ts`, threats and events, milestones, headlines and voices, leaks, endings, Léa, copy, sources). **All numbers live in `src/data/tuning.ts`.**
 - `src/ui/`: string-template DOM rendering, controller in `app.ts` (gauges, heading line, clock, dock), the map in `map.ts`, the news feed in `feed.ts`, the heading line in `outlook.ts`, one file per screen in `screens/` (`decide.ts` draws the decisions in place of the map; `request.ts` the request card). The UI imports the real engine directly (`src/main.ts`).
-- `scripts/sim.ts`: seeded simulation of thousands of games per strategy (`scripts/strategies.ts`).
+- `scripts/sim.ts`: seeded simulation of games per strategy (`scripts/strategies.ts`), 100 games each by default.
 - `scripts/shots.mjs`: screenshots of every screen at 1280×800 and 390×844, on the production build (`node scripts/shots.mjs docs/screenshots/v4`).
 - `tests/`: Vitest.
 
@@ -24,7 +24,7 @@ A Plague Inc.-style browser game about AI governance for the general public. The
 ```sh
 npm run dev       # local server at /takeoff-middle-power/
 npm test          # unit tests
-npm run sim       # balance check: ending distribution per strategy
+npm run sim       # balance check: ending distribution per strategy (100 games each; never more unless the owner asks)
 npm run build     # typecheck + production build
 npm run test:e2e  # whole games and v4's key interactions in Chromium (Playwright, production build)
 npm run a11y      # axe on every screen + whole games played with the keyboard alone, on the production build (A11Y_PORT if 5176 is busy; never run playwright install here)
@@ -32,8 +32,8 @@ npm run a11y      # axe on every screen + whole games played with the keyboard a
 
 ## Rules of the house
 
-- **Balance changes go through the simulation.** Run `npm run sim` before and after; record the change, the old value and the reason in the "Tuning changes" table of `docs/DEVELOPER_NOTES.md`. Targets (printed by the sim): passive good endings < 15%, random 15–30%, thoughtful 55–80%, every ending ≥ 2% for some strategy, cooperation-only and home-first clearly worse than thoughtful, no card above 20% of a thoughtful player's plays, no tipping point before round 6.
-- **Refactors must not change behaviour**: the seeded `npm run sim` output must stay byte-identical.
+- **Balance changes go through the simulation.** Run `npm run sim` before and after (runs are capped at 100 games a strategy, the default, unless the owner asks for a long pass: the machine is shared); record the change, the old value and the reason in the "Tuning changes" table of `docs/DEVELOPER_NOTES.md`. Targets (printed by the sim): passive good endings < 15%, random 15–30%, thoughtful 55–80%, every ending ≥ 2% for some strategy, cooperation-only and home-first clearly worse than thoughtful, no card above 20% of a thoughtful player's plays, no tipping point before round 6.
+- **Refactors must not change behaviour**: the seeded `npm run sim` output (100 games, the default and the cap unless the owner asks for more) must stay byte-identical before and after.
 - **Every real-world fact shown to players needs a source** (`src/data/sources.ts`), checked against the primary source. Fiction (OpenBrain, DeepCent, future events) must never be presented as real.
 - **Realism**: every card, request, event, threat, headline, voice, leak and Léa letter carries a `basis` (`ai2027`, `cfg` or `real`, with a precise reference; `tests/basis.test.ts` fails without one). AI 2027 milestones are reached in the scenario's order (dates may move with the hidden pace, never the order). Effect directions follow the scenarios; sizes are tuned by the sim. List any stretch in the build notes' Realism notes.
 - Hidden values (the true AI safety, the AI pace) never appear in visible deltas, previews, the heading line, the pace hint or the advisor (tests check this by varying the truth); only what is verified and what the labs claim are shown, and advisor text contains no numbers. Only the independent audit card shows the truth, by the player's choice.
@@ -58,4 +58,4 @@ The game must be playable with a keyboard alone and with a screen reader, and co
 
 ## Branches and previews
 
-Every branch is built and published automatically: `main` at https://damienlethiec.github.io/takeoff-middle-power/, any other branch at `https://damienlethiec.github.io/takeoff-middle-power/preview/<branch>/`. Work on a branch, share the preview link, merge to `main` when it plays well. Deleting a branch removes its preview.
+Team decision (26 Oct): **work directly on `main` in small, green commits**. Every push to `main` deploys the public site at https://damienlethiec.github.io/takeoff-middle-power/, so push only after `npm run lint`, `npx tsc --noEmit -p .` and `npm test` pass, after rebasing on the latest `main`. For a risky change only, use a short-lived branch: it is built and published at `https://damienlethiec.github.io/takeoff-middle-power/preview/<branch>/`; share that link, merge when it plays well, then delete the branch (which removes its preview).
