@@ -525,6 +525,10 @@ export class App {
     d.innerHTML = `<p id="dock-text">${esc(text)}</p><div class="dock-btns">${buttons
       .map((b) => `<button type="button" class="${b.primary ? 'btn-primary' : 'btn-quiet'}" data-go="${esc(b.id)}" ${b.primary ? 'aria-keyshortcuts="Enter"' : ''}>${esc(b.label)}${b.primary ? ' <kbd>Enter</kbd>' : ''}</button>`)
       .join('')}</div>`;
+    // narrow screens: the bar sits between the map and the news, so it never covers the top of the feed
+    const feed = this.root.querySelector('#feed');
+    if (feed && matchMedia('(max-width: 860px), (max-height: 640px)').matches) feed.before(d);
+    else this.root.querySelector('.stage')?.after(d);
     d.hidden = false;
     this.root.querySelector('.game')?.classList.add('docked');
     this.setPhase('Your move');
