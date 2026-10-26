@@ -3,7 +3,7 @@
 // The round flow is documented at the top of api.ts; rules and numbers in docs/DEVELOPER_NOTES.md.
 
 import { CARD_BY_ID, CARDS, cardCost, cardUses, type CardDef } from '../data/cards';
-import { GAUGE_LABEL, PACE_TEXT, STAGE_WORD } from '../data/copy';
+import { GAUGE_LABEL, GAUGE_SUB, PACE_TEXT, STAGE_WORD, marginText } from '../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../data/endings';
 import { LEA_END, LEA_END_BASIS, LEA_END_MOOD, LEA_R1, LEA_R4, LEA_R8, type LetterDef } from '../data/lea';
 import { LEAKS } from '../data/leaks';
@@ -153,7 +153,7 @@ function impacts(a: Snapshot, b: Snapshot): Impact[] {
   line('aiPower', GAUGE_LABEL.aiPower, a.aiPower, b.aiPower, 0);
   line('cooperation', GAUGE_LABEL.cooperation, a.cooperation, b.cooperation, 1);
   line('confidence', GAUGE_LABEL.confidence, a.estimate, b.estimate, 1);
-  line('margin', 'Confidence margin', a.margin, b.margin, -1);
+  line('margin', `${GAUGE_LABEL.confidence} uncertainty`, a.margin, b.margin, -1);
   line('cohesion', GAUGE_LABEL.cohesion, a.cohesion, b.cohesion, 1);
   if (a.europeAi !== b.europeAi)
     out.push({ key: 'europeAi', label: 'Europe’s AI', before: cap(a.europeAi), after: cap(b.europeAi), tone: b.europeAi === 'open' ? 1 : -1 });
@@ -166,7 +166,7 @@ const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 function recordChanges(s: GameState, a: Snapshot, b: Snapshot, cause: string) {
   for (const i of impacts(a, b)) {
     if (i.key === 'influence') continue;
-    const text = i.key === 'margin' ? `Confidence: ${Number(i.after) > Number(i.before) ? 'less' : 'more'} certain (±${i.before} → ±${i.after})` : `${i.label} ${i.before} → ${i.after}`;
+    const text = i.key === 'margin' ? marginText(i.before, i.after) : `${i.label} ${i.before} → ${i.after}`;
     s.changes.push({ round: s.round, key: i.key, text, cause, tone: i.tone });
   }
 }
@@ -377,7 +377,7 @@ function buildEvent(s: GameState, id: EventId, h: RngHolder): PendingEvent {
     id === 'blackmail' && !prepared
       ? [
           { id: 'give_in', label: 'Give in', detail: 'Drop the mandate’s teeth. Europe’s AI is locked to Dependent: you can no longer fund open models.' },
-          { id: 'hold_firm', label: 'Hold firm', detail: `Keep the mandate and ride out the disruption: Cohesion ${signed(T.threats.blackmail.holdFirm.cohesion)}.` },
+          { id: 'hold_firm', label: 'Hold firm', detail: `Keep the mandate and ride out the disruption: ${GAUGE_LABEL.cohesion} ${signed(T.threats.blackmail.holdFirm.cohesion)}.` },
         ]
       : [];
   return {
@@ -809,7 +809,7 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
   for (const p of picks) {
     const def = cardDef(p.id);
     if (def.protects) notes.push(`Protects against ${THREAT_BY_ID[def.protects].name.replace(/^(\w)(?=[a-z])/, (x) => x.toLowerCase())}${p.id === 'inspections' || p.id === 'coalition' ? ' (with a coalition and the inspection accord)' : ''}.`);
-    if (p.id === 'audit') notes.push(`Shows the true Confidence for ${T.cards.audit.rounds} rounds.`);
+    if (p.id === 'audit') notes.push(`Shows the true ${GAUGE_LABEL.confidence} for ${T.cards.audit.rounds} rounds.`);
     if (p.id === 'alignment') notes.push('Most of the gain is real safety that the estimate does not show.');
     if (p.id === 'flexicurity') notes.push(`Softens job shocks. Influence ${signed(T.cards.flexicurity.influence)} for the next ${T.cards.flexicurity.rounds} rounds.`);
     if (p.id === 'cyber_shield') notes.push(`Influence ${signed(T.cards.cyber_shield.influence)} for the next ${T.cards.cyber_shield.rounds} rounds.`);
@@ -912,7 +912,7 @@ export function heading(s: GameState): HeadingView {
   const met = (x: { low: number; high: number }, bar: number) => (x.low >= bar ? 'yes' : x.high < bar ? 'no' : 'maybe') as 'yes' | 'no' | 'maybe';
   const plateau = world === 'plateau_open' || world === 'plateau_labs';
   const name = def.name;
-  const text = `Heading: ${name}${plateau ? ' (AI is stalling)' : ''}. Goal: ${GAUGE_LABEL[w.decides].replace(' in AI', '')} ${w.target} (you: ${d.text}). Keep ${GAUGE_LABEL[w.net].replace(' in AI', '')} above ${w.floor} (you: ${n.text}).`;
+  const text = `Heading: ${name}${plateau ? ' (AI is stalling)' : ''}. Goal: ${GAUGE_LABEL[w.decides]} ${w.target} (you: ${d.text}). Keep ${GAUGE_LABEL[w.net]} above ${w.floor} (you: ${n.text}).`;
   return {
     world,
     name,
@@ -920,6 +920,28 @@ export function heading(s: GameState): HeadingView {
     net: { key: w.net, label: GAUGE_LABEL[w.net], floor: w.floor, you: n.text, met: met(n, w.floor) },
     text,
   };
+}
+
+/**
+ * "At this pace: in about 3–5 rounds". Built only from what the player sees: AI capabilities now, their rise over
+ * the last six months, the round and the public rule that the tipping point never comes before round 6.
+ * Never from the hidden pace (a test checks it).
+ */
+export function tippingEstimate(s: GameState): string | null {
+  if (s.tipping) return 'AI has reached the tipping point.';
+  if (s.round < 1 || s.phase !== 'play') return null;
+  const left = T.rounds - s.round;
+  if (left <= 0) return 'Last round: AI will not tip this game.';
+  const gap = Math.max(0, T.tippingAt - s.aiPower);
+  const rate = Math.max(1, s.lastRise);
+  const n = gap / rate;
+  const notBefore = Math.max(1, T.earliestTipping - s.round);
+  const lo = Math.max(notBefore, Math.floor(n * T.eta.low));
+  const hi = Math.max(lo, Math.ceil(n * T.eta.high));
+  if (lo > left) return 'At this pace: not before the end of 2032. AI may stall.';
+  const r = (x: number) => `${x} round${x > 1 ? 's' : ''}`;
+  if (hi > left) return `At this pace: in ${lo === left ? 'the last round' : `${lo} round${lo > 1 ? 's' : ''} or more`}, or never.`;
+  return `At this pace: in about ${lo === hi ? r(lo) : `${lo}–${r(hi)}`}.`;
 }
 
 export function gauges(s: GameState): GaugeView[] {
@@ -935,6 +957,8 @@ export function gauges(s: GameState): GaugeView[] {
     return {
       key,
       label: GAUGE_LABEL[key],
+      sub: GAUGE_SUB[key],
+      eta: key === 'aiPower' ? tippingEstimate(s) : null,
       value: key === 'confidence' ? (isAudit ? s.confidence.truth : s.confidence.estimate) : s[key],
       margin: key === 'confidence' && !isAudit ? s.confidence.margin : 0,
       audited: isAudit,
@@ -1110,7 +1134,7 @@ export function ending(s: GameState): EndingView {
   const c = s.confidence;
   const seen = `you saw ${c.estimate} ± ${c.margin}`;
   const val = (k: GaugeKey) => gaugeValueTrue(s, k);
-  const label = (k: GaugeKey) => GAUGE_LABEL[k].replace(' in AI', '');
+  const label = (k: GaugeKey) => GAUGE_LABEL[k];
   const withSeen = (k: GaugeKey) => (k === 'confidence' && (c.estimate !== c.truth || c.margin > 0) ? ` (${seen})` : '');
   const dv = val(w.decides);
   const nv = val(w.net);
@@ -1140,7 +1164,7 @@ export function ending(s: GameState): EndingView {
     const p = T.worlds.pause;
     const pauseGood = c.truth >= p.target && s.cohesion >= p.floor;
     cf.push(
-      `With Cooperation at ${T.zones.pause} or more at the tipping point (you had ${val('cooperation')}), the superpowers would have paused, and Confidence ${p.target} would have been enough${pauseGood ? `: ${ENDING_BY_ID.licensed_utopia.title.toLowerCase()}` : ''}.`,
+      `With ${GAUGE_LABEL.cooperation} at ${T.zones.pause} or more at the tipping point (you had ${val('cooperation')}), the superpowers would have paused, and ${GAUGE_LABEL.confidence} ${p.target} would have been enough${pauseGood ? `: ${ENDING_BY_ID.licensed_utopia.title.toLowerCase()}` : ''}.`,
     );
   }
   if (!dOk) cf.push(shortfall(w.decides, w.target - dv));
@@ -1183,6 +1207,10 @@ export function ending(s: GameState): EndingView {
       truth: c.truth,
       estimate: c.estimate,
       margin: c.margin,
+      low: clamp(c.estimate - c.margin),
+      high: clamp(c.estimate + c.margin),
+      audited: audited(s),
+      widened: widenedBy(s),
       pace: s.pace,
       paceText: PACE_TEXT[s.pace],
       unreadLeaks: s.leaks.filter((l) => !l.readable),
@@ -1197,11 +1225,32 @@ export function ending(s: GameState): EndingView {
   };
 }
 
+/** What made the player less certain about AI safety over the game, in words, biggest first. */
+function widenedBy(s: GameState): string[] {
+  const all = [...s.history.flatMap((r) => r.changes), ...(s.history.some((r) => r.round === s.round) ? [] : s.changes)];
+  const out: { text: string; by: number }[] = [];
+  for (const ch of all) {
+    if (ch.key !== 'margin') continue;
+    const m = /±(\d+) → ±(\d+)/.exec(ch.text);
+    if (!m) continue;
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    if (b <= a) continue;
+    const verb = b >= a * 1.8 ? 'doubled' : 'widened';
+    const text =
+      ch.cause === EVENTS.opaque.title
+        ? `${THREAT_BY_ID.opaque.name} ${verb} your uncertainty (±${a} → ±${b}).`
+        : `${ch.cause}: that ${verb} your uncertainty (±${a} → ±${b}).`;
+    out.push({ text, by: b - a });
+  }
+  return out.sort((x, y) => y.by - x.by).slice(0, 3).map((x) => x.text);
+}
+
 function shortfall(key: GaugeKey, gap: number): string {
   if (key === 'confidence')
-    return `Confidence needed ${gap} more point${gap > 1 ? 's' : ''}. Alignment research raises the real value; the AI Office, inspections and audits show you where it stands.`;
+    return `${GAUGE_LABEL.confidence} needed ${gap} more point${gap > 1 ? 's' : ''}. Alignment research raises the real value; the AI Office, inspections and audits show you where it stands.`;
   if (key === 'cohesion')
-    return `Cohesion needed ${gap} more point${gap > 1 ? 's' : ''}. Flexicurity, the oversight mandate and open models lift it; a cyber shield and flexicurity protect it from shocks.`;
+    return `${GAUGE_LABEL.cohesion} needed ${gap} more point${gap > 1 ? 's' : ''}. Flexicurity, the oversight mandate and open models lift it; a cyber shield and flexicurity protect it from shocks.`;
   return `${GAUGE_LABEL[key]} needed ${gap} more.`;
 }
 

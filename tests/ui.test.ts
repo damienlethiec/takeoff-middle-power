@@ -21,13 +21,13 @@ describe('rendering helpers', () => {
   it('never conveys gains and losses by colour alone', () => {
     const d = document.createElement('div');
     d.innerHTML = chips([
-      { text: 'Cooperation +8', tone: 'up' },
-      { text: 'Cohesion −2', tone: 'down' },
+      { text: 'US–China cooperation +8', tone: 'up' },
+      { text: 'Social cohesion −2', tone: 'down' },
     ]);
-    expect(d.textContent).toContain('Plus: Cooperation +8');
-    expect(d.textContent).toContain('Minus: Cohesion −2');
-    d.innerHTML = impactLine({ key: 'cohesion', label: 'Cohesion', before: '60', after: '55', tone: -1 });
-    expect(d.textContent).toMatch(/Cohesion 60 → 55\s*worse/);
+    expect(d.textContent).toContain('Plus: US–China cooperation +8');
+    expect(d.textContent).toContain('Minus: Social cohesion −2');
+    d.innerHTML = impactLine({ key: 'cohesion', label: 'Social cohesion', before: '60', after: '55', tone: -1 });
+    expect(d.textContent).toMatch(/Social cohesion 60 → 55\s*worse/);
   });
   it('Léa’s portrait is decorative unless named, with one face per mood', () => {
     expect(leaPortrait('hopeful')).toContain('aria-hidden="true"');

@@ -93,7 +93,7 @@ async function checkEnding(page: Page, s: Session) {
   for (const h of ['The world in 2032', 'The four gauges at the end', 'The reveal', 'What would have changed it', 'Your decisions, in order'])
     await expect(end.getByRole('heading', { level: 2, name: h })).toBeVisible();
   await expect(end.getByText('Léa, one last time')).toBeVisible();
-  await expect(end.getByText(/The truth was \d+\./)).toBeVisible();
+  await expect(end.locator('.reveal-big')).toContainText(/(It was|AI safety was) \d+\./);
   await checkText(page, s);
 }
 
@@ -193,7 +193,7 @@ test.describe('key interactions', () => {
     const talks = d.getByRole('button', { name: /^Diplomatic talks/ });
     await talks.click();
     await expect(talks).toHaveAttribute('aria-pressed', 'true');
-    await expect(d.locator('.imps .imp').first()).toHaveText(/^Cooperation \d+ → \d+/);
+    await expect(d.locator('.imps .imp').first()).toHaveText(/^US–China cooperation \d+ → \d+/);
     await expect(d.getByText('Heading line')).toBeVisible();
     // nothing committed yet
     expect(Number(await page.locator('#inf-v').textContent())).toBe(inf);

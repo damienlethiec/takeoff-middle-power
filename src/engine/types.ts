@@ -261,6 +261,10 @@ export interface IncomeView {
 export interface GaugeView {
   key: GaugeKey;
   label: string;
+  /** One plain line under the name ("How close AI is to improving itself"). */
+  sub: string;
+  /** AI capabilities only: "At this pace: in about 3–5 rounds", from visible values only (never the hidden pace). */
+  eta: string | null;
   value: number;
   /** Confidence only: the margin (0 while audited). */
   margin: number;
@@ -385,7 +389,22 @@ export interface EndingView {
   story: string;
   sentence: string;
   gauges: EndingGauge[];
-  reveal: { truth: number; estimate: number; margin: number; pace: Pace; paceText: string; unreadLeaks: Leak[]; readLeaks: Leak[] };
+  reveal: {
+    truth: number;
+    estimate: number;
+    margin: number;
+    /** The band the player saw: estimate ± margin, within 0–100. */
+    low: number;
+    high: number;
+    /** The player saw the truth at the end (an independent audit was running). */
+    audited: boolean;
+    /** What widened the uncertainty, e.g. "Opaque reasoning doubled your uncertainty". */
+    widened: string[];
+    pace: Pace;
+    paceText: string;
+    unreadLeaks: Leak[];
+    readLeaks: Leak[];
+  };
   counterfactuals: string[];
   decisions: { round: number; date: string; name: string; ups: Chip[]; downs: Chip[] }[];
   threats: { id: ThreatId; name: string; struck: boolean; prepared: boolean | null; by: string }[];

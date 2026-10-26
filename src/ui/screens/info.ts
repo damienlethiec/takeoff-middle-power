@@ -36,7 +36,7 @@ export async function showBadge(ai: EuropeAi, locked: boolean): Promise<void> {
          ? 'Europe runs open models it controls. Fewer companies hold the keys, but criminals get the same tools.'
          : 'Europe relies on a few big labs for its AI. They are capable and secure, and they can lean on Europe.'
      }</p>
-     <p>If AI never reaches the tipping point, this badge decides the kind of world: a plateau with open models, or with big labs. Both need Cohesion 60 or more to end well.</p>
+     <p>If AI never reaches the tipping point, this badge decides the kind of world: a plateau with open models, or with big labs. Both need Social cohesion 60 or more to end well.</p>
      <p>It turns Open when you fund open models, and Dependent again with weight security standards${locked ? '. It is now locked: Europe gave in to the labs' : ', or if Europe gives in to silicon blackmail'}.</p>
      ${close}`,
     { cls: 'info', label: 'Europe’s AI', describedBy: '.why' },

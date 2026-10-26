@@ -5,17 +5,34 @@ import type { Fact, GaugeKey, Pace, Zone } from '../engine/types';
 import { SOURCES } from './sources';
 
 export const GAUGE_LABEL: Record<GaugeKey, string> = {
-  aiPower: 'AI power',
-  cooperation: 'Cooperation',
-  confidence: 'Confidence in AI',
-  cohesion: 'Cohesion',
+  aiPower: 'AI capabilities',
+  cooperation: 'US–China cooperation',
+  confidence: 'AI safety',
+  cohesion: 'Social cohesion',
 };
 
+/** One line under each gauge's name: what it measures, in plain words. */
+export const GAUGE_SUB: Record<GaugeKey, string> = {
+  aiPower: 'How close AI is to improving itself',
+  cooperation: 'Pause · Race · Rupture',
+  confidence: 'Does AI do what we intend? (estimate ± uncertainty)',
+  cohesion: 'Does Europe hold together?',
+};
+
+/** What the tipping point means, on the capabilities gauge. */
+export const TIPPING_LINE = (at: number) => `${at} = AI improves itself: the game ends`;
+
+/** "AI safety: less certain (±15 → ±17)" */
+export const marginText = (before: number | string, after: number | string) =>
+  `${GAUGE_LABEL.confidence}: ${Number(after) > Number(before) ? 'less' : 'more'} certain (±${before} → ±${after})`;
+
 export const GAUGE_HELP: Record<GaugeKey, string> = {
-  aiPower: 'How close AI is to the tipping point: the moment it can do AI research by itself. It rises every round.',
-  cooperation: 'Trust between the US and China. Pause 60+, Race 30–59, Rupture below 30. The zone at the tipping point sets the kind of world.',
+  aiPower:
+    'How close AI is to the tipping point: the moment it can do AI research by itself and improve itself. It rises every round. At 80 the game ends and the world you have shaped decides the ending.',
+  cooperation:
+    'Trust between the US and China. Pause 60+, Race 30–59, Rupture below 30. The zone at the tipping point sets the kind of world.',
   confidence:
-    'How far we can trust AI systems. You only see an estimate and a margin: the truth lies somewhere inside. Labs’ reports push the estimate up; oversight narrows the margin.',
+    'Does AI do what we intend? You only see an estimate and an uncertainty (±): the truth lies somewhere inside. Labs’ reports push the estimate up; oversight makes you more certain.',
   cohesion: 'Whether European society holds together: jobs, trust in institutions, safety from misuse.',
 };
 
@@ -68,11 +85,11 @@ export const CREDITS =
 
 /** Coach marks: each shown once, the first time it matters, pointing at `anchor` (a data-coach value). */
 export const TIPS = {
-  clock: { anchor: 'clock', title: 'The AI clock', text: 'AI power rises every round. At 80, AI can improve itself: the tipping point. The world you have shaped by then decides the ending.' },
+  clock: { anchor: 'clock', title: 'The AI clock', text: 'AI capabilities rise every round. At 80, AI can improve itself: the tipping point, and the game ends. The world you have shaped by then decides the ending.' },
   influence: { anchor: 'influence', title: 'Influence', text: 'Your one resource. You earn some every round; the counter shows how much next round, and why.' },
-  heading: { anchor: 'heading', title: 'The heading line', text: 'Where the world is going and what will decide it. Keep the goal gauge above its target and the other above its floor.' },
-  zones: { anchor: 'cooperation', title: 'Cooperation zones', text: 'Pause 60+, Race 30–59, Rupture below 30. The calmer the zone at the tipping point, the lower the bar for a good ending.' },
-  margin: { anchor: 'confidence', title: 'The margin', text: 'You never know exactly how trustworthy AI is: the truth is somewhere in the band. To be safe, keep the whole band above the target.' },
+  heading: { anchor: 'heading', title: 'If AI tipped now', text: 'Where the world is going and what will decide it. Keep the goal gauge above its target and the other above its floor.' },
+  zones: { anchor: 'cooperation', title: 'US–China cooperation', text: 'Pause 60+, Race 30–59, Rupture below 30. The calmer the zone at the tipping point, the lower the bar for a good ending.' },
+  margin: { anchor: 'confidence', title: 'The uncertainty', text: 'You never know exactly how safe AI is: the truth is somewhere in the band (estimate ± uncertainty). To be sure, keep the whole band above the target.' },
   firstCard: { anchor: 'hand', title: 'Your cards', text: 'Green chips go up, red chips go down. Every card helps something and costs something. Open one to see what it would change.' },
   twoCards: { anchor: 'hand', title: 'Two cards a round', text: 'You can play up to two cards a round if you can afford them. Saving Influence is a choice too.' },
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages where they would strike. Open one to see which card protects against it.' },
@@ -91,10 +108,10 @@ export const HELP = {
     ['J', 'Open the journal'],
   ] as [string, string][],
   rules: [
-    'AI power rises every round. At 80 it reaches the tipping point (never before round 6). If it never gets there, the game ends after round 12.',
-    'At the tipping point, the Cooperation zone sets the world: Pause, Race or Rupture. Without a tipping point, Europe’s AI badge sets it.',
-    'In each world, one gauge decides (its goal) and the other pillar is a safety net (its floor). The heading line under the gauges tells you both.',
-    'Confidence is an estimate with a margin. The true value is revealed at the end; it always lies inside the margin.',
-    'Influence: +2 a round, +1 when Cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Up to two cards a round.',
+    'AI capabilities rise every round. At 80, AI improves itself: the tipping point (never before round 6), and the game ends. If it never gets there, the game ends after round 12.',
+    'At the tipping point, the US–China cooperation zone sets the world: Pause, Race or Rupture. Without a tipping point, Europe’s AI badge sets it.',
+    'In each world, one gauge decides (its goal) and the other pillar is a safety net (its floor). The band under the gauges tells you both.',
+    'AI safety is an estimate ± an uncertainty. The true value is revealed at the end; it always lies inside the band.',
+    'Influence: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Up to two cards a round.',
   ],
 };

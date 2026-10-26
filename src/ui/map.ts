@@ -1,6 +1,6 @@
 // The wall screen: a dot-matrix world (data from the first prototype) drawn in SVG, with Europe, the US and
-// China lit, coalition partners that join around Europe, pulsing labs and the US–China arc (thin and calm when
-// they cooperate, thick and red when they break apart). Everything the player can act on sits on top as real
+// China lit, coalition partners that join around Europe and pulsing labs (v4: no US–China arc; the cooperation
+// gauge says it). Everything the player can act on sits on top as real
 // HTML buttons placed over their spot: threat icons that grow in three stages, Europe's AI badge, Léa over
 // Lyon and the round's leak. Headlines and public voices appear as banners where they happen.
 
@@ -155,10 +155,8 @@ let mapIds = 0;
 
 export class WorldMap {
   readonly svg: SVGSVGElement;
-  private layers: Record<'land' | 'arc' | 'labs' | 'labels' | 'fx', SVGGElement>;
+  private layers: Record<'land' | 'labs' | 'labels' | 'fx', SVGGElement>;
   private zonePaths = {} as Record<Zone, SVGPathElement>;
-  private arc!: SVGPathElement;
-  private arcGlow!: SVGPathElement;
   private container: HTMLElement;
   /** HTML layer over the SVG: buttons and banners placed at a longitude and latitude. */
   private overlay: HTMLElement;
@@ -188,7 +186,6 @@ export class WorldMap {
     el('rect', { x: -60, y: -60, width: 360, height: 220, fill: 'url(#sea)' }, svg);
     this.layers = {
       land: el('g', { class: 'm-land' }, svg),
-      arc: el('g', { class: 'm-arc' }, svg),
       labs: el('g', { class: 'm-labs' }, svg),
       labels: el('g', { class: 'm-labels' }, svg),
       fx: el('g', { class: 'm-fx' }, svg),
@@ -196,12 +193,6 @@ export class WorldMap {
     (Object.keys(g.paths) as Zone[]).forEach((z) => {
       this.zonePaths[z] = el('path', { d: g.paths[z], class: `zone z-${z}` }, this.layers.land);
     });
-    const a = geo(ANCHOR.us.lon, ANCHOR.us.lat);
-    const b = geo(ANCHOR.cn.lon, ANCHOR.cn.lat);
-    const cx = (a.x + b.x) / 2;
-    const d = `M${a.x} ${a.y} Q${cx} -14 ${b.x} ${b.y}`;
-    this.arcGlow = el('path', { d, class: 'arc-glow', filter: 'url(#glow)' }, this.layers.arc);
-    this.arc = el('path', { d, class: 'arc' }, this.layers.arc);
     LABS.forEach((l) => {
       const p = geo(l.lon, l.lat);
       const gl = el('g', { class: `lab lab-${l.region}`, transform: `translate(${p.x} ${p.y})` }, this.layers.labs);
@@ -447,14 +438,6 @@ export class WorldMap {
     // labs pulse faster as AI power rises
     this.svg.style.setProperty('--lab-dur', `${Math.max(0.7, 2.8 - v.aiPower / 40).toFixed(2)}s`);
     this.svg.style.setProperty('--cap-glow', String(Math.min(1, 0.25 + v.aiPower / 100)));
-    // the US–China arc: calm and thin when they cooperate, thick and red when they break apart
-    const t = Math.max(0, Math.min(1, (70 - v.cooperation) / 55));
-    const width = 0.35 + t * 2.1;
-    this.arc.style.strokeWidth = String(width);
-    this.arcGlow.style.strokeWidth = String(width * 2.6);
-    this.svg.classList.toggle('arc-hot', v.cooperation < 30);
-    this.svg.classList.toggle('arc-calm', v.cooperation >= 60);
-    this.svg.style.setProperty('--arc-op', String(0.35 + t * 0.65));
     PARTNERS.forEach((p) => {
       const on = v.coalition >= p.level;
       this.zonePaths[p.zone].classList.toggle('joined', on);

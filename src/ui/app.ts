@@ -6,6 +6,7 @@
 import type { EngineApi } from '../engine/api';
 import type { GameState, GaugeKey, LeaMood, MapItem, Pick, ThreatView } from '../engine/types';
 import { CARD_BY_ID } from '../data/cards';
+import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, marginText } from '../data/copy';
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
 import { Coach } from './coach';
 import { $, ICON, esc, signed } from './format';
@@ -224,11 +225,11 @@ export class App {
     const b = this.vals();
     const moved: string[] = [];
     const line = (label: string, x: number, y: number, pre = '') => x !== y && moved.push(`${label} ${pre}${x} → ${pre}${y}`);
-    line('AI power', a.aiPower, b.aiPower);
-    line('Cooperation', a.cooperation, b.cooperation);
-    line('Confidence', a.confidence, b.confidence);
-    if (a.margin !== b.margin) moved.push(`Confidence ${b.margin > a.margin ? 'less' : 'more'} certain (±${a.margin} → ±${b.margin})`);
-    line('Cohesion', a.cohesion, b.cohesion);
+    line(GAUGE_LABEL.aiPower, a.aiPower, b.aiPower);
+    line(GAUGE_LABEL.cooperation, a.cooperation, b.cooperation);
+    line(GAUGE_LABEL.confidence, a.confidence, b.confidence);
+    if (a.margin !== b.margin) moved.push(marginText(a.margin, b.margin));
+    line(GAUGE_LABEL.cohesion, a.cohesion, b.cohesion);
     if (before.europeAi !== this.s.europeAi) moved.push(`Europe’s AI → ${this.s.europeAi === 'open' ? 'Open' : 'Dependent'}`);
     this.headingWhy = played.length ? `${played.join(' and ')}: ${moved.join(', ') || 'no gauge moved yet'}.` : '';
     this.prevThreats = this.e.threats(this.s);
@@ -460,16 +461,15 @@ export class App {
   // ------------------------------------------------------------------ shell
 
   private buildShell() {
-    const gauge = (k: GaugeKey, label: string, coach: string) => `
+    const tip = this.e.gauges(this.s).find((g) => g.key === 'aiPower')?.target ?? 80;
+    const gauge = (k: GaugeKey, coach: string) => `
       <section class="gauge g-${k}" data-key="${k}" data-coach="${coach}" aria-labelledby="gn-${k}">
-        <div class="g-top"><h3 class="g-name" id="gn-${k}">${k === 'confidence' ? 'Confidence<span class="sr-only"> in AI</span>' : esc(label)}</h3><span class="g-val num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
-          <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(label)}" aria-describedby="gd-${k}">?</button></div>
-        ${
-          k === 'aiPower'
-            ? `<div class="dial" aria-hidden="true"><svg viewBox="0 0 120 66"><path class="dial-bg" d="M10 60 A50 50 0 0 1 110 60"/><path class="dial-fill" d="M10 60 A50 50 0 0 1 110 60" pathLength="100"/><line class="dial-tick" x1="0" y1="0" x2="0" y2="0"/></svg><span class="dial-l">tipping point 80</span></div>`
-            : `<div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}<i class="g-band"></i><i class="g-fill"></i><i class="g-target"></i><span class="g-target-l"></span></div>
-               ${k === 'cooperation' ? '<div class="g-zones" aria-hidden="true"><span>Rupture</span><span>Race</span><span>Pause</span></div>' : ''}`
-        }
+        <div class="g-top"><h3 class="g-name" id="gn-${k}">${esc(GAUGE_LABEL[k])}</h3><span class="g-val num" aria-hidden="true"></span><span class="g-delta" aria-hidden="true"></span>
+          <button type="button" class="g-info" data-info="${k}" aria-label="About ${esc(GAUGE_LABEL[k])}" aria-describedby="gd-${k}">?</button></div>
+        <p class="g-sub" aria-hidden="true">${esc(GAUGE_SUB[k])}</p>
+        <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? '<i class="g-tipzone"></i>' : ''}<i class="g-band"></i><i class="g-fill"></i><i class="g-target"></i><span class="g-target-l"></span></div>
+        ${k === 'cooperation' ? '<div class="g-zones" aria-hidden="true"><span>Rupture</span><span>Race</span><span>Pause</span></div>' : ''}
+        ${k === 'aiPower' ? `<p class="g-tipline" aria-hidden="true"><span class="long">${esc(TIPPING_LINE(tip))}</span><span class="short">${tip} = the tipping point</span></p><p class="g-eta" aria-hidden="true"></p>` : ''}
         <ul class="g-markers"></ul>
         <p class="sr-only" id="gd-${k}"></p>
       </section>`;
@@ -495,15 +495,18 @@ export class App {
         </div>
       </header>
       <main class="stage">
+        <section class="panel" aria-labelledby="gauges-h">
+          <h2 class="sr-only" id="gauges-h">Gauges</h2>
+          <div class="g-pair" role="group" aria-label="The race: ${esc(GAUGE_LABEL.aiPower)} against ${esc(GAUGE_LABEL.confidence)}">
+            ${gauge('aiPower', 'clock')}<span class="g-vs" aria-hidden="true">vs</span>${gauge('confidence', 'confidence')}
+          </div>
+          ${gauge('cooperation', 'cooperation')}${gauge('cohesion', 'cohesion')}
+        </section>
+        <section class="heading" data-coach="heading" aria-label="Heading line"><p id="heading-text"></p><p class="heading-why" id="heading-why"></p></section>
         <section class="theatre" aria-labelledby="map-h">
           <h2 class="sr-only" id="map-h" tabindex="-1">World map</h2>
           <div class="mapwrap" id="mapwrap" data-coach="map"></div>
         </section>
-        <aside class="panel" aria-label="Gauges">
-          <h2 class="sr-only">Gauges</h2>
-          ${gauge('aiPower', 'AI power', 'clock')}${gauge('cooperation', 'Cooperation', 'cooperation')}${gauge('confidence', 'Confidence in AI', 'confidence')}${gauge('cohesion', 'Cohesion', 'cohesion')}
-          <section class="heading" data-coach="heading" aria-label="Heading line"><p id="heading-text"></p><p class="heading-why" id="heading-why"></p></section>
-        </aside>
       </main>
       <section class="dock" aria-label="Your move" hidden></section>
       <p class="keys-hint" aria-hidden="true"><kbd>Space</kbd> pause · <kbd>Enter</kbd> continue · <kbd>J</kbd> journal · <kbd>?</kbd> help</p>
@@ -612,7 +615,7 @@ export class App {
     if (!this.s) return;
     const views = this.e.gauges(this.s);
     const start = this.s.roundStart;
-    const sig = KEYS.map((k) => Math.round(this.shown[k])).join() + Math.round(this.shown.margin) + views.map((g) => `${g.target}${g.targetKind}${g.markers.map((m) => m.text).join()}`).join();
+    const sig = KEYS.map((k) => Math.round(this.shown[k])).join() + Math.round(this.shown.margin) + views.map((g) => `${g.target}${g.targetKind}${g.eta}${g.markers.map((m) => m.text).join()}`).join();
     if (sig === this.lastSig && !flash) return;
     this.lastSig = sig;
     for (const g of views) {
@@ -626,50 +629,45 @@ export class App {
       const good = g.key === 'aiPower' ? 0 : Math.sign(delta);
       dEl.textContent = delta ? signed(delta) : '';
       dEl.className = `g-delta ${good > 0 ? 'good' : good < 0 ? 'bad' : 'flat'}`;
+      const pct = (x: number) => `${Math.max(0, Math.min(100, x))}%`;
+      (box.querySelector('.g-fill') as HTMLElement).style.width = pct(this.shown[g.key]);
+      const band = box.querySelector<HTMLElement>('.g-band')!;
+      if (g.key === 'confidence' && !g.audited) {
+        band.style.left = pct(this.shown.confidence - this.shown.margin);
+        band.style.width = `${Math.min(100, this.shown.confidence + this.shown.margin) - Math.max(0, this.shown.confidence - this.shown.margin)}%`;
+        band.hidden = false;
+      } else band.hidden = true;
+      const tg = box.querySelector<HTMLElement>('.g-target')!;
+      const tl = box.querySelector<HTMLElement>('.g-target-l')!;
+      tg.hidden = tl.hidden = g.target === null;
+      if (g.target !== null) {
+        tg.style.left = pct(g.target);
+        tl.style.left = pct(g.target);
+        tg.className = `g-target ${g.targetKind}`;
+        tl.textContent = g.targetKind === 'tipping' ? '' : `${g.targetKind === 'goal' ? 'goal' : 'floor'} ${g.target}`;
+        tl.hidden = g.targetKind === 'tipping';
+      }
       if (g.key === 'aiPower') {
-        const fill = box.querySelector<SVGPathElement>('.dial-fill')!;
-        fill.style.strokeDasharray = `${Math.max(0, Math.min(100, this.shown.aiPower)).toFixed(1)} 100`;
-        const ang = Math.PI * (1 - 0.8);
-        const tick = box.querySelector('.dial-tick')!;
-        tick.setAttribute('x1', String(60 + Math.cos(ang) * 42));
-        tick.setAttribute('y1', String(60 - Math.sin(ang) * 42));
-        tick.setAttribute('x2', String(60 + Math.cos(ang) * 58));
-        tick.setAttribute('y2', String(60 - Math.sin(ang) * 58));
         box.classList.toggle('near', v >= 70);
-      } else {
-        const pct = (x: number) => `${Math.max(0, Math.min(100, x))}%`;
-        (box.querySelector('.g-fill') as HTMLElement).style.width = pct(this.shown[g.key]);
-        const band = box.querySelector<HTMLElement>('.g-band')!;
-        if (g.key === 'confidence' && !g.audited) {
-          band.style.left = pct(this.shown.confidence - this.shown.margin);
-          band.style.width = `${Math.min(100, this.shown.confidence + this.shown.margin) - Math.max(0, this.shown.confidence - this.shown.margin)}%`;
-          band.hidden = false;
-        } else band.hidden = true;
-        const tg = box.querySelector<HTMLElement>('.g-target')!;
-        const tl = box.querySelector<HTMLElement>('.g-target-l')!;
-        tg.hidden = tl.hidden = g.target === null;
-        if (g.target !== null) {
-          tg.style.left = pct(g.target);
-          tl.style.left = pct(g.target);
-          tg.className = `g-target ${g.targetKind}`;
-          tl.textContent = `${g.targetKind === 'goal' ? 'goal' : 'floor'} ${g.target}`;
-        }
+        const eta = box.querySelector<HTMLElement>('.g-eta')!;
+        if (eta.textContent !== (g.eta ?? '')) eta.textContent = g.eta ?? '';
       }
       box.querySelector('.g-markers')!.innerHTML = g.markers
         .map((m) => `<li class="${m.prepared ? 'yes' : 'no'}">${m.prepared ? ICON.check : ICON.alert}<span>${esc(m.text)}</span></li>`)
         .join('');
       const words =
         g.key === 'aiPower'
-          ? `${v} out of 100; the tipping point is at 80.`
+          ? `${v} out of 100. At 80, AI improves itself: the tipping point, and the game ends.${g.eta ? ` ${g.eta}` : ''}`
           : g.key === 'confidence'
             ? g.audited
               ? `${v}, audited: the true value.`
               : `${v}, plus or minus ${Math.round(this.shown.margin)}: the truth lies between ${Math.max(0, v - Math.round(this.shown.margin))} and ${Math.min(100, v + Math.round(this.shown.margin))}.`
             : `${v} out of 100.`;
       const zone = g.key === 'cooperation' ? ` Zone: ${v >= 60 ? 'Pause' : v >= 30 ? 'Race' : 'Rupture'}.` : '';
+      const sub = ` ${g.sub}.`;
       const tgt = g.target !== null && g.key !== 'aiPower' ? ` ${g.targetKind === 'goal' ? 'Goal' : 'Floor'} for the world you are heading to: ${g.target}.` : '';
       const ch = delta ? ` ${delta > 0 ? 'Up' : 'Down'} ${Math.abs(delta)} this round.` : '';
-      const desc = `${words}${zone}${tgt}${ch}${g.markers.length ? ` ${g.markers.map((m) => m.text).join('. ')}.` : ''}`;
+      const desc = `${words}${g.key === 'aiPower' ? '' : sub}${zone}${tgt}${ch}${g.markers.length ? ` ${g.markers.map((m) => m.text).join('. ')}.` : ''}`;
       const d = box.querySelector<HTMLElement>(`#gd-${g.key}`)!;
       if (d.textContent !== desc) d.textContent = desc;
       if (flash && delta) {

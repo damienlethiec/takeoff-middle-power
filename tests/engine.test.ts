@@ -376,6 +376,17 @@ describe('hidden values never leak', () => {
     }
   });
 
+  it('the "at this pace" estimate uses visible values only, never the hidden pace', () => {
+    for (const seed of SEEDS.slice(0, 30)) {
+      const s = fresh(seed, { round: 3, aiPower: 40, lastRise: 6 });
+      const texts = (['slow', 'steady', 'fast'] as const).map((pace) => gauges({ ...s, pace }).find((g) => g.key === 'aiPower')!.eta);
+      expect(texts[0]).toMatch(/^At this pace: in about \d/);
+      expect(new Set(texts).size).toBe(1);
+      expect(texts[0]).not.toMatch(/slow|steady|fast/);
+    }
+    expect(gauges(fresh(1, { round: 10, aiPower: 50, lastRise: 3 }))[0].eta).toMatch(/AI may stall/);
+  });
+
   it('the advisor never uses numbers', () => {
     for (const seed of SEEDS.slice(0, 60)) {
       let s = createInitialState(seed);
@@ -400,7 +411,7 @@ describe('hidden values never leak', () => {
 describe('heading, report, letters', () => {
   it('the heading line names the world, the goal and the safety net', () => {
     const s = fresh(1, { cooperation: 50, cohesion: 58, confidence: { truth: 60, estimate: 62, margin: 15 } });
-    expect(heading(s).text).toBe('Heading: Race. Goal: Confidence 75 (you: 62 ± 15). Keep Cohesion above 55 (you: 58).');
+    expect(heading(s).text).toBe('Heading: Race. Goal: AI safety 75 (you: 62 ± 15). Keep Social cohesion above 55 (you: 58).');
     expect(heading({ ...s, cooperation: 65 }).world).toBe('pause');
     expect(heading({ ...s, cooperation: 20 }).world).toBe('rupture');
   });
@@ -488,14 +499,21 @@ describe('endings', () => {
   it('decides on the true Confidence, and says so in one sentence', () => {
     const s = ended({ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 62, estimate: 70, margin: 15 } });
     const v = ending(s);
-    expect(v.sentence).toBe('The superpowers raced. Confidence was 62 (you saw 70 ± 15), below the 75 a race needs: loss of control.');
+    expect(v.sentence).toBe('The superpowers raced. AI safety was 62 (you saw 70 ± 15), below the 75 a race needs: loss of control.');
     expect(v.reveal.truth).toBe(62);
-    expect(v.counterfactuals[0]).toMatch(/^With Cooperation at 60 or more at the tipping point/);
+    expect(v.counterfactuals[0]).toMatch(/^With US–China cooperation at 60 or more at the tipping point/);
+  });
+
+  it('the reveal gives the band the player saw and names what widened it', () => {
+    const history = [{ round: 5, headlines: [], voices: [], leak: null, event: null, decisions: [], letter: null, changes: [{ round: 5, key: 'margin' as const, text: 'AI safety: less certain (±15 → ±30)', cause: 'AI reasoning goes dark', tone: -1 as const }] }];
+    const v = ending(ended({ ...tip, history, cooperation: 45, cohesion: 60, confidence: { truth: 48, estimate: 71, margin: 30 } }));
+    expect(v.reveal).toMatchObject({ low: 41, high: 100, truth: 48, audited: false });
+    expect(v.reveal.widened[0]).toBe('Opaque reasoning doubled your uncertainty (±15 → ±30).');
   });
 
   it('a safety net that fails is named', () => {
     const v = ending(ended({ ...tip, cooperation: 75, cohesion: 30, confidence: { truth: 70, estimate: 70, margin: 5 } }));
-    expect(v.sentence).toMatch(/^The superpowers paused and Confidence reached 70, but Cohesion fell to 30, below the 45 a pause needs: unstable pause\.$/);
+    expect(v.sentence).toMatch(/^The superpowers paused and AI safety reached 70, but Social cohesion fell to 30, below the 45 a pause needs: unstable pause\.$/);
   });
 
   it('the suspense at the tipping point is never more than a few points', () => {

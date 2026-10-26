@@ -1,5 +1,5 @@
 // The end screen: the ending and its story, why in one sentence, the four gauges with the world's target and
-// floor, the reveal (true Confidence, AI pace, unread leaks), what would have changed it, your decisions in
+// floor, the reveal (true AI safety and the uncertainty around it, AI pace, unread leaks), what would have changed it, your decisions in
 // order with their plus and minus, the threats you were or were not ready for, and Play again.
 
 import type { EndingView } from '../../engine/types';
@@ -54,7 +54,13 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
     </section>
     <section aria-labelledby="rv-h" id="reveal">
       <h2 id="rv-h">The reveal</h2>
-      <p class="reveal-big">You saw Confidence <b class="num">${v.reveal.estimate} ± ${v.reveal.margin}</b>. The truth was <b class="num">${v.reveal.truth}</b>.</p>
+      ${
+        v.reveal.audited
+          ? `<p class="reveal-big">An independent audit showed you the truth: AI safety was <b class="num">${v.reveal.truth}</b>.</p>`
+          : `<p class="reveal-big">You saw AI safety <b class="num">${v.reveal.estimate} ± ${v.reveal.margin}</b>: the truth could be anywhere from <b class="num">${v.reveal.low}</b> to <b class="num">${v.reveal.high}</b>. It was <b class="num">${v.reveal.truth}</b>.</p>
+             <p>${v.reveal.truth < v.reveal.estimate ? `The labs’ reports made AI look ${v.reveal.estimate - v.reveal.truth} points safer than it was.` : v.reveal.truth > v.reveal.estimate ? `AI was ${v.reveal.truth - v.reveal.estimate} points safer than the reports showed: real safety work the labs did not measure.` : 'The estimate was spot on.'} The ± is your uncertainty: oversight (the AI Office, inspections, audits) narrows it.</p>`
+      }
+      ${v.reveal.widened.length ? `<h3>What made you less certain</h3><ul class="cf">${v.reveal.widened.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
       <p>The AI pace was <b>${esc(v.reveal.paceText)}</b>.</p>
       ${v.reveal.unreadLeaks.length ? `<h3>The leaks you could not read</h3><ul class="leaks">${leaks(v.reveal.unreadLeaks)}</ul>` : '<p>You read every leak.</p>'}
       ${v.reveal.readLeaks.length ? `<details><summary>The leaks you read (${v.reveal.readLeaks.length})</summary><ul class="leaks">${leaks(v.reveal.readLeaks)}</ul></details>` : ''}

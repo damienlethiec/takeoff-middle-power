@@ -43,6 +43,10 @@ export const TUNING = {
 
   confidence: { minMargin: 3, maxMargin: 30 },
 
+  /** "At this pace" on the capabilities gauge, from public values only (the last rise): the range of rounds
+   *  left to the tipping point is (gap / last rise) × these factors. Low under 1 because AI speeds up AI. */
+  eta: { low: 0.6, high: 1.1 },
+
   influence: { base: 2, highCohesion: 60, lowCohesion: 35, coalitionLevel: 2, cap: 10, minIncome: 1 },
 
   zones: { pause: 60, race: 30 },
