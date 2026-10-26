@@ -1,6 +1,7 @@
 // Help: the rules in five lines, the keyboard shortcuts, the tutorial switch and every tip.
 
 import { HELP } from '../../data/copy';
+import { tipHtml } from '../coach';
 import { esc } from '../format';
 import { openModal } from '../modal';
 
@@ -21,7 +22,7 @@ export async function showHelp(opts: {
      <label class="switch"><input type="checkbox" id="keys-switch" ${opts.shortcuts ? 'checked' : ''}/> Single-key shortcuts (N and ?)</label>
      <h3>Tutorial</h3>
      <label class="switch"><input type="checkbox" id="tut-switch" ${opts.tutorial ? 'checked' : ''}/> Show tips the first time each part of the screen matters</label>
-     ${opts.tips?.length ? `<details class="older"><summary>All tips (${opts.tips.length})</summary><ul class="rules">${opts.tips.map((t) => `<li><b>${esc(t.title)}:</b> ${esc(t.text)}</li>`).join('')}</ul></details>` : ''}
+     ${opts.tips?.length ? `<details class="older"><summary>All tips (${opts.tips.length})</summary><ul class="rules">${opts.tips.map((t) => `<li><b>${esc(t.title)}</b>${tipHtml(t.text)}</li>`).join('')}</ul></details>` : ''}
      <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">Close <kbd>Esc</kbd></button></div>`,
     { cls: 'help', label: 'Help' },
   );

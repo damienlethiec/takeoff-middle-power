@@ -92,12 +92,13 @@ export const INTRO: IntroScreen[] = [
 export const CREDITS =
   'Built on the AI 2027 scenario and CFG’s Advanced AI: Possible Futures. OpenBrain, DeepCent and every event after today are fiction.';
 
-/** Coach marks: each shown once, pointing at `anchor` (a data-coach value), only when it is on screen.
+/** Coach marks: each shown once, pointing at `anchor` (data-coach values, space-separated: all are highlighted),
+ *  only when it is on screen. In `text`, a new line starts a paragraph and **x** is bold (rendered by tipHtml).
  *  At most four before the first decision (the race, the world, where it is heading, Influence); after that,
  *  only what does not explain itself, the first time it appears. All are listed in Help. */
 export const TIPS = {
-  race: { anchor: 'clock', title: 'The race', text: 'AI capabilities rise every round; at 80, AI improves itself and the game ends. AI safety is how sure we are that AI does what we intend: the labs report a number, and it could be as low as the bottom of the band. Keep safety ahead.' },
-  world: { anchor: 'cooperation', title: 'The superpowers and Europe', text: 'US–China cooperation sets the kind of world: Pause 60+, Race 30–59, Rupture below 30. Social cohesion is whether Europe holds together: jobs, trust, safety from misuse.' },
+  race: { anchor: 'clock confidence', title: 'The race', text: '**AI capabilities** rise every round; at 80, AI improves itself and the game ends.\n**AI safety** is how sure we are that AI does what we intend: the labs report a number, and it could be as low as the bottom of the band. Keep safety ahead.' },
+  world: { anchor: 'cooperation cohesion', title: 'The superpowers and Europe', text: '**US–China cooperation** sets the kind of world: Pause 60+, Race 30–59, Rupture below 30.\n**Social cohesion** is whether Europe holds together: jobs, trust, safety from misuse.' },
   outlook: { anchor: 'heading', title: 'Where the world is heading', text: 'If AI tipped now, this is the world you would get and what it needs to end well. Each round is six months from 2027; the game ends at the tipping point, or after 12 rounds.' },
   influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.' },
   request: { anchor: 'request', title: 'A request', text: 'Someone needs an answer. Look at an answer first (click it, or press ← → once), then answer (again). It is free of Influence: the cost is in the answer.' },

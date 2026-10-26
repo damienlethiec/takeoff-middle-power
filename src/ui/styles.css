@@ -514,6 +514,9 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .modal.coach { max-width: 360px; background: var(--paper); color: var(--paper-ink); border: 0; padding: 14px 16px; }
 .modal.coach h2 { font-size: 24px; margin: 2px 0 6px; }
 .modal.coach .dateline { color: var(--paper-mute); }
+.modal.coach .coach-text p { margin: 0 0 6px; }
+.modal.coach .coach-text p:last-child { margin-bottom: 0; }
+.help .rules li p { margin: 2px 0 0; }
 .modal.coach .row-btns { margin-top: 10px; }
 .modal.coach .btn-link { color: var(--paper-mute); }
 .modal.coach :focus-visible { outline-color: var(--paper-ink); }
