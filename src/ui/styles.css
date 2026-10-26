@@ -838,11 +838,13 @@ body.ended { overflow: auto; }
 .snd:hover .snd-pop, .snd:focus-within .snd-pop, .snd.open .snd-pop { opacity: 1; pointer-events: auto; }
 .snd.shut .snd-pop { opacity: 0; pointer-events: none; }
 /* phones: an icon-only button, the size of the help button, in the top right corner beside the date (the
-   second row has no room left), so the header keeps its two rows */
+   second row has no room left), so the header keeps its two rows. It is moved there in the DOM (placeSound in
+   app.ts), so the Tab order matches; the break starts the second row with the clock */
+.top-break { display: none; }
 @media (max-width: 560px) {
-  .top .top-btns { display: contents; }
-  .top .clockctl, .top .inf, .top .help-btn { order: 1; }
-  .top .help-btn { margin-left: auto; }
+  /* the break is a line of its own, with a gap on each side: half the row gap keeps the rows 6 px apart */
+  .top .top-break { display: block; flex-basis: 100%; height: 0; }
+  .top { row-gap: 3px; }
   .snd-btn { width: 40px; min-height: 32px; height: 32px; padding: 0; justify-content: center; }
   .snd-btn .ico { width: 18px; height: 18px; }
   .snd-word, .snd-state { display: none; }

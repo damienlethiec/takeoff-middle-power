@@ -42,6 +42,8 @@ type Live = { item: MapItem; kind: 'headline' | 'voice'; state: 'wait' | 'live' 
 type Step = { id: string; at: number; d: Vals; state: 'wait' | 'shown'; told: boolean };
 const ZERO: Vals = { aiPower: 0, cooperation: 0, confidence: 0, margin: 0, cohesion: 0 };
 const VKEYS = Object.keys(ZERO) as (keyof Vals)[];
+/** Phones: the header's sound toggle moves to the first line (see placeSound; matches styles.css). */
+const PHONE: MediaQueryList = typeof matchMedia === 'function' ? matchMedia('(max-width: 560px)') : ({ matches: false } as MediaQueryList);
 /** AI capabilities rising at least this much in six months send a ripple from the labs (v4). */
 const RIPPLE_RISE = 6;
 
@@ -93,6 +95,7 @@ export class App {
     requestAnimationFrame(this.tick);
     document.addEventListener('keydown', this.onKey);
     window.addEventListener('resize', () => this.fitSubs());
+    PHONE.addEventListener?.('change', () => this.placeSound());
     void document.fonts?.ready.then(() => this.fitSubs());
     setFocusFallback(() => this.root.querySelector<HTMLElement>('#map-h') ?? this.root.querySelector<HTMLElement>('h1'));
     const params = new URLSearchParams(location.search);
@@ -649,6 +652,7 @@ export class App {
         <h1 class="brand" id="game-title" tabindex="-1"><span class="logo">TAKE<i>OFF</i></span><span class="sub">Europe’s Next Move</span></h1>
         <div class="when"><span class="date"><span id="date" class="num"></span><span class="round-of" id="round-of"></span></span>
           <ol class="rounds" id="rounds" aria-label="Progress through the 12 rounds">${Array.from({ length: 12 }, (_, i) => `<li data-r="${i + 1}"><i></i></li>`).join('')}</ol></div>
+        <span class="top-break" aria-hidden="true"></span>
         <div class="clockctl">
           <button class="iconbtn" id="play" aria-keyshortcuts="Space"></button>
           <div class="speed" role="group" aria-label="Clock speed"><button type="button" data-speed="1" aria-pressed="true">×1</button><button type="button" data-speed="2" aria-pressed="false">×2</button></div>
@@ -702,6 +706,7 @@ export class App {
     $('#help-btn', this.root).addEventListener('click', () => this.openHelp());
     $('#inf-help', this.root).addEventListener('click', () => this.openFromMap(() => showInfluenceHelp(this.s.influence, this.e.nextIncome(this.s))));
     this.sound.bind(this.root);
+    this.placeSound();
     $('#heading-line', this.root).addEventListener('click', (ev) => {
       const h = this.e.heading(this.s);
       if ((ev.target as HTMLElement).closest('[data-worlds]')) this.openFromMap(() => showWorlds(h.world, h, this.s.europeAi));
@@ -730,6 +735,20 @@ export class App {
     this.map.update({ aiPower: this.shown.aiPower, cooperation: this.shown.cooperation, coalition: this.s.coalition, europeAi: this.s.europeAi });
     this.map.setUnrest(this.s.cohesion < 40 ? 2 : this.s.cohesion < 52 ? 1 : 0);
     this.sound.setWorld({ aiPower: this.s.aiPower, cooperation: this.s.cooperation, tipping: !!this.s.tipping });
+  }
+
+  /** The header's sound toggle sits beside Help on wider screens, and on phones on the first line, beside the
+   *  date: it moves in the DOM (not with CSS order) so the Tab order follows what the player sees. */
+  private placeSound() {
+    const box = this.root.querySelector<HTMLElement>('.top .snd');
+    const brk = this.root.querySelector('.top .top-break');
+    const btns = this.root.querySelector('.top .top-btns');
+    if (!box || !brk || !btns) return;
+    const focused = box.contains(document.activeElement) ? (document.activeElement as HTMLElement) : null;
+    if (PHONE.matches) {
+      if (box.nextElementSibling !== brk) brk.before(box);
+    } else if (box.parentElement !== btns) btns.prepend(box);
+    if (focused && document.activeElement !== focused) focused.focus({ preventScroll: true });
   }
 
   /** The soundtrack's toggle on the end page (the header's is gone with the main screen). */
