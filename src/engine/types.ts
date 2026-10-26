@@ -1,52 +1,51 @@
-// Shared contract between the engine (src/engine, src/data) and the UI (src/ui).
-// Rules and numbers: docs/DEVELOPER_NOTES.md. Player-facing design: docs/SPEC.md.
-// Change this file only with care: both sides depend on it.
+// Shared contract between the engine (src/engine, src/data) and the UI (src/ui), v3.
+// Rules and numbers: docs/DEVELOPER_NOTES.md. Player-facing design: docs/V3_SPEC.md.
+// The flow of a round is documented at the top of src/engine/api.ts.
 
-export type Speed = 'slow' | 'steady' | 'fast';
-
-export type GaugeKey =
-  | 'capability'
-  | 'concentration'
-  | 'apparentAlignment'
-  | 'trueAlignment' // hidden
-  | 'verification'
-  | 'tension'
-  | 'misuse'
-  | 'publicPressure'
-  | 'gdp'
-  | 'approval';
-
-export type EuKey = 'economy' | 'culture' | 'state'; // hidden human influence in Europe
-
-/** Anything a delta can touch. 'eu.economy' etc. address the hidden EU scores. */
-export type StatKey = GaugeKey | 'coalition' | 'pc' | 'budget' | `eu.${EuKey}`;
-
-export type ActorId = 'eu' | 'us' | 'china' | 'us_labs' | 'open_source' | 'ai_systems';
+/** Hidden AI pace, drawn at the start and revealed at the end. */
+export type Pace = 'slow' | 'steady' | 'fast';
+/** Cooperation zones: Pause 60+, Race 30–59, Rupture below 30. */
+export type Zone = 'pause' | 'race' | 'rupture';
+/** The five CFG worlds. */
+export type WorldId = 'plateau_open' | 'plateau_labs' | 'pause' | 'race' | 'rupture';
+export type EuropeAi = 'open' | 'dependent';
 export type RegionId = 'eu' | 'us' | 'cn';
+/** The visible pillars and clock. */
+export type GaugeKey = 'aiPower' | 'cooperation' | 'confidence' | 'cohesion';
 
 export type CardId =
-  | 'coalition'
-  | 'host_verification'
-  | 'asml'
+  | 'talks'
+  | 'inspections'
   | 'ai_office'
-  | 'measure'
-  | 'open_models'
-  | 'oversight_mandate'
-  | 'flexicurity'
+  | 'alignment'
+  | 'coalition'
+  | 'audit'
+  | 'asml'
   | 'weight_security'
-  | 'fund_alignment'
-  | 'cyber_defence'
-  // v2
-  | 'diplomatic_talks'
-  // v2 context cards: appear only when the situation creates them, for a limited time
-  | 'emergency_summit'
-  | 'joint_attribution';
+  | 'open_models'
+  | 'flexicurity'
+  | 'cyber_shield'
+  | 'oversight_mandate'
+  // opportunities: appear after a crisis, for two rounds only
+  | 'summit'
+  | 'attribution';
 
-export type EventId = 'warning_shot' | 'weight_theft' | 'opaque_reasoning' | 'silicon_blackmail' | 'ransomware';
+export type ThreatId = 'theft' | 'opaque' | 'incident' | 'ransomware' | 'blackmail';
+export type EventId = ThreatId | 'job_shock_1' | 'job_shock_2';
 
-export type PlanId = 'verified_slowdown' | 'shut_down' | 'fight_china' | 'race';
-
-export type WorldKind = 'plateau' | 'big_ai' | 'diplomacy' | 'arms_race' | 'take_off';
+export type MilestoneId =
+  | 'coding_automation'
+  | 'china_wakes_up'
+  | 'ai_takes_jobs'
+  | 'agent2_internal'
+  | 'weight_theft'
+  | 'superhuman_coder'
+  | 'alignment_inconclusive'
+  | 'national_security'
+  | 'self_improving'
+  | 'cheap_remote_worker'
+  | 'geopolitics'
+  | 'tipping_point';
 
 export type EndingId =
   | 'bright_winter'
@@ -55,408 +54,354 @@ export type EndingId =
   | 'silicon_blackmail'
   | 'licensed_utopia'
   | 'unstable_pause'
-  | 'multipolar_world'
-  | 'hot_war'
   | 'cognitive_revolution'
-  | 'loss_of_control';
-
-export interface Delta {
-  key: StatKey;
-  amount: number; // signed, already applied after clamping
-  hidden: boolean; // true for trueAlignment, eu.* and anything the player must not see before the debrief
-}
+  | 'loss_of_control'
+  | 'multipolar_world'
+  | 'hot_war';
 
 export interface Source {
-  label: string; // e.g. "Europe 2031 (recommendations)"
+  label: string;
   url: string;
 }
 
-/** One line in the public feed. Revealed progressively by the UI while the clock runs. */
-export interface NewsItem {
+/** Where a piece of content comes from: a scenario section, or a real source. Required on all content. */
+export interface Basis {
+  kind: 'ai2027' | 'cfg' | 'real';
+  ref: string;
+}
+
+/** A real-world fact shown to players, with its primary source. */
+export interface Fact {
+  text: string;
+  source: Source;
+}
+
+/** A visible effect on a card face or in a debrief: green for what goes up, red for what goes down. */
+export interface Chip {
+  text: string;
+  tone: 'up' | 'down';
+}
+
+// ---------------------------------------------------------------- state
+
+export interface ThreatState {
+  /** 0 not shown yet, 1 watch, 2 rising, 3 imminent. */
+  stage: 0 | 1 | 2 | 3;
+  /** Round when stage 3 was first shown (a threat strikes at the earliest the round after). */
+  imminentSince: number | null;
+  struck: boolean;
+  struckRound: number | null;
+  prepared: boolean | null;
+  /** Silicon blackmail: the player's answer. */
+  choice: string | null;
+}
+
+/** A headline banner or a public voice on the map, revealed while the clock runs (`at` in 0–1). */
+export interface MapItem {
   id: string;
-  quarter: number;
-  actor: ActorId;
+  round: number;
   region: RegionId;
   text: string;
-  /** 0..1: when during the quarter's clock animation the UI should show it. */
   at: number;
+  basis: Basis;
 }
 
-/** Confidential note from labs or intelligence services. */
-export interface InternalNote {
+export interface Leak {
   id: string;
-  quarter: number;
-  actor: ActorId;
-  region: RegionId;
-  text: string; // full text, revealed in the debrief in any case
-  readable: boolean; // false → UI shows it redacted (█████) during play
+  round: number;
   at: number;
+  /** Oversight needed to read it. */
+  level: number;
+  readable: boolean;
+  text: string;
+  basis: Basis;
 }
 
-export interface LogEntry {
-  quarter: number;
-  kind: 'card' | 'event' | 'actor' | 'drift' | 'income' | 'bubble' | 'tipping';
-  id: string; // card id, event id, actor rule id...
-  actor: ActorId;
-  title: string; // short label, e.g. "Weight theft"
-  visibleDeltas: Delta[];
-  hiddenDeltas: Delta[];
-  briefing: string; // what the player was told at the time
-  debrief: string; // what really happened (shown at the end)
+/** One gauge's movement in a Breaking news screen or a preview. */
+export interface Impact {
+  key: GaugeKey | 'margin' | 'europeAi' | 'influence';
+  label: string;
+  before: string;
+  after: string;
+  /** +1 good for the player, −1 bad, 0 neutral. */
+  tone: -1 | 0 | 1;
 }
 
 export interface EventOption {
   id: string;
   label: string;
-  description: string;
-  preview: Delta[]; // visible deltas only
+  detail: string;
 }
 
-/** An event that fired this quarter and is waiting for the player to read it (and maybe choose). */
+/** The event that strikes this round (Breaking news). Its impacts are applied by resolveEvent. */
 export interface PendingEvent {
   id: EventId;
-  actor: ActorId;
+  round: number;
+  at: number;
   region: RegionId;
   title: string;
-  prepared: boolean;
-  scene: string; // 2–4 vivid lines (Louis's style)
-  whyItMatters: string;
-  alreadyReal: { text: string; source: Source };
-  appliedDeltas: Delta[]; // visible deltas already applied when it fired
-  options: EventOption[]; // empty → just "Continue"
-  at: number; // 0..1 moment in the clock when it interrupts
+  headline: string;
+  scene: string;
+  prepared: boolean | null;
+  /** Card that prepared Europe, or the card that would have. */
+  preparedBy: CardId[];
+  preparedText: string;
+  impacts: Impact[];
+  options: EventOption[];
+  fact: Fact | null;
+  basis: Basis;
 }
 
-export interface Flags {
-  aiOffice: boolean;
-  openModels: boolean;
-  oversightMandate: boolean;
-  flexicurity: boolean;
-  weightSecurity: boolean;
-  cyberDefence: boolean;
-  exportControls: boolean;
-  warningShotPrepared: boolean;
-  alignmentErrorDoubled: boolean;
+/** A notable change with its cause, for the report ("Cooperation 52 → 47: China accused…"). */
+export interface Change {
+  round: number;
+  key: GaugeKey | 'margin' | 'europeAi' | 'influence' | 'threat';
+  text: string;
+  cause: string;
+  tone: -1 | 0 | 1;
 }
 
-export interface FiredEvent {
-  quarter: number;
-  prepared: boolean;
-  choice?: string;
+export interface Pick {
+  id: CardId;
+  option?: string;
 }
 
-export interface TippingResult {
-  odds: Record<PlanId, number>; // probabilities summing to 1
-  plan: PlanId;
-  labRestraint: boolean | null; // null unless plan === 'race'
+export interface RoundRecord {
+  round: number;
+  headlines: MapItem[];
+  voices: MapItem[];
+  leak: Leak | null;
+  event: { id: EventId; title: string; prepared: boolean | null; choice: string | null } | null;
+  changes: Change[];
+  decisions: Pick[];
+  letter: string | null;
 }
 
-export type Phase =
-  | 'quarter' // between startQuarter and the end of the decision
-  | 'tipping' // capability reached 80: free last decision, then plans
-  | 'ended';
+export interface LetterRecord {
+  slot: LeaSlot;
+  round: number;
+  id: string;
+}
+export type LeaSlot = 'r1' | 'r4' | 'r8' | 'end';
+export type LeaMood = 'hopeful' | 'worried' | 'relieved' | 'sad';
 
 export interface GameState {
+  version: 3;
   seed: number;
-  rng: number; // internal seeded RNG state
-  phase: Phase;
-  quarter: number; // 1..16 (Q1 2027 .. Q4 2030)
-  gauges: Record<GaugeKey, number>;
-  coalition: number; // 0..3
-  eu: Record<EuKey, number>;
-  takeoffSpeed: Speed;
-  pc: number;
-  budget: number;
-  asmlTokens: number;
-  flags: Flags;
-  cardsPlayed: Partial<Record<CardId, number>>;
-  firedEvents: Partial<Record<EventId, FiredEvent>>;
-  pendingEvent: PendingEvent | null;
-  pending: Delta[]; // applied at the start of next quarter
-  revealUntil: number; // eu scores visible while quarter <= revealUntil
-  bubblesThisQuarter: number;
-  decidedThisQuarter: boolean;
-  news: NewsItem[];
-  notes: InternalNote[];
-  log: LogEntry[];
-  /** Visible gauges at the start of the current quarter, for the situation report. */
-  quarterStart: { gauges: Record<GaugeKey, number>; coalition: number; pc: number; budget: number };
-  tipping: TippingResult | null;
+  rng: number;
+  /** 0 before the first round, then 1..12. */
+  round: number;
+  phase: 'play' | 'ended';
+  pace: Pace; // hidden
+  aiPower: number;
+  /** AI power gained over the last six months (public). */
+  lastRise: number;
+  cooperation: number;
+  /** truth is hidden; the estimate ± margin is what the player sees. The truth always lies inside. */
+  confidence: { truth: number; estimate: number; margin: number };
+  cohesion: number;
+  europeAi: EuropeAi;
+  /** Giving in to silicon blackmail locks Europe's AI to Dependent. */
+  europeAiLocked: boolean;
+  influence: number;
+  /** Levels 0–3. */
+  coalition: number;
+  inspections: number;
+  /** Cards in hand, in order of arrival (spent cards leave), and the round each arrived. */
+  hand: CardId[];
+  arrivals: Partial<Record<CardId, number>>;
+  uses: Partial<Record<CardId, number>>;
+  /** A card cannot be played again until after this round (talks rest one round). */
+  restUntil: Partial<Record<CardId, number>>;
+  /** Influence lost at a given round, and why. */
+  penalties: { round: number; amount: number; card: CardId }[];
+  /** The true Confidence is shown until the end of this round (independent audit). */
+  auditUntil: number;
+  /** Opportunities available up to and including this round. */
+  opportunities: Partial<Record<CardId, number>>;
+  milestones: { id: MilestoneId; round: number }[];
+  threats: Record<ThreatId, ThreatState>;
+  jobShocks: number;
+  /** This round's event, until resolved. */
+  event: PendingEvent | null;
+  /** This round's event once resolved (for the journal). */
+  roundEvent: RoundRecord['event'];
+  /** This round's map content and leak. */
+  headlines: MapItem[];
+  voices: MapItem[];
+  leak: Leak | null;
+  /** Every leak so far (readable or not), and the rounds when the next ones come. */
+  leaks: Leak[];
+  leakRounds: number[];
+  /** Public values at the start of this round (before the six months play out). */
+  roundStart: { aiPower: number; cooperation: number; estimate: number; margin: number; cohesion: number; influence: number };
+  /** Changes worth reporting this round (routine drift is not listed). */
+  changes: Change[];
+  /** Cards played this round. */
+  played: Pick[];
+  history: RoundRecord[];
+  letters: LetterRecord[];
+  tipping: { round: number } | null;
   ending: EndingId | null;
-
-  // ---------- v2 ----------
-  /** Story act: 1 "A seat at the table" (2027), 2 "The race goes public", 3 "Who decides?". */
-  act: ActId;
-  /** Cards the player has unlocked (permanent) and context cards currently on offer. */
-  unlockedCards: CardId[];
-  contextCards: { id: CardId; until: number; reason: string }[];
-  /** Quarter each card was last played, for cooldowns. */
-  cardLastPlayed: Partial<Record<CardId, number>>;
-  /** Indicator dashboard: stage cap and stable slot order (handoff 06). */
-  dashboard: { cap: 4 | 5 | 6; slots: DashboardKey[]; milestones: string[] };
-  /** What happened this quarter that the UI should introduce: unlocks, new act, tips, thresholds crossed. */
-  notices: Notice[];
-  /** Tips already shown (by id), so each shows once. */
-  tipsShown: string[];
-  /** When each tip was shown, for the one-per-quarter rule and the journal. */
-  tipLog: { id: string; quarter: number }[];
-  /** Public concern of the quarter, shown as map bubbles; clicking explains, it pays nothing. */
-  concerns: Concern[];
-  /** Every Léa letter delivered so far, oldest first. */
-  leaLetters: (LeaScene & { quarter: number })[];
-  /** One snapshot per finished quarter, for the journal (re-readable reports). */
-  history: QuarterRecord[];
-  /** Superpowers' odds after each decision, oldest first, for the trajectory bar. */
-  oddsHistory: { quarter: number; odds: Record<PlanId, number>; cause: string }[];
+  /** Cooperation zone at the end (after the small suspense draw at the tipping point). */
+  finalCooperation: number | null;
 }
 
-export type ActId = 1 | 2 | 3;
+// ---------------------------------------------------------------- views
 
-/** Indicators that can sit on the primary dashboard. */
-export type DashboardKey = Exclude<GaugeKey, 'trueAlignment'> | 'coalition';
-
-export interface Notice {
-  kind: 'act' | 'card_unlocked' | 'context_card' | 'indicator' | 'threshold' | 'tip' | 'employment_shock';
-  id: string; // act number, card id, indicator key, threshold id or tip id
-  title: string;
-  text: string; // one or two plain sentences: what is new and why it matters now
+export interface IncomeView {
+  next: number;
+  /** "Base +2", "Public backs you +1", "Unions (Flexicurity reform) −1"... */
+  reasons: string[];
+  cap: number;
+  /** False in the last round: no income will follow. */
+  nextRoundExists: boolean;
 }
-
-export interface Concern {
-  id: string;
-  region: RegionId;
-  /** One line: who worries about what ("Teachers in Lyon worry AI tutors will replace them"). */
-  text: string;
-  at: number; // 0..1 moment in the clock
-}
-
-export interface QuarterRecord {
-  quarter: number;
-  report: SituationReport;
-  decision: { cardId: CardId | null; title: string; option?: string };
-}
-
-// ---------- Views the engine builds for the UI ----------
 
 export interface GaugeView {
-  key: GaugeKey | 'coalition';
+  key: GaugeKey;
   label: string;
   value: number;
-  /** ± uncertainty shown as an error bar, 0 if none. */
-  errorBar: number;
-  visible: boolean;
-  risesWhen: string;
-  fallsWhen: string;
-  /** Change since the start of the quarter. */
-  delta: number;
+  /** Confidence only: the margin (0 while audited). */
+  margin: number;
+  /** Confidence only: the value shown is the audited truth. */
+  audited: boolean;
+  /** The current world's target or floor on this gauge, if any. */
+  target: number | null;
+  targetKind: 'goal' | 'floor' | 'tipping' | null;
+  /** Expected damage from threats that would hit this gauge ("−15 if unprepared"), public values only. */
+  markers: { threat: ThreatId; text: string; prepared: boolean }[];
 }
 
-/** Something you learn or can see better, as opposed to a gauge change (handoff 01). */
-export interface InfoGain {
-  label: string; // "Capability uncertainty"
-  from?: string; // "±10"
-  to?: string; // "±5"
-  text: string; // full sentence, e.g. "2 confidential reports become readable now"
+export interface HeadingView {
+  world: WorldId;
+  /** "Pause", "Race", "Rupture", "Plateau, open models", "Plateau, big labs" */
+  name: string;
+  decides: { key: GaugeKey; label: string; target: number; you: string; met: 'yes' | 'no' | 'maybe' };
+  net: { key: GaugeKey; label: string; floor: number; you: string; met: 'yes' | 'no' | 'maybe' };
+  /** Full sentence, e.g. "Heading: Race. Goal: Confidence 75 (you: 62 ± 15). Keep Cohesion above 55 (you: 58)." */
+  text: string;
 }
 
-/** A short effect shown on the card face. */
-export interface EffectChip {
-  key: StatKey | 'info' | 'hidden';
-  text: string; // "Tension −6", "+ hidden effect", "Narrows uncertainty"
-  tone: 'good' | 'bad' | 'neutral';
+export interface ThreatView {
+  id: ThreatId;
+  name: string;
+  region: RegionId;
+  stage: 0 | 1 | 2 | 3;
+  stageWord: 'Watch' | 'Rising' | 'Imminent' | 'Struck';
+  certainty: 'likely' | 'possible';
+  prepared: boolean;
+  struck: boolean;
+  why: string;
+  ifUnprepared: string;
+  ifPrepared: string;
+  protectedBy: CardId[];
+  protectedByNames: string;
+  gauge: GaugeKey | null;
 }
 
 export interface CardView {
   id: CardId;
   name: string;
-  family: string; // Diplomacy, Safety, Industry...
-  playerText: string; // max ~25 words
-  costLabel: string; // "2 Budget", "2 PC, then 1 PC per quarter", "Free (1 of 2 tokens)"
-  available: boolean; // conditions met and limit not reached
-  affordable: boolean;
-  lockedReason: string | null; // plain words: "Needs capability 30+", "Already played"
-  downside: string;
-  /** Dependencies in plain words, e.g. "Full effect needs AI Office capacity" (met or not). */
-  dependencies: { text: string; met: boolean }[];
-  options: { id: string; label: string }[]; // e.g. ASML: model access / safety commitment
-  source: Source;
-  isLouis: boolean; // from Louis's draft (true) or restored by us (false)
-  // v2
-  /** Hidden from the hand until unlocked (cardViews returns only unlocked and context cards). */
-  isNew: boolean; // unlocked this quarter
-  unlockReason: string | null; // "Unlocked because partners are calling Brussels"
-  /** Levelled cards: the next level's name and number ("Inspection accord", 2 of 3). */
-  level: { next: number; max: number; name: string } | null;
-  usesLeft: number | null; // null = unlimited
-  cooldownUntil: number | null; // quarter from which it can be played again
-  /** Up to three chips for the card face. */
-  face: EffectChip[];
-  /** Crises this card prepares Europe for. */
-  prepares: EventId[];
-  context: { until: number; reason: string } | null;
-  /** Sourced real-world cost line, when one exists. */
-  realCost: { text: string; source: Source } | null;
+  /** Level name for cards with levels (Inspection accord…), else the name. */
+  title: string;
+  cost: number;
+  text: string;
+  proposal: string;
+  example: Fact | null;
+  costLine: Fact | null;
+  ups: Chip[];
+  downs: Chip[];
+  protects: ThreatId | null;
+  protectsName: string | null;
+  options: { id: string; label: string; ups: Chip[] }[];
+  level: number | null;
+  levels: string[] | null;
+  usesLeft: number;
+  opportunity: boolean;
+  /** Rounds left for an opportunity (1 or 2). */
+  expiresIn: number | null;
+  playable: boolean;
+  /** Why it cannot be played now, in words. */
+  reason: string | null;
+  isNew: boolean;
+  basis: Basis;
 }
 
-export interface CardPreview {
-  cardId: CardId;
-  option?: string;
-  costs: Delta[];
-  visibleDeltas: Delta[];
-  /** Plain-language consequences the player can know: "Unlocks the full effect of hosting verification". */
+export interface PreviewView {
+  ok: boolean;
+  reason: string | null;
+  cost: number;
+  influenceAfter: number;
+  /** Public before → after, one line per gauge that moves. */
+  impacts: Impact[];
   notes: string[];
-  /** Plan odds now vs after the card (visible effects only). */
-  oddsBefore: Record<PlanId, number>;
-  oddsAfter: Record<PlanId, number>;
-  // v2
-  /** What the card lets the player see, computed from the state before and after: "Capability error bar ±10 → ±5". */
-  infoGains: InfoGain[];
-  realCost: { text: string; source: Source } | null;
-}
-
-export interface Briefing {
-  title: string;
-  visibleDeltas: Delta[];
-  advisorNote: string; // hints at hidden effects without giving numbers
-  // v2
-  /** What the player can now see that they could not before (same lines as the preview's). */
-  infoGains: InfoGain[];
-  /** What this will matter for: "Ready if a theft is attempted". */
-  consequence: string | null;
-}
-
-export interface SituationReport {
-  quarter: number;
-  dateLabel: string; // "Q3 2027"
-  /**
-   * Every visible change since the start of the quarter: non-routine first (events, actor moves,
-   * delayed card effects, thresholds crossed), then routine background drift; biggest first in each group.
-   */
-  changes: { key: GaugeKey | 'coalition'; label: string; delta: number; cause: string; value: number; routine: boolean }[];
-  /** The routine changes folded into one line ("Background drift: capability 36 (+4), …"); '' when none. */
-  background: string;
-  why: string[]; // short causal sentences from the log
-  forecast: { mostLikely: PlanId; probability: number; sentence: string; whatWouldHelp: string };
-  newNews: number;
-  newNotes: { total: number; readable: number };
-  lea: LeaScene | null;
-  // v2: a report that tells a story
-  /** The 1–3 things that matter this quarter, with absolute levels and their real cause. */
-  headline: ReportLine[];
-  risksMoved: RiskView[];
-  trajectoryChange: TrajectoryView['change'];
-}
-
-export interface ReportLine {
-  key: DashboardKey;
-  label: string;
-  value: number; // absolute level now
-  delta: number;
-  cause: string; // the real cause, from the log (never a neighbour's)
-  kind: 'card' | 'event' | 'actor' | 'threshold' | 'background';
-  /** What this level means for the player's goal, from public rules only:
-   *  "Verification 37: 13 more needed for a verified deal (50)". Empty string when nothing to say. */
-  meaning: string;
-}
-
-/** A crisis telegraphed before it happens. Reads only public values. */
-export interface RiskView {
-  id: EventId;
-  title: string;
-  stage: 'watch' | 'rising' | 'imminent' | 'happened';
-  /** 'possible' when it also depends on something hidden (the warning shot). */
-  certainty: 'possible' | 'likely';
-  prepared: boolean;
-  /** Plain words: "Weight security standards would make a theft fail". */
-  preparedBy: string;
-  preparingCards: CardId[];
-  /** Why it moved: "Tension 48 and rising; capability 38". */
-  why: string;
+  headingBefore: string;
+  headingAfter: string;
 }
 
 export interface AdvisorView {
-  text: string; // one or two sentences
   recommend: CardId | null;
-  reason: string;
-  alternative: { card: CardId | null; text: string } | null;
-}
-
-export interface TrajectoryView {
-  odds: Record<PlanId, number>;
-  mostLikely: PlanId;
-  /** The last movement and its cause, null at the start. `delta` is in probability (0.06 = +6 points). */
-  change: { plan: PlanId; delta: number; because: string } | null;
-}
-
-export interface IncomeView {
-  pc: number;
-  budget: number;
-  /** "+2 PC per quarter", "+1 PC: public pressure is high", "−1 PC: approval below 30". */
-  reasons: string[];
-  /** False on the last quarter or at the tipping point. */
-  nextQuarterExists: boolean;
-}
-
-export interface DashboardView {
-  cap: 4 | 5 | 6;
-  primary: GaugeView[]; // in stable slot order, never more than cap
-  secondary: GaugeView[]; // "More indicators"
-  /** The indicator introduced this quarter, with why it matters now. */
-  introduced: { key: DashboardKey; why: string } | null;
-}
-
-export interface Tip {
-  id: string;
-  title: string;
-  text: string; // one screen, plain words
-  /** Optional "Already real" fact shown under the tip. */
-  fact?: { text: string; source: Source };
-}
-
-export interface JournalEntry {
-  quarter: number;
-  dateLabel: string;
-  report: SituationReport;
-  decision: QuarterRecord['decision'];
-  events: { id: EventId; title: string; prepared: boolean }[];
-  lea: (LeaScene & { quarter: number }) | null;
-  tips: Tip[];
-}
-
-export interface LeaScene {
-  slot: 'q1' | 'q6' | 'q11' | 'end';
-  variant: string;
+  option?: string;
   text: string;
+}
+
+export interface ReportView {
+  round: number;
+  heading: string;
+  changes: Change[];
+  threats: { id: ThreatId; name: string; stageWord: string; prepared: boolean; moved: 'new' | 'up' }[];
+  leak: Leak | null;
+  quiet: boolean;
+}
+
+export interface LetterView {
+  slot: LeaSlot;
+  round: number;
+  id: string;
+  mood: LeaMood;
+  text: string;
+  basis: Basis;
+}
+
+export interface EndingGauge {
+  key: GaugeKey;
+  label: string;
+  value: number;
+  target: number | null;
+  targetKind: 'goal' | 'floor' | 'tipping' | null;
+  /** Shown value differs from the truth (confidence): what the player saw. */
+  seen: string | null;
+  met: boolean | null;
 }
 
 export interface EndingView {
   id: EndingId;
-  world: WorldKind;
-  good: boolean;
   title: string;
-  text: string; // 1–2 paragraphs, telling what happened in this game
-  /** What decided this ending in this game: the conditions that held or failed, with their values. */
-  why: string;
-  epilogue: string; // human influence band
-  lea: LeaScene;
+  good: boolean;
+  world: WorldId;
+  worldName: string;
+  dateLabel: string;
+  story: string;
+  sentence: string;
+  gauges: EndingGauge[];
+  reveal: { truth: number; estimate: number; margin: number; pace: Pace; paceText: string; unreadLeaks: Leak[]; readLeaks: Leak[] };
+  counterfactuals: string[];
+  decisions: { round: number; date: string; name: string; ups: Chip[]; downs: Chip[] }[];
+  threats: { id: ThreatId; name: string; struck: boolean; prepared: boolean | null; by: string }[];
+  lea: LetterView;
+  basis: Basis;
   source: Source;
 }
 
-export interface Debrief {
-  ending: EndingView;
-  reveal: {
-    takeoffSpeed: Speed;
-    trueAlignment: number;
-    apparentAlignment: number;
-    eu: Record<EuKey, number>;
-    gdp: number;
-    approval: number;
-  };
-  tipping: TippingResult | null;
-  notes: InternalNote[]; // all, unredacted
-  /** One entry per decision, repeated plays grouped: `quarter` is the first play, `quarters` all of them; deltas are summed. */
-  decisions: { quarter: number; quarters: number[]; title: string; visibleDeltas: Delta[]; hiddenDeltas: Delta[]; explanation: string }[];
-  events: { quarter: number; title: string; actor: ActorId; prepared: boolean; explanation: string; source: Source }[];
+export interface JournalRound {
+  round: number;
+  date: string;
+  headlines: string[];
+  voices: string[];
+  event: string | null;
+  leak: string | null;
+  changes: string[];
+  decisions: string[];
+  letter: string | null;
 }
-
-export type QuarterOutcome = 'next_quarter' | 'tipping_point' | 'game_over';

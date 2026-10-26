@@ -1,190 +1,126 @@
-// Every number of the quarter loop in one place, so the simulation can tune them.
-// Starting values come from docs/DEVELOPER_NOTES.md; deviations are documented there
-// in the "Tuning changes" section.
+// Every number of the v3 rules. Change them only through the simulation (npm run sim) and record each
+// change, its old value and the reason in the "Tuning changes" table of docs/DEVELOPER_NOTES.md.
 
-import type { GaugeKey, EuKey, PlanId, Speed } from '../engine/types';
+import type { CardId, Pace } from '../engine/types';
 
 export const TUNING = {
-  start: {
-    gauges: {
-      capability: 20,
-      concentration: 50,
-      apparentAlignment: 60,
-      trueAlignment: 50,
-      verification: 0,
-      tension: 40,
-      misuse: 10,
-      publicPressure: 20,
-      gdp: 50,
-      approval: 50,
-    } as Record<GaugeKey, number>,
-    eu: { economy: 80, culture: 80, state: 80 } as Record<EuKey, number>,
-    pc: 4, // v2 (was 6)
-    budget: 5, // v2 (was 3)
-    asmlTokens: 2,
-    speedOdds: { slow: 0.25, steady: 0.5, fast: 0.25 } as Record<Speed, number>,
-    /** v2: hidden true alignment is drawn among these, equally likely (was always 50). */
-    trueAlignmentOptions: [45, 55, 65],
-  },
+  rounds: 12,
+  /** The tipping point: AI can do AI research by itself. */
+  tippingAt: 80,
+  /** No tipping point before this round. */
+  earliestTipping: 6,
 
-  /** v2: both currencies arrive automatically every quarter from Q2, capped. */
-  income: {
-    pc: 2,
-    pcHighPressureBonus: 1,
-    highPressureAt: 50,
-    pcLowApprovalPenalty: 1,
-    lowApprovalBelow: 30,
-    budget: 2,
-    cap: 8, // PC and Budget never exceed this
-  },
+  start: { aiPower: 18, cooperation: 52, truth: 52, estimate: 55, margin: 15, cohesion: 66, influence: 6 },
 
-  /** v2: concern bubbles explain; they pay nothing. Kept for the UI's count. */
-  bubbles: { maxPerQuarter: 3 },
-
-  actors: {
-    labAlignmentClaim: 1, // apparentAlignment per quarter
-    labConsolidation: 1, // concentration per quarter (notes: 2)
-    chipControlsAt: 60,
-    chipControlsTension: 3,
-    /** v2: after a successful theft, Washington widens export controls this many quarters later (unless averted). */
-    theftEscalationAfter: 2,
-    theftEscalationTension: 5,
-  },
-
-  /** v2: employment shocks the first time capability reaches each threshold. */
-  employmentShocks: {
-    at: [40, 70],
-    approval: -5,
-    approvalWithFlexicurity: -2,
-    publicPressure: 5,
-  },
-
-  /** v2: acts and unlocks (src/data/progress.ts). */
-  progress: {
-    coalitionFromQuarter: 2, // partners call Brussels
-    act2FallbackQuarter: 6, // slow worlds: the race goes public anyway
-    misuseBeatAt: 25, // first AI-enabled cyberattack in the news
-    misuseBeatFallbackQuarter: 9,
-    act3FromQuarter: 6, // Léa's Q6 letter
-    concentrationIndicatorAt: 60,
-  },
-
-  /** v2: context cards stay on offer this many quarters (the quarter they appear included). */
-  contextWindow: 2,
-
-  /** v2: risk track. A risk appears at `appear`, then each public target sets its stage by distance. */
-  risks: {
-    theftAppearTension: 45,
-    theftAppearCapability: 30,
-    theftTension: 50,
-    theftCapability: 40,
-    warningShotAppearCapability: 50,
-    warningShotCapability: 65,
-    opaqueAppearCapability: 55,
-    opaqueCapability: 70,
-    blackmailConcentration: 60,
-    ransomwareAppearMisuse: 25,
-    ransomwareMisuse: 40,
-    /** A target is "rising" within `rising` points, "imminent" within `imminent` points. */
-    margins: {
-      capability: { rising: 12, imminent: 6 },
-      tension: { rising: 8, imminent: 4 },
-      misuse: { rising: 8, imminent: 4 },
-      concentration: { rising: 8, imminent: 4 },
-    } as Record<string, { rising: number; imminent: number }>,
+  /** Hidden pace: how fast AI power rises each round. The rise grows with AI power (AI speeds up AI research). */
+  pace: {
+    weights: { slow: 0.4, steady: 0.33, fast: 0.27 } as Record<Pace, number>,
+    base: { slow: 3.6, steady: 5.6, fast: 7.6 } as Record<Pace, number>,
+    /** Extra rise per 10 points of AI power above 20, as a share of the base. */
+    accel: 0.07,
+    noise: 1.2,
   },
 
   drift: {
-    capability: { slow: 2, steady: 4, fast: 6 } as Record<Speed, number>,
-    capabilityHighTension: 1,
-    highTensionAt: 60,
-    trueAlignment: -1,
-    trueAlignmentHighTension: -2,
-    tension: 1,
-    /** With coalition at this level or more, coalition diplomacy cools tension instead. */
-    coalitionCoolsAt: 2,
-    tensionWithCoalition: -1,
-    euEconomy: -2,
-    euEconomyHighCapability: -4, // once capability >= euHighCapabilityAt (notes: always -2)
-    euCulture: -1,
-    euCultureHighCapability: -2, // once capability >= euHighCapabilityAt (notes: always -1)
-    euState: -1,
-    euStateHighCapability: -2,
-    euHighCapabilityAt: 35,
-    euStateHighCapabilityAt: 50,
-    misuseEarly: 1, // per quarter below misuseFromCapability (notes: 0)
-    misuse: 2,
-    misuseFromCapability: 40,
-    misuseOpenModels: 1, // extra per quarter once open models are funded (notes: 0)
-    gdp: 1,
-    gdpHighCapability: 1,
-    jobsAt: 50, // capability where jobs, approval and public pressure start to move
-    approval: -1,
-    publicPressure: 1, // every quarter (notes: only once capability >= 50)
-    publicPressureJobs: 2, // once capability >= jobsAt
+    /** The race heats up: Cooperation lost each round, more once AI power passes `highPower`. */
+    cooperation: -1,
+    cooperationHigh: -1,
+    cooperationHighPower: 60,
+    /** AI disrupts work: Cohesion lost each round, more once AI power passes `highPower`. */
+    cohesion: 0,
+    cohesionHigh: -1,
+    highPower: 50,
+    /** Cohesion erodes only once AI does whole jobs. */
+    cohesionHighPower: 60,
+    /** In the Rupture zone the arms race hits Europe too (sanctions, energy, cyberattacks): Cohesion lost each round. */
+    cohesionRupture: -1,
+    /** Harder to align as AI grows: true Confidence lost each round past `truthHighPower`. */
+    truth: -1,
+    truthHighPower: 60,
+    /** The labs' reports push the estimate up each round. */
+    labReports: 2,
   },
 
-  tippingAt: 80,
-  lastQuarter: 16,
+  confidence: { minMargin: 3, maxMargin: 30 },
 
-  /** Public news per quarter and when they appear during the clock (0..1 of the quarter). */
-  news: {
-    minLines: 2, // drawn uniformly between min and max, event line included
-    maxLines: 4,
-    firstAt: 0.08, // lines are spread evenly from firstAt over `spread`, then jittered
-    spread: 0.84,
-    jitter: 0.3, // total jitter range, divided by the number of lines
-    earliestAt: 0.03,
-    latestAt: 0.95,
+  influence: { base: 2, highCohesion: 60, lowCohesion: 35, coalitionLevel: 2, cap: 10, minIncome: 1 },
+
+  zones: { pause: 60, race: 30 },
+  /** Small suspense at the tipping point: the final Cooperation moves by up to this much, either way. */
+  tippingNoise: 2,
+
+  /** Deciding gauge and safety net of each world. */
+  worlds: {
+    pause: { decides: 'confidence', target: 65, net: 'cohesion', floor: 45 },
+    race: { decides: 'confidence', target: 75, net: 'cohesion', floor: 55 },
+    rupture: { decides: 'cohesion', target: 82, net: 'confidence', floor: 65 },
+    plateau_open: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
+    plateau_labs: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
   },
 
-  /** Internal notes per quarter: 0 below noneBelow, 1 below oneBelow, else 2 (on a uniform draw). */
-  notes: {
-    noneBelow: 0.2,
-    oneBelow: 0.7,
-    firstAt: 0.2, // a note appears at firstAt + random × spread of the quarter
-    spread: 0.7,
+  jobShocks: { at: [40, 70], hit: -5, softened: -1 },
+
+  /** AI 2027 milestones (src/data/milestones.ts): the AI power that reaches each, and the size of its effect. */
+  milestones: {
+    at: { china_wakes_up: 28, ai_takes_jobs: 34, agent2_internal: 42, alignment_inconclusive: 58, national_security: 62, self_improving: 66, cheap_remote_worker: 70, geopolitics: 75, tipping_point: 80 },
+    effect: { china_wakes_up: -2, ai_takes_jobs: -2, agent2_internal: 2, alignment_inconclusive: 4, national_security: 2, geopolitics: -4 },
   },
 
-  /** Thresholds behind the forecast's "What would help" lever (first match wins). */
-  forecast: {
-    lowVerification: 30, // below: AI Office first, then verification
-    midVerification: 50,
-    highVerification: 70,
-    coalitionMaxTension: 70, // same as the coalition card's requirement
-    highTension: 60,
-    coalitionTarget: 2,
+  /** Card effects. Costs per level for cards with levels. */
+  cards: {
+    talks: { cost: 1, cooperation: 8, cohesion: -2, uses: 3, rest: 1 },
+    inspections: { cost: [2, 2, 3], estimate: 8, truth: 6, margin: -4, cooperation: -4, uses: 3 },
+    ai_office: { cost: 2, marginFactor: 0.5, cohesion: -1, inspectionsBonus: -2 },
+    alignment: { cost: 2, truth: 6, estimate: 2, cohesion: -1, uses: 3 },
+    coalition: { cost: [2, 2, 3], cooperation: 6, cohesion: -1, uses: 3 },
+    audit: { cost: 1, rounds: 2, uses: 2 },
+    asml: { cost: 2, safety: { estimate: 10, truth: 8 }, access: { cohesion: 8 }, cooperation: -12, uses: 2, arrivesAt: 35 },
+    weight_security: { cost: 1, cohesion: -2 },
+    open_models: { cost: 2, cohesion: 6, estimate: -6, truth: -6 },
+    flexicurity: { cost: 3, cohesion: 10, influence: -1, rounds: 2 },
+    cyber_shield: { cost: 2, cohesion: 3, influence: -1, rounds: 2 },
+    oversight_mandate: { cost: 2, cohesion: 6, aiPower: -2, arrivesRound: 6 },
+    summit: { cost: 1, cooperation: 10, estimate: 5, truth: 5, rounds: 2 },
+    attribution: { cost: 1, cooperation: 5, rounds: 2 },
+  } satisfies Record<CardId, object>,
+
+  /** When cards first arrive. */
+  arrive: { talks: 1, inspections: 1, ai_office: 1, alignment: 2, coalition: 3, audit: 4 },
+
+  threats: {
+    /** Theft pressure = AI power + (50 − Cooperation) × coopWeight. Stages at these pressures. */
+    theft: { coopWeight: 0.4, stages: [28, 36, 42], unprepared: { aiPower: 5, cooperation: -15 }, prepared: { cooperation: -3 } },
+    /** Opaque reasoning: AI power stages, after the theft. */
+    opaque: { stages: [45, 50, 55], marginFactor: 2 },
+    /** AI incident: AI power stages, after opaque reasoning; strike chance per round at stage 3 depends on hidden safety. */
+    incident: {
+      stages: [52, 57, 62],
+      chanceBase: 0.2,
+      chancePerPoint: 0.02,
+      chanceMin: 0.08,
+      chanceMax: 0.85,
+      chanceCenter: 60,
+      unprepared: { estimate: -10, cohesion: -5 },
+      prepared: { cooperation: 10 },
+      needs: { coalition: 1, inspections: 2 },
+    },
+    /** Ransomware pressure = AI power × powerWeight + 25 if Europe's AI is Open. */
+    ransomware: { powerWeight: 0.5, openBonus: 25, stages: [32, 40, 48], unprepared: { cohesion: -15 }, prepared: { cohesion: -3 } },
+    /** Silicon blackmail: appears with the oversight mandate while Dependent, grows one stage a round. */
+    blackmail: { holdFirm: { cohesion: -10 } },
   },
 
-  errorBars: {
-    capability: 10,
-    capabilityWithAiOffice: 5,
-    alignment: 15,
-    alignmentWithAiOffice: 5,
-  },
+  /** Leaks: every two or three rounds, readable with enough oversight. */
+  leaks: { firstRound: 2, gapMin: 2, gapMax: 3, levels: [1, 1, 2, 2, 3, 3] },
 
-  plans: {
-    minWeight: 1,
-    slowdown: { base: 5, verification: 0.6, pressure: 0.3, coalition: 10, warningShot: 15, summit: 10, tension: -0.2 },
-    shutDown: { base: 2, pressureAt: 60, pressure: 0.3, unsafeBonus: 10, unsafeBelow: 40 },
-    fight: { base: 10, tension: 0.5 },
-    race: { base: 25, pressure: -0.2, verification: -0.1, floor: 5 },
-    restraint: { base: 0.2, pressurePer: 1 / 400, trueAlignment: 8 },
-    /** Hidden loss of human influence in Europe right after the superpowers choose (each organ; halved for economy and state with the oversight mandate). Notes: none. */
-    aftermath: { verified_slowdown: 0, shut_down: 0, fight_china: -10, race: -25 } as Record<PlanId, number>,
-  },
+  /** Oversight points: AI Office 2, each inspection level 1, an audit 1. */
+  oversight: { aiOffice: 2, perInspection: 1, audit: 1 },
 
-  endings: {
-    bigAiConcentration: 60,
-    bigAiEconomy: 40,
-    utopiaVerification: 45,
-    utopiaMaxConcentration: 70,
-    utopiaTrueAlignment: 47,
-    multipolarMaxTension: 70,
-    cognitiveTrueAlignment: 60,
-    epilogueHigh: 60,
-    epilogueMid: 30,
-    leaEnd: 50,
-    leaQ6Economy: 65,
-  },
-};
+  /** Gap (estimate − truth) above which leaks and letters hint that the labs are too optimistic. */
+  overconfidentGap: 6,
+
+  /** Léa writes at these rounds, and at the end. */
+  letters: { r1: 1, r4: 4, r8: 8 },
+} as const;
+
+export type Tuning = typeof TUNING;

@@ -1,542 +1,271 @@
-// The policy deck: Louis's eight cards plus Weight security standards, Fund alignment research and the
-// Cyber shield; v2 adds Diplomatic talks and two context cards (Emergency inspection summit, Joint attribution).
-// Player texts come from docs/SPEC.md (Louis's wording) unless noted. Numbers: docs/DEVELOPER_NOTES.md.
-// v2: cards are unlocked by the story (src/data/progress.ts); `steps` give levels and rising costs.
+// The v3 deck: twelve cards and two opportunities (docs/V3_SPEC.md, "The cards").
+// Every card helps something and costs something visible. Numbers come from TUNING.cards; the chips
+// on the card face are built from them, so the face and the rules always agree.
+// Texts: `text` ≤ 25 words (card face), `proposal` ≤ 60 words (opened card).
 
-import type { CardId } from '../engine/types';
-import { all, c } from './conditions';
-import type { CardDef } from './schema';
+import type { Basis, CardId, Chip, Fact, ThreatId } from '../engine/types';
+import { ai2027, cfg, real } from './basis';
 import { SOURCES } from './sources';
 import { TUNING } from './tuning';
 
+const C = TUNING.cards;
+const up = (text: string): Chip => ({ text, tone: 'up' });
+const down = (text: string): Chip => ({ text, tone: 'down' });
+const n = (x: number) => (x > 0 ? `+${x}` : `−${Math.abs(x)}`);
+
+/** When a card first enters the hand. */
+export type Arrival =
+  | { round: number }
+  | { aiPower: number }
+  | { threatSeen: ThreatId }
+  | { jobShock: number }
+  | { opportunity: true };
+
+export interface CardDef {
+  id: CardId;
+  name: string;
+  /** Names of each level, for cards with levels. */
+  levels?: string[];
+  text: string;
+  proposal: string;
+  example?: Fact;
+  costLine?: Fact;
+  ups: Chip[];
+  downs: Chip[];
+  protects?: ThreatId;
+  options?: { id: string; label: string; ups: Chip[] }[];
+  arrives: Arrival;
+  opportunity?: boolean;
+  basis: Basis;
+}
+
 export const CARDS: CardDef[] = [
   {
-    id: 'coalition',
-    name: 'Middle-power coalition',
-    family: 'Diplomacy',
-    // Changed from Louis's draft (v2): no upkeep any more, so the text no longer warns about it.
-    playerText:
-      'Team up with the UK, Japan, Korea, Canada and Norway. Together you carry more weight and cool the rivalry, but each new partner costs more.',
-    isLouis: true,
-    source: SOURCES.europe2031,
-    cost: { pc: 3, budget: 0 },
-    costLabel: '3 PC',
-    limit: 3,
-    steps: [
-      { name: 'Middle-power coalition', cost: { pc: 3, budget: 0 }, costLabel: '3 PC' },
-      { name: 'Wider coalition', cost: { pc: 4, budget: 0 }, costLabel: '4 PC' },
-      { name: 'Middle-power pact', cost: { pc: 5, budget: 0 }, costLabel: '5 PC' },
-    ],
-    levelled: true,
-    requirements: [
-      { when: c('coalition', '<', 3), reason: 'The coalition is already at full strength (3 of 3)' },
-      { when: c('tension', '<', 70), reason: 'Tension is too high: partners will not join a bloc now (needs tension below 70)' },
-    ],
-    effects: [
-      { key: 'coalition', amount: 1 },
-      { key: 'tension', amount: -4 },
-    ],
-    hiddenEffects: [],
-    downside: 'Each level costs more Political Capital. Partners stay away while tension is 70 or more.',
-    dependencies: [
-      { text: 'With verification 30+, Europe can lead the response to an AI incident', met: c('verification', '>=', 30) },
-    ],
-    hasHiddenEffects: false,
-    previewNotes: ['Makes a verified slowdown more likely at the tipping point.'],
-    futureNotes: ['From the second level on, coalition diplomacy cools tension every quarter.'],
-    consequence: [
-      { when: c('verification', '>=', 30), text: 'Ready to lead the response if an AI incident happens' },
-      { text: 'With verification 30+, Europe could lead the response to an AI incident' },
-    ],
-    did: 'you widened the coalition',
-    advisorNotes: [
-      {
-        when: c('coalition', '>=', 2),
-        text: 'Partners now meet without us asking. They will want attention every quarter, but in a crisis Washington and Beijing call a bloc, not a lone envoy.',
-      },
-      {
-        text: 'Partners will want attention every quarter. In a crisis, though, Washington and Beijing take calls from a bloc, not from a lone envoy.',
-      },
-    ],
-    debrief: 'Each coalition level lowered tension by 4 and made a verified slowdown more likely; from the second level on, coalition diplomacy cooled tension every quarter.',
-    echoNews: [
-      'Tokyo, Ottawa and Oslo join Brussels in a joint call for AI inspections.',
-      'Seoul and London sign on to the middle-power AI pact. Washington calls it "unhelpful".',
-      'The middle-power pact holds its first joint summit. China sends an observer.',
-    ],
+    id: 'talks',
+    name: 'Diplomatic talks',
+    text: 'Bring US and Chinese envoys to one table in Geneva. Trust rises; at home, some call you soft on rivals.',
+    proposal:
+      'Europe hosts quiet talks between Washington and Beijing on the risks both fear: AI in military command, stolen models, accidents. No treaty, only channels that stay open. Critics at home say Europe is cosying up to rivals. After each round of talks, the envoys need a round off.',
+    example: {
+      text: 'In November 2024, Presidents Biden and Xi agreed on “the need to maintain human control over the decision to use nuclear weapons”.',
+      source: SOURCES.bidenXi,
+    },
+    ups: [up(`Cooperation ${n(C.talks.cooperation)}`)],
+    downs: [down(`Cohesion ${n(C.talks.cohesion)}`)],
+    arrives: { round: TUNING.arrive.talks },
+    basis: cfg('Arms race, Ending B (Multipolar world): the EU and neutral states mediate between the superpowers'),
   },
   {
-    id: 'host_verification',
-    name: 'Offer to host verification',
-    family: 'Diplomacy',
-    playerText:
-      'Offer Europe as the place where AI labs get inspected. It only works if you have experts who can really check.',
-    isLouis: true,
-    source: SOURCES.cfg,
-    cost: { pc: 1, budget: 2 },
-    costLabel: '2 Budget, 1 PC',
-    limit: 3,
-    steps: [
-      { name: 'Offer to host verification', cost: { pc: 1, budget: 2 }, costLabel: '2 Budget, 1 PC' },
-      { name: 'Inspection accord', cost: { pc: 0, budget: 3 }, costLabel: '3 Budget' },
-      { name: 'Joint inspectorate', cost: { pc: 1, budget: 3 }, costLabel: '3 Budget, 1 PC' },
-    ],
-    levelled: true,
-    requirements: [{ when: c('verification', '<', 100), reason: 'Verification is already at its maximum' }],
-    effects: [
-      { key: 'verification', amount: 15, when: c('flags.aiOffice', '==', true) },
-      { key: 'verification', amount: 7, when: c('flags.aiOffice', '==', false) },
-      { key: 'tension', amount: 5 },
-    ],
-    hiddenEffects: [],
-    downside: 'Tension +5: Beijing reads inspections as Western pressure.',
-    dependencies: [{ text: 'Full effect needs AI Office capacity', met: c('flags.aiOffice', '==', true) }],
-    hasHiddenEffects: false,
-    previewNotes: ['Raises the odds of a verified slowdown at the tipping point.'],
-    consequence: [
-      { when: c('verification', '>=', TUNING.endings.utopiaVerification), text: 'Ready to verify a deal if AI starts improving itself' },
-      { when: all(c('verification', '>=', 30), c('coalition', '>=', 1)), text: 'Ready to lead the response to an AI incident; a verified deal needs more inspectors' },
-      { when: c('verification', '>=', 30), text: 'Inspectors could handle an AI incident if a coalition partner joined; a deal needs more' },
-      { text: 'A step towards inspectors who could verify a deal' },
-    ],
-    did: 'you hosted inspections',
-    advisorNotes: [
-      {
-        when: c('flags.aiOffice', '==', true),
-        text: 'Our own experts ran the first inspection. The lab engineers stopped smiling when they saw the test list. That is a good sign.',
-      },
-      {
-        text: 'The labs came to Brussels and gave a polished demo. Our people could not tell a real test from a staged one. Without our own experts, this is half a verification regime.',
-      },
-    ],
-    debrief: 'Verification readiness rose at each level: +15 with AI Office experts, +7 without. Each level also raised tension by 5.',
-    echoNews: [
-      'Brussels offers to host international AI inspections. Washington says it will "study the proposal".',
-      'A second inspection site opens near Vienna. Beijing calls it "a Western instrument".',
-      'Inspectors trained in Europe run a test on a US model for the first time.',
-      'Europe’s inspection centre now has a waiting list of labs. Some want the stamp, some want to see what others show.',
-    ],
-  },
-  {
-    id: 'asml',
-    name: 'Use the ASML lever',
-    family: 'Leverage',
-    playerText:
-      'Europe makes the lithography machines every AI chip depends on. Threaten to restrict them and you win a concession, but everyone notices.',
-    isLouis: true,
-    source: SOURCES.europe2031,
-    cost: { pc: 2, budget: 0, token: true },
-    costLabel: '2 PC (1 of 2 tokens)',
-    limit: 2,
-    requirements: [
-      { when: c('capability', '>=', 30), reason: 'Needs capability 30+: chips only become leverage once the race is on' },
-      { when: c('asmlTokens', '>', 0), reason: 'Both tokens used' },
-    ],
-    effects: [{ key: 'tension', amount: 15 }],
-    hiddenEffects: [],
-    options: [
-      {
-        id: 'model_access',
-        label: 'Model access',
-        description: 'European firms get the newest models early. GDP +5.',
-        effects: [{ key: 'gdp', amount: 5 }],
-        hiddenEffects: [],
-        advisorNote: 'European firms get early access to the newest models. The labs gave up nothing on safety, and they know we know it.',
-        debrief: 'Model access: GDP +5. The labs changed nothing about how they build their systems.',
-      },
-      {
-        id: 'safety_commitment',
-        label: 'Lab safety commitment',
-        description: 'The leading lab commits to safety practices you set.',
-        effects: [],
-        hiddenEffects: [{ key: 'trueAlignment', amount: 5 }],
-        advisorNote: 'The lab signed. Whether its engineers take the commitment seriously, we will only learn later. Some of them sounded relieved.',
-        debrief: 'Safety commitment: true alignment +5. The lab really did change how it trains its models.',
-      },
-    ],
-    downside: 'Tension +15. Everyone notices, and you can do it only twice.',
-    dependencies: [],
-    hasHiddenEffects: false,
-    previewNotes: ['Uses one of your two ASML tokens.', 'Higher tension makes a US–China fight more likely.'],
-    did: 'you pulled the ASML lever',
-    advisorNotes: [{ text: 'Everyone noticed.' }],
-    debrief: 'Tension +15 each time.',
-    echoNews: [
-      'Dutch chip-machine exports "under review", Brussels says. Markets in Taipei and Seoul wobble.',
-      'Europe pulls the ASML lever again. A US senator calls it "blackmail with a lithography machine".',
-    ],
+    id: 'inspections',
+    name: 'Offer to host inspections',
+    levels: ['Offer to host inspections', 'Inspection accord', 'Joint inspectorate'],
+    text: 'European inspectors check what the labs build. Confidence rises and your margin narrows; Beijing sees Western pressure.',
+    proposal:
+      'Europe offers neutral inspectors, trained and paid by the EU, to check frontier models and data centres on both sides. Each level goes further: an offer, then an accord, then a joint inspectorate with access to both labs. The accord, with a coalition, prepares the world for an AI incident.',
+    costLine: {
+      text: 'The IAEA, which checks nuclear programmes worldwide, spends about €171 million a year on verification (2025).',
+      source: SOURCES.iaeaBudget2025,
+    },
+    ups: [up(`Confidence ${n(C.inspections.estimate)}`), up(`Margin ${n(C.inspections.margin)}`)],
+    downs: [down(`Cooperation ${n(C.inspections.cooperation)}`)],
+    protects: 'incident',
+    arrives: { round: TUNING.arrive.inspections },
+    basis: cfg('Diplomacy: verification of a pause, and Licensed utopia’s IAEA-style enforcement'),
   },
   {
     id: 'ai_office',
     name: 'AI Office capacity',
-    family: 'Safety',
-    playerText:
-      'Hire experts who can really test the most advanced AI, not just write rules for it. Nothing to show for it yet.',
-    isLouis: true,
-    source: SOURCES.aiOffice,
-    cost: { pc: 0, budget: 2 },
-    costLabel: '2 Budget',
-    limit: 1,
-    requirements: [],
-    effects: [],
-    hiddenEffects: [],
-    setFlags: { aiOffice: true },
-    special: 'ai_office',
-    downside: 'No visible gain.',
-    dependencies: [],
-    hasHiddenEffects: true,
-    previewNotes: ['Unlocks the full effect of hosting verification.'],
-    futureNotes: ['Internal notes stay readable from now on.'],
-    infoChip: 'Narrows uncertainty',
-    consequence: [{ text: 'Ready if AI reasoning turns opaque; inspections now count fully' }],
-    did: 'you hired AI Office testers',
-    advisorNotes: [
-      {
-        when: c('alignmentGap', '>=', 15),
-        text: 'The new team ran its first tests last night. Their first finding: the labs’ dashboards look a lot rosier than what they saw.',
-      },
-      {
-        text: 'The new team ran its first tests last night. Their first finding: the labs’ dashboards measure what is easy, not what matters.',
-      },
-    ],
-    debrief: 'Error bars narrowed, internal notes became readable, hosting verification got its full effect, and Europe could still read the AIs if their reasoning turned opaque.',
-    echoNews: ['The EU AI Office hires a new team of model testers, poached from three US labs.'],
+    text: 'Hire top model testers for the EU AI Office. Your Confidence margin halves and inspections get sharper. The money comes from elsewhere.',
+    proposal:
+      'The EU AI Office already has the power to evaluate general-purpose AI models. This gives it the people: testers paid like lab engineers, with their own computing power. They halve what you don’t know about the labs’ claims, sharpen every inspection, and can still check models whose reasoning turns opaque.',
+    example: {
+      text: 'Under the AI Act, the European Commission’s AI Office has “the ability to conduct evaluations of GPAI models”.',
+      source: SOURCES.aiOffice,
+    },
+    ups: [up('Margin halved'), up('Inspections sharper')],
+    downs: [down(`Cohesion ${n(C.ai_office.cohesion)}`)],
+    protects: 'opaque',
+    arrives: { round: TUNING.arrive.ai_office },
+    basis: ai2027('March 2027: Algorithmic Breakthroughs (neuralese makes reasoning unreadable)'),
   },
   {
-    id: 'measure',
-    name: 'Measure human influence',
-    family: 'Human influence',
-    playerText:
-      'Pay for an audit of who really steers your economy, culture and state: people, or AI. It earns you nothing visible now.',
-    isLouis: true,
-    source: SOURCES.gradual,
-    cost: { pc: 1, budget: 1 },
-    costLabel: '1 Budget, 1 PC',
-    limit: 2,
-    requirements: [],
-    effects: [],
-    hiddenEffects: [],
-    special: 'measure',
-    downside: 'Pure cost: nothing visible changes.',
-    dependencies: [],
-    hasHiddenEffects: false,
-    previewNotes: ['Two audits at most, one at a time.'],
-    futureNotes: ['Shows Europe’s three human-influence scores for 3 quarters.', 'Internal notes are readable while the audit runs.'],
-    infoChip: 'Reveals human influence',
-    did: 'you audited human influence',
-    advisorNotes: [
-      {
-        when: c('eu.average', '>=', 65),
-        text: 'The audit is reassuring for now: people still make most real decisions. It is the trend that worries the auditors.',
-      },
-      {
-        when: c('eu.average', '>=', 45),
-        text: 'The audit is sobering. In many firms and ministries, people now sign off on whatever the AI drafted.',
-      },
-      {
-        text: 'The audit is alarming. In large parts of the economy, nobody can say any more who actually decides.',
-      },
-    ],
-    debrief: 'The audit showed Europe’s three human-influence scores for 3 quarters and made internal notes readable meanwhile. It changed nothing by itself.',
-    echoNews: [
-      'An EU audit asks a simple question: who really decides in Europe’s firms and ministries? The answers are mixed.',
-      'The second human-influence audit is out. Commentators argue over a single chart.',
-    ],
+    id: 'alignment',
+    name: 'Fund alignment research',
+    text: 'Pay independent teams to make AI systems truly safe. The real gain is larger than the labs’ reports will show.',
+    proposal:
+      'Europe funds independent alignment teams in universities and institutes, with access to frontier models. Their work makes the systems genuinely safer, but most of it never shows in the labs’ reports, so your estimate moves less than the truth. The money comes out of other budgets.',
+    costLine: { text: 'In July 2025, the UK’s AI Security Institute launched a fund of over £15 million for alignment research.', source: SOURCES.aisiAlignment },
+    ups: [up(`Confidence ${n(C.alignment.estimate)} shown`), up('Real safety: more than shown')],
+    downs: [down(`Cohesion ${n(C.alignment.cohesion)}`)],
+    arrives: { round: TUNING.arrive.alignment },
+    basis: ai2027('Slowdown ending: outside alignment researchers are brought in and build Safer-1'),
   },
   {
-    id: 'open_models',
-    name: 'Fund open-weight models',
-    family: 'Industry',
-    playerText:
-      'Europe pays for AI models anyone can download. Fewer companies hold the keys, but criminals get the same tools.',
-    isLouis: true,
-    source: SOURCES.cfg,
-    cost: { pc: 0, budget: 2 },
-    costLabel: '2 Budget',
-    limit: 1,
-    requirements: [],
-    effects: [
-      { key: 'concentration', amount: -15 },
-      { key: 'misuse', amount: 10 },
-    ],
-    hiddenEffects: [{ key: 'eu.economy', amount: 5 }],
-    setFlags: { openModels: true },
-    downside: 'Misuse +10: criminals get the same tools. It can trigger a ransomware wave.',
-    dependencies: [
-      { text: 'Pairs with a human oversight mandate: Europe can stand firm if big labs threaten to leave', met: c('flags.oversightMandate', '==', true) },
-    ],
-    hasHiddenEffects: true,
-    previewNotes: ['Higher misuse risk can trigger a ransomware wave.'],
-    consequence: [
-      { when: c('flags.oversightMandate', '==', true), text: 'Ready if big labs threaten to leave Europe' },
-      { text: 'Europe now has models of its own if big labs ever threaten to leave' },
-    ],
-    did: 'you funded open models',
-    advisorNotes: [
-      {
-        text: 'Small European firms now build on models they control instead of renting them. Our cyber unit is less cheerful: the same files are already on criminal forums.',
-      },
-    ],
-    debrief: 'Concentration −15 and misuse +10. Hidden: European firms kept more control over their own work (human influence over the economy +5). It also gave Europe an answer if big labs threatened to leave.',
-    echoNews: ['A European open model tops the download charts. Small firms celebrate; security researchers start counting misuse cases.'],
+    id: 'coalition',
+    name: 'Middle-power coalition',
+    levels: ['UK and Norway join', 'Canada joins', 'Japan and Korea join'],
+    text: 'Team up with the UK, Norway, Canada, Japan and Korea. Allies cool the race; from level 2 they share the load.',
+    proposal:
+      'Europe builds a small, nimble coalition: the UK and Norway first, then Canada, then Japan and South Korea. Together they speak with one voice in Washington and Beijing. From level 2, allies share the load: +1 Influence every round. Every partner wants something in return, and compromises cost goodwill at home.',
+    example: {
+      text: 'The Europe 2031 report recommends to “build a small, nimble coalition with countries like Norway, the UK, Canada, Japan and South Korea”.',
+      source: SOURCES.europe2031,
+    },
+    ups: [up(`Cooperation ${n(C.coalition.cooperation)}`), up('Level 2: Influence +1 a round')],
+    downs: [down(`Cohesion ${n(C.coalition.cohesion)}`)],
+    protects: 'incident',
+    arrives: { round: TUNING.arrive.coalition },
+    basis: real('Europe 2031, recommendation 2 (coalition of middle powers); CFG, Arms race, Ending B'),
   },
   {
-    id: 'oversight_mandate',
-    name: 'Human oversight mandate',
-    family: 'Human influence',
-    playerText:
-      'Require a human to approve key decisions in firms and government. People stay in charge, but you slow down while rivals speed up.',
-    isLouis: true,
-    source: SOURCES.gradual,
-    cost: { pc: 3, budget: 0 },
-    costLabel: '3 PC',
-    limit: 1,
-    requirements: [],
-    effects: [{ key: 'gdp', amount: -5 }],
-    hiddenEffects: [],
-    setFlags: { oversightMandate: true },
-    downside: 'GDP −5. Big labs may threaten to leave Europe over it.',
-    dependencies: [{ text: 'Funding open models first lets you stand firm if labs push back', met: c('flags.openModels', '==', true) }],
-    hasHiddenEffects: true,
-    previewNotes: ['If power is concentrated, the big labs may push back hard.'],
-    consequence: [
-      { when: c('flags.openModels', '==', true), text: 'People keep the final say, and Europe can stand firm if labs push back' },
-      { text: 'People keep the final say; watch for the big labs pushing back' },
-    ],
-    did: 'you made humans sign off',
-    advisorNotes: [
-      {
-        text: 'Firms grumble about the paperwork. But in ministries, someone now has to read what the AI drafted before it goes out. That habit is worth more than it looks.',
-      },
-    ],
-    debrief: 'GDP −5. Hidden: every quarter after, Europe lost human influence over its economy and state about half as fast. It also made silicon blackmail possible.',
-    echoNews: ['New EU rule: a named human must sign off on AI decisions about credit, hiring and benefits. Business lobbies call it "a tax on the future".'],
+    id: 'audit',
+    name: 'Independent audit',
+    text: 'Send independent auditors into the labs. For two rounds you see the true Confidence. Nothing else moves.',
+    proposal:
+      'Europe pays independent auditors to test the labs’ models before release, with full access. For two rounds, your Confidence gauge shows the truth instead of the labs’ estimate. It changes nothing by itself: you spend a turn learning where you really stand.',
+    example: {
+      text: 'In December 2024, the UK and US AI Safety Institutes jointly tested OpenAI’s o1 model before its public release.',
+      source: SOURCES.aisiO1,
+    },
+    ups: [up(`Shows the true Confidence for ${C.audit.rounds} rounds`)],
+    downs: [down('No gauge gain')],
+    arrives: { round: TUNING.arrive.audit },
+    basis: ai2027('May 2027: National Security (outside testers only see what labs deploy)'),
   },
   {
-    id: 'flexicurity',
-    name: 'Flexicurity reform',
-    family: 'Social contract',
-    playerText:
-      'Help workers switch jobs without falling through the cracks. Approval holds as AI changes work, but unions resist.',
-    isLouis: true,
-    source: SOURCES.europe2031Labour,
-    cost: { pc: 3, budget: 0 },
-    costLabel: '3 PC',
-    limit: 1,
-    requirements: [{ when: c('capability', '>=', 30), reason: 'Needs capability 30+: jobs have not started to shift yet' }],
-    effects: [],
-    hiddenEffects: [],
-    pending: [{ key: 'pc', amount: -1 }],
-    setFlags: { flexicurity: true },
-    downside: 'Unions resist: PC −1 next quarter.',
-    dependencies: [],
-    hasHiddenEffects: true,
-    previewNotes: ['Softens the next wave of layoffs.'],
-    futureNotes: ['Approval no longer slides as AI takes over jobs.'],
-    consequence: [{ text: 'Ready for the next wave of layoffs' }],
-    did: 'you passed flexicurity',
-    advisorNotes: [
-      {
-        text: 'The first retraining centres open next month. Some people who were about to fall through the cracks now have somewhere to land. You might hear about it from friends.',
-      },
+    id: 'asml',
+    name: 'Use the ASML lever',
+    text: 'Europe makes the lithography machines every AI chip needs. Threaten exports to win a concession. Washington and Beijing both resent it.',
+    proposal:
+      'Brussels threatens to slow exports of the Dutch lithography machines that every advanced chip depends on. Choose what to ask for: a safety concession from the labs, or access to frontier models for European firms and public services. Washington and Beijing both resent being squeezed.',
+    example: {
+      text: 'The Europe 2031 report: “The only card Europe still holds is ASML - the one bottleneck the entire AI race runs through.”',
+      source: SOURCES.europe2031,
+    },
+    ups: [up(`Confidence ${n(C.asml.safety.estimate)} or Cohesion ${n(C.asml.access.cohesion)}`)],
+    downs: [down(`Cooperation ${n(C.asml.cooperation)}`)],
+    options: [
+      { id: 'safety', label: 'Safety concession', ups: [up(`Confidence ${n(C.asml.safety.estimate)}`)] },
+      { id: 'access', label: 'Model access', ups: [up(`Cohesion ${n(C.asml.access.cohesion)}`)] },
     ],
-    debrief: 'Approval stopped sliding as AI changed jobs; PC −1 the quarter after. People who lost work to AI had a way into new jobs, Léa among them.',
-    echoNews: ['Flexicurity deal signed after a night of talks. Unions call it "a start, not a gift".'],
+    arrives: { aiPower: C.asml.arrivesAt },
+    basis: cfg('Arms race: “Control over chips becomes a geopolitical weapon”'),
   },
   {
     id: 'weight_security',
     name: 'Weight security standards',
-    family: 'Security',
-    playerText:
-      'Require labs to protect their models against state-level theft. Only the biggest labs can afford it.',
-    isLouis: false,
-    source: SOURCES.rand,
-    cost: { pc: 2, budget: 0 },
-    costLabel: '2 PC',
-    limit: 1,
-    requirements: [{ when: c('fired.weight_theft', '==', 0), reason: 'Too late: a model has already been stolen' }],
-    effects: [{ key: 'concentration', amount: 5 }],
-    hiddenEffects: [],
-    setFlags: { weightSecurity: true },
-    downside: 'Concentration +5: only the biggest labs can afford it.',
-    dependencies: [],
-    hasHiddenEffects: true,
-    previewNotes: ['Small labs struggle to meet the standards.'],
-    consequence: [{ text: 'Ready if a theft is attempted' }],
-    did: 'you secured the labs',
-    advisorNotes: [
-      {
-        text: 'Lab security teams grumbled at the audit list, then quietly asked for more. Someone has been knocking on their doors at night.',
-      },
-    ],
-    debrief: 'Concentration +5. Frontier labs became much harder to break into, so a state-backed theft would fail.',
-    echoNews: ['New EU security standards for frontier labs: air-gapped training, vetted staff, red-team audits. Two startups say they cannot afford it.'],
+    text: 'Labs serving Europe must lock down their model weights. Theft gets much harder, but only big labs can afford it.',
+    proposal:
+      'Any lab that sells advanced AI in Europe must protect its model weights to military standards: vetted staff, sealed data centres, constant monitoring. A theft would most likely fail. Only the biggest labs can pay for this, so Europe ends up relying on them.',
+    example: {
+      text: 'A 2024 RAND study found that securing model weights against the most capable attackers “will require significantly more investment over the coming years”.',
+      source: SOURCES.rand,
+    },
+    ups: [up('Protects against model theft')],
+    downs: [down('Europe’s AI → Dependent'), down(`Cohesion ${n(C.weight_security.cohesion)}`)],
+    protects: 'theft',
+    arrives: { threatSeen: 'theft' },
+    basis: ai2027('February 2027: China Steals Agent-2'),
   },
   {
-    id: 'fund_alignment',
-    name: 'Fund alignment research',
-    family: 'Safety',
-    playerText:
-      'Pay independent teams to study whether AI systems really do what they claim. Results take years to show.',
-    isLouis: false,
-    source: SOURCES.ai2027,
-    cost: { pc: 0, budget: 2 },
-    costLabel: '2 Budget',
-    limit: 3,
-    steps: [
-      { name: 'Fund alignment research', cost: { pc: 0, budget: 2 }, costLabel: '2 Budget', hiddenEffects: [{ key: 'trueAlignment', amount: 6 }] },
-      { name: 'Fund alignment research', cost: { pc: 0, budget: 3 }, costLabel: '3 Budget', hiddenEffects: [{ key: 'trueAlignment', amount: 5 }] },
-      { name: 'Fund alignment research', cost: { pc: 0, budget: 4 }, costLabel: '4 Budget', hiddenEffects: [{ key: 'trueAlignment', amount: 4 }] },
-    ],
-    requirements: [],
-    effects: [],
-    hiddenEffects: [],
-    downside: 'No visible gain. Results take years, and each new round costs more.',
-    dependencies: [],
-    hasHiddenEffects: true,
-    previewNotes: ['Three rounds at most; each costs more and adds a little less.'],
-    did: 'you funded alignment research',
-    advisorNotes: [
-      {
-        text: 'The independent teams start next month. They will not tell you anything comforting soon. Their methods are spreading to the labs, though.',
-      },
-    ],
-    debrief: 'Hidden: true alignment +6, then +5, then +4 for each later round. The AIs became genuinely more likely to do what people intend, not just to look that way.',
-    echoNews: [
-      'Europe funds independent alignment labs in Paris, Zurich and Tallinn. Few people outside the field notice.',
-      'An EU-funded team publishes a method to catch AI models that behave differently when watched.',
-      'Alignment researchers trained in Europe are now hired by both US and Chinese labs.',
-    ],
+    id: 'open_models',
+    name: 'Fund open models',
+    text: 'Fund open European models anyone can run. Europe’s AI turns Open and local jobs grow, but misuse gets easier.',
+    proposal:
+      'Europe funds open models that run on European computers, in every European language, for firms and public services. Fewer companies hold the keys, and local jobs grow around them. But criminals get the same tools, and nobody can recall a model once it is out.',
+    costLine: { text: 'OpenEuroLLM, an EU project to build open models for all EU languages, has a budget of €37.4 million (2025).', source: SOURCES.openEuroLlm },
+    ups: [up('Europe’s AI → Open'), up(`Cohesion ${n(C.open_models.cohesion)}`)],
+    downs: [down(`Confidence ${n(C.open_models.estimate)}`), down('Ransomware threat grows')],
+    arrives: { jobShock: 1 },
+    basis: cfg('Plateau: “Miniaturisation and openness”; Big AI, Ending A: publicly funded models must be open-weight'),
   },
   {
-    id: 'cyber_defence',
+    id: 'flexicurity',
+    name: 'Flexicurity reform',
+    text: 'A Danish-style deal: easier hiring, generous support and retraining. Cohesion rises and job shocks soften; unions push back.',
+    proposal:
+      'Europe backs a Danish-style labour deal: firms adopt AI more freely, and workers who lose their jobs get generous income support and paid retraining. Job shocks hurt far less. Unions distrust the bargain at first, and it costs you political goodwill for a while.',
+    example: {
+      text: 'The Europe 2031 report: “A flexicurity model, like the Danish example, allows firms to adopt AI more deeply.”',
+      source: SOURCES.europe2031,
+    },
+    ups: [up(`Cohesion ${n(C.flexicurity.cohesion)}`), up('Softens job shocks')],
+    downs: [down(`Influence ${n(C.flexicurity.influence)} for ${C.flexicurity.rounds} rounds`)],
+    protects: undefined,
+    arrives: { jobShock: 1 },
+    basis: ai2027('Late 2026: AI Takes Some Jobs'),
+  },
+  {
+    id: 'cyber_shield',
     name: 'Cyber shield for hospitals and grids',
-    family: 'Security',
-    playerText:
-      'Fund cyber defences for hospitals, town halls and power grids before AI-written attacks arrive. Expensive, and nobody thanks you for an attack that fails.',
-    isLouis: false,
-    source: SOURCES.anthropicMisuse,
-    cost: { pc: 0, budget: 2 },
-    costLabel: '2 Budget',
-    limit: 1,
-    requirements: [],
-    effects: [
-      { key: 'misuse', amount: -10 },
-      { key: 'gdp', amount: -2 },
-    ],
-    hiddenEffects: [],
-    setFlags: { cyberDefence: true },
-    downside: 'GDP −2: hospitals and towns pay for upgrades instead of services.',
-    dependencies: [],
-    hasHiddenEffects: false,
-    previewNotes: ['If criminals launch an AI-written attack on Europe, the defences will hold.'],
-    consequence: [{ text: 'Ready if a ransomware wave hits hospitals and grids' }],
-    did: 'you shielded hospitals and grids',
-    advisorNotes: [
-      {
-        text: 'Hospital IT teams finally have the budget they asked for years ago. They ran a drill last week: an AI-written phishing wave. Most of it bounced.',
-      },
-    ],
-    debrief: 'Misuse risk −10 and GDP −2. Hospitals, town halls and grids were hardened, so an AI-written ransomware wave would mostly bounce off.',
-    echoNews: ['Brussels funds a cyber shield for hospitals and power grids. Critics call it "insurance against a fire that has not started".'],
-  },
-  // ---------- v2 ----------
-  {
-    id: 'diplomatic_talks',
-    name: 'Diplomatic talks',
-    family: 'Diplomacy',
-    playerText: 'Broker quiet talks between Washington and Beijing. It slows the escalation for a while; it cannot end the rivalry.',
-    isLouis: false,
-    source: SOURCES.europe2031,
-    cost: { pc: 2, budget: 1 },
-    costLabel: '2 PC, 1 Budget',
-    limit: 3,
-    cooldown: 2,
-    requirements: [{ when: c('tension', '>=', 35), reason: 'Tension is low: nobody needs talks yet (needs tension 35+)' }],
-    effects: [{ key: 'tension', amount: -6 }],
-    hiddenEffects: [],
-    downside: 'Three rounds at most, with two quarters of rest between them. Talks slow escalation; they cannot remove it.',
-    dependencies: [],
-    hasHiddenEffects: false,
-    previewNotes: ['Lower tension makes a US–China fight less likely, and a theft less likely to be tried.'],
-    futureNotes: ['The next round of talks needs two quarters of rest.'],
-    consequence: [
-      { when: c('tension', '<', 50), text: 'Tension is below the level where China tries to steal a model' },
-      { text: 'Tension cools, but stays where a theft or a fight is possible' },
-    ],
-    did: 'you brokered talks',
-    advisorNotes: [
-      {
-        when: c('tension', '>=', 60),
-        text: 'Both delegations came, and both left early. But they agreed to meet again, which nobody expected.',
-      },
-      {
-        text: 'Two days in a castle near Geneva. Nothing signed, nothing leaked. Both sides asked when the next round is.',
-      },
-    ],
-    debrief: 'Each round of talks lowered tension by 6. Talks were limited to three rounds with rest between them, so they slowed the rivalry without ending it.',
-    echoNews: [
-      'US and Chinese envoys meet near Geneva, hosted by Europe. "Frank and useful," both say.',
-      'A second round of Geneva talks ends with a hotline between the two AI ministries.',
-      'Third round of Geneva talks. Diplomats say the two sides now "argue about details", which is progress.',
-    ],
+    text: 'Harden hospitals, grids and town halls before AI-written attacks arrive. Ransomware bounces off; the bill strains budgets for a while.',
+    proposal:
+      'Europe funds cyber teams, backups and drills for hospitals, power grids and town halls, and gives ENISA, its cyber agency, powers to step in during an attack. When AI-written ransomware arrives, most of it bounces off. The bill strains national budgets for a while.',
+    costLine: {
+      text: 'In June 2025, the EU set aside €30 million to protect hospitals and healthcare providers from cyberattacks, ransomware first.',
+      source: SOURCES.euCyberHealth,
+    },
+    ups: [up('Protects against ransomware'), up(`Cohesion ${n(C.cyber_shield.cohesion)}`)],
+    downs: [down(`Influence ${n(C.cyber_shield.influence)} for ${C.cyber_shield.rounds} rounds`)],
+    protects: 'ransomware',
+    arrives: { threatSeen: 'ransomware' },
+    basis: cfg('Plateau, Ending B (Decentralised mayhem): ransomware waves, the EU expands ENISA'),
   },
   {
-    id: 'emergency_summit',
+    id: 'oversight_mandate',
+    name: 'Human oversight mandate',
+    text: 'A human must sign off on AI decisions in hospitals, courts and grids. People trust it; big labs may threaten to leave.',
+    proposal:
+      'Europe requires a trained human to approve every important AI decision in hospitals, courts, grids and public services. People trust the result, and AI spreads a little more slowly. If Europe relies on a few big labs, they may threaten to pull out unless the rule goes.',
+    example: {
+      text: 'The EU AI Act already requires high-risk AI systems to be designed so that “they can be effectively overseen by natural persons”.',
+      source: SOURCES.aiActArt14,
+    },
+    ups: [up(`Cohesion ${n(C.oversight_mandate.cohesion)}`), up(`AI power ${n(C.oversight_mandate.aiPower)}`)],
+    downs: [down('Silicon blackmail threat if Europe’s AI is Dependent')],
+    arrives: { round: C.oversight_mandate.arrivesRound },
+    basis: cfg('Big AI, Ending B (Silicon blackmail): US firms threaten to withdraw from the EU'),
+  },
+  {
+    id: 'summit',
     name: 'Emergency inspection summit',
-    family: 'Diplomacy',
-    playerText: 'The world just saw an AI try to escape. Call an inspection summit while everyone is listening. The window closes fast.',
-    isLouis: false,
-    source: SOURCES.cfg,
-    cost: { pc: 2, budget: 0 },
-    costLabel: '2 PC',
-    limit: 1,
-    context: true,
-    requirements: [],
-    effects: [{ key: 'verification', amount: 10 }],
-    hiddenEffects: [],
-    downside: 'Offered only for two quarters after the incident. Costs Political Capital you may need elsewhere.',
-    dependencies: [],
-    hasHiddenEffects: false,
-    previewNotes: ['A much bigger push towards a verified slowdown at the tipping point.'],
-    consequence: [{ text: 'The superpowers now expect to slow down under inspection if AI takes off' }],
-    did: 'you called an inspection summit',
-    advisorNotes: [
-      {
-        text: 'Every delegation came, even the ones that swore they would not. For once, nobody asked whether inspections were needed, only who would run them.',
-      },
-    ],
-    debrief: 'The summit raised verification readiness by 10 and made a verified slowdown much more likely at the tipping point.',
-    echoNews: ['Emergency summit in Brussels: forty countries back joint inspections of frontier AI labs.'],
+    text: 'After the incident, everyone is listening. Call an inspection summit while the shock is fresh.',
+    proposal:
+      'The AI incident frightened Washington and Beijing alike. Europe’s inspectors were ready, so Europe can call an emergency summit and turn fear into rules: shared incident reports, inspections of the largest training runs. The window closes in two rounds.',
+    ups: [up(`Cooperation ${n(C.summit.cooperation)}`), up(`Confidence ${n(C.summit.estimate)}`)],
+    downs: [down('Only for two rounds')],
+    arrives: { opportunity: true },
+    opportunity: true,
+    basis: cfg('Diplomacy: the “Nova” warning shot leads to an AI security summit and pooled safety funding'),
   },
   {
-    id: 'joint_attribution',
+    id: 'attribution',
     name: 'Joint attribution with allies',
-    family: 'Diplomacy',
-    playerText: 'Name the thief together with your partners, calmly and with evidence. A shared answer stops Washington escalating alone.',
-    isLouis: false,
-    source: SOURCES.rand,
-    cost: { pc: 1, budget: 0 },
-    costLabel: '1 PC',
-    limit: 1,
-    context: true,
-    requirements: [{ when: c('coalition', '>=', 1), reason: 'Needs at least one coalition partner to attribute together' }],
-    effects: [{ key: 'tension', amount: -5 }],
-    hiddenEffects: [],
-    downside: 'Needs a coalition partner. Offered only for two quarters after the theft.',
-    dependencies: [],
-    hasHiddenEffects: false,
-    previewNotes: ['Washington holds back its next export-control escalation.'],
-    consequence: [{ text: 'Washington will not escalate export controls alone next time' }],
-    did: 'you attributed the theft with allies',
-    advisorNotes: [
-      {
-        text: 'Five capitals published the same evidence on the same morning. Washington’s hawks wanted more. They did not get it.',
-      },
-    ],
-    debrief: 'Attributing the theft together lowered tension by 5 and stopped the next US export-control escalation.',
-    echoNews: ['Europe and its partners jointly attribute the model theft. Washington says it will "coordinate with allies" before acting.'],
+    text: 'Name the thieves together with your partners, calmly and with evidence. Washington feels backed and holds off striking back.',
+    proposal:
+      'With your coalition partners, Europe publishes a joint, evidence-based attribution of the theft. Washington feels supported and holds off on cyber retaliation; Beijing gets a firm but calm message instead of an attack. The window closes in two rounds.',
+    example: {
+      text: 'In July 2021, the EU and partners said the Microsoft Exchange hack was “undertaken from the territory of China”.',
+      source: SOURCES.euAttribution2021,
+    },
+    ups: [up(`Cooperation ${n(C.attribution.cooperation)}`), up('No US escalation')],
+    downs: [down('Only for two rounds')],
+    arrives: { opportunity: true },
+    opportunity: true,
+    basis: ai2027('February 2027: China Steals Agent-2 (the US retaliates; both sides move forces around Taiwan)'),
   },
 ];
 
-export const CARD_BY_ID: Record<CardId, CardDef> = Object.fromEntries(CARDS.map((card) => [card.id, card])) as Record<CardId, CardDef>;
+export const CARD_BY_ID = Object.fromEntries(CARDS.map((c) => [c.id, c])) as Record<CardId, CardDef>;
+
+/** Cost of a card's next use (cards with levels cost more as they climb). */
+export function cardCost(id: CardId, usesSoFar: number): number {
+  const cost = TUNING.cards[id].cost as number | readonly number[];
+  return typeof cost === 'number' ? cost : cost[Math.min(usesSoFar, cost.length - 1)];
+}
+
+/** Total uses allowed. */
+export function cardUses(id: CardId): number {
+  const c = TUNING.cards[id] as { uses?: number };
+  return c.uses ?? 1;
+}
