@@ -363,12 +363,8 @@ export interface PublicValues {
  *  Their names, labels and cities are in src/data/friends.ts. Letters never move a gauge. */
 export type FriendId = 'lea' | 'mother' | 'malik';
 export type FriendMood = 'hopeful' | 'worried' | 'relieved' | 'sad';
-/** @deprecated use FriendMood (kept so older UI code compiles). */
-export type LeaMood = FriendMood;
 /** The round a letter was written for ('r1'…'r12'), or 'end' for the epilogue. */
 export type LetterSlot = `r${number}` | 'end';
-/** @deprecated use LetterSlot. */
-export type LeaSlot = LetterSlot;
 
 export interface LetterRecord {
   slot: LetterSlot;
@@ -646,8 +642,6 @@ export interface EndingView {
   threats: { id: ThreatId; name: string; struck: boolean; prepared: boolean | null; by: string }[];
   /** One short epilogue per friend, in the order lea, mother, malik. */
   friends: FriendEpilogue[];
-  /** @deprecated Léa's epilogue as a letter (use `friends`); kept until the UI moves to `friends`. */
-  lea: LetterView;
   basis: Basis;
   source: Source;
 }

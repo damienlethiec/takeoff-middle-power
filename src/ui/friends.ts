@@ -86,8 +86,3 @@ export function friendPortrait(friend: FriendKey, mood: Mood, alt?: string): str
   </svg>`;
 }
 
-/** Léa's face (kept for the letters until every caller names the friend). */
-export function leaPortrait(mood: Mood, label?: string): string {
-  return friendPortrait('lea', mood, label);
-}
-

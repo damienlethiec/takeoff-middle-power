@@ -604,7 +604,8 @@ describe('endings', () => {
       const v = ending(playGame(seed, randomStrategy).final);
       expect(v.sentence).toMatch(/: [a-z].+\.$/);
       expect(v.gauges).toHaveLength(4);
-      expect(v.lea.text.length).toBeGreaterThan(20);
+      expect(v.friends.map((f) => f.friend)).toEqual(['lea', 'mother', 'malik']);
+      for (const f of v.friends) expect(f.text.length).toBeGreaterThan(20);
       expect(v.counterfactuals.length).toBeLessThanOrEqual(2);
       expect(JSON.stringify(v)).not.toMatch(/undefined|NaN/);
       expect(zoneOf(50)).toBe('race');

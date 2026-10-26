@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { chips, esc, factBox, impactLine, link } from '../src/ui/format';
-import { friendPortrait, leaPortrait } from '../src/ui/friends';
+import { friendPortrait } from '../src/ui/friends';
 
 describe('rendering helpers', () => {
   it('escapes HTML', () => {
@@ -29,11 +29,9 @@ describe('rendering helpers', () => {
     d.innerHTML = impactLine({ key: 'cohesion', label: 'Social cohesion', before: '60', after: '55', tone: -1 });
     expect(d.textContent).toMatch(/Social cohesion 60 → 55\s*worse/);
   });
-  it('Léa’s portrait is decorative unless named, with one face per mood', () => {
-    expect(leaPortrait('hopeful')).toContain('aria-hidden="true"');
-    expect(leaPortrait('worried', 'Léa, worried')).toContain('role="img" aria-label="Léa, worried"');
-    const moods = ['hopeful', 'worried', 'relieved', 'sad'] as const;
-    expect(new Set(moods.map((m) => leaPortrait(m))).size).toBe(4);
+  it('a friend’s portrait is decorative unless named', () => {
+    expect(friendPortrait('lea', 'hopeful')).toContain('aria-hidden="true"');
+    expect(friendPortrait('lea', 'worried', 'Léa, worried')).toContain('role="img" aria-label="Léa, worried"');
   });
   it('each friend has a face of their own, one per mood, named only when asked', () => {
     const moods = ['hopeful', 'worried', 'relieved', 'sad'] as const;

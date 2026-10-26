@@ -28,7 +28,7 @@
 // biggest changes), dateLabel(round).
 // Friends back home (v4): FriendId 'lea' | 'mother' | 'malik', metadata in src/data/friends.ts (FRIENDS: name, label,
 // city, lon, lat, region). Letters never move a gauge. In the feed a letter is kind 'lea' (historical name) with
-// `friend`, `mood` and `postcard`; ending(s).friends holds one epilogue per friend (ending(s).lea is deprecated).
+// `friend`, `mood` and `postcard`; ending(s).friends holds one epilogue per friend.
 // Hidden values (the true AI safety, the AI pace) appear only in ending(s), and in gauges(s) while an
 // independent audit runs (by the player's choice).
 

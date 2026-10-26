@@ -59,8 +59,6 @@ export interface IntroScreen {
   title: string;
   paragraphs: string[];
   stakes?: string[];
-  /** @deprecated Léa alone (v4 before the friends); use `friends`. */
-  lea?: string[];
   /** The three friends back home, one line each with their portrait: the people you are doing this for. */
   friends?: { friend: FriendId; line: string }[];
   fact?: Fact;
@@ -85,10 +83,6 @@ export const INTRO: IntroScreen[] = [
       'Europe cannot stop the race. It can shape it, with Influence and policies.',
       'Your goal: when AI reaches the tipping point, have AI we can trust, superpowers who talk, and a society that holds. The calmer the world, the easier a good ending.',
       'Twelve rounds of six months, from 2027 to 2032. Each round, watch the world move, then play as many cards as your Influence allows.',
-    ],
-    lea: [
-      'Your friend Léa, a translator in Lyon, writes to you every few months.',
-      'She is not a minister or an expert. Her letters show you what the world’s choices do to people like her: her job, her family, her city.',
     ],
     friends: [
       { friend: 'lea', line: 'Léa, your oldest friend, translates for a living in Lyon. She wonders whether there will still be work for people like her.' },

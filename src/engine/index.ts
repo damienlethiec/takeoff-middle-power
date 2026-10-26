@@ -1647,7 +1647,6 @@ export function ending(s: GameState): EndingView {
     decisions,
     threats: threatList,
     friends: epilogues(s.ending!),
-    lea: letters(s).find((l) => l.slot === 'end' && l.friend === 'lea')!,
     basis: def.basis,
     source: def.source,
   };
