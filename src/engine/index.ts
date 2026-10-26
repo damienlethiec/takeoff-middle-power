@@ -12,6 +12,7 @@ import { LEAK_REDACTED_ADVICE, LEAKS } from '../data/leaks';
 import { VOICES, WORLD_HEADLINES, type MapLine, type PublicWorld } from '../data/mapcontent';
 import { MILESTONES, MILESTONE_BY_ID } from '../data/milestones';
 import { EVENTS, THREAT_BY_ID, THREATS } from '../data/threats';
+import { SOCIAL_BY_ID, SOCIAL_EVENTS, SOCIAL_WORD, WORKER_ANSWERS, type SocialEventDef } from '../data/social';
 import { TUNING as T } from '../data/tuning';
 import type { EngineApi } from './api';
 import { pick, random, randomInt, seedToRng, shuffle, weightedPick, type RngHolder } from './rng';
@@ -261,6 +262,7 @@ export function createInitialState(seed: number): GameState {
     letters: [],
     flags: [],
     requests: { done: [], pending: [], round: [], later: [], opened: {} },
+    social: { done: [], round: [] },
     tipping: null,
     ending: null,
     finalCooperation: null,
@@ -317,6 +319,83 @@ function drift(s: GameState) {
   s.confidence.estimate += D.labReports;
   s.confidence.margin += D.labReports;
   settleConfidence(s, before);
+}
+
+// ---------------------------------------------------------------- social cohesion (v4)
+
+/** Protections for workers: the flexicurity reform, and the answers to requests that protect them. */
+function workerProtections(s: GameState): { flexicurity: boolean; answers: number } {
+  const answers = WORKER_ANSWERS.filter((w) => s.requests.done.some((d) => d.id === w.id && d.side === w.side)).length;
+  return { flexicurity: used(s, 'flexicurity'), answers };
+}
+
+/** AI weighs on jobs every round, more as capabilities rise; flexicurity and worker answers soften it. */
+export function jobDriftLoss(s: GameState): number {
+  const J = T.jobDrift;
+  const p = workerProtections(s);
+  const factor = Math.max(J.minFactor, 1 - (p.flexicurity ? J.flexicurity : 0) - p.answers * J.answer);
+  return Math.round(Math.max(0, Math.min(J.max, (s.aiPower - J.from) / J.per)) * factor);
+}
+
+function jobDrift(s: GameState) {
+  const loss = jobDriftLoss(s);
+  if (loss <= 0) return;
+  const a = snap(s);
+  applyFx(s, [{ key: 'cohesion', amount: -loss }]);
+  recordChanges(s, a, snap(s), workerProtections(s).flexicurity ? 'AI takes over more work; retraining softens the blow' : 'AI takes over more work');
+}
+
+/** How restless Europe looks, from public values only. */
+function unrest(s: GameState): number {
+  const U = T.social.unrest;
+  return Math.max(0, (U.cohesionCalm - s.cohesion) / U.cohesionSpan) + Math.max(0, (s.aiPower - U.aiFrom) / U.aiSpan);
+}
+
+/** The effects a social event has now (a job event is softened by the protections for workers). */
+function socialFx(s: GameState, def: SocialEventDef): Fx[] {
+  const S = T.social;
+  const p = workerProtections(s);
+  const soften = def.jobs ? ((p.flexicurity ? 1 : 0) + p.answers) * S.softenPerProtection : 0;
+  return def.effects.map((e) => {
+    const n = e.dir < 0 ? Math.max(1, S.size[e.size] - soften) : S.size[e.size];
+    // "verified": independent checks narrow the uncertainty (settleConfidence stops it short of the truth)
+    return e.gauge === 'verified' ? { key: 'margin' as const, amount: -n * e.dir } : { key: e.gauge, amount: n * e.dir };
+  });
+}
+
+/**
+ * This round's social events: one, sometimes two, never the same twice a game, weighted by the public state of
+ * the world. They draw from their own seeded stream (from the seed and the round), so the rest of the game's
+ * draws stay as they were.
+ */
+function socialEvents(s: GameState) {
+  const S = T.social;
+  if (s.round < S.firstRound || s.tipping) return;
+  const hs: RngHolder = { rng: seedToRng(s.seed * 7919 + s.round * 104729 + 13) };
+  const u = unrest(s);
+  const p = workerProtections(s);
+  const prot = (p.flexicurity ? 1 : 0) + p.answers;
+  const n = 1 + (random(hs) < Math.min(S.secondMax, S.secondChance + u * S.secondPerUnrest) ? 1 : 0);
+  const w = publicWorld(s);
+  // the first comes early in the six months (before most requests and breaking news), a second later on
+  const slots = n === 1 ? [0.1 + random(hs) * 0.3] : [0.08 + random(hs) * 0.17, 0.45 + random(hs) * 0.4];
+  for (let i = 0; i < n; i++) {
+    const pool = SOCIAL_EVENTS.filter((e) => !s.social.done.includes(e.id) && (!e.when || e.when(w)));
+    if (!pool.length) return;
+    const bad = (e: SocialEventDef) => e.effects.some((x) => x.dir < 0);
+    const weights = Object.fromEntries(pool.map((e) => [e.id, bad(e) ? 1 + u * S.badPerUnrest : S.goodBase + prot * S.goodPerProtection])) as Record<string, number>;
+    const def = SOCIAL_BY_ID[weightedPick(hs, weights)];
+    const a = snap(s);
+    applyFx(s, socialFx(s, def));
+    const b = snap(s);
+    recordChanges(s, a, b, def.headline);
+    s.social.done.push(def.id);
+    s.social.round.push({
+      id: def.id,
+      at: Math.round(slots[i] * 100) / 100,
+      moved: { cohesion: b.cohesion - a.cohesion, cooperation: b.cooperation - a.cooperation, estimate: b.estimate - a.estimate, margin: b.margin - a.margin },
+    });
+  }
 }
 
 /** Threat stages from public values; stages never go back down. */
@@ -525,6 +604,7 @@ export function startRound(state: GameState): GameState {
   s.leak = null;
   s.roundEvent = null;
   s.requests = { ...s.requests, pending: [], round: [] };
+  s.social = { done: [...(s.social?.done ?? [])], round: [] };
   // opportunities expire
   for (const [id, until] of Object.entries(s.opportunities) as [CardId, number][]) {
     if (until < s.round) {
@@ -548,6 +628,7 @@ export function startRound(state: GameState): GameState {
   const r = rise(s, h);
   s.aiPower = clamp(s.aiPower + r);
   drift(s);
+  jobDrift(s);
   const lines: MapItem[] = [];
   reachMilestones(s, lines);
   const stagesBefore = Object.fromEntries(THREAT_IDS.map((t) => [t, s.threats[t].stage]));
@@ -583,6 +664,9 @@ export function startRound(state: GameState): GameState {
       lines.push({ id: `t_${t}_${st}`, round: s.round, region: def.region, text: def.stageHeadlines[st - 1], at: 0, basis: def.basis });
     }
   }
+
+  // social events in European cities: strikes, protests, scandals, good news (v4)
+  socialEvents(s);
 
   // 5. map content: milestone headlines first, threat headlines next, a world headline when there is room
   const milestoneLines = lines.filter((l) => l.id.startsWith('m_'));
@@ -1101,6 +1185,7 @@ function record(s: GameState): RoundRecord {
     letter: s.letters.find((l) => l.round === s.round && l.slot !== 'end')?.id ?? null,
     values: publicValues(s),
     requests: s.requests.round,
+    social: s.social.round,
   };
 }
 
@@ -1618,6 +1703,25 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
       text: card.text,
       detail: a ? `You answered “${a.label}”${detail.length ? `: ${detail.join(', ')}` : ''}.` : null,
       region: ch.region,
+    });
+  }
+  // social events (v4): story events in European cities, with why they matter and what they changed
+  for (const x of r.social ?? []) {
+    const def = SOCIAL_BY_ID[x.id];
+    if (!def) continue;
+    const moved = r.changes.filter((c) => c.cause === def.headline).map((c) => c.text);
+    const tone = def.effects.some((e) => e.dir < 0) ? -1 : 1;
+    out.push({
+      ...base,
+      id: `s_${x.id}`,
+      at: x.at,
+      kind: 'social',
+      label: `${SOCIAL_WORD[def.kind]} · ${def.city}, ${def.country} · in this story`,
+      text: def.headline,
+      detail: `${def.why}${moved.length ? ` ${moved.join(', ')}.` : ''}`,
+      region: 'eu',
+      tone: tone as -1 | 1,
+      social: { kind: def.kind, city: def.city, lon: def.lon, lat: def.lat },
     });
   }
   out.sort((a, b) => a.at - b.at);

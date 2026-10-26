@@ -245,6 +245,17 @@ export interface ThreatState {
   choice: string | null;
 }
 
+/** v4 social events: what kind of thing happens in a European city (the map's icon). */
+export type SocialKind = 'strike' | 'protest' | 'scandal' | 'breakthrough';
+
+/** A social event of one round: when it shows (0–1) and what it changed, in public values only
+ *  (after − before: Social cohesion, US–China cooperation, AI safety's claim and uncertainty). */
+export interface SocialRecord {
+  id: string;
+  at: number;
+  moved: { cohesion: number; cooperation: number; estimate: number; margin: number };
+}
+
 /** A headline banner or a public voice on the map, revealed while the clock runs (`at` in 0–1). */
 export interface MapItem {
   id: string;
@@ -332,6 +343,8 @@ export interface RoundRecord {
   values: PublicValues;
   /** The round's requests and the answers given. */
   requests: { id: string; at: number; side: Side | null }[];
+  /** v4: the round's social events (strikes, protests, scandals, good news). */
+  social?: SocialRecord[];
 }
 
 export interface PublicValues {
@@ -409,6 +422,8 @@ export interface GameState {
   /** Flags set by answers to requests (protections and follow-ups). */
   flags: string[];
   requests: RequestState;
+  /** v4 social events: every one so far (never twice a game) and this round's. */
+  social: { done: string[]; round: SocialRecord[] };
   tipping: { round: number } | null;
   ending: EndingId | null;
   /** Cooperation zone at the end (after the small suspense draw at the tipping point). */
@@ -615,7 +630,7 @@ export interface FeedItem {
   id: string;
   round: number;
   at: number;
-  kind: 'headline' | 'milestone' | 'threat' | 'voice' | 'leak' | 'event' | 'lea' | 'decision' | 'request';
+  kind: 'headline' | 'milestone' | 'threat' | 'voice' | 'leak' | 'event' | 'lea' | 'decision' | 'request' | 'social';
   /** "Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Letter from Léa, your friend in Lyon", "Your decision" */
   label: string;
   text: string;
@@ -626,6 +641,8 @@ export interface FeedItem {
   tone: -1 | 0 | 1;
   /** Léa's letter: her mood (the feed shows her small portrait). */
   mood?: LeaMood;
+  /** A social event (v4): its kind and city (the map shows it there). */
+  social?: { kind: SocialKind; city: string; lon: number; lat: number };
 }
 
 export interface FeedRound {

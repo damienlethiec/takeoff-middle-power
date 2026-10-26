@@ -57,4 +57,21 @@ export const SOURCES = {
   investAi: { label: 'European Commission, InvestAI: €200 billion for AI (Feb 2025)', url: 'https://digital-strategy.ec.europa.eu/en/news/eu-launches-investai-initiative-mobilise-eu200-billion-investment-artificial-intelligence' },
   egfBelgan: { label: 'European Parliament, EGF support for BelGaN workers (Oct 2025)', url: 'https://data.europarl.europa.eu/distribution/doc/TA-10-2025-0220_en.pdf' },
   metaEu: { label: 'Axios, Meta won’t offer future multimodal AI models in EU (Jul 2024)', url: 'https://www.axios.com/2024/07/17/meta-future-multimodal-ai-models-eu' },
+  // social events (v4): the real precedents of the strikes, protests, scandals and good news in European cities
+  wga2023: { label: 'WGA, Summary of the 2023 WGA MBA (AI provisions)', url: 'https://www.wgacontract2023.org/the-campaign/summary-of-the-2023-wga-mba' },
+  sagaftraGames: { label: 'SAG-AFTRA, SAG-AFTRA Strikes Video Games Over A.I. (Aug 2024)', url: 'https://www.sagaftra.org/sag-aftra-strikes-video-games-over-ai' },
+  klarnaAssistant: {
+    label: 'Klarna, AI assistant handles two-thirds of customer service chats in its first month (Feb 2024)',
+    url: 'https://www.klarna.com/international/press/klarna-ai-assistant-handles-two-thirds-of-customer-service-chats-in-its-first-month/',
+  },
+  csoDataCentres: { label: 'CSO Ireland, Data Centres Metered Electricity Consumption 2023', url: 'https://www.cso.ie/en/releasesandpublications/ep/p-dcmec/datacentresmeteredelectricityconsumption2023/' },
+  ecTiktokRomania: { label: 'European Commission, formal proceedings against TikTok on election risks (Dec 2024)', url: 'https://ec.europa.eu/commission/presscorner/detail/en/ip_24_6487' },
+  amnestyDutch: { label: 'Amnesty International, Xenophobic machines: the Dutch childcare benefits scandal (Oct 2021)', url: 'https://www.amnesty.org/en/documents/eur35/4686/2021/en/' },
+  lundMasai: { label: 'Lund University, AI-supported mammography screening is found to be safe (Aug 2023)', url: 'https://www.lunduniversity.lu.se/article/ai-supported-mammography-screening-found-be-safe' },
+  ecmwfAifs: { label: 'ECMWF, ECMWF’s AI forecasts become operational (Feb 2025)', url: 'https://www.ecmwf.int/en/about/media-centre/news/2025/ecmwfs-ai-forecasts-become-operational' },
+  platformWork: {
+    label: 'Council of the EU, Platform workers: Council adopts new rules (14 Oct 2024)',
+    url: 'https://www.consilium.europa.eu/en/press/press-releases/2024/10/14/platform-workers-council-adopts-new-rules-to-improve-their-working-conditions/',
+  },
+  idaisVenice: { label: 'International Dialogues on AI Safety, IDAIS-Venice statement (Sept 2024)', url: 'https://idais.ai/dialogue/idais-venice/' },
 } satisfies Record<string, Source>;

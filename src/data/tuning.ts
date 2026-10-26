@@ -136,6 +136,31 @@ export const TUNING = {
 
   /** Léa writes at these rounds, and at the end. */
   letters: { r1: 1, r4: 4, r8: 8 },
+
+  /** v4: AI weighs on jobs every round (automation spreading, AI 2027's agents taking office work): Social
+   *  cohesion loses round(min(max, (AI capabilities − from) / per) × factor) a round. The factor is 1, minus
+   *  `flexicurity` once the flexicurity reform is played, minus `answer` per answer that protects workers
+   *  (src/data/social.ts, WORKER_ANSWERS), never below `minFactor`. The two job shocks stay as visible moments. */
+  jobDrift: { from: 35, per: 25, max: 2, flexicurity: 0.5, answer: 0.25, minFactor: 0.25 },
+
+  /** v4: social events (src/data/social.ts), one a round from `firstRound`, a second with chance
+   *  min(secondMax, secondChance + unrest × secondPerUnrest). Unrest, from public values only:
+   *  max(0, (cohesionCalm − Social cohesion) / cohesionSpan) + max(0, (AI capabilities − aiFrom) / aiSpan).
+   *  Draw weights: bad news 1 + unrest × badPerUnrest; good news goodBase + protections × goodPerProtection
+   *  (flexicurity, worker answers). A job event's hit is softened by `softenPerProtection` per protection, never
+   *  below 1. Sizes: the points an event moves its gauge (for "verified", how much more of AI safety is verified). */
+  social: {
+    firstRound: 1,
+    secondChance: 0.3,
+    secondPerUnrest: 0.25,
+    secondMax: 0.75,
+    unrest: { cohesionCalm: 60, cohesionSpan: 20, aiFrom: 40, aiSpan: 30 },
+    badPerUnrest: 0.5,
+    goodBase: 1.6,
+    goodPerProtection: 0.5,
+    softenPerProtection: 1,
+    size: { small: 2, medium: 3, large: 4 },
+  },
 } as const;
 
 export type Tuning = typeof TUNING;

@@ -1,0 +1,396 @@
+// Social events (v4): small things that happen in European cities while the six months play out: strikes,
+// protests, scandals and good news. About one or two a round, different each game, weighted by the public state
+// of the world (more unrest when Social cohesion is low or AI capabilities high). Each is a story event set after
+// today ("In this story"), at a city, with a one-line "why it matters" and a basis: a real precedent (its source
+// in sources.ts, checked by reading it) or an AI 2027 / CFG section. Sizes are words here; the numbers live in
+// TUNING.social.
+
+import type { Basis, SocialKind } from '../engine/types';
+import type { PublicWorld } from './mapcontent';
+import { TUNING as T } from './tuning';
+import { ai2027, cfg, real } from './basis';
+import { SOURCES } from './sources';
+
+export type SocialSize = 'small' | 'medium' | 'large';
+/** A visible effect: which gauge, which way, how much (the size's number is in TUNING.social.size). */
+export interface SocialEffect {
+  gauge: 'cohesion' | 'cooperation' | 'verified';
+  dir: 1 | -1;
+  size: SocialSize;
+}
+
+export interface SocialEventDef {
+  id: string;
+  kind: SocialKind;
+  city: string;
+  country: string;
+  lon: number;
+  lat: number;
+  /** ≤ 15 words: what happens, in this story. */
+  headline: string;
+  /** One line: why it matters (a real precedent cites `source`). */
+  why: string;
+  effects: SocialEffect[];
+  /** Job events: softened by flexicurity and by the answers that protect workers. */
+  jobs?: boolean;
+  when?: (w: PublicWorld) => boolean;
+  basis: Basis;
+  /** The source of the real fact in `why` (required when it states one). */
+  source?: keyof typeof SOURCES;
+}
+
+const jobsArrived = (w: PublicWorld) => w.aiPower >= T.milestones.at.ai_takes_jobs;
+const wholeJobs = (w: PublicWorld) => w.aiPower >= T.milestones.at.cheap_remote_worker - 8;
+const down = (size: SocialSize, gauge: SocialEffect['gauge'] = 'cohesion'): SocialEffect => ({ gauge, dir: -1, size });
+const up = (size: SocialSize, gauge: SocialEffect['gauge'] = 'cohesion'): SocialEffect => ({ gauge, dir: 1, size });
+
+export const SOCIAL_EVENTS: SocialEventDef[] = [
+  // ------------------------------------------------------------ strikes and layoffs (jobs)
+  {
+    id: 'se_writers_strike',
+    kind: 'strike',
+    city: 'Paris',
+    country: 'France',
+    lon: 2.35,
+    lat: 48.86,
+    headline: 'Screenwriters in Paris strike: studios want AI to draft the scripts.',
+    why: 'Real precedent: in 2023, Hollywood writers won a contract rule that AI can’t write or rewrite their scripts.',
+    effects: [down('medium')],
+    jobs: true,
+    basis: real('WGA, Summary of the 2023 WGA MBA (AI provisions)'),
+    source: 'wga2023',
+  },
+  {
+    id: 'se_dubbing_strike',
+    kind: 'strike',
+    city: 'Munich',
+    country: 'Germany',
+    lon: 11.58,
+    lat: 48.14,
+    headline: 'Dubbing actors in Munich walk out over AI copies of their voices.',
+    why: 'Real precedent: in 2024, US video game performers struck for consent and pay over AI replicas of their voices.',
+    effects: [down('small')],
+    jobs: true,
+    basis: real('SAG-AFTRA, SAG-AFTRA Strikes Video Games Over A.I. (Aug 2024)'),
+    source: 'sagaftraGames',
+  },
+  {
+    id: 'se_bank_layoffs',
+    kind: 'strike',
+    city: 'Frankfurt',
+    country: 'Germany',
+    lon: 8.68,
+    lat: 50.11,
+    headline: 'A Frankfurt bank cuts 3,000 back-office jobs and hands them to AI agents.',
+    why: 'Real precedent: in 2024, Klarna said its AI assistant already did the work of 700 full-time agents.',
+    effects: [down('medium')],
+    jobs: true,
+    when: jobsArrived,
+    basis: real('Klarna, AI assistant handles two-thirds of customer service chats (Feb 2024)'),
+    source: 'klarnaAssistant',
+  },
+  {
+    id: 'se_call_centres',
+    kind: 'strike',
+    city: 'Lisbon',
+    country: 'Portugal',
+    lon: -9.14,
+    lat: 38.72,
+    headline: 'Lisbon’s call centres close: AI agents now answer in every language.',
+    why: 'In AI 2027, cheap AI remote workers spread through office jobs and public anger at the labs soars.',
+    effects: [down('medium')],
+    jobs: true,
+    when: wholeJobs,
+    basis: ai2027('July 2027: The Cheap Remote Worker'),
+  },
+  {
+    id: 'se_lorry_drivers',
+    kind: 'strike',
+    city: 'Lyon',
+    country: 'France',
+    lon: 4.84,
+    lat: 45.76,
+    headline: 'Lorry drivers block the motorways around Lyon as AI-driven trucks win approval.',
+    why: 'In AI 2027, job disruption spreads from software to the wider economy once AI does whole jobs.',
+    effects: [down('medium')],
+    jobs: true,
+    when: wholeJobs,
+    basis: ai2027('July 2027: The Cheap Remote Worker (job disruption spreads)'),
+  },
+  // ------------------------------------------------------------ protests
+  {
+    id: 'se_graduates',
+    kind: 'protest',
+    city: 'Madrid',
+    country: 'Spain',
+    lon: -3.7,
+    lat: 40.42,
+    headline: 'Young graduates march in Madrid: entry-level jobs are vanishing.',
+    why: 'Real precedent: in 2025, Stanford researchers found jobs for 22–25-year-olds falling first where AI is most used.',
+    effects: [down('medium')],
+    jobs: true,
+    when: jobsArrived,
+    basis: real('Stanford Digital Economy Lab, Canaries in the Coal Mine (2025)'),
+    source: 'stanfordCanaries',
+  },
+  {
+    id: 'se_tutors',
+    kind: 'protest',
+    city: 'Milan',
+    country: 'Italy',
+    lon: 9.19,
+    lat: 45.46,
+    headline: 'Teachers march in Milan as schools swap classroom assistants for AI tutors.',
+    why: 'In AI 2027, the first jobs AI takes are ones people thought were safe, and anger follows.',
+    effects: [down('small')],
+    jobs: true,
+    when: jobsArrived,
+    basis: ai2027('Late 2026: AI Takes Some Jobs'),
+  },
+  {
+    id: 'se_datacentre_power',
+    kind: 'protest',
+    city: 'Dublin',
+    country: 'Ireland',
+    lon: -6.26,
+    lat: 53.35,
+    headline: 'Dubliners protest as new AI data centres strain the power grid.',
+    why: 'Real precedent: data centres already used 21% of Ireland’s metered electricity in 2023.',
+    effects: [down('small')],
+    basis: real('CSO Ireland, Data Centres Metered Electricity Consumption 2023'),
+    source: 'csoDataCentres',
+  },
+  {
+    id: 'se_anti_ai_march',
+    kind: 'protest',
+    city: 'Berlin',
+    country: 'Germany',
+    lon: 13.4,
+    lat: 52.52,
+    headline: 'Tens of thousands march in Berlin under one banner: “Humans first”.',
+    why: 'In AI 2027, the first wave of AI job losses brings a 10,000-strong anti-AI protest.',
+    effects: [down('medium')],
+    when: jobsArrived,
+    basis: ai2027('Late 2026: AI Takes Some Jobs (a 10,000-person anti-AI protest)'),
+  },
+  {
+    id: 'se_energy_bills',
+    kind: 'protest',
+    city: 'Prague',
+    country: 'Czechia',
+    lon: 14.42,
+    lat: 50.08,
+    headline: 'Energy bills soar as the chip war hits supplies; crowds fill Prague’s squares.',
+    why: 'In CFG’s arms race, the superpowers’ rivalry spills over onto Europe’s economy and energy.',
+    effects: [down('medium')],
+    when: (w) => w.zone === 'rupture',
+    basis: cfg('Arms race (AI as the ultimate national security asset; chips as a weapon)'),
+  },
+  // ------------------------------------------------------------ scandals
+  {
+    id: 'se_deepfake_vote',
+    kind: 'scandal',
+    city: 'Warsaw',
+    country: 'Poland',
+    lon: 21.0,
+    lat: 52.23,
+    headline: 'Days before Poland votes, a deepfake of a candidate floods social media.',
+    why: 'Real precedent: after Romania’s 2024 presidential vote, the EU opened proceedings against TikTok over election risks.',
+    effects: [down('large')],
+    basis: real('European Commission, formal proceedings against TikTok on election risks (IP/24/6487)'),
+    source: 'ecTiktokRomania',
+  },
+  {
+    id: 'se_welfare_algorithm',
+    kind: 'scandal',
+    city: 'The Hague',
+    country: 'Netherlands',
+    lon: 4.3,
+    lat: 52.08,
+    headline: 'An AI welfare system wrongly flags thousands of families as fraudsters.',
+    why: 'Real precedent: in the Dutch benefits scandal, a risk algorithm used nationality and discriminated against families.',
+    effects: [down('large')],
+    basis: real('Amnesty International, Xenophobic machines (Oct 2021)'),
+    source: 'amnestyDutch',
+  },
+  {
+    id: 'se_voice_scams',
+    kind: 'scandal',
+    city: 'Seville',
+    country: 'Spain',
+    lon: -5.98,
+    lat: 37.39,
+    headline: 'Voice-clone scams empty pensioners’ savings across Andalusia.',
+    why: 'In CFG’s plateau scenarios, cheap AI tools with broken guardrails fuel fraud and disinformation.',
+    effects: [down('small')],
+    basis: cfg('Plateau, Ending B (Decentralised mayhem: guardrails broken, fraud and disinformation)'),
+  },
+  {
+    id: 'se_chip_smuggling',
+    kind: 'scandal',
+    city: 'Antwerp',
+    country: 'Belgium',
+    lon: 4.4,
+    lat: 51.22,
+    headline: 'Customs in Antwerp seize AI chips being smuggled to China.',
+    why: 'In CFG’s arms race, control over chips becomes a geopolitical weapon, and every seizure deepens mistrust.',
+    effects: [down('small', 'cooperation')],
+    when: (w) => w.zone !== 'pause',
+    basis: cfg('Arms race: “Control over chips becomes a geopolitical weapon”'),
+  },
+  // ------------------------------------------------------------ good news
+  {
+    id: 'se_cancer_screening',
+    kind: 'breakthrough',
+    city: 'Malmö',
+    country: 'Sweden',
+    lon: 13.0,
+    lat: 55.6,
+    headline: 'AI helps Malmö’s screening programme catch more early breast cancers.',
+    why: 'Real precedent: in a 2023 Swedish trial, AI support found 20% more cancers with 44% less reading work.',
+    effects: [up('medium')],
+    basis: real('Lund University, AI-supported mammography screening is found to be safe (Aug 2023)'),
+    source: 'lundMasai',
+  },
+  {
+    id: 'se_flood_forecast',
+    kind: 'breakthrough',
+    city: 'Valencia',
+    country: 'Spain',
+    lon: -0.38,
+    lat: 39.47,
+    headline: 'An AI forecast warns Valencia of a flood a day earlier than before.',
+    why: 'Real precedent: Europe’s weather centre, ECMWF, has run AI forecasts in operation since February 2025.',
+    effects: [up('small')],
+    basis: real('ECMWF, ECMWF’s AI forecasts become operational (Feb 2025)'),
+    source: 'ecmwfAifs',
+  },
+  {
+    id: 'se_retraining',
+    kind: 'breakthrough',
+    city: 'Copenhagen',
+    country: 'Denmark',
+    lon: 12.57,
+    lat: 55.68,
+    headline: 'Most Danish workers laid off by AI find new jobs within a year.',
+    why: 'Retraining keeps the bargain. Real precedent: in 2025, the EU funded retraining for 417 laid-off Belgian chip workers.',
+    effects: [up('medium')],
+    when: jobsArrived,
+    basis: real('European Parliament, EGF support for BelGaN workers (Oct 2025)'),
+    source: 'egfBelgan',
+  },
+  {
+    id: 'se_waiting_lists',
+    kind: 'breakthrough',
+    city: 'Porto',
+    country: 'Portugal',
+    lon: -8.61,
+    lat: 41.15,
+    headline: 'Porto’s clinics use AI to sort patients; waiting lists fall by a quarter.',
+    why: 'In CFG’s agent economy, AI agents work as “digital interns” in offices and public services.',
+    effects: [up('medium')],
+    basis: cfg('Big AI, Ending A (The agent economy: agents as “digital interns”)'),
+  },
+  {
+    id: 'se_platform_rights',
+    kind: 'breakthrough',
+    city: 'Barcelona',
+    country: 'Spain',
+    lon: 2.17,
+    lat: 41.39,
+    headline: 'Barcelona couriers win the right to contest decisions made by an app.',
+    why: 'Real precedent: the EU’s 2024 platform work rules give workers the right to contest automated decisions.',
+    effects: [up('small')],
+    basis: real('Council of the EU, platform workers: Council adopts new rules (14 Oct 2024)'),
+    source: 'platformWork',
+  },
+  {
+    id: 'se_human_say',
+    kind: 'breakthrough',
+    city: 'Brussels',
+    country: 'Belgium',
+    lon: 4.35,
+    lat: 50.85,
+    headline: 'Unions and employers agree: a human keeps the final say on AI at work.',
+    why: 'Real precedent: the EU AI Act already requires high-risk AI to be effectively overseen by people.',
+    effects: [up('medium')],
+    when: jobsArrived,
+    basis: real('EU AI Act, Article 14 (human oversight of high-risk AI)'),
+    source: 'aiActArt14',
+  },
+  {
+    id: 'se_interpreters',
+    kind: 'breakthrough',
+    city: 'Vienna',
+    country: 'Austria',
+    lon: 16.37,
+    lat: 48.21,
+    headline: 'In Vienna, AI interpreters let newcomers talk to their doctors in 40 languages.',
+    why: 'In CFG’s plateau, useful AI tools stay cheap and open to everyone, not only to the giants.',
+    effects: [up('small')],
+    basis: cfg('Plateau, Ending A (A bright winter: open tools stay accessible)'),
+  },
+  {
+    id: 'se_tutor_help',
+    kind: 'breakthrough',
+    city: 'Tallinn',
+    country: 'Estonia',
+    lon: 24.75,
+    lat: 59.44,
+    headline: 'Tallinn’s schools give every pupil an AI tutor; teachers stay in charge.',
+    why: 'In CFG’s plateau, AI tools become cheap and widely shared instead of locked up by a few firms.',
+    effects: [up('small')],
+    basis: cfg('Plateau, Ending A (A bright winter: AI tools democratised)'),
+  },
+  {
+    id: 'se_open_farming',
+    kind: 'breakthrough',
+    city: 'Toulouse',
+    country: 'France',
+    lon: 1.44,
+    lat: 43.6,
+    headline: 'Toulouse farmers use an open European model to cut their pesticide use.',
+    why: 'In CFG’s plateau, open models run locally and spread AI’s benefits widely.',
+    effects: [up('small')],
+    when: (w) => w.europeAi === 'open',
+    basis: cfg('Plateau (miniaturisation and openness: local, open models)'),
+  },
+  {
+    id: 'se_joint_call',
+    kind: 'breakthrough',
+    city: 'Venice',
+    country: 'Italy',
+    lon: 12.33,
+    lat: 45.44,
+    headline: 'American, Chinese and European scientists sign a joint AI safety call in Venice.',
+    why: 'Real precedent: in 2024, Western and Chinese scientists in Venice called AI safety “a global public good”.',
+    effects: [up('small', 'cooperation')],
+    basis: real('IDAIS-Venice consensus statement (Sept 2024)'),
+    source: 'idaisVenice',
+  },
+  {
+    id: 'se_independent_tests',
+    kind: 'breakthrough',
+    city: 'Paris',
+    country: 'France',
+    lon: 2.3,
+    lat: 48.82,
+    headline: 'Independent testers in Paris publish a deep check of a frontier model.',
+    why: 'Real precedent: in 2024, the UK and US AI safety institutes tested OpenAI’s o1 before its release.',
+    effects: [up('small', 'verified')],
+    basis: real('UK AI Security Institute, Pre-deployment evaluation of OpenAI’s o1 model (Dec 2024)'),
+    source: 'aisiO1',
+  },
+];
+
+export const SOCIAL_BY_ID: Record<string, SocialEventDef> = Object.fromEntries(SOCIAL_EVENTS.map((e) => [e.id, e]));
+
+/** Answers to requests that protect workers: like flexicurity, they soften AI's weight on jobs. */
+export const WORKER_ANSWERS: { id: string; side: 'left' | 'right' }[] = [
+  { id: 'lea_retrain', side: 'right' },
+  { id: 'un_agent_tax', side: 'right' },
+  { id: 'un_strike', side: 'left' },
+];
+
+/** The kind of a social event in words (the feed's label, the map's list). */
+export const SOCIAL_WORD: Record<SocialKind, string> = { strike: 'Strike', protest: 'Protest', scandal: 'Scandal', breakthrough: 'Good news' };

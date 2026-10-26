@@ -7,7 +7,7 @@
 // On phones the feed sits under the map with all of this round's items; tablets and desktops keep it beside the map.
 // Announcements stay with the app (it already announces each item once, politely).
 
-import type { Change, FeedItem, FeedRound } from '../engine/types';
+import type { Change, FeedItem, FeedRound, SocialKind } from '../engine/types';
 import { esc } from './format';
 import { leaPortrait } from './lea';
 
@@ -23,7 +23,19 @@ export const KIND_ICON: Record<FeedItem['kind'], string> = {
   lea: I('<rect x="2.5" y="4.5" width="15" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 5.5l7 5.5 7-5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'),
   decision: I('<path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'),
   request: I('<circle cx="7" cy="7" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 16c.6-2.7 2.3-4 4.5-4s3.9 1.3 4.5 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 5h6v5h-3l-2 2v-2h-1z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>'),
+  // a social event's own icon is in SOCIAL_ICON (by kind); this one stands for them all
+  social: I('<path d="M10 2.2l1.9 5.9 5.9 1.9-5.9 1.9L10 17.8l-1.9-5.9L2.2 10l5.9-1.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>'),
 };
+
+/** Social events (v4) by kind: a picket sign, a megaphone, an alarm, a spark of good news. */
+export const SOCIAL_ICON: Record<SocialKind, string> = {
+  strike: I('<rect x="3.5" y="2.5" width="13" height="8.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 11v7M7 6.8h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>'),
+  protest: I('<path d="M3 8v4h2.6L13 16V4L5.6 8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M15.6 7.4a3.6 3.6 0 0 1 0 5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'),
+  scandal: I('<circle cx="10" cy="10" r="7.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 5.6v5.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14" r="1.15" fill="currentColor"/>'),
+  breakthrough: I('<path d="M10 2.2l1.9 5.9 5.9 1.9-5.9 1.9L10 17.8l-1.9-5.9L2.2 10l5.9-1.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>'),
+};
+/** The icon of a feed item (a social event's says what kind it is). */
+export const itemIcon = (x: { kind: FeedItem['kind']; social?: { kind: SocialKind } }) => (x.kind === 'social' && x.social ? SOCIAL_ICON[x.social.kind] : KIND_ICON[x.kind]);
 
 export interface FeedHandlers {
   onSelect(item: FeedItem): void;
@@ -152,8 +164,8 @@ export class Feed {
 
   private item(x: FeedItem): string {
     const tone = x.tone > 0 ? ' good' : x.tone < 0 ? ' bad' : '';
-    return `<li><button type="button" class="fd-item k-${x.kind}${tone}${this.selected === x.id ? ' on' : ''}" data-id="${esc(x.id)}" aria-pressed="${this.selected === x.id}">
-      <span class="fd-ico">${x.kind === 'lea' && x.mood ? leaPortrait(x.mood) : KIND_ICON[x.kind]}</span>
+    return `<li><button type="button" class="fd-item k-${x.kind}${x.social ? ` s-${x.social.kind}` : ''}${tone}${this.selected === x.id ? ' on' : ''}" data-id="${esc(x.id)}" aria-pressed="${this.selected === x.id}">
+      <span class="fd-ico">${x.kind === 'lea' && x.mood ? leaPortrait(x.mood) : itemIcon(x)}</span>
       <span class="fd-body"><span class="fd-k">${esc(x.label)}</span><span class="fd-t">${esc(x.text)}</span>${x.detail ? `<span class="fd-d">${esc(x.detail)}</span>` : ''}</span>
       <span class="sr-only">: show on the map</span>
     </button></li>`;
