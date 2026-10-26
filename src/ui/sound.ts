@@ -1,13 +1,13 @@
-// The optional soundtrack: generative ambient music made in the browser with the Web Audio API (no audio
-// files, nothing fetched, so nothing for the CSP to allow). Slow pads and a soft pulse, a "situation room"
-// mood. It follows the world: tension rises gently with AI power and as US–China cooperation falls (faster
-// pulse, brighter filter, wider detune, a dissonant shadow voice), turns darker at the tipping point, and
-// resolves on the ending (hopeful for a good one, sombre for a bad one).
+// The optional soundtrack: the team's track "Conflits frontaliers" (public/audio, made with Suno), looped,
+// played through the Web Audio API so its tone follows the world: almost untouched while calm, slightly veiled
+// as tension rises (AI power up, US–China cooperation down) and at the tipping point, darker after a bad
+// ending, fully open after a good one. Soft one-shot cues (new round, request, Breaking news) are synthesised.
 //
 // Off by default. The player turns it on with the header's "Sound" toggle (a user gesture: the audio context
 // is only ever created inside one). The choice and the volume are remembered when storage allows. The music
 // fades out when the game is paused or the tab is hidden, and every change glides: no sudden loud sound.
-// About twenty audio nodes, created when the music starts and released (context closed) when it stops.
+// A handful of audio nodes, created when the music starts and released (context closed) when it stops; the
+// file is fetched only when the player turns the sound on.
 //
 // `musicFor` is the pure part (world → musical parameters), unit-tested; `Soundtrack` plays it.
 
@@ -105,23 +105,29 @@ const AudioCtor = (): (new () => Ctx) | undefined =>
 const D3 = 146.83;
 const hz = (semi: number) => D3 * Math.pow(2, semi / 12);
 const FADE = 0.6; // seconds (time constant ×3 ≈ the fade)
+/** The music: "Conflits frontaliers", made by the team with Suno, served with the site (same origin, so the CSP's default-src 'self' covers it). */
+const TRACK = `${import.meta.env.BASE_URL}audio/conflits-frontaliers.mp3`;
+
+/** How open the tone filter is, per mood: the track plays almost untouched while calm, slightly veiled as tension
+ * rises and at the tipping point, darker after a bad ending, fully open after a good one. */
+function toneFor(p: MusicParams): number {
+  switch (p.mood) {
+    case 'hope':
+      return 18000;
+    case 'sombre':
+      return 1400;
+    case 'tipped':
+      return 3200;
+    default:
+      return lerp(16000, 6000, p.tension);
+  }
+}
 
 interface Graph {
   ctx: Ctx;
   master: GainNode;
-  filter: BiquadFilterNode;
-  voices: OscillatorNode[];
-  shadowOsc: OscillatorNode;
-  shadowGain: GainNode;
-  pulseOsc: OscillatorNode;
-  pulseEnv: GainNode;
-  bellOsc: OscillatorNode;
-  bellEnv: GainNode;
-  lfo: OscillatorNode;
-  timer: ReturnType<typeof setInterval>;
-  nextBeat: number;
-  nextChord: number;
-  chordIx: number;
+  tone: BiquadFilterNode;
+  audio: HTMLAudioElement;
 }
 
 export class Soundtrack {
@@ -144,7 +150,7 @@ export class Soundtrack {
     const unlock = () => {
       if (!this.on || !this.audible()) return;
       if (!this.g) this.start();
-      else if (this.g.ctx.state === 'suspended') this.sync();
+      else if (this.g.ctx.state === 'suspended' || this.g.audio.paused) this.sync();
     };
     for (const type of ['click', 'keydown', 'touchend']) document.addEventListener(type, unlock, true);
   }
@@ -214,23 +220,14 @@ export class Soundtrack {
     this.sync();
   }
 
-  /** The world moved: the music follows, gliding. */
+  /** The world moved: the music's tone follows, gliding (the track itself plays on). */
   setWorld(w: MusicWorld) {
-    const prev = this.p;
     this.world = { ...w };
     this.p = musicFor(this.world);
     const g = this.g;
     if (!g) return;
-    const t = g.ctx.currentTime;
     const slow = this.p.mood === 'hope' || this.p.mood === 'sombre' ? 2.5 : 1.2;
-    g.filter.frequency.setTargetAtTime(this.p.cutoff, t, slow);
-    g.voices.forEach((o, i) => o.detune.setTargetAtTime((i % 2 ? 1 : -1) * this.p.detune, t, slow));
-    g.shadowGain.gain.setTargetAtTime(0.05 * this.p.shadow, t, slow);
-    // a new mood starts its progression now rather than at the next bar
-    if (prev.mood !== this.p.mood) {
-      g.chordIx = 0;
-      g.nextChord = t + 0.05;
-    }
+    g.tone.frequency.setTargetAtTime(toneFor(this.p), g.ctx.currentTime, slow);
   }
 
   /** A soft one-shot: a new round, a request, Breaking news. Subtle, faded in, never on top of a pause. */
@@ -268,7 +265,7 @@ export class Soundtrack {
     return this.on && !this.paused && !(typeof document !== 'undefined' && document.hidden);
   }
 
-  /** Fade to where the music should be: playing at the volume, or silent and suspended. */
+  /** Fade to where the music should be: playing at the volume, or silent and paused. */
   private sync() {
     const g = this.g;
     if (!g) return;
@@ -278,15 +275,15 @@ export class Soundtrack {
     if (this.audible()) {
       void g.ctx.resume().then(() => {
         if (this.g !== g) return;
-        const now = g.ctx.currentTime;
-        g.master.gain.setTargetAtTime(this.level(), now, FADE / 3);
-        if (g.nextBeat < now) g.nextBeat = now + 0.1;
-        if (g.nextChord < now) g.nextChord = now + 0.05;
+        if (g.audio.paused) void g.audio.play().catch(() => undefined);
+        g.master.gain.setTargetAtTime(this.level(), g.ctx.currentTime, FADE / 3);
       });
     } else {
       g.master.gain.setTargetAtTime(0, t, FADE / 3);
       setTimeout(() => {
-        if (this.g === g && !this.audible() && g.ctx.state === 'running') void g.ctx.suspend();
+        if (this.g !== g || this.audible()) return;
+        g.audio.pause();
+        if (g.ctx.state === 'running') void g.ctx.suspend();
       }, FADE * 1000 + 100);
     }
   }
@@ -294,7 +291,7 @@ export class Soundtrack {
   private start() {
     if (this.g) return this.sync();
     const Ctor = AudioCtor();
-    if (!Ctor) return;
+    if (!Ctor || typeof Audio === 'undefined') return;
     let ctx: Ctx;
     try {
       ctx = new Ctor();
@@ -309,65 +306,24 @@ export class Soundtrack {
     const master = ctx.createGain();
     master.gain.value = 0;
     master.connect(comp);
-    // a little room: one feedback delay
-    const delay = ctx.createDelay(2);
-    delay.delayTime.value = 0.42;
-    const fb = ctx.createGain();
-    fb.gain.value = 0.32;
-    const wet = ctx.createGain();
-    wet.gain.value = 0.35;
-    delay.connect(fb).connect(delay);
-    delay.connect(wet).connect(master);
-    // the pad: four voices through one low-pass, which breathes slowly
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.Q.value = 0.8;
-    filter.frequency.value = this.p.cutoff;
-    const pad = ctx.createGain();
-    pad.gain.value = 0.11;
-    filter.connect(pad);
-    pad.connect(master);
-    pad.connect(delay);
-    const lfo = ctx.createOscillator();
-    lfo.frequency.value = 0.045;
-    const lfoDepth = ctx.createGain();
-    lfoDepth.gain.value = 180;
-    lfo.connect(lfoDepth).connect(filter.frequency);
-    const chord = this.p.chords[0];
-    const voices = chord.map((semi, i) => {
-      const o = ctx.createOscillator();
-      o.type = i % 2 ? 'triangle' : 'sawtooth';
-      o.frequency.value = hz(semi);
-      o.detune.value = (i % 2 ? 1 : -1) * this.p.detune;
-      o.connect(filter);
-      return o;
-    });
-    // the shadow: a minor second above the top voice, heard only as tension rises
-    const shadowOsc = ctx.createOscillator();
-    shadowOsc.type = 'sine';
-    shadowOsc.frequency.value = hz(chord[3] + 1);
-    const shadowGain = ctx.createGain();
-    shadowGain.gain.value = 0.05 * this.p.shadow;
-    shadowOsc.connect(shadowGain).connect(filter);
-    // the pulse: a soft low heartbeat, one oscillator and its envelope
-    const pulseOsc = ctx.createOscillator();
-    pulseOsc.type = 'sine';
-    pulseOsc.frequency.value = 70;
-    const pulseEnv = ctx.createGain();
-    pulseEnv.gain.value = 0;
-    pulseOsc.connect(pulseEnv).connect(master);
-    // a high glint now and then, from the chord
-    const bellOsc = ctx.createOscillator();
-    bellOsc.type = 'sine';
-    const bellEnv = ctx.createGain();
-    bellEnv.gain.value = 0;
-    bellOsc.connect(bellEnv);
-    bellEnv.connect(master);
-    bellEnv.connect(delay);
-    const all = [lfo, ...voices, shadowOsc, pulseOsc, bellOsc];
-    all.forEach((o) => o.start());
-    const now = ctx.currentTime;
-    this.g = { ctx, master, filter, voices, shadowOsc, shadowGain, pulseOsc, pulseEnv, bellOsc, bellEnv, lfo, timer: setInterval(() => this.schedule(), 120), nextBeat: now + 0.4, nextChord: now + this.p.chordSecs, chordIx: 0 };
+    // the track, looped, through one low-pass that darkens or brightens it with the world
+    const audio = new Audio();
+    audio.src = TRACK;
+    audio.loop = true;
+    audio.preload = 'auto';
+    const tone = ctx.createBiquadFilter();
+    tone.type = 'lowpass';
+    tone.Q.value = 0.5;
+    tone.frequency.value = toneFor(this.p);
+    let source: MediaElementAudioSourceNode;
+    try {
+      source = ctx.createMediaElementSource(audio);
+    } catch {
+      void ctx.close().catch(() => undefined);
+      return;
+    }
+    source.connect(tone).connect(master);
+    this.g = { ctx, master, tone, audio };
     this.sync();
   }
 
@@ -380,52 +336,11 @@ export class Soundtrack {
     g.master.gain.setTargetAtTime(0, t, FADE / 3);
     // this graph only finishes fading, then everything is released (a fresh start builds a new one)
     this.g = null;
-    clearInterval(g.timer);
-    setTimeout(() => void g.ctx.close().catch(() => undefined), FADE * 1000 + 200);
-  }
-
-  /** Look-ahead scheduler: chords and pulse beats due in the next 0.4 s. */
-  private schedule() {
-    const g = this.g;
-    if (!g || g.ctx.state !== 'running') return;
-    const now = g.ctx.currentTime;
-    const ahead = now + 0.4;
-    const p = this.p;
-    while (g.nextChord < ahead) {
-      const chord = p.chords[g.chordIx % p.chords.length];
-      const at = Math.max(now, g.nextChord);
-      const glide = p.mood === 'hope' || p.mood === 'sombre' ? 1.2 : 0.7;
-      g.voices.forEach((o, i) => o.frequency.setTargetAtTime(hz(chord[i]), at, glide));
-      g.shadowOsc.frequency.setTargetAtTime(hz(chord[3] + 1), at, glide);
-      // a glint from the chord on some bars (more often when calm)
-      if (Math.random() < (p.mood === 'hope' ? 0.8 : 0.55 - 0.3 * p.tension)) {
-        const t0 = at + p.chordSecs * (0.25 + 0.5 * Math.random());
-        g.bellOsc.frequency.setValueAtTime(hz(chord[1 + Math.floor(Math.random() * 3)] + 24), t0);
-        g.bellEnv.gain.setValueAtTime(0, t0);
-        g.bellEnv.gain.linearRampToValueAtTime(0.022, t0 + 0.04);
-        g.bellEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.6);
-        g.bellEnv.gain.setValueAtTime(0, t0 + 2.7);
-      }
-      g.chordIx += 1;
-      g.nextChord = at + p.chordSecs;
-    }
-    if (p.bpm <= 0) {
-      g.nextBeat = ahead;
-      return;
-    }
-    const beat = 60 / p.bpm;
-    let n = 0;
-    while (g.nextBeat < ahead && n++ < 8) {
-      const t0 = Math.max(now, g.nextBeat);
-      // a heartbeat: the second beat of each pair softer
-      const lvl = 0.16 * p.pulse * (g.chordIx % 2 === 0 && Math.round(t0 / beat) % 2 ? 0.6 : 1);
-      g.pulseOsc.frequency.setValueAtTime(96, t0);
-      g.pulseOsc.frequency.exponentialRampToValueAtTime(52, t0 + 0.18);
-      g.pulseEnv.gain.setValueAtTime(0, t0);
-      g.pulseEnv.gain.linearRampToValueAtTime(lvl, t0 + 0.02);
-      g.pulseEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + Math.min(0.5, beat * 0.8));
-      g.pulseEnv.gain.setValueAtTime(0, t0 + Math.min(0.52, beat * 0.82));
-      g.nextBeat = t0 + beat;
-    }
+    setTimeout(() => {
+      g.audio.pause();
+      g.audio.removeAttribute('src');
+      g.audio.load();
+      void g.ctx.close().catch(() => undefined);
+    }, FADE * 1000 + 200);
   }
 }
