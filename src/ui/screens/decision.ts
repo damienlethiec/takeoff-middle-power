@@ -69,8 +69,7 @@ function summaryHtml(pv: PreviewView | null, picks: number): string {
   return `<h3 class="dec-k">If you confirm <span class="sr-only">${picks === 1 ? 'this card' : `these ${picks} cards`}</span></h3>
     ${pv.ok ? '' : `<p class="bad-text">${esc(pv.reason ?? '')}</p>`}
     <div class="dec-line"><ul class="imps compact">${pv.impacts.length ? pv.impacts.map(impactLine).join('') : '<li class="imp flat">No gauge moves right away.</li>'}</ul>
-    ${world}</div>
-    ${pv.notes.length ? `<p class="dec-notes">${pv.notes.map(esc).join(' ')}</p>` : ''}`;
+    ${world}</div>`;
 }
 
 export async function showDecision(e: EngineApi, s: GameState, date: string): Promise<DecisionResult> {
@@ -86,6 +85,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string): Pr
      <ul class="hand" aria-label="Your cards" data-coach="hand"></ul>
      <div class="dec-bar">
        <section class="dec-sum" id="dec-sum" aria-label="Combined effect"></section>
+       <p class="dec-notes" id="dec-notes"></p>
        <div class="dec-btns">
          <button type="button" class="btn-quiet" data-action="map" data-escape>Back to the map</button>
          <button type="button" class="btn-quiet" data-action="none" id="dec-none">Play no card</button>
@@ -96,6 +96,13 @@ export async function showDecision(e: EngineApi, s: GameState, date: string): Pr
   );
   const handEl = m.el.querySelector<HTMLElement>('.hand')!;
   const sumEl = m.el.querySelector<HTMLElement>('#dec-sum')!;
+  const notesEl = m.el.querySelector<HTMLElement>('#dec-notes')!;
+  /** The combined effect, and its notes beside the buttons (one line each where the screen has room). */
+  const showSummary = () => {
+    const pv = picks.length ? e.preview(s, picks) : null;
+    sumEl.innerHTML = summaryHtml(pv, picks.length);
+    notesEl.textContent = pv?.notes.join(' ') ?? '';
+  };
   const ok = m.el.querySelector<HTMLButtonElement>('#dec-ok')!;
 
   /** The hand as it would be after the picks so far: what is still affordable, what is locked. */
@@ -118,13 +125,13 @@ export async function showDecision(e: EngineApi, s: GameState, date: string): Pr
     const cost = picks.reduce((a, p) => a + (hand.find((c) => c.id === p.id)?.cost ?? 0), 0);
     ok.innerHTML = picks.length ? `Confirm ${picks.length === 1 ? 'this card' : `these ${picks.length} cards`} (${cost} Influence) <kbd>Enter</kbd>` : 'Pick a card first';
     ok.disabled = !picks.length;
-    sumEl.innerHTML = summaryHtml(picks.length ? e.preview(s, picks) : null, picks.length);
+    showSummary();
     handEl.querySelectorAll<HTMLInputElement>('input[type=radio]').forEach((r) =>
       r.addEventListener('change', () => {
         const id = r.name.replace(/^opt-/, '');
         const p = picks.find((x) => x.id === id);
         if (p) p.option = r.value;
-        sumEl.innerHTML = summaryHtml(e.preview(s, picks), picks.length);
+        showSummary();
       }),
     );
     if (refocus) handEl.querySelector<HTMLElement>(refocus)?.focus({ preventScroll: true });
