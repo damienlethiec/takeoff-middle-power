@@ -87,8 +87,16 @@ async function closeDialog(page: Page, side: 'left' | 'right' = 'left') {
   if (await d.locator('.req-card.asking').count()) {
     // the tip can still arrive while we click: then close it on the next pass
     if (!(await d.locator(`.ans-${side}`).click({ timeout: 3000 }).then(() => true, () => false))) return 'retry';
-    await until(page, () => expect(d.locator('.reaction')).toBeVisible({ timeout: 100 }));
-    await d.getByRole('button', { name: /^Back to the six months/ }).click();
+    // the request's tip waits two frames after the card opens, so it can also open just after the click, stacked
+    // over the request (which goes inert): close it, then read the reaction in the request's own dialog
+    const req = page.locator('.overlay:not(.leaving) .modal.request').last();
+    const tipOpen = () => page.locator('.overlay.coach-ov:not(.leaving)').count();
+    await until(page, async () => {
+      if (await tipOpen()) await page.keyboard.press('Enter');
+      expect(await tipOpen()).toBe(0);
+      await expect(req.locator('.reaction')).toBeVisible({ timeout: 100 });
+    });
+    await req.getByRole('button', { name: /^Back to the six months/ }).click();
     return 'request';
   }
   const choice = d.locator('.choice').first();
