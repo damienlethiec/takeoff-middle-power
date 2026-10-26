@@ -584,7 +584,7 @@ export class App {
           <p class="hl-text" id="hl-text" aria-hidden="true"></p>
           <p class="sr-only" id="hl-words"></p>
           <span class="hl-badge" id="hl-badge"></span>
-          <button type="button" class="btn-link hl-why" data-worlds aria-label="Why? What this world means, the five worlds, and how to change course">Why?</button>
+          <span class="hl-sep" aria-hidden="true">·</span><button type="button" class="btn-link hl-why" data-worlds aria-label="Why? What this world means, the five worlds, and how to change course">Why?</button>
           <p class="heading-why" id="heading-why"></p>
         </section>
         <section class="theatre" aria-labelledby="map-h">
@@ -901,11 +901,12 @@ export class App {
     // Europe's AI picks the world if AI never tips: its badge always ends the line (and previews a selection)
     const badge = $('#hl-badge', this.root);
     const ai = pv?.impacts.some((i) => i.key === 'europeAi') ? (this.s.europeAi === 'open' ? 'dependent' : 'open') : this.s.europeAi;
-    const bsig = `${this.s.europeAi}>${ai}`;
+    const plateau = h.plateau && now.plateau;
+    const bsig = `${this.s.europeAi}>${ai}${plateau ? ':plateau' : ''}`;
     if (badge.dataset.v !== bsig) {
       const hadFocus = badge.contains(document.activeElement);
       badge.dataset.v = bsig;
-      badge.innerHTML = bsig ? badgeHtml(ai, this.s.europeAi) : '';
+      badge.innerHTML = badgeHtml(ai, this.s.europeAi, plateau);
       if (hadFocus) badge.querySelector<HTMLElement>('[data-badge]')?.focus({ preventScroll: true });
     }
   }

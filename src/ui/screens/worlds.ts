@@ -1,6 +1,7 @@
 // "Why?" (from the line under the gauges): what the world you are heading for means and how to change course,
 // then the five worlds in a few lines each, a small diagram of how the game picks one (US–China cooperation
-// zones if AI tips, Europe's AI badge if it stalls), what decides each, and sources.
+// zones if AI tips, Europe's AI badge if it stalls), Europe's AI explained (what it means, the worlds and
+// endings it leads to, what changes it), what decides each world, and sources.
 
 import { GAUGE_LABEL } from '../../data/copy';
 import { ENDING_BY_ID, WORLDS } from '../../data/endings';
@@ -49,12 +50,20 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
          ${ai ? `<p>Europe’s AI is <b>${ai === 'open' ? 'Open' : 'Dependent'}</b>: it decides the world if AI never tips (a plateau with ${ai === 'open' ? 'open models' : 'big labs'}).</p>` : ''}
        </section>`
     : '';
+  const ending = (w: WorldId, k: 'good' | 'bad') => `<i>${esc(ENDING_BY_ID[WORLDS[w][k]].title)}</i>`;
+  const badge = `<section class="wd-ai" aria-labelledby="wd-ai-h">
+       <h3 id="wd-ai-h">Europe’s AI: Open or Dependent</h3>
+       <p>Does Europe run AI models it controls (Open), or rely on a few big labs (Dependent)?${ai ? ` Today it is <b>${ai === 'open' ? 'Open' : 'Dependent'}</b>.` : ''}</p>
+       <p>It decides the world if AI never reaches the tipping point. Open leads to a plateau with open models: ${ending('plateau_open', 'good')} or ${ending('plateau_open', 'bad')}. Dependent leads to a plateau with big labs: ${ending('plateau_labs', 'good')} or ${ending('plateau_labs', 'bad')}.</p>
+       <p>What changes it: funding open models, or backing open developers when they ask, makes it Open. Weight security standards, deals with the big labs, or giving in to their pressure make it Dependent.</p>
+     </section>`;
   const m = openModal(
     `<div class="dateline">${h ? 'Why this world' : 'The five worlds'}</div>
      <h2>Where the world can go</h2>
      <p class="why">The game ends when AI reaches the tipping point, or in late 2032. What the world looks like then decides how hard a good ending is: the calmer the world, the lower the bar.</p>
      ${now}
      ${diagram}
+     ${badge}
      <ul class="worlds-list">${items}</ul>
      <p class="muted small">Built on ${link(SOURCES.cfg)} (the five worlds and their ten endings) and ${link(SOURCES.ai2027)}. Which world follows from which gauge is the game’s reading of these scenarios.</p>
      <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">Close <kbd>Esc</kbd></button></div>`,

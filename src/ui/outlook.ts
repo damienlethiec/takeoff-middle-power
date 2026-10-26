@@ -57,9 +57,12 @@ function lineMoves(h: HeadingView, before: HeadingView): boolean {
 
 export const BADGE_HINT = 'Decides the world if AI never tips';
 
-/** Europe's AI badge, a small chip at the end of the line: Open or Dependent, a button that explains it. */
-export function badgeHtml(ai: 'open' | 'dependent', from?: 'open' | 'dependent'): string {
+/**
+ * Europe's AI badge at the end of the line, a one-line chip like the world's: "· If AI stalls: [Europe’s AI:
+ * Dependent]" (on a plateau, where it already decides: "· decided by [...]"). A button that explains it.
+ */
+export function badgeHtml(ai: 'open' | 'dependent', from?: 'open' | 'dependent', plateau = false): string {
   const word = (x: string) => (x === 'open' ? 'Open' : 'Dependent');
   const moved = from && from !== ai ? `<span class="badge-was">${word(from)} →</span> ` : '';
-  return `<button type="button" class="badge-btn ${ai}" data-badge data-coach="badge" title="${BADGE_HINT}"><span class="badge-k">Europe’s AI</span> ${moved}<b>${word(ai)}</b>${moved ? '<span class="sr-only"> if you confirm</span>' : ''}<span class="sr-only">. ${BADGE_HINT}: what this means</span></button>`;
+  return `<span class="hl-sep" aria-hidden="true">·</span> <span class="hl-stall">${plateau ? 'decided by' : 'If AI stalls:'}</span> <button type="button" class="badge-btn ${ai}" data-badge data-coach="badge" title="${BADGE_HINT}"><span class="badge-k">Europe’s AI:</span> ${moved}<b>${word(ai)}</b>${moved ? '<span class="sr-only"> if you confirm</span>' : ''}<span class="sr-only">. ${BADGE_HINT}: what this means</span></button>`;
 }
