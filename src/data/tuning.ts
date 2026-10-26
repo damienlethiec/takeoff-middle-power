@@ -38,12 +38,13 @@ export const TUNING = {
     truth: -1,
     truthHighPower: 60,
     /** The labs' reports push the reported value up each round; the uncertainty widens by as much (the low end stays). */
-    labReports: 2,
+    labReports: 1,
   },
 
-  /** AI safety (v4): the uncertainty lies only below the reported value. No upper cap but the low end stays ≥ 0
-   *  (v3 capped it at 30; with the labs' reports widening it each round, a cap would lift the low end unchecked). */
-  confidence: { minMargin: 3, maxMargin: 100 },
+  /** AI safety (v4): the uncertainty lies only below the reported value, between these bounds. The cap keeps
+   *  "could be as low as" meaningful; it rarely binds for a player who builds oversight (the labs' reports widen
+   *  the band by `drift.labReports` a round, opaque reasoning by `threats.opaque.marginFactor`). */
+  confidence: { minMargin: 3, maxMargin: 40 },
 
   /** "At this pace" on the capabilities gauge, from public values only (the last rise): the range of rounds
    *  left to the tipping point is (gap / last rise) × these factors. Low under 1 because AI speeds up AI. */
@@ -55,7 +56,7 @@ export const TUNING = {
   /** Requests (v4): characters who arrive during the six months. 6 to 10 a game, at most one a round
    *  (two when a follow-up is due). `chance` is the share of other rounds that get one; `minRate` keeps the
    *  count up (a request is forced when fewer than round × minRate have come). */
-  requests: { maxPerGame: 10, chance: 0.6, minRate: 0.6, firstRound: 1 },
+  requests: { maxPerGame: 10, chance: 0.6, minRate: 0.9, firstRound: 1 },
 
   influence: { base: 2, highCohesion: 60, lowCohesion: 35, coalitionLevel: 2, cap: 10, minIncome: 1 },
 
@@ -105,7 +106,7 @@ export const TUNING = {
     /** Theft pressure = AI power + (50 − Cooperation) × coopWeight. Stages at these pressures. */
     theft: { coopWeight: 0.4, stages: [28, 36, 42], unprepared: { aiPower: 5, cooperation: -15 }, prepared: { cooperation: -3 } },
     /** Opaque reasoning: AI power stages, after the theft. */
-    opaque: { stages: [45, 50, 55], marginFactor: 2 },
+    opaque: { stages: [45, 50, 55], marginFactor: 1.5 },
     /** AI incident: AI power stages, after opaque reasoning; strike chance per round at stage 3 depends on hidden safety. */
     incident: {
       stages: [52, 57, 62],

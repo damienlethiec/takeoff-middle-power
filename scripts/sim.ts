@@ -43,6 +43,12 @@ for (const strat of STRATEGIES) {
   console.log(
     `at the end: Cooperation ${avg((x) => x.final.finalCooperation ?? x.final.cooperation)} · Confidence true ${avg((x) => x.final.confidence.truth)} / shown ${avg((x) => x.final.confidence.estimate)} ± ${avg((x) => x.final.confidence.margin)} · Cohesion ${avg((x) => x.final.cohesion)} · Influence left ${avg((x) => x.final.influence)} · short of Influence ${avg((x) => x.shortages)}×`,
   );
+  const reqs = res.map((x) => x.requests);
+  const margins = res.map((x) => x.final.confidence.margin).sort((a, b) => a - b);
+  const q = (p: number) => margins[Math.floor(p * (N - 1))];
+  console.log(
+    `requests: ${avg((x) => x.requests)} a game (${Math.min(...reqs)}–${Math.max(...reqs)}) · AI safety uncertainty at the end p50 ${q(0.5)} / p90 ${q(0.9)}, at the cap (${TUNING.confidence.maxMargin}) ${pct(margins.filter((m) => m >= TUNING.confidence.maxMargin).length, N)}`,
+  );
   const ev = (id: string) => res.filter((x) => x.final.threats[id as 'theft'].struck);
   console.log(
     `threats struck (prepared): ${['theft', 'opaque', 'incident', 'ransomware', 'blackmail'].map((t) => `${t} ${pct(ev(t).length, N)} (${pct(ev(t).filter((x) => x.final.threats[t as 'theft'].prepared).length, Math.max(1, ev(t).length))})`).join(', ')}`,
@@ -59,6 +65,9 @@ const total = [...plays.values()].reduce((a, b) => a + b, 0);
 const [topCard, topN] = [...plays].sort((a, b) => b[1] - a[1])[0];
 const earliest = Math.min(...STRATEGIES.flatMap((st) => all.get(st.name)!.filter((x) => x.final.tipping).map((x) => x.final.tipping!.round)));
 const g = (n: string) => share.get(n)!;
+const reqCounts = STRATEGIES.flatMap((st) => all.get(st.name)!.map((x) => x.requests));
+const thMargins = th.map((x) => x.final.confidence.margin).sort((a, b) => a - b);
+const thMedianMargin = thMargins[Math.floor((thMargins.length - 1) / 2)];
 const checks: [string, boolean, string][] = [
   ['passive good endings < 15%', g('passive') < 0.15, pct(g('passive'), 1)],
   ['random good endings 15–30%', g('random') >= 0.15 && g('random') <= 0.3, pct(g('random'), 1)],
@@ -67,6 +76,9 @@ const checks: [string, boolean, string][] = [
   ['cooperation-only clearly worse than thoughtful (−20 pts)', g('thoughtful') - g('cooperation-only') >= 0.2, `${pct(g('cooperation-only'), 1)} vs ${pct(g('thoughtful'), 1)}`],
   ['home-first (no diplomacy) clearly worse than thoughtful (−15 pts)', g('thoughtful') - g('home-first') >= 0.15, `${pct(g('home-first'), 1)} vs ${pct(g('thoughtful'), 1)}`],
   ['thoughtful: no card above 20% of its plays', topN / total <= 0.2, `${topCard} ${pct(topN, total)}`],
+  ['saving Influence for a burst no better than thoughtful', g('saver') <= g('thoughtful'), `${pct(g('saver'), 1)} vs ${pct(g('thoughtful'), 1)}`],
+  ['6–10 requests a game (≥ 99.5% of games)', reqCounts.filter((n) => n >= 6 && n <= 10).length >= 0.995 * reqCounts.length, `${pct(reqCounts.filter((n) => n >= 6 && n <= 10).length, reqCounts.length)} (${Math.min(...reqCounts)}–${Math.max(...reqCounts)})`],
+  ['thoughtful: AI safety uncertainty at the end ≤ 30 (median)', thMedianMargin <= 30, `±${thMedianMargin}`],
   [`tipping point never before round ${TUNING.earliestTipping}`, earliest >= TUNING.earliestTipping, `earliest round ${earliest}`],
 ];
 console.log('\n=== targets ===');

@@ -3,6 +3,7 @@
 // the threats and the advisor. Never the hidden truth or the pace.
 
 import { GAUGE_LABEL } from '../src/data/copy';
+import { TUNING } from '../src/data/tuning';
 import { advisor, answerRequest, createInitialState, endRound, gauges, hand, heading, playCard, preview, request, resolveEvent, startRound, threats } from '../src/engine/index';
 import { pick, randomInt, seedToRng, type RngHolder } from '../src/engine/rng';
 import type { CardId, GameState, Pick, RequestView, Side } from '../src/engine/types';
@@ -265,4 +266,15 @@ export const homeFirst: Strategy = {
   blackmail: () => 'hold_firm',
   answer: (_s, v) => (chipValue(v, 'right', { coop: 0.05, conf: 0.4, coh: 1 }) > chipValue(v, 'left', { coop: 0.05, conf: 0.4, coh: 1 }) ? 'right' : 'left'),
 };
-export const STRATEGIES = [passive, randomStrategy, thoughtful, cooperationOnly, homeFirst, advised];
+/**
+ * Saves Influence for a big burst (v4 has no cap on cards a round): plays nothing until Influence is nearly at
+ * its cap, or the tipping point looks close, then plays like the thoughtful player. Answers requests the same way.
+ */
+export const saver: Strategy = {
+  name: 'saver',
+  decide: (s, r) => (s.influence >= TUNING.influence.cap - 1 || s.aiPower >= 70 || s.round >= TUNING.rounds - 1 ? thoughtful.decide(s, r) : []),
+  blackmail: thoughtful.blackmail,
+  answer: thoughtfulAnswer,
+};
+
+export const STRATEGIES = [passive, randomStrategy, thoughtful, cooperationOnly, homeFirst, advised, saver];

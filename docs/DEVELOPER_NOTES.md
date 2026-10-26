@@ -93,6 +93,17 @@ Simulation: `npm run sim`, 2,000 seeded games per strategy (`scripts/strategies.
 | Pace weights | (first value 30% / 40% / 30%) | 40% / 33% / 27% | Same reason: plateau worlds are the calmest (CFG: a plausible scenario). |
 | Random strategy | 0–2 cards a round | 1–2 cards a round | A naive human clicks a card most rounds; with 0 the "random" player left half its Influence unspent. |
 
+## Tuning changes for v4
+
+v4 changed three rules (requests, no cap on cards a round, AI safety uncertainty only downward); these are the numbers retuned after them. Simulation as above, plus a `saver` strategy (keeps its Influence for a burst, then plays like the thoughtful player) and two new checks: 6–10 requests a game, and the thoughtful player's AI safety uncertainty at the end (median ≤ 30).
+
+| Change | Old | New | Why | Result |
+| --- | --- | --- | --- | --- |
+| Uncertainty cap (`confidence.maxMargin`) | 100 (stopgap; 30 in v3) | 40 | With no real cap the band grew all game (thoughtful ±31 median, ±73 at p90; passive ±74): "could be as low as" fell toward 0 and said nothing. | Thoughtful ±24 median; the cap binds mostly for players who build no oversight (passive, cooperation-only). |
+| Labs' reports (`drift.labReports`) | +2 a round (reported value and uncertainty) | +1 | At +2 the reports alone widened the band by 24 over a game, more than any oversight card could narrow. | Together with the two rows around it: thoughtful 75.3% (was 78.1%). |
+| Opaque reasoning, unprepared (`threats.opaque.marginFactor`) | × 2 | × 1.5 | Doubling a band that only goes downward made it absurd (±30 → ±60) late in the game. | |
+| Forced requests (`requests.minRate`) | 0.6 | 0.9 | Short games (tipping point in round 6 or 7) got only 5 requests in 2–3% of games. | 6–10 in all but 2 of 14,000 games (5, a tipping point in round 6 with no request in round 1). |
+
 ## Final simulation (2,000 games per strategy)
 
 | Strategy | Good endings | Notes |
