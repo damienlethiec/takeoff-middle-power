@@ -2,6 +2,7 @@
 // Game devices (thresholds, costs) are not content and need no basis.
 
 import { describe, expect, it } from 'vitest';
+import { ai2027, cfg, game, provenanceOf, real } from '../src/data/basis';
 import { CARDS } from '../src/data/cards';
 import { ENDINGS } from '../src/data/endings';
 import { ALL_LETTERS, EPILOGUE_BASIS, EPILOGUES } from '../src/data/letters';
@@ -11,13 +12,14 @@ import { MILESTONES } from '../src/data/milestones';
 import { EVENTS, THREATS } from '../src/data/threats';
 import type { Basis, EndingId } from '../src/engine/types';
 
-const KINDS = ['ai2027', 'cfg', 'real'];
+const KINDS = ['ai2027', 'cfg', 'real', 'game'];
 function check(what: string, b: Basis | undefined) {
   expect(b, `${what} has no basis`).toBeTruthy();
   expect(KINDS, `${what}: unknown basis kind`).toContain(b!.kind);
   expect(b!.ref.trim().length, `${what}: empty basis ref`).toBeGreaterThan(8);
   if (b!.kind === 'ai2027') expect(b!.ref).toMatch(/^AI 2027, /);
   if (b!.kind === 'cfg') expect(b!.ref).toMatch(/^CFG, /);
+  if (b!.kind === 'game') expect(b!.ref).toMatch(/^Game device: /);
 }
 
 describe('every piece of content has a basis', () => {
@@ -37,6 +39,15 @@ describe('every piece of content has a basis', () => {
   it('the test itself fails on content without a basis', () => {
     expect(() => check('broken', undefined)).toThrow();
     expect(() => check('broken', { kind: 'ai2027', ref: '' })).toThrow();
+  });
+});
+
+describe('provenance tag', () => {
+  it('maps every basis kind to its tag', () => {
+    expect(provenanceOf(ai2027('March 2027')).label).toBe('From AI 2027');
+    expect(provenanceOf(cfg('Diplomacy')).label).toBe('From CFG');
+    expect(provenanceOf(real('aiOffice')).label).toBe('Real');
+    expect(provenanceOf(game('an audit')).label).toBe('Invented');
   });
 });
 

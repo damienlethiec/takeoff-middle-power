@@ -29,7 +29,7 @@ const KIND = (v: RequestView) =>
 
 function requestHtml(v: RequestView, date: string): string {
   const kind = KIND(v);
-  const basis = v.basis.kind === 'ai2027' ? 'AI 2027' : v.basis.kind === 'cfg' ? 'the CFG scenarios' : 'the real world today';
+  const basis = v.basis.kind === 'ai2027' ? 'AI 2027' : v.basis.kind === 'cfg' ? 'the CFG scenarios' : v.basis.kind === 'game' ? 'a device of the game' : 'the real world today';
   return `<div class="req-card asking c-${v.character.id}" data-coach="request">
     <div class="req-top"><span class="dateline">${esc(date)} · Request${v.count > 1 ? ` ${v.index} of ${v.count}` : ''}</span>${kind ? `<span class="req-kind k-${v.kind}">${esc(kind)}</span>` : ''}</div>
     <div class="req-who">${portrait(v.character.id, 'worried')}<div><h2 id="req-name" tabindex="-1" data-autofocus>${esc(v.character.name)}</h2><p class="req-role">${esc(v.character.role)}</p></div></div>

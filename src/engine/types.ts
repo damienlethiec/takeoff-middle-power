@@ -64,9 +64,10 @@ export interface Source {
   url: string;
 }
 
-/** Where a piece of content comes from: a scenario section, or a real source. Required on all content. */
+/** Where a piece of content comes from: a scenario section, a real source, or a game device ('game': invented for
+ *  the game, e.g. the independent audit). Required on all content. Players see it as a tag (provenanceOf in src/data/basis.ts). */
 export interface Basis {
-  kind: 'ai2027' | 'cfg' | 'real';
+  kind: 'ai2027' | 'cfg' | 'real' | 'game';
   ref: string;
 }
 
