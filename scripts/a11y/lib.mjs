@@ -1,6 +1,8 @@
 // Shared helpers for the accessibility checks: a dev server, a browser page with a fake clock, axe.
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -18,11 +20,19 @@ export function loadPlaywright() {
   }
 }
 
-/** Start `vite` on a port, or reuse A11Y_URL. Returns the game URL and a stop() that kills the server's pid. */
+/**
+ * Build the game and serve the production build (with its Content-Security-Policy) on a port, or reuse A11Y_URL.
+ * The dev server is not used: under Playwright's fake clock it can leave the page's text unstyled for a while.
+ * Returns the game URL and a stop() that kills the server's pid.
+ */
 export async function startServer(port) {
   if (process.env.A11Y_URL) return { url: process.env.A11Y_URL, stop() {} };
   const url = `http://localhost:${port}/takeoff-middle-power/`;
-  const child = spawn(process.execPath, [path.join(ROOT, 'node_modules/vite/bin/vite.js'), '--port', String(port), '--strictPort'], {
+  const vite = path.join(ROOT, 'node_modules/vite/bin/vite.js');
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'takeoff-build-'));
+  const built = spawnSync(process.execPath, [vite, 'build', '--logLevel', 'warn', '--outDir', outDir, '--emptyOutDir'], { cwd: ROOT, encoding: 'utf8' });
+  if (built.status !== 0) throw new Error(`vite build failed:\n${built.stdout}${built.stderr}`);
+  const child = spawn(process.execPath, [vite, 'preview', '--port', String(port), '--strictPort', '--outDir', outDir], {
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -45,7 +55,8 @@ export async function startServer(port) {
 
 /** A page with no web fonts (hermetic), a fake clock and an error log. */
 export async function newPage(browser, { reducedMotion = 'no-preference', viewport = { width: 1280, height: 800 } } = {}) {
-  const context = await browser.newContext({ viewport, reducedMotion });
+  // bypassCSP: the production build's policy would block injecting axe
+  const context = await browser.newContext({ viewport, reducedMotion, bypassCSP: true });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));

@@ -1,5 +1,5 @@
 // Accessibility check (v4): plays whole games with the keyboard alone (no mouse) and runs axe on every screen.
-//   npm run a11y                      starts vite on port 5176 and stops it at the end
+//   npm run a11y                      builds the game, serves the build on port 5176 (A11Y_PORT) and stops it at the end
 //   A11Y_URL=http://localhost:5173/takeoff-middle-power/ npm run a11y   reuses a running server
 //   A11Y_SHOTS=/some/dir npm run a11y  also saves a screenshot of each screen
 // Runs: seed 9 (fast pace, tipping point) at 1280×800 with the intro and the tutorial; seed 3 (slow pace,
