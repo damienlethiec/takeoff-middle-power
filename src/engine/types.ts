@@ -184,6 +184,9 @@ export interface RequestCard {
   opportunity?: { window: number };
   /** draw weight (default 1) */
   weight?: number;
+  /** false: not first in line in the round its milestone is reached (for a request that would otherwise come in
+   *  nearly every game at that milestone) */
+  priority?: boolean;
 }
 
 export interface RequestState {
@@ -268,6 +271,9 @@ export interface MapItem {
   text: string;
   at: number;
   basis: Basis;
+  /** Where a voice comes from when it is outside Europe, the US and China ("India"): the feed says "Heard in India";
+   *  the map groups it with the nearest region. */
+  place?: string;
 }
 
 export interface Leak {
@@ -436,6 +442,10 @@ export interface GameState {
   /** v4 social events: every one so far (never twice a game) and this round's. */
   social: { done: string[]; round: SocialRecord[] };
   tipping: { round: number } | null;
+  /** The ids of the news, letters, social events and requests seen in the player's last two finished games
+   *  (from localStorage, passed to createInitialState): drawn with a lower weight so the next game differs.
+   *  Empty in the seeded simulation. Never moves a gauge by itself. */
+  recent: string[];
   ending: EndingId | null;
   /** Cooperation zone at the end (after the small suspense draw at the tipping point). */
   finalCooperation: number | null;

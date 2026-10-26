@@ -16,7 +16,7 @@ import { EVENTS, THREAT_BY_ID, THREATS } from '../data/threats';
 import { JOB_SHOCK_PLACE, SOCIAL_BY_ID, SOCIAL_EVENTS, SOCIAL_WORD, WORKER_ANSWERS, type SocialEventDef } from '../data/social';
 import { TUNING as T } from '../data/tuning';
 import type { EngineApi } from './api';
-import { pick, random, randomInt, seedToRng, shuffle, weightedPick, type RngHolder } from './rng';
+import { random, randomInt, seedToRng, weightedOrder, weightedPick, type RngHolder } from './rng';
 import type {
   AdvisorView,
   Answer,
@@ -223,7 +223,7 @@ function recordChanges(s: GameState, a: Snapshot, b: Snapshot, cause: string, by
 
 // ---------------------------------------------------------------- creation
 
-export function createInitialState(seed: number): GameState {
+export function createInitialState(seed: number, opts: { recent?: string[] } = {}): GameState {
   const h: RngHolder = { rng: seedToRng(seed) };
   const pace = weightedPick(h, T.pace.weights);
   const leakRounds: number[] = [];
@@ -272,6 +272,7 @@ export function createInitialState(seed: number): GameState {
     requests: { done: [], pending: [], round: [], later: [], opened: {} },
     social: { done: [], round: [] },
     tipping: null,
+    recent: [...(opts.recent ?? [])],
     ending: null,
     finalCooperation: null,
   };
@@ -391,7 +392,7 @@ function socialEvents(s: GameState) {
     const pool = SOCIAL_EVENTS.filter((e) => !s.social.done.includes(e.id) && (!e.when || e.when(w)));
     if (!pool.length) return;
     const bad = (e: SocialEventDef) => e.effects.some((x) => x.dir < 0);
-    const weights = Object.fromEntries(pool.map((e) => [e.id, bad(e) ? 1 + u * S.badPerUnrest : S.goodBase + prot * S.goodPerProtection])) as Record<string, number>;
+    const weights = Object.fromEntries(pool.map((e) => [e.id, (bad(e) ? 1 + u * S.badPerUnrest : S.goodBase + prot * S.goodPerProtection) * recentWeight(s, e.id)])) as Record<string, number>;
     const def = SOCIAL_BY_ID[weightedPick(hs, weights)];
     const a = snap(s);
     applyFx(s, socialFx(s, def));
@@ -565,14 +566,35 @@ function publicWorld(s: GameState): PublicWorld {
     coalition: s.coalition,
     jobShocks: s.jobShocks,
     threatsSeen: THREAT_IDS.filter((t) => s.threats[t].stage > 0),
+    inspections: s.inspections,
+    flags: [...s.flags],
+    played: CARDS.map((c) => c.id).filter((id) => used(s, id)),
+    struck: THREAT_IDS.filter((t) => s.threats[t].struck),
+    prepared: THREAT_IDS.filter((t) => s.threats[t].struck && !!s.threats[t].prepared),
+    milestones: s.milestones.map((m) => m.id),
+    answers: Object.fromEntries(s.requests.done.map((d) => [d.id, d.side])),
   };
 }
 
-/** Lines used in the last few rounds are not repeated. */
-function fresh(s: GameState, pool: MapLine[], kind: 'headlines' | 'voices'): MapLine[] {
-  const recent = new Set(s.history.slice(-4).flatMap((r) => r[kind].map((x) => x.id)));
+/** The draw weight of an item seen in the player's last two games (never 0), else 1. */
+const recentWeight = (s: GameState, id: string) => (s.recent?.includes(id) ? T.news.recentWeight : 1);
+
+/**
+ * This round's candidate headlines or voices, in the order to use them: never one already used this game; lines
+ * that echo the player's decisions first (a few a game), then a weighted random order where the lines seen in the
+ * last two games weigh less. Drawn from their own seeded stream, so news never shifts the game's other draws.
+ */
+function newsOrder(s: GameState, pool: MapLine[], kind: 'headlines' | 'voices', h: RngHolder): MapLine[] {
+  const used = new Set([...s.history.flatMap((r) => r[kind].map((x) => x.id)), ...s[kind].map((x) => x.id)]);
+  const echoed = s.history.flatMap((r) => r[kind]).filter((x) => pool.some((l) => l.id === x.id && l.echo)).length;
   const w = publicWorld(s);
-  return pool.filter((l) => (!l.when || l.when(w)) && !recent.has(l.id));
+  const order = weightedOrder(
+    h,
+    pool.filter((l) => !used.has(l.id) && (!l.when || l.when(w))),
+    (l) => recentWeight(s, l.id),
+  );
+  const first = order.filter((l) => l.echo).slice(0, Math.max(0, (kind === 'voices' ? T.news.echoVoices : T.news.echoHeadlines) - echoed));
+  return [...first, ...order.filter((l) => !first.includes(l))];
 }
 
 function arrive(s: GameState) {
@@ -601,6 +623,8 @@ function letterFor(s: GameState): LetterDef | null {
   const friend = L.schedule[at].friend;
   const nth = L.schedule.slice(0, at).filter((x) => x.friend === friend).length;
   const h: RngHolder = { rng: seedToRng((s.seed >>> 0) ^ Math.imul(s.round, 0x9e3779b1)) };
+  // a variant seen in the last two games weighs less (with no memory this is the plain uniform draw it always was)
+  const pick = (_: RngHolder, pool: LetterDef[]) => pool[Number(weightedPick(h, Object.fromEntries(pool.map((l, i) => [String(i), recentWeight(s, l.id)]))))];
   const verified = lowEnd(s.confidence);
   if (friend === 'lea') {
     if (nth === 0) return pick(h, LEA_FIRST);
@@ -700,18 +724,28 @@ export function startRound(state: GameState): GameState {
   const milestoneLines = lines.filter((l) => l.id.startsWith('m_'));
   const threatLines = lines.filter((l) => l.id.startsWith('t_'));
   const heads = [...milestoneLines, ...threatLines.slice(0, Math.max(0, 2 - milestoneLines.length))];
+  // headlines and voices draw from their own stream (from the seed and the round): the game's other draws never depend on them
+  const hn: RngHolder = { rng: seedToRng(s.seed * 6007 + s.round * 9973 + 5) };
   if (heads.length < 2) {
-    const pool = shuffle(h, fresh(s, WORLD_HEADLINES, 'headlines'));
+    const pool = newsOrder(s, WORLD_HEADLINES, 'headlines', hn);
     for (const l of pool.slice(0, heads.length ? 1 : 2 - heads.length)) heads.push({ id: l.id, round: s.round, region: l.region, text: l.text, at: 0, basis: l.basis });
   }
   const slots = [0.12, 0.42, 0.72, 0.85, 0.92];
   s.headlines = heads.map((x, i) => ({ ...x, at: slots[Math.min(i, slots.length - 1)] }));
-  const vpool = shuffle(h, fresh(s, VOICES, 'voices'));
+  // one voice (two from AI capabilities 40): Europe first, then every other round a voice from elsewhere; a voice
+  // that echoes the player's decisions takes the first place
+  const vpool = newsOrder(s, VOICES, 'voices', hn);
   const nv = s.aiPower >= 40 ? 2 : 1;
-  const eu = vpool.filter((v) => v.region === 'eu');
-  const others = vpool.filter((v) => v.region !== 'eu');
-  const voices = [eu[0], nv > 1 ? (s.round % 2 ? others[0] : eu[1]) ?? others[0] : undefined].filter((v): v is MapLine => !!v);
-  s.voices = voices.map((v, i) => ({ id: v.id, round: s.round, region: v.region, text: v.text, at: 0.27 + i * 0.33, basis: v.basis }));
+  const voices: MapLine[] = [];
+  const take = (l: MapLine | undefined) => {
+    if (l && !voices.includes(l)) voices.push(l);
+  };
+  if (vpool[0]?.echo) take(vpool[0]);
+  const eu = () => vpool.find((v) => v.region === 'eu' && !voices.includes(v));
+  const other = () => vpool.find((v) => v.region !== 'eu' && !voices.includes(v));
+  if (!voices.length) take(eu() ?? other());
+  if (nv > 1) take((s.round % 2 ? other() : eu()) ?? other() ?? eu());
+  s.voices = voices.map((v, i) => ({ id: v.id, round: s.round, region: v.region, text: v.text, at: 0.27 + i * 0.33, basis: v.basis, ...(v.place ? { place: v.place } : {}) }));
 
   // 6. a leak, every two or three rounds
   if (s.leakRounds.includes(s.round)) {
@@ -814,12 +848,12 @@ function chooseRequests(s: GameState, h: RngHolder): RequestCard[] {
   const regular = open.filter((r) => !r.followup);
   if (!regular.length || total + out.length >= R.maxPerGame) return out;
   const fresh = new Set(s.milestones.filter((m) => m.round === s.round).map((m) => m.id));
-  const priority = regular.filter((r) => preparesNow(s, r) || (r.when?.milestone !== undefined && fresh.has(r.when.milestone)));
+  const priority = regular.filter((r) => preparesNow(s, r) || (r.priority !== false && r.when?.milestone !== undefined && fresh.has(r.when.milestone)));
   const behind = total + out.length < Math.floor(s.round * R.minRate);
   const roll = random(h);
   if (!priority.length && !behind && roll >= R.chance) return out;
   const pool = priority.length ? priority : regular;
-  const id = weightedPick(h, Object.fromEntries(pool.map((r) => [r.id, r.weight ?? 1])) as Record<string, number>);
+  const id = weightedPick(h, Object.fromEntries(pool.map((r) => [r.id, (r.weight ?? 1) * recentWeight(s, r.id)])) as Record<string, number>);
   out.push(REQUEST_BY_ID[id]);
   return out;
 }
@@ -1700,7 +1734,7 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
     const threat = t ? (t[1] as ThreatId) : null;
     out.push({ ...base, id: h.id, at: h.at, kind: threat ? 'threat' : h.id.startsWith('m_') ? 'milestone' : 'headline', label: threat ? 'Threat' : h.id.startsWith('m_') ? 'AI 2027 milestone' : 'Headline', text: h.text, region: h.region, threat, tone: threat ? -1 : 0 });
   }
-  for (const v of r.voices) out.push({ ...base, id: v.id, at: v.at, kind: 'voice', label: `Heard in ${REGION_NAME[v.region]}`, text: v.text, region: v.region });
+  for (const v of r.voices) out.push({ ...base, id: v.id, at: v.at, kind: 'voice', label: `Heard in ${v.place ?? REGION_NAME[v.region]}`, text: v.text, region: v.region });
   if (r.leak)
     out.push({
       ...base,
@@ -1807,7 +1841,22 @@ export function feed(s: GameState): FeedRound[] {
   }));
 }
 
+/** The ids of this game's headlines, voices, social events, requests and letters (milestones, threat stages,
+ *  Breaking news and leaks follow the scenario and are left out): the next games draw them less often. */
+export function seen(s: GameState): string[] {
+  const rounds = [...s.history, ...(s.history.some((r) => r.round === s.round) || s.round === 0 ? [] : [record(s)])];
+  const ids = rounds.flatMap((r) => [
+    ...r.headlines.filter((x) => !/^(m|t)_/.test(x.id)).map((x) => x.id),
+    ...r.voices.map((x) => x.id),
+    ...(r.social ?? []).map((x) => x.id),
+    ...r.requests.map((x) => x.id),
+    ...(r.letter ? [r.letter] : []),
+  ]);
+  return [...new Set(ids)];
+}
+
 export const engine: EngineApi = {
+  seen,
   createInitialState,
   startRound,
   resolveEvent,

@@ -189,6 +189,13 @@ export const TUNING = {
     softenPerProtection: 1,
     size: { small: 2, medium: 3, large: 4 },
   },
+
+  /** v4.1: variety. Headlines and voices never repeat inside a game. Items the player saw in their last two finished
+   *  games (localStorage `takeoff.recent`, passed to createInitialState) are drawn with `recentWeight` times their
+   *  weight (never 0, so small pools never run dry): headlines, voices, letters, social events and requests. The
+   *  seeded simulation passes no memory. Lines that echo the player's own decisions (`echo` in mapcontent.ts) are
+   *  drawn first, at most `echoVoices` voices and `echoHeadlines` headlines a game. */
+  news: { recentWeight: 0.25, echoVoices: 2, echoHeadlines: 3 },
 } as const;
 
 export type Tuning = typeof TUNING;

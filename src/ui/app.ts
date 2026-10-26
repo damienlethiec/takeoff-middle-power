@@ -27,7 +27,7 @@ import { TUNING } from '../data/tuning';
 import { badgeHtml, headingLineHtml, statusOf } from './outlook';
 import { Feed } from './feed';
 import { Soundtrack } from './sound';
-import { clearSave, forgetAll, readSave, saveLabel, writeSave, type SaveEnvelope, type SaveStage } from './save';
+import { clearSave, forgetAll, readRecent, readSave, rememberGame, saveLabel, writeSave, type SaveEnvelope, type SaveStage } from './save';
 
 const ROUND_MS = 8000;
 /** The start of a friend's letter, for its line in the map's list (the feed has it in full). */
@@ -138,7 +138,7 @@ export class App {
 
   private newGame(seed = (Date.now() % 2147483646) + 1) {
     clearSave();
-    this.start(this.e.createInitialState(seed));
+    this.start(this.e.createInitialState(seed, { recent: readRecent() }));
   }
 
   /**
@@ -210,8 +210,9 @@ export class App {
     this.sound.setPaused(false);
     this.sound.setWorld({ aiPower: this.s.aiPower, cooperation: this.s.cooperation, tipping: !!this.s.tipping, ending: this.e.ending(this.s).good ? 'good' : 'bad' });
     announce(`The game is over: ${this.e.ending(this.s).title}.`);
-    // the ending is on screen: the game is over, nothing left to resume
+    // the ending is on screen: the game is over, nothing left to resume; the next games repeat its news less
     clearSave();
+    rememberGame(this.s.seed, this.e.seen(this.s));
   }
 
   /** One round; `resumed`: the round had already started in a saved game (startRound is not run again). */

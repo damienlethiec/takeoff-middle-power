@@ -52,7 +52,8 @@ import type {
 } from './types';
 
 export interface EngineApi {
-  createInitialState(seed: number): GameState;
+  /** `recent`: ids seen in the player's last two games (see seen()), drawn less often in this one. */
+  createInitialState(seed: number, opts?: { recent?: string[] }): GameState;
   startRound(state: GameState): GameState;
   resolveEvent(state: GameState, choice?: string): GameState;
   /** The next request to answer this round (it comes at its `at` while the clock runs), or null. */
@@ -73,6 +74,9 @@ export interface EngineApi {
   ending(state: GameState): EndingView;
   /** The live feed: every round so far, the current one last; the UI reveals the current round's items at their `at`. */
   feed(state: GameState): FeedRound[];
+  /** The ids of this game's headlines, voices, social events, requests and letters: what the next games should
+   *  repeat less (the UI keeps the last two games' in localStorage, key takeoff.recent). */
+  seen(state: GameState): string[];
   /** "H1 2028" */
   dateLabel(round: number): string;
 }

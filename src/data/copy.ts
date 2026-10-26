@@ -135,7 +135,7 @@ export const HELP = {
   ],
   /** The Privacy section: what the game keeps, and where. The host's statement is linked after the last line. */
   privacy: [
-    'The game keeps your saved game and settings in this browser only.',
+    'The game keeps your saved game, your settings and which news you saw in your last two games (so the next one differs) in this browser only.',
     'Nothing is sent to us or anyone else: no cookies, no tracking.',
     'The site is hosted on GitHub Pages, which, like any host, sees visitors’ IP addresses:',
   ],

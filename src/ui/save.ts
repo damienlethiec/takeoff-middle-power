@@ -128,7 +128,46 @@ export function clearSave(s?: Store) {
  * volume, single-key shortcuts). Other games served from the same origin keep their own keys. A test checks that
  * every `takeoff.` key in src/ui is listed here.
  */
-export const GAME_KEYS = [SAVE_KEY, 'takeoff.v4.tutorial', 'takeoff.sound', 'takeoff.soundVolume', 'takeoff.singleKeyShortcuts'] as const;
+export const GAME_KEYS = [SAVE_KEY, 'takeoff.v4.tutorial', 'takeoff.sound', 'takeoff.soundVolume', 'takeoff.singleKeyShortcuts', 'takeoff.recent'] as const;
+
+/** What the player saw in their last two finished games: { games: [{ seed, ids }] }, newest last. The next game
+ *  draws those headlines, voices, letters, social events and requests less often (TUNING.news.recentWeight). */
+export const RECENT_KEY = 'takeoff.recent';
+const RECENT_GAMES = 2;
+interface RecentStore {
+  games: { seed: number; ids: string[] }[];
+}
+
+function readRecentStore(st: Store | null): RecentStore {
+  try {
+    const raw = st?.getItem(RECENT_KEY);
+    const x = raw ? (JSON.parse(raw) as unknown) : null;
+    if (!x || typeof x !== 'object' || !Array.isArray((x as RecentStore).games)) return { games: [] };
+    const games = (x as RecentStore).games.filter((g) => g && typeof g.seed === 'number' && Array.isArray(g.ids) && g.ids.every((i) => typeof i === 'string'));
+    return { games: games.slice(-RECENT_GAMES) };
+  } catch {
+    return { games: [] };
+  }
+}
+
+/** The ids seen in the last two finished games (empty without storage). */
+export function readRecent(s?: Store): string[] {
+  return [...new Set(readRecentStore(store(s)).games.flatMap((g) => g.ids))];
+}
+
+/** Remember a finished game's ids (once per game: an ending shown again after resuming is not counted twice). */
+export function rememberGame(seed: number, ids: string[], s?: Store): void {
+  const st = store(s);
+  if (!st) return;
+  const cur = readRecentStore(st);
+  if (cur.games.some((g) => g.seed === seed)) return;
+  const games = [...cur.games, { seed, ids: ids.slice(0, 200) }].slice(-RECENT_GAMES);
+  try {
+    st.setItem(RECENT_KEY, JSON.stringify({ games }));
+  } catch {
+    // no storage: the next game simply draws without memory
+  }
+}
 
 /** "Forget my save": remove every key of GAME_KEYS. False when storage is unavailable or a removal failed. */
 export function forgetAll(s?: Store): boolean {

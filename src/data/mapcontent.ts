@@ -1,7 +1,7 @@
 // Headlines and public voices that appear on the map, where they happen. All fiction set after today,
 // each tied to its scenario basis. A predicate picks the ones that fit the public state of the world.
 
-import type { Basis, EuropeAi, RegionId, Zone } from '../engine/types';
+import type { Basis, CardId, EuropeAi, MilestoneId, RegionId, Side, ThreatId, Zone } from '../engine/types';
 import { ai2027, cfg, real } from './basis';
 
 /** What a headline or a voice may depend on: public values only. */
@@ -14,14 +14,33 @@ export interface PublicWorld {
   coalition: number;
   jobShocks: number;
   threatsSeen: string[];
+  /** v4.1: what the player did and what happened, so the news never praises a policy that was refused or cites a
+   *  theft that was foiled. All public: the player saw every one of these. */
+  inspections: number;
+  /** flags set by answers (and by the engine: `pause_call`, `committee_slowdown`, `committee_race`) */
+  flags: string[];
+  /** policy cards played at least once */
+  played: CardId[];
+  /** threats that struck, and those of them Europe was prepared for (a prepared theft is foiled) */
+  struck: ThreatId[];
+  prepared: ThreatId[];
+  milestones: MilestoneId[];
+  /** every request answered so far, by id */
+  answers: Record<string, Side>;
 }
 
 export interface MapLine {
   id: string;
+  /** the map region it is grouped with (for a place outside the three, the nearest) */
   region: RegionId;
+  /** ≤ 90 characters. Fiction shown as news says "In this story" where natural. */
   text: string;
   when?: (w: PublicWorld) => boolean;
   basis: Basis;
+  /** a voice from outside Europe, the US and China: the feed says "Heard in <place>" */
+  place?: string;
+  /** echoes the player's own decision or closes an arc: drawn first when eligible (a few a game, TUNING.news) */
+  echo?: boolean;
 }
 
 export const WORLD_HEADLINES: MapLine[] = [

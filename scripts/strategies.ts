@@ -33,9 +33,10 @@ const playableIds = (s: GameState) => hand(s).filter((c) => c.playable).map((c) 
  *  the history, and the engine clones the whole state on every call, so this keeps the simulation fast. */
 const lite = (s: GameState): GameState => ({ ...s, history: [] });
 
-export function playGame(seed: number, strat: Strategy): PlayedGame {
+export function playGame(seed: number, strat: Strategy, recent?: string[]): PlayedGame {
   const r: RngHolder = { rng: seedToRng(seed * 7919 + 13) };
-  let s = createInitialState(seed);
+  // `recent`: ids seen in the last games (the player's memory, takeoff.recent); the simulation passes none
+  let s = createInitialState(seed, recent ? { recent } : {});
   const plays: CardId[] = [];
   let shortages = 0;
   let requests = 0;

@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { answerRequest, createInitialState, endRound, request, resolveEvent, startRound } from '../src/engine/index';
 import type { GameState } from '../src/engine/types';
-import { GAME_KEYS, SAVE_KEY, SAVE_VERSION, clearSave, decodeSave, encodeSave, forgetAll, readSave, resumeRound, saveLabel, writeSave } from '../src/ui/save';
+import { GAME_KEYS, RECENT_KEY, SAVE_KEY, SAVE_VERSION, clearSave, decodeSave, encodeSave, forgetAll, readRecent, readSave, rememberGame, resumeRound, saveLabel, writeSave } from '../src/ui/save';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dateLabel } from '../src/engine/index';
 import { answerAll, nextRound } from './helpers';
@@ -141,6 +141,31 @@ describe('save and resume', () => {
     expect(saveLabel(env, dateLabel)).toBe('see how it ends');
     clearSave(st);
     expect(readSave(fresh(), st)).toBeNull();
+  });
+});
+
+describe('recently seen (takeoff.recent)', () => {
+  it('keeps the ids of the last two finished games only, once per game', () => {
+    const st = memStore();
+    expect(readRecent(st)).toEqual([]);
+    rememberGame(1, ['a', 'b'], st);
+    rememberGame(1, ['a', 'b', 'c'], st);
+    rememberGame(2, ['c'], st);
+    expect(readRecent(st).sort()).toEqual(['a', 'b', 'c']);
+    rememberGame(3, ['d'], st);
+    expect(readRecent(st).sort()).toEqual(['c', 'd']);
+    expect(JSON.parse(st.getItem(RECENT_KEY)!).games).toHaveLength(2);
+  });
+
+  it('survives a corrupt value or no storage at all', () => {
+    const st = memStore();
+    st.setItem(RECENT_KEY, '{oops');
+    expect(readRecent(st)).toEqual([]);
+    st.setItem(RECENT_KEY, JSON.stringify({ games: [{ seed: 'x', ids: [1] }] }));
+    expect(readRecent(st)).toEqual([]);
+    const blocked = { getItem: () => { throw new DOMException('blocked', 'SecurityError'); }, setItem: () => { throw new DOMException('blocked', 'SecurityError'); }, removeItem: () => {} };
+    expect(readRecent(blocked)).toEqual([]);
+    expect(() => rememberGame(1, ['a'], blocked)).not.toThrow();
   });
 });
 

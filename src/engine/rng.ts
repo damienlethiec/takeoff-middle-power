@@ -62,3 +62,12 @@ export function shuffle<T>(holder: RngHolder, items: readonly T[]): T[] {
   }
   return a;
 }
+
+/** A weighted random order (Efraimidis–Spirakis): each item draws once; heavier items tend to come first.
+ *  Weights must be positive. */
+export function weightedOrder<T>(holder: RngHolder, items: readonly T[], weight: (x: T) => number): T[] {
+  return items
+    .map((x, i) => ({ x, i, k: Math.pow(random(holder), 1 / weight(x)) }))
+    .sort((a, b) => b.k - a.k || a.i - b.i)
+    .map((e) => e.x);
+}

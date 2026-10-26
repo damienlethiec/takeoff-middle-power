@@ -152,6 +152,7 @@ Ideas kept for the final pass, in this order, each checked with `npm run sim` at
 4. Restore the requests test's "rounds without a request" floor from 8% to 10%.
 5. Watch random (15–30%): it sat at the floor (15%) before the switch to ten rounds.
 6. Run the a11y harness (`npm run a11y`) once at the end: its seeded games (3, 4, 9) now play different draws.
+7. **Living world (26 Oct, content pass):** headlines and voices now draw from their own seeded stream (no longer from the game's generator), so every seeded game after round 1 plays different requests and events than before; at 100 games the targets did not move beyond noise (thoughtful 68% → 65%, random 20% → 16%, home-first 59% → 56%). New social events and requests carry provisional sizes (listed below as they land); check them in the final pass.
 
 ## Final simulation (2,000 games per strategy)
 
