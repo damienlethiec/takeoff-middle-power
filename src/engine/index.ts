@@ -38,7 +38,6 @@ import type {
   HeadingView,
   Impact,
   IncomeView,
-  JournalRound,
   LetterView,
   MapItem,
   MilestoneId,
@@ -1561,23 +1560,6 @@ function shortfall(key: GaugeKey, gap: number): string {
   return `${GAUGE_LABEL[key]} needed ${gap} more.`;
 }
 
-export function journal(s: GameState): JournalRound[] {
-  const rounds = [...s.history];
-  if (s.round > 0 && !rounds.some((r) => r.round === s.round)) rounds.push(record(s));
-  const ls = letters(s);
-  return rounds.map((r) => ({
-    round: r.round,
-    date: dateLabel(r.round),
-    headlines: r.headlines.map((x) => x.text),
-    voices: r.voices.map((x) => x.text),
-    event: r.event ? `${r.event.title}${r.event.prepared === null ? '' : r.event.prepared ? ' (prepared)' : ' (unprepared)'}` : null,
-    leak: r.leak ? (r.leak.readable || s.phase === 'ended' ? r.leak.text : 'A leak you could not read (redacted).') : null,
-    changes: r.changes.map((c) => `${c.text}: ${c.cause}`),
-    decisions: r.decisions.map((p) => CARD_BY_ID[p.id].name + (p.option ? ` (${CARD_BY_ID[p.id].options!.find((o) => o.id === p.option)!.label})` : '')),
-    letter: ls.find((l) => l.round === r.round && l.slot !== 'end')?.text ?? null,
-  }));
-}
-
 const REGION_NAME: Record<RegionId, string> = { eu: 'Europe', us: 'the US', cn: 'China' };
 
 /** The feed items of one round, in the order they appeared. */
@@ -1601,9 +1583,9 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
       kind: 'leak',
       label: 'Leak',
       text: r.leak.readable || s.phase === 'ended' ? r.leak.text : 'A leak from inside the labs, redacted: you lack the oversight to read it.',
+      region: 'us',
       // what to do about it, one short line
       detail: r.leak.readable || s.phase === 'ended' ? r.leak.advice : LEAK_REDACTED_ADVICE,
-      region: 'us',
     });
   const ev = r.event ?? (pending ? { id: pending.id, title: pending.title, prepared: pending.prepared, choice: null, at: pending.at, region: pending.region } : null);
   if (ev) {
@@ -1694,7 +1676,6 @@ export const engine: EngineApi = {
   nextIncome: (s) => nextIncome(s),
   letters,
   ending,
-  journal,
   feed,
   trends,
   dateLabel,

@@ -21,7 +21,7 @@
 //     'ended' → the tipping point was reached this round, or round 12 is over; s.phase === 'ended'
 //   ending(s)                the ending, its one-sentence explanation, the reveal and the debrief
 //
-// Always available: gauges(s), heading(s), threats(s), nextIncome(s), letters(s), journal(s), dateLabel(round).
+// Always available: gauges(s), heading(s), threats(s), nextIncome(s), letters(s), feed(s), dateLabel(round).
 // Hidden values (the true Confidence, the AI pace) appear only in ending(s), and in gauges(s) while an
 // independent audit runs (by the player's choice).
 
@@ -35,7 +35,6 @@ import type {
   GaugeView,
   HeadingView,
   IncomeView,
-  JournalRound,
   LetterView,
   Pick,
   PreviewView,
@@ -66,7 +65,6 @@ export interface EngineApi {
   nextIncome(state: GameState): IncomeView;
   letters(state: GameState): LetterView[];
   ending(state: GameState): EndingView;
-  journal(state: GameState): JournalRound[];
   /** The live feed: every round so far, the current one last; the UI reveals the current round's items at their `at`. */
   feed(state: GameState): FeedRound[];
   /** Public values over time (start, then the end of each round, then now), for sparklines. */
