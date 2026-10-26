@@ -44,7 +44,30 @@ In the order it landed (commits on `v4`):
 
 v4 takes the reactive request cards of the team's hybrid prototype: **46 cards** (43 plus 3 follow-ups) from **11 characters**: the US envoy (6), China's delegate (7), OpenBrain's CEO (5), an independent evaluator (5), a union leader (2), an open-model founder (5), the EU cyber and intelligence chief (6), Japan's minister for the middle powers (2), a journalist (6), Léa (3) and OpenBrain's own model (3). Each keeps its basis (an AI 2027 or CFG section, or a source in `sources.ts`) and its sourced *Learn more*; 13 sources came with them.
 
-**Dropped: the 18 that duplicated a v3 policy card**, so the same decision is never both a card and a request. Among them (the test `no request duplicates a policy card` names these): diplomatic talks with China, the ASML lever, AI Office capacity, the alignment research fund, inspections, flexicurity, funding open models, the cyber shield, weight security standards, the middle-power coalition, the emergency summit, joint attribution and the human sign-off mandate. The test also fails if an answer's label is a policy card's name.
+**Dropped: the 18 that duplicated a v3 policy card** (or, for one, the silicon blackmail Breaking news), so the same decision is never both a card and a request. The full list, from the hybrid's `src/data/requests/` (61 cards; v4 keeps 43 of them and adds 3 follow-ups), with what each duplicated:
+
+| Hybrid request | Character | What it asked | Duplicated |
+| --- | --- | --- | --- |
+| `cn_talks` | China's delegate | Host regular AI talks in Geneva | Diplomatic talks |
+| `us_asml` | US envoy | Stop ASML servicing in China | Use the ASML lever |
+| `pt_chip_leverage` | Japan's minister | Pool the coalition's chip leverage to demand safety terms | Use the ASML lever (its safety option) |
+| `rs_ai_office` | Evaluator | A hundred more testers for the AI Office | AI Office capacity |
+| `rs_alignment_fund` | Evaluator | A European programme on honest AI | Fund alignment research |
+| `rs_inspections` | Evaluator | A European team to inspect labs on site | Offer to host inspections (level 1) |
+| `rs_accord` | Evaluator | An accord putting inspectors in US and Chinese labs | Offer to host inspections (level 2, *Inspection accord*) |
+| `rs_after_incident` | Evaluator | Inspectors now, after an unprepared AI incident | Offer to host inspections |
+| `un_flexicurity` | Union leader | Danish-style flexicurity before the layoffs | Flexicurity reform |
+| `un_human_signoff` | Union leader | A human signs every decision that changes a life | Human oversight mandate |
+| `os_fund_open` | Open-model founder | Fund open European models | Fund open models |
+| `sc_cyber_shield` | Cyber chief | Shield hospitals and grids from AI-written attacks | Cyber shield for hospitals and grids |
+| `sc_weight_security` | Cyber chief | Strict security rules on frontier labs | Weight security standards |
+| `pt_coalition` | Japan's minister | Form a coalition of middle powers | Middle-power coalition (level 1) |
+| `pt_one_voice` | Japan's minister | The coalition speaks with one voice | Middle-power coalition (level 2) |
+| `pt_summit` | Japan's minister | An emergency inspection summit after a caught incident | Emergency inspection summit |
+| `pt_attribution` | Japan's minister | Attribute the theft together | Joint attribution with allies |
+| `ob_ultimatum` | OpenBrain's CEO | Drop the rules or AI services stop | The silicon blackmail Breaking news (give in / hold firm) |
+
+The test `no request duplicates a policy card` checks that none of these 18 ids comes back, and fails if an answer's label is a policy card's name.
 
 **Follow-ups** ("I warned you"): US tariffs after "Keep trading", the internal-model exemption, and the protected whistleblower's logs.
 

@@ -42,12 +42,14 @@ The whole game state the player sees fits in five things. Numbers below are star
 
 The ten endings are the CFG's, unchanged. Two questions pick the world; in each world, **one gauge decides** whether it goes well, and the other pillar acts as a **safety net** that must not collapse.
 
+> **Numbers.** The zones, targets and floors below are the current values of `TUNING.zones` and `TUNING.worlds` in `src/data/tuning.ts`, which is the source of truth (the first draft had Pause 65 and Rupture 85; the simulation moved them, see the tuning tables in [DEVELOPER_NOTES.md](DEVELOPER_NOTES.md)). Where this v3 spec and [V4_SPEC.md](V4_SPEC.md) differ (Confidence is now *AI safety*, shown as verified–claimed), v4's spec supersedes.
+
 ```
 End of the game (tipping point reached, or after round 12)
 ├─ Tipping point reached → Cooperation zone at that moment
-│   ├─ Pause (Cooperation 60+)      Decides: Confidence 65+  Safety net: Cohesion 45+   ✓ Licensed utopia      ✗ Unstable pause
+│   ├─ Pause (Cooperation 60+)      Decides: Confidence 68+  Safety net: Cohesion 45+   ✓ Licensed utopia      ✗ Unstable pause
 │   ├─ Race (Cooperation 30–59)     Decides: Confidence 75+  Safety net: Cohesion 55+   ✓ Cognitive revolution ✗ Loss of control
-│   └─ Rupture (Cooperation < 30)   Decides: Cohesion 85+    Safety net: Confidence 65+ ✓ Multipolar world     ✗ Hot war
+│   └─ Rupture (Cooperation < 30)   Decides: Cohesion 82+    Safety net: Confidence 65+ ✓ Multipolar world     ✗ Hot war
 └─ AI plateaus → Europe's AI badge
     ├─ Open                         Decides: Cohesion 60+    Safety net: Confidence 40+ ✓ A bright winter      ✗ Decentralised mayhem
     └─ Dependent (big labs)         Decides: Cohesion 60+    Safety net: Confidence 40+ ✓ The agent economy    ✗ Silicon blackmail
@@ -55,15 +57,15 @@ End of the game (tipping point reached, or after round 12)
 
 **How to read it.** At the tipping point, the cooperation zone sets the world: the superpowers pause, race or break apart. If AI never reaches the tipping point, Europe's AI badge sets the world. Then the deciding gauge must reach its target and the safety net its floor; if either fails, the bad ending of that world follows.
 
-**Why these targets.** The calmer the world, the easier a good ending: a plateau is the least dangerous world, a rupture the most. Getting the superpowers to cooperate is rewarded twice: a lower bar and a better ending. Targets are ambitious (65, 75, 85) but the gauges are lively, so a good game can reach them. All numbers are starting values to tune with the simulation.
+**Why these targets.** The calmer the world, the easier a good ending: a plateau is the least dangerous world, a rupture the most. Getting the superpowers to cooperate is rewarded twice: a lower bar and a better ending. Targets are ambitious (68, 75, 82) but the gauges are lively, so a good game can reach them. All numbers are starting values to tune with the simulation.
 
 | World | Good ending if | Otherwise | What the bad ending tells |
 | --- | --- | --- | --- |
 | Plateau, open | Cohesion 60+ and Confidence 40+ | *Decentralised mayhem* | Powerful tools in everyone's hands, misused or unreliable |
 | Plateau, big labs | Cohesion 60+ and Confidence 40+ | *Silicon blackmail* | A few labs hold the keys and nobody can check them |
-| Pause | Confidence 65+ and Cohesion 45+ | *Unstable pause* | A pause nobody can verify, or that society rejects |
+| Pause | Confidence 68+ and Cohesion 45+ | *Unstable pause* | A pause nobody can verify, or that society rejects |
 | Race | Confidence 75+ and Cohesion 55+ | *Loss of control* | Untrustworthy AI, or people losing their grip on an AI-run economy |
-| Rupture | Cohesion 85+ and Confidence 65+ | *Hot war* | No strong Europe to mediate, or an AI incident that escalates |
+| Rupture | Cohesion 82+ and Confidence 65+ | *Hot war* | No strong Europe to mediate, or an AI incident that escalates |
 
 **Every ending explains itself in one sentence**, built from the gauge that decided it: *"The superpowers raced. Confidence was 62 ± 8, below the 75 a race needs: loss of control."* A little randomness near the zone borders and at the tipping point keeps suspense, never more than a few points.
 
@@ -159,7 +161,7 @@ The player must leave knowing why the story ended this way and what would have c
 2. **Why, in one sentence**, from the gauge that decided: *"The superpowers raced. Confidence was 62, below the 75 a race needs: loss of control."*
 3. **The four gauges at the end**, with the world's target and floor drawn on them, so the decisive gap is visible.
 4. **The reveal**: the true Confidence next to the estimate the player saw ("you saw 70 ± 15, the truth was 58"), the AI pace that was drawn, and the leaks you could not read.
-5. **What would have changed it**: the one or two choices with the biggest effect, e.g. *"With Cooperation above 60 at the tipping point, the superpowers would have paused, and Confidence 65 would have been enough."*
+5. **What would have changed it**: the one or two choices with the biggest effect, e.g. *"With Cooperation above 60 at the tipping point, the superpowers would have paused, and Confidence 68 would have been enough."*
 6. **Your decisions, in order**, each with its plus and minus, and the threats you were or were not ready for.
 7. **Play again**, with a different AI pace and different Léa letters.
 

@@ -100,7 +100,7 @@ describe('request content', () => {
   it('no request duplicates a policy card', () => {
     const names = CARDS.map((c) => c.name.toLowerCase());
     for (const r of REQUESTS) for (const a of [r.left, r.right]) expect(names, `${r.id}: ${a.label}`).not.toContain(a.label.toLowerCase());
-    for (const gone of ['cn_talks', 'us_asml', 'rs_ai_office', 'rs_alignment_fund', 'rs_inspections', 'un_flexicurity', 'os_fund_open', 'sc_cyber_shield', 'sc_weight_security', 'pt_coalition', 'pt_summit', 'pt_attribution', 'un_human_signoff'])
+    for (const gone of ['cn_talks', 'us_asml', 'rs_ai_office', 'rs_alignment_fund', 'rs_inspections', 'un_flexicurity', 'os_fund_open', 'sc_cyber_shield', 'sc_weight_security', 'pt_coalition', 'pt_summit', 'pt_attribution', 'un_human_signoff', 'pt_one_voice', 'pt_chip_leverage', 'rs_accord', 'rs_after_incident', 'ob_ultimatum'])
       expect(REQUESTS.some((r) => r.id === gone), gone).toBe(false);
   });
 });
