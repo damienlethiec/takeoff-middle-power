@@ -1185,7 +1185,7 @@ function record(s: GameState): RoundRecord {
     letter: s.letters.find((l) => l.round === s.round && l.slot !== 'end')?.id ?? null,
     values: publicValues(s),
     requests: s.requests.round,
-    social: s.social.round,
+    social: s.social?.round ?? [],
   };
 }
 

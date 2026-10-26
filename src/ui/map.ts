@@ -6,10 +6,10 @@
 // a count; their text is in the news feed and in the cluster's list (hover or click). Only the newest headline shows briefly as a banner. Nothing on the map overlaps: each pin is
 // nudged off the ones placed before it.
 
-import type { EuropeAi, RegionId, ThreatView } from '../engine/types';
+import type { EuropeAi, RegionId, SocialKind, ThreatView } from '../engine/types';
 import { THREAT_BY_ID } from '../data/threats';
 import { esc, ICON } from './format';
-import { KIND_ICON } from './feed';
+import { KIND_ICON, SOCIAL_ICON } from './feed';
 import { MAPDATA } from './mapdata';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -140,15 +140,46 @@ const CLUSTER_SPOT: Record<RegionId, { lon: number; lat: number }> = {
 };
 const REGION_NAME: Record<RegionId, string> = { us: 'the US', eu: 'Europe', cn: 'China' };
 const REGION_TITLE: Record<RegionId, string> = { us: 'The US', eu: 'Europe', cn: 'China' };
-const KIND_WORD: Record<string, string> = { headline: 'headline', voice: 'voice', lea: 'letter from Léa, your friend in Lyon', leak: 'leak', event: 'breaking story', request: 'request' };
+const KIND_WORD: Record<string, string> = {
+  headline: 'headline',
+  voice: 'voice',
+  lea: 'letter from Léa, your friend in Lyon',
+  leak: 'leak',
+  event: 'breaking story',
+  request: 'request',
+  's-strike': 'strike',
+  's-protest': 'protest',
+  's-scandal': 'scandal',
+  's-breakthrough': 'piece of good news',
+};
+const plural = (k: string, n: number) => (n === 1 ? KIND_WORD[k] : k === 's-breakthrough' ? 'pieces of good news' : `${KIND_WORD[k]}s`);
+/** The icon group of an entry: milestones read as headlines; social events by their kind. */
+const groupOf = (x: MapEntry) => (x.kind === 'milestone' ? 'headline' : x.kind === 'social' && x.social ? `s-${x.social}` : x.kind);
+const ICONS: Record<string, string> = {
+  ...KIND_ICON,
+  's-strike': SOCIAL_ICON.strike,
+  's-protest': SOCIAL_ICON.protest,
+  's-scandal': SOCIAL_ICON.scandal,
+  's-breakthrough': SOCIAL_ICON.breakthrough,
+};
+/** A social event at its city (v4). */
+export interface CityEvent {
+  id: string;
+  kind: SocialKind;
+  city: string;
+  lon: number;
+  lat: number;
+}
 
 /** One item of the current round on the map (from the news feed). */
 export interface MapEntry {
   id: string;
-  kind: 'headline' | 'milestone' | 'voice' | 'lea' | 'leak' | 'event' | 'request';
+  kind: 'headline' | 'milestone' | 'voice' | 'lea' | 'leak' | 'event' | 'request' | 'social';
   region: RegionId;
   label: string;
   text: string;
+  /** A social event's kind (its icon). */
+  social?: SocialKind;
 }
 
 function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}, parent?: Element): SVGElementTagNameMap[K] {
@@ -188,7 +219,7 @@ export class WorldMap {
   private entriesSig = '';
   private calling: RegionId | null = null;
   private summary: HTMLElement | null = null;
-  private summaryParts = { state: '', threats: '', unrest: '', items: '' };
+  private summaryParts = { state: '', threats: '', unrest: '', items: '', cities: '' };
   /** An item of the cluster list was chosen (the app shows it in the feed, or opens the leak). */
   onItem?: (entry: MapEntry) => void;
   onThreat?: (id: ThreatView['id'], btn: HTMLButtonElement) => void;
@@ -425,11 +456,14 @@ export class WorldMap {
       b.hidden = !mine.length;
       if (!mine.length) continue;
       // Léa's letter leads her region's group (it is the item the player is most likely to look for)
-      const kinds = [...new Set(mine.map((x) => (x.kind === 'milestone' ? 'headline' : x.kind)))].sort((a, b) => Number(b === 'lea') - Number(a === 'lea'));
-      const counts = kinds.map((k) => `${mine.filter((x) => (x.kind === 'milestone' ? 'headline' : x.kind) === k).length} ${KIND_WORD[k]}${mine.filter((x) => (x.kind === 'milestone' ? 'headline' : x.kind) === k).length > 1 ? 's' : ''}`);
+      const kinds = [...new Set(mine.map(groupOf))].sort((a, b) => Number(b === 'lea') - Number(a === 'lea'));
+      const counts = kinds.map((k) => {
+        const n = mine.filter((x) => groupOf(x) === k).length;
+        return `${n} ${plural(k, n)}`;
+      });
       b.innerHTML = `<span class="mc-icons" aria-hidden="true">${kinds
         .slice(0, 3)
-        .map((k) => `<span class="mc-i k-${k}">${KIND_ICON[k]}</span>`)
+        .map((k) => `<span class="mc-i k-${k}">${ICONS[k]}</span>`)
         .join('')}</span>${mine.length > 1 ? `<span class="mc-n" aria-hidden="true">${mine.length}</span>` : ''}<span class="sr-only">${esc(REGION_TITLE[r])} this round: ${counts.join(', ')}. Show them</span>`;
       b.title = `${REGION_TITLE[r]} this round: ${counts.join('; ')}`;
       b.classList.toggle('new', true);
@@ -478,6 +512,7 @@ export class WorldMap {
     const e = this.entries.find((x) => x.id === id);
     if (!e) return false;
     this.openPop(e.region, true);
+    if (e.kind === 'social') this.flashCity(id);
     const li = this.pop?.querySelector<HTMLElement>(`[data-item="${CSS.escape(id)}"]`);
     if (li) {
       li.classList.add('hl');
@@ -538,7 +573,7 @@ export class WorldMap {
     this.pop.innerHTML = `<p class="mp-h">${esc(REGION_TITLE[r])} · this round</p><ul>${mine
       .map(
         (x) =>
-          `<li><button type="button" class="mp-item k-${x.kind === 'milestone' ? 'headline' : x.kind}" data-item="${esc(x.id)}"${x.kind === 'lea' ? ` title="${esc(x.label)}"` : ''}><span class="mp-ico" aria-hidden="true">${KIND_ICON[x.kind === 'milestone' ? 'headline' : x.kind]}</span><span class="mp-b"><span class="mp-k">${esc(x.label)}</span><span class="mp-t">${esc(x.text)}</span></span><span class="sr-only">${x.kind === 'leak' ? ': read it' : ': show in the news'}</span></button></li>`,
+          `<li><button type="button" class="mp-item k-${groupOf(x)}" data-item="${esc(x.id)}"${x.kind === 'lea' ? ` title="${esc(x.label)}"` : ''}><span class="mp-ico" aria-hidden="true">${ICONS[groupOf(x)]}</span><span class="mp-b"><span class="mp-k">${esc(x.label)}</span><span class="mp-t">${esc(x.text)}</span></span><span class="sr-only">${x.kind === 'leak' ? ': read it' : ': show in the news'}</span></button></li>`,
       )
       .join('')}</ul>`;
     this.placePop();
@@ -602,14 +637,72 @@ export class WorldMap {
   }
   private unrest: 0 | 1 | 2 = 0;
 
+  /**
+   * This round's social events at their cities (v4): a small mark by kind; strikes, protests and scandals are
+   * hotspots that pulse gently (steady with reduced motion), good news glows. Decorative: the events are buttons
+   * in Europe's group and items in the feed.
+   */
+  setCityEvents(list: CityEvent[]) {
+    const sig = list.map((x) => x.id).join('|');
+    if (sig === this.citySig) return;
+    const before = new Set(this.citySig.split('|'));
+    this.citySig = sig;
+    this.layers.fx.querySelectorAll('.city-ev').forEach((e) => e.remove());
+    for (const c of list) {
+      const p = geo(c.lon, c.lat);
+      const bad = c.kind !== 'breakthrough';
+      const g = el('g', { class: `city-ev ce-${c.kind}${bad ? ' hot' : ''}${before.has(c.id) ? '' : ' new'}`, transform: `translate(${p.x} ${p.y})`, 'data-ev': c.id }, this.layers.fx);
+      el('circle', { r: 2.1, class: 'ce-ring' }, g);
+      el('circle', { r: 0.75, class: 'ce-core' }, g);
+    }
+    this.summaryParts.cities = list.length ? ` In European cities: ${list.map((c) => `${c.city} (${KIND_WORD[`s-${c.kind}`]})`).join(', ')}.` : '';
+    this.writeSummary();
+  }
+  private citySig = '';
+
+  /** A social event chosen in the feed or its group: its city lights up briefly. */
+  flashCity(id: string) {
+    const g = this.layers.fx.querySelector<SVGGElement>(`.city-ev[data-ev="${CSS.escape(id)}"]`);
+    if (!g) return;
+    g.classList.remove('lit');
+    void g.getBoundingClientRect();
+    g.classList.add('lit');
+    setTimeout(() => g.classList.remove('lit'), 2400);
+  }
+
+  /** AI capabilities jumped: a soft ripple spreads from the US and Chinese labs (none with reduced motion). */
+  ripple() {
+    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const l of LABS.filter((x) => x.name)) {
+      const p = geo(l.lon, l.lat);
+      const g = el('g', { class: `ripple ripple-${l.region}`, transform: `translate(${p.x} ${p.y})` }, this.layers.fx);
+      el('circle', { r: 9, class: 'ripple-ring' }, g);
+      el('circle', { r: 9, class: 'ripple-ring r2' }, g);
+      setTimeout(() => g.remove(), 2600);
+    }
+  }
+
+  /** Europe's dots dim as Social cohesion falls (full at 65 and above, about half at 15). */
+  setCohesion(v: number) {
+    const op = Math.max(0.45, Math.min(1, 0.45 + ((v - 15) / 50) * 0.55));
+    const k = op.toFixed(2);
+    if (this.svg.style.getPropertyValue('--eu-op') !== k) this.svg.style.setProperty('--eu-op', k);
+  }
+
   update(v: MapView) {
     // labs pulse faster as AI power rises
     this.svg.style.setProperty('--lab-dur', `${Math.max(0.7, 2.8 - v.aiPower / 40).toFixed(2)}s`);
     this.svg.style.setProperty('--cap-glow', String(Math.min(1, 0.25 + v.aiPower / 100)));
     PARTNERS.forEach((p) => {
       const on = v.coalition >= p.level;
+      const was = this.zonePaths[p.zone].classList.contains('joined');
       this.zonePaths[p.zone].classList.toggle('joined', on);
       this.layers.labels.querySelector(`.l-${p.zone}`)?.classList.toggle('joined', on);
+      // a partner that joins lights up for a moment (a steady highlight with reduced motion)
+      if (on && !was && this.summary) {
+        this.zonePaths[p.zone].classList.add('joining');
+        setTimeout(() => this.zonePaths[p.zone].classList.remove('joining'), 2600);
+      }
     });
 
     if (this.summary) {
@@ -625,7 +718,7 @@ export class WorldMap {
 
   private writeSummary() {
     if (!this.summary) return;
-    const text = `${this.summaryParts.state}${this.summaryParts.threats}${this.summaryParts.items}${this.summaryParts.unrest}`;
+    const text = `${this.summaryParts.state}${this.summaryParts.threats}${this.summaryParts.items}${this.summaryParts.cities}${this.summaryParts.unrest}`;
     if (this.summary.textContent !== text) this.summary.textContent = text;
   }
 

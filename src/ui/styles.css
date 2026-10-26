@@ -739,6 +739,38 @@ body.ended { overflow: auto; }
   .game { padding-bottom: 120px; }
 }
 
+/* =================================================================== LIVING WORLD (v4): social events, gauges that move */
+/* social events in the feed and on the map, by kind (the label and the icon say the kind too) */
+.k-social, .k-s-strike, .k-s-protest { --c: var(--concern); }
+.k-social.s-scandal, .k-s-scandal { --c: var(--crit-text); }
+.k-social.s-breakthrough, .k-s-breakthrough { --c: var(--good); }
+/* at their city: hotspots pulse gently (steady with reduced motion); good news glows */
+.city-ev { --c: var(--concern); pointer-events: none; }
+.city-ev.ce-scandal { --c: var(--crit-text); }
+.city-ev.ce-breakthrough { --c: var(--good); }
+.ce-ring { fill: none; stroke: var(--c); stroke-width: .35; transform-box: fill-box; transform-origin: center; }
+.ce-core { fill: var(--c); }
+.city-ev.hot .ce-ring { animation: protest 3.4s ease-out infinite; }
+.city-ev.ce-breakthrough .ce-ring { opacity: .75; stroke-width: .3; }
+.city-ev.new .ce-core { transform-box: fill-box; transform-origin: center; animation: cein .6s ease-out; }
+.city-ev.lit .ce-ring { stroke-width: .8; opacity: 1; animation: none; }
+@keyframes cein { from { transform: scale(2.6); opacity: .2; } }
+/* AI capabilities jump: a soft ripple from the labs */
+.ripple-ring { fill: none; stroke: var(--c); stroke-width: .3; opacity: 0; transform-box: fill-box; transform-origin: center; animation: ripple 2.4s ease-out forwards; }
+.ripple-ring.r2 { animation-delay: .45s; }
+.ripple-us { --c: var(--cap); } .ripple-cn { --c: var(--rival); }
+@keyframes ripple { from { transform: scale(.08); opacity: .75; } to { transform: scale(1); opacity: 0; } }
+/* Europe's dots dim as Social cohesion falls */
+.zone.z-eu { opacity: var(--eu-op, 1); transition: stroke 1.2s ease, opacity 1.6s ease; }
+/* a partner that joins lights up */
+.zone.joining { animation: joining 2.4s ease; }
+@keyframes joining { 0%, 30% { stroke: #fff; stroke-width: .9; } }
+/* a gauge's change, briefly by its name ("+3", "−4"); its words are in the description and the announcements */
+.gauge { position: relative; }
+.g-pop { position: absolute; top: 5px; right: 40px; z-index: 1; font-family: var(--f-data); font-size: 13px; font-weight: 700; line-height: 1.3; padding: 0 6px; border-radius: 6px; border: 1px solid currentColor; background: var(--deck-2); pointer-events: none; animation: gpop 2.2s ease forwards; }
+.g-pop.good { color: var(--good); } .g-pop.bad { color: var(--crit-text); } .g-pop.flat { color: var(--ink); }
+@keyframes gpop { 0% { opacity: 0; transform: translateY(5px); } 12% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-3px); } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
   /* no pulsing, flashing or flowing: looping animations stop, and the states they signalled stay visible */
@@ -748,6 +780,10 @@ body.ended { overflow: auto; }
   .lab-ring { opacity: .35; transform: none; }
   .burst-ring { opacity: .8; }
   .threat-btn.st3:not(.prepared) { box-shadow: 0 0 0 3px color-mix(in srgb, var(--rival) 50%, transparent); }
+  /* v4 living world: the change by a gauge simply appears and goes; hotspots stay steady; a joining partner is lit */
+  .g-pop, .city-ev .ce-ring, .city-ev .ce-core, .zone.joining { animation: none !important; }
+  .city-ev.hot .ce-ring { opacity: .7; transform: none; }
+  .zone.joining { stroke: #fff; }
 }
 
 /* =================================================================== SOUNDTRACK (optional, off by default) */

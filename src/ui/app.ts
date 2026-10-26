@@ -11,7 +11,7 @@ import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, TIPS, marginText } from '../data/
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
 import { Coach } from './coach';
 import { $, ICON, esc, signed } from './format';
-import { WorldMap, type MapEntry } from './map';
+import { WorldMap, type CityEvent, type MapEntry } from './map';
 import { modalOpen, setFocusFallback, wait } from './modal';
 import { showBreaking } from './screens/breaking';
 import { showDecision } from './screens/decide';
@@ -38,6 +38,12 @@ const zoneOf = (v: number) =>
   v >= 60 ? { id: 'p', name: 'Pause', range: '60+' } : v >= 30 ? { id: 'a', name: 'Race', range: '30–59' } : { id: 'r', name: 'Rupture', range: 'under 30' };
 type Vals = { aiPower: number; cooperation: number; confidence: number; margin: number; cohesion: number };
 type Live = { item: MapItem; kind: 'headline' | 'voice'; state: 'wait' | 'live' | 'gone'; until: number };
+/** A social event's move on the gauges, shown as a step at its time while the clock runs (v4). */
+type Step = { id: string; at: number; d: Vals; state: 'wait' | 'shown' | 'absorbed'; told: boolean };
+const ZERO: Vals = { aiPower: 0, cooperation: 0, confidence: 0, margin: 0, cohesion: 0 };
+const VKEYS = Object.keys(ZERO) as (keyof Vals)[];
+/** AI capabilities rising at least this much in six months send a ripple from the labs (v4). */
+const RIPPLE_RISE = 6;
 
 export class App {
   private s!: GameState;
@@ -65,6 +71,8 @@ export class App {
   private from!: Vals;
   private to!: Vals;
   private follow: 'clock' | 'tween' = 'tween';
+  /** This round's social events as steps on the gauges (v4). */
+  private steps: Step[] = [];
   private prevThreats: ThreatView[] = [];
   private dockResolve: (() => void) | null = null;
   private headingWhy = '';
@@ -180,6 +188,8 @@ export class App {
     this.from = this.vals(before);
     this.to = this.vals();
     this.follow = 'clock';
+    // social events step the gauges at their time (a resumed round already shows where it is)
+    this.steps = before === this.s ? [] : s.social.round.map((x) => ({ id: x.id, at: x.at, d: { ...ZERO, cohesion: x.moved.cohesion, cooperation: x.moved.cooperation, confidence: x.moved.estimate, margin: x.moved.margin }, state: 'wait' as const, told: false }));
     this.items = [
       ...s.headlines.map((item) => ({ item, kind: 'headline' as const, state: 'wait' as const, until: Math.min(1.05, item.at + 0.42) })),
       ...s.voices.map((item) => ({ item, kind: 'voice' as const, state: 'wait' as const, until: Math.min(1.05, item.at + 0.32) })),
@@ -205,6 +215,12 @@ export class App {
     if (s.round >= 2) await this.coach.show('badge', s.round, this.root);
 
     this.beginClock();
+    // what six months of drift will do, briefly by each gauge (social events show their own when they happen);
+    // a big jump in AI capabilities sends a ripple from the labs
+    if (before !== this.s) {
+      this.popChanges(this.from, this.minus(this.to, this.stepSum(() => true)));
+      if (s.lastRise >= RIPPLE_RISE) this.map.ripple();
+    }
     await new Promise<void>((r) => (this.clockDone = r));
     this.clockActive = false;
     this.prevThreats = this.e.threats(this.s);
@@ -283,6 +299,7 @@ export class App {
     line(GAUGE_LABEL.cohesion, a.cohesion, b.cohesion);
     if (before.europeAi !== this.s.europeAi) moved.push(`Europe’s AI → ${this.s.europeAi === 'open' ? 'Open' : 'Dependent'}`);
     this.headingWhy = played.length ? `${played.join(' and ')}: ${moved.join(', ') || 'no gauge moved yet'}.` : '';
+    this.popChanges(a, b);
     this.prevThreats = this.e.threats(this.s);
     this.map.setThreats(this.prevThreats);
     this.setPhase(played.length ? 'Consequences' : 'Paused');
@@ -330,6 +347,7 @@ export class App {
       }
     }
     if (this.t >= 0.5) this.revealThreats();
+    for (const st of this.steps) if (!st.told && this.t >= st.at) this.revealStep(st);
     if (s.leak && !this.leakShown && this.t >= s.leak.at) {
       this.leakShown = true;
       announce(s.leak.readable ? 'A leak from inside the labs: it is in the news, and with the US items on the map.' : 'A leak from inside the labs, but you cannot read it: it is redacted.');
@@ -399,6 +417,7 @@ export class App {
     this.map.burst(ev.region);
     this.map.flashBanner(ev.region, ev.headline.replace(/^BREAKING: /, ''), 'breaking', 5000);
     // the gauges catch up with the six months so far, so "before" on the screen is what the map shows
+    this.absorbSteps();
     this.shown = { ...this.to };
     this.renderGauges();
     if (!reducedMotion()) {
@@ -420,6 +439,7 @@ export class App {
     this.from = { ...this.shown };
     this.to = this.vals();
     this.follow = 'tween';
+    this.popChanges(this.from, this.to);
     this.prevThreats = this.e.threats(this.s);
     this.map.setThreats(this.prevThreats);
     this.renderAll(true);
@@ -437,6 +457,7 @@ export class App {
     this.eventBusy = true;
     const date = this.e.dateLabel(this.s.round);
     this.setPhase('A request');
+    this.absorbSteps();
     this.shown = { ...this.to };
     this.renderGauges();
     // the character's region calls for attention while the request is open; its icon stays for the round
@@ -450,6 +471,7 @@ export class App {
       this.from = { ...this.shown };
       this.to = this.vals();
       this.follow = 'tween';
+      this.popChanges(this.from, this.to);
       this.prevThreats = this.e.threats(this.s);
       this.map.setThreats(this.prevThreats);
       this.renderAll(true);
@@ -558,12 +580,18 @@ export class App {
     this.feed.render(this.feedCache, t, this.feedDone);
     // the round's items, as icons clustered per region on the map (they leave with the round)
     const cur = this.feedCache.at(-1);
-    const onMap = new Set(['headline', 'milestone', 'voice', 'lea', 'leak', 'event', 'request']);
+    const onMap = new Set(['headline', 'milestone', 'voice', 'lea', 'leak', 'event', 'request', 'social']);
     this.map.setItems(
       cur && cur.round === this.s.round
         ? cur.items
             .filter((x) => onMap.has(x.kind) && x.region && (x.at <= t || (this.feedDone && x.at <= 1)))
-            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: x.label, text: x.kind === 'lea' ? firstSentence(x.text) : x.kind === 'leak' && x.detail ? `${x.text} ${x.detail}` : x.text }))
+            .map((x) => ({ id: x.id, kind: x.kind as MapEntry['kind'], region: x.region!, label: x.label, text: x.kind === 'lea' ? firstSentence(x.text) : x.kind === 'leak' && x.detail ? `${x.text} ${x.detail}` : x.text, social: x.social?.kind }))
+        : [],
+    );
+    // social events at their cities (v4)
+    this.map.setCityEvents(
+      cur && cur.round === this.s.round
+        ? cur.items.filter((x) => x.kind === 'social' && x.social && (x.at <= t || (this.feedDone && x.at <= 1))).map((x): CityEvent => ({ id: x.id, kind: x.social!.kind, city: x.social!.city, lon: x.social!.lon, lat: x.social!.lat }))
         : [],
     );
   }
@@ -743,13 +771,84 @@ export class App {
     this.root.querySelector('.game')?.classList.toggle('paused', this.clockActive && !this.running);
   }
 
+  // ------------------------------------------------------------------ living gauges (v4)
+
+  private stepSum(pred: (st: Step) => boolean): Vals {
+    const out = { ...ZERO };
+    for (const st of this.steps) if (pred(st)) for (const k of VKEYS) out[k] += st.d[k];
+    return out;
+  }
+
+  private minus(a: Vals, b: Vals): Vals {
+    return Object.fromEntries(VKEYS.map((k) => [k, a[k] - b[k]])) as Vals;
+  }
+
+  /** The clock stops for a request or breaking news: the gauges catch up with the whole six months, social events
+   *  still to come included (they still appear in the news and on the map at their time, without a step). From
+   *  here on the gauges simply follow the engine's values. */
+  private absorbSteps() {
+    for (const st of this.steps) st.state = 'absorbed';
+  }
+
+  /** A social event happens: its step on the gauges, its change by the gauge, one polite announcement. */
+  private revealStep(st: Step) {
+    st.told = true;
+    const absorbed = st.state === 'absorbed';
+    if (!absorbed) st.state = 'shown';
+    const item = this.feedCache.at(-1)?.items.find((x) => x.id === `r${this.s.round}_s_${st.id}`);
+    if (!absorbed) this.popChanges(ZERO, st.d);
+    if (item?.social) {
+      const said = this.changeWords(ZERO, st.d);
+      announce(`${item.label.split(' · ')[0]} in ${item.social.city}, in this story: ${item.text}${said ? ` ${said}.` : ''}`);
+    }
+  }
+
+  /** What moved between two sets of values, in words ("Social cohesion down 3"). */
+  private changeWords(a: Vals, b: Vals): string {
+    return this.gaugeDeltas(a, b)
+      .map(([k, d]) => `${k === 'confidence' ? `${GAUGE_LABEL.confidence}, verified part` : GAUGE_LABEL[k]} ${d > 0 ? 'up' : 'down'} ${Math.abs(d)}`)
+      .join(', ');
+  }
+
+  /** The visible change of each gauge (AI safety by its verified part, or its audited value). */
+  private gaugeDeltas(a: Vals, b: Vals): [GaugeKey, number][] {
+    const audited = this.safety().audited;
+    const low = (v: Vals) => (audited ? Math.round(v.confidence) : Math.max(0, Math.round(v.confidence - v.margin)));
+    const out: [GaugeKey, number][] = [];
+    for (const k of KEYS) {
+      const d = k === 'confidence' ? low(b) - low(a) : Math.round(b[k]) - Math.round(a[k]);
+      if (d) out.push([k, d]);
+    }
+    return out;
+  }
+
+  /** The change shows briefly by each gauge that moved ("+3", "−4"); without motion it simply appears and goes.
+   *  It is decorative: the gauge's description and the announcements say it in words. */
+  private popChanges(a: Vals, b: Vals) {
+    for (const [k, d] of this.gaugeDeltas(a, b)) {
+      const box = this.root.querySelector<HTMLElement>(`.gauge[data-key="${k}"]`);
+      if (!box) continue;
+      box.querySelector('.g-pop')?.remove();
+      const pop = document.createElement('span');
+      const tone = k === 'aiPower' ? 'flat' : d > 0 ? 'good' : 'bad';
+      pop.className = `g-pop ${tone}`;
+      pop.setAttribute('aria-hidden', 'true');
+      pop.textContent = signed(d);
+      box.appendChild(pop);
+      setTimeout(() => pop.remove(), reducedMotion() ? 2600 : 2200);
+    }
+  }
+
   private animateGauges(dt: number) {
     if (!this.shown || !this.to) return;
     let target: Vals = this.to;
     if (this.follow === 'clock' && this.clockActive) {
       const k = Math.min(1, this.t / 0.9);
       const ease = 1 - Math.pow(1 - k, 2);
-      target = Object.fromEntries((Object.keys(this.to) as (keyof Vals)[]).map((x) => [x, this.from[x] + (this.to[x] - this.from[x]) * ease])) as Vals;
+      // the drift glides over the six months; each social event is a step at its time (v4)
+      const all = this.stepSum((st) => st.state !== 'absorbed');
+      const done = this.stepSum((st) => st.state === 'shown');
+      target = Object.fromEntries(VKEYS.map((x) => [x, this.from[x] + (this.to[x] - all[x] - this.from[x]) * ease + done[x]])) as Vals;
     }
     const a = reducedMotion() ? 1 : Math.min(1, dt / 180);
     let changed = false;
@@ -885,6 +984,7 @@ export class App {
     }
     this.renderTargets();
     this.map?.update({ aiPower: this.shown.aiPower, cooperation: this.shown.cooperation, coalition: this.s.coalition, europeAi: this.s.europeAi });
+    this.map?.setCohesion(this.shown.cohesion);
   }
 
   /**
