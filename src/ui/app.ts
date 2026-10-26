@@ -23,6 +23,7 @@ import { showWorlds } from './screens/worlds';
 import { showRequest } from './screens/request';
 import { badgeHtml, headingLineHtml, statusOf } from './outlook';
 import { Feed } from './feed';
+import { Soundtrack } from './sound';
 
 const ROUND_MS = 8000;
 /** The start of Léa's letter, for her line in the map's list (the feed has it in full). */
@@ -66,6 +67,8 @@ export class App {
   private prevThreats: ThreatView[] = [];
   private dockResolve: (() => void) | null = null;
   private headingWhy = '';
+  /** The optional soundtrack (off by default): it lives across games. */
+  private sound = new Soundtrack();
 
   constructor(
     private root: HTMLElement,
@@ -125,6 +128,9 @@ export class App {
     this.clockActive = false;
     document.body.classList.add('ended');
     renderEnding(this.root, this.e.ending(this.s), () => this.newGame());
+    this.mountSound(this.root.querySelector('#ending'), true);
+    this.sound.setPaused(false);
+    this.sound.setWorld({ aiPower: this.s.aiPower, cooperation: this.s.cooperation, tipping: !!this.s.tipping, ending: this.e.ending(this.s).good ? 'good' : 'bad' });
     announce(`The game is over: ${this.e.ending(this.s).title}.`);
   }
 
@@ -152,6 +158,7 @@ export class App {
     announce(
       `${date} begins, round ${s.round} of 12. Influence ${signed(inc)}: you have ${s.influence}. The clock is running.${letter ? ' Léa wrote to you: her letter is in the news.' : ''}${s.round === 1 ? ' Press question mark for help.' : ''}`,
     );
+    this.sound.cue('round');
     // the tutorial: one tip per gauge, then where the world is heading, then Influence on the decision view;
     // later, only what does not explain itself, the first time it appears.
     // A tip whose part of the screen is not visible waits (it is tried again next round).
@@ -255,6 +262,7 @@ export class App {
     this.tipBusy = false;
     this.clockActive = true;
     this.running = true;
+    this.sound.setPaused(false);
     this.setPhase('Clock running');
     this.renderClock();
   }
@@ -358,6 +366,7 @@ export class App {
       setTimeout(() => document.body.classList.remove('jolt'), 600);
     }
     announce(`Breaking news: ${ev.title}.`);
+    this.sound.cue('breaking');
     await wait(800);
     const names = ev.preparedBy.map((c) => (c === 'inspections' ? 'the inspection accord' : CARD_BY_ID[c].name));
     const choice = await showBreaking(ev, date, names);
@@ -392,6 +401,7 @@ export class App {
     // the character's region calls for attention while the request is open; its icon stays for the round
     this.map.setCalling(v.character.region);
     this.renderClock();
+    this.sound.cue('request');
     await showRequest(v, date, (side) => {
       const r = this.e.answerRequest(this.s, side);
       this.s = r.state;
@@ -417,6 +427,8 @@ export class App {
   private setRunning(on: boolean, say = true) {
     if (!this.clockActive) return;
     if (say && on !== this.running) announce(on ? 'Clock running.' : 'Paused.');
+    // the music rests while the player pauses the clock (not while a dialog briefly pauses it)
+    if (say) this.sound.setPaused(!on);
     this.running = on;
     this.setPhase(on ? 'Clock running' : 'Paused');
     this.renderClock();
@@ -577,6 +589,7 @@ export class App {
           <span class="inf-why" id="inf-why"></span>
         </div>
         <div class="top-btns">
+          ${this.sound.html()}
           <button type="button" class="iconbtn help-btn" id="help-btn" aria-label="Help and keyboard shortcuts" aria-keyshortcuts="?">?</button>
         </div>
       </header>
@@ -616,6 +629,7 @@ export class App {
     };
     $('#play', this.root).addEventListener('click', () => this.setRunning(!this.running));
     $('#help-btn', this.root).addEventListener('click', () => this.openHelp());
+    this.sound.bind(this.root);
     $('#heading-line', this.root).addEventListener('click', (ev) => {
       const h = this.e.heading(this.s);
       if ((ev.target as HTMLElement).closest('[data-worlds]')) this.openFromMap(() => showWorlds(h.world, h, this.s.europeAi));
@@ -643,6 +657,15 @@ export class App {
     this.renderHeading();
     this.map.update({ aiPower: this.shown.aiPower, cooperation: this.shown.cooperation, coalition: this.s.coalition, europeAi: this.s.europeAi });
     this.map.setUnrest(this.s.cohesion < 40 ? 2 : this.s.cohesion < 52 ? 1 : 0);
+    this.sound.setWorld({ aiPower: this.s.aiPower, cooperation: this.s.cooperation, tipping: !!this.s.tipping });
+  }
+
+  /** The soundtrack's toggle on the end page (the header's is gone with the main screen). */
+  private mountSound(host: Element | null, end = false) {
+    if (!host || !this.sound.supported) return;
+    host.insertAdjacentHTML('afterbegin', this.sound.html());
+    host.querySelector('.snd')?.classList.toggle('snd-end', end);
+    this.sound.bind(host);
   }
 
   private setPhase(text: string) {

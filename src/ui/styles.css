@@ -749,3 +749,29 @@ body.ended { overflow: auto; }
   .burst-ring { opacity: .8; }
   .threat-btn.st3:not(.prepared) { box-shadow: 0 0 0 3px color-mix(in srgb, var(--rival) 50%, transparent); }
 }
+
+/* =================================================================== SOUNDTRACK (optional, off by default) */
+.snd { position: relative; display: inline-flex; align-items: center; gap: 6px; }
+.snd-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--rule); background: var(--deck); color: var(--ink); font-family: var(--f-data); font-size: 12.5px; white-space: nowrap; }
+.snd-btn .ico { width: 16px; height: 16px; flex: none; }
+.snd-btn[aria-pressed="false"] .snd-wave, .snd-btn[aria-pressed="true"] .snd-mute { display: none; }
+.snd-state { min-width: 2.2em; padding: 1px 5px; border-radius: 4px; background: var(--deck-2); color: var(--mute); text-align: center; }
+.snd-btn[aria-pressed="true"] .snd-state { color: var(--night); background: var(--align); }
+.snd-pop { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--mute); }
+.snd-pop[hidden] { display: none; }
+.snd-vol { width: 120px; accent-color: var(--align); min-height: 24px; margin: 0; }
+/* the slider drops down under the button on hover or keyboard focus, so the header keeps its rows */
+.snd-pop { position: absolute; top: 100%; right: 0; z-index: 40; padding: 8px 10px; background: var(--deck); border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 6px 18px rgb(0 0 0 / .35); opacity: 0; pointer-events: none; }
+.snd:hover .snd-pop, .snd:focus-within .snd-pop { opacity: 1; pointer-events: auto; }
+/* phones: an icon-only button, the size of the help button, in the top right corner beside the date (the
+   second row has no room left), so the header keeps its two rows */
+@media (max-width: 560px) {
+  .top .top-btns { display: contents; }
+  .top .clockctl, .top .inf, .top .help-btn { order: 1; }
+  .top .help-btn { margin-left: auto; }
+  .snd-btn { width: 40px; min-height: 32px; height: 32px; padding: 0; justify-content: center; }
+  .snd-btn .ico { width: 18px; height: 18px; }
+  .snd-word, .snd-state { display: none; }
+}
+.snd-end { position: absolute; top: 12px; right: 16px; z-index: 2; }
+.ending-page { position: relative; }
