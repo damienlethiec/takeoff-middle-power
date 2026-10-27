@@ -2111,5 +2111,6 @@
   "ui.fx.truth": "Prawdziwe Bezpieczeństwo AI: w górę (ukryte)",
   "ui.fx.verified": "{gauge}, część zweryfikowana: {move}",
   "ui.fx.withAccord": "Z porozumieniem: {fx}",
-  "help.rules.8": "Aby zdecydować, kliknij wybrane karty, tyle, na ile starczy Wpływu: ich efekt widać na wskaźnikach i w linii pod nimi. Nic się nie dzieje, dopóki nie zatwierdzisz; Nie zagrywaj kart oszczędza Wpływ."
+  "help.rules.8": "Aby zdecydować, kliknij wybrane karty, tyle, na ile starczy Wpływu: ich efekt widać na wskaźnikach i w linii pod nimi. Nic się nie dzieje, dopóki nie zatwierdzisz; Nie zagrywaj kart oszczędza Wpływ.",
+  "ui.common.copyright": "© 2026 {authors}. Wszelkie prawa zastrzeżone."
 }

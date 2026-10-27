@@ -1,6 +1,8 @@
 {
   "name": "takeoff-middle-power",
   "private": true,
+  "author": "Damien Lethiec, Louis and Marcin",
+  "license": "UNLICENSED",
   "version": "0.1.0",
   "type": "module",
   "scripts": {

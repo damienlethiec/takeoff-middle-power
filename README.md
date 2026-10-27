@@ -1,4 +1,4 @@
-# Takeoff: Middle Power
+# Takeoff: Europe’s Next Move
 
 A Plague Inc.-style browser game about AI governance for the general public. You are the EU's AI Envoy: you cannot stop the US–China race, but you can prepare the world for the moment AI starts improving itself. Ten rounds of six months (2027–2031); one AI clock, a Cooperation heading, two pillars (Confidence in AI, Cohesion) and one resource, Influence.
 
@@ -31,3 +31,7 @@ Pushing to `main` deploys to GitHub Pages; every other branch gets a preview at 
 | --- | --- |
 | ![Main screen](docs/screenshots/v3/desktop-main-threats.png) | ![Decision with preview](docs/screenshots/v3/desktop-decision-preview.png) |
 | ![Breaking news](docs/screenshots/v3/desktop-breaking.png) | ![Phone](docs/screenshots/v3/mobile-main-threats.png) |
+
+## Licence
+
+Copyright © 2026 Damien Lethiec, Louis and Marcin. **All rights reserved** — see [LICENSE](LICENSE). You may play the game and read this repository, but not copy, modify or reuse any part of it without the authors’ written permission. Fonts are under the SIL Open Font License; the scenarios the game cites (AI 2027, CFG, Europe 2031) belong to their authors.

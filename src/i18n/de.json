@@ -2061,5 +2061,6 @@
   "ui.fx.truth": "Echte KI-Sicherheit: rauf (nicht angezeigt)",
   "ui.fx.verified": "{gauge}, belegter Teil: {move}",
   "ui.fx.withAccord": "Mit Abkommen: {fx}",
-  "help.rules.8": "Zum Entscheiden klickst du die gewünschten Karten an, so viele, wie dein Einfluss deckt: Ihre Wirkung erscheint auf den Anzeigen und in der Zeile darunter. Nichts passiert, bevor du bestätigst; Keine Karte spielen spart deinen Einfluss."
+  "help.rules.8": "Zum Entscheiden klickst du die gewünschten Karten an, so viele, wie dein Einfluss deckt: Ihre Wirkung erscheint auf den Anzeigen und in der Zeile darunter. Nichts passiert, bevor du bestätigst; Keine Karte spielen spart deinen Einfluss.",
+  "ui.common.copyright": "© 2026 {authors}. Alle Rechte vorbehalten."
 }

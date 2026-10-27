@@ -1,0 +1,28 @@
+Takeoff: Europe's Next Move
+Copyright (c) 2026 Damien Lethiec, Louis and Marcin. All rights reserved.
+
+This game — its source code, texts, translations, game design, illustrations,
+and the soundtrack — is protected by copyright. No licence is granted: you may
+play the game at https://damienlethiec.github.io/takeoff-middle-power/ and read
+this repository on GitHub, but you may not copy, modify, translate, distribute,
+publish, sell or reuse any part of it, in whole or in part, without the prior
+written permission of the authors.
+
+For permissions, contact the authors through
+https://github.com/damienlethiec/takeoff-middle-power.
+
+Third-party material
+--------------------
+- Fonts (Big Shoulders Display, Public Sans, IBM Plex Mono, Newsreader) are
+  distributed through Fontsource under the SIL Open Font License 1.1; each
+  font keeps its own licence (see node_modules/@fontsource*/*/LICENSE).
+- The soundtrack "Conflits frontaliers" was made with Suno; its rights were
+  acquired by Damien Lethiec and it is used here by its owner.
+- The game's scenarios draw on, and cite, AI 2027 (https://ai-2027.com),
+  the Centre for Future Generations' "Advanced AI: Possible Futures"
+  (https://cfg.eu/advanced-ai-possible-futures/) and Europe 2031
+  (https://europe2031.ai/). These works belong to their authors; the game
+  quotes them briefly with attribution and does not reproduce them.
+- Real-world facts shown in the game are cited to their sources
+  (src/data/sources.ts); those sources belong to their publishers.
+- Open-source development dependencies keep their own licences.

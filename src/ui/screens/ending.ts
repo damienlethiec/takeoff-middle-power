@@ -9,6 +9,7 @@ import { ICON, chips, esc, kbd, link, provTag, signed } from '../format';
 import { friendName, friendPortrait, moodWord } from '../friends';
 import { FRIENDS } from '../../data/friends';
 import { ENDING_BY_ID } from '../../data/endings';
+import { AUTHORS } from '../../data/copy';
 
 const newTab = () => `<span class="sr-only"> ${esc(t('ui.link.newTab', '(opens in a new tab)'))}</span>`;
 const inEnglish = () => (lang() === 'en' ? '' : ` <span class="in-en">${esc(t('ui.source.inEnglish', '(in English)'))}</span>`);
@@ -138,6 +139,7 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
       cfg: `<a href="https://cfg.eu/advanced-ai-possible-futures/" target="_blank" rel="noopener noreferrer" hreflang="en"><span lang="en">CFG, Advanced AI: Possible Futures</span>${newTab()}</a>${inEnglish()}`,
       e2031: `<a href="https://europe2031.ai/" target="_blank" rel="noopener noreferrer" hreflang="en">Europe 2031${newTab()}</a>`,
     })}</p>
+    <p class="muted small center">${esc(t('ui.common.copyright', '© 2026 {authors}. All rights reserved.', { authors: AUTHORS }))}</p>
   </main>`;
   root.querySelector<HTMLButtonElement>('[data-again]')!.addEventListener('click', onAgain);
   root.querySelector<HTMLElement>('h1')!.focus({ preventScroll: true });

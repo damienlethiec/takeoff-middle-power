@@ -2061,5 +2061,6 @@
   "ui.fx.truth": "Vraie Sûreté de l’IA : en hausse (non affichée)",
   "ui.fx.verified": "{gauge}, part vérifiée : {move}",
   "ui.fx.withAccord": "Avec un accord : {fx}",
-  "help.rules.8": "Pour décider, cliquez sur les cartes voulues, autant que votre Influence le permet : leur effet s’affiche sur les jauges et la ligne en dessous. Rien ne se passe avant que vous confirmiez ; Aucune carte garde votre Influence."
+  "help.rules.8": "Pour décider, cliquez sur les cartes voulues, autant que votre Influence le permet : leur effet s’affiche sur les jauges et la ligne en dessous. Rien ne se passe avant que vous confirmiez ; Aucune carte garde votre Influence.",
+  "ui.common.copyright": "© 2026 {authors}. Tous droits réservés."
 }

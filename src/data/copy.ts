@@ -145,6 +145,9 @@ export const TIPS = {
 } as const;
 export type TipId = keyof typeof TIPS;
 
+/** The game's authors, shown in the copyright line (Help and the ending). Names are not translated. */
+export const AUTHORS = 'Damien Lethiec, Louis and Marcin';
+
 export const HELP = {
   shortcuts: [
     ['Space', 'Pause or resume the clock'],

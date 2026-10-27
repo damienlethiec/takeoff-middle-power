@@ -2061,5 +2061,6 @@
   "ui.fx.truth": "Seguridad real de la IA: sube (no se muestra)",
   "ui.fx.verified": "{gauge}, parte verificada: {move}",
   "ui.fx.withAccord": "Con un acuerdo: {fx}",
-  "help.rules.8": "Para decidir, haz clic en las cartas que quieras, tantas como cubra tu Influencia: su efecto aparece en los indicadores y en la línea de debajo. Nada pasa hasta que confirmas; No jugar ninguna guarda tu Influencia."
+  "help.rules.8": "Para decidir, haz clic en las cartas que quieras, tantas como cubra tu Influencia: su efecto aparece en los indicadores y en la línea de debajo. Nada pasa hasta que confirmas; No jugar ninguna guarda tu Influencia.",
+  "ui.common.copyright": "© 2026 {authors}. Todos los derechos reservados."
 }

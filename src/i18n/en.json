@@ -1534,6 +1534,7 @@
   "ui.common.cancel": "Cancel",
   "ui.common.close": "Close",
   "ui.common.continue": "Continue",
+  "ui.common.copyright": "© 2026 {authors}. All rights reserved.",
   "ui.common.next": "Next",
   "ui.continue.button": "Continue your game ({where})",
   "ui.continue.dateline": "Saved game",
