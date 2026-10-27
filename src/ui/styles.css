@@ -221,7 +221,9 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .g-chip:empty { display: none; }
 .g-chip.yes { color: var(--good); } .g-chip.no { color: var(--crit-text); } .g-chip.eta { color: var(--cap); }
 /* US–China cooperation's zone as its status chip, in the zone's colour (its name says it) */
-.g-chip.zone { font-family: var(--f-display); font-weight: 800; font-size: 13px; letter-spacing: .04em; line-height: 1.25; border-radius: 999px; padding: 0 8px; background: color-mix(in srgb, currentColor 12%, transparent); cursor: help; }
+/* the zone chip looks like the other gauges' status chips; its colour says the zone: rupture red, race orange, pause green */
+.g-chip.zone { cursor: help; }
+.g-chip.zone.w-rupture { color: var(--crit-text); } .g-chip.zone.w-race { color: var(--cap); } .g-chip.zone.w-pause { color: var(--good); }
 /* each gauge's icon, the same as on the cards' effects */
 .g-ico { display: inline-flex; flex: none; color: var(--mute); }
 .g-ico .ico { width: 15px; height: 15px; }
@@ -947,7 +949,6 @@ body.ended { overflow: auto; }
   .g-val { font-size: 21px; }
   .g-delta, .g-after { font-size: 11px; }
   .g-chip { font-size: 10.5px; padding: 0 4px; }
-  .g-chip.zone { font-size: 12px; padding: 0 6px; }
   .g-ico .ico { width: 12px; height: 12px; }
   .g-cap { font-size: 10.5px; }
   .g-cap .long, .g-chip .long { display: none; }
