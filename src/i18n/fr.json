@@ -1564,6 +1564,7 @@
   "ui.end.didNotWork": "(n’a pas marché)",
   "ui.end.gap": "Les annonces des labos rendaient l’IA {n} points plus sûre qu’elle ne l’était.",
   "ui.end.gauges": "Les quatre jauges à la fin",
+  "ui.end.edition": "Dernière édition",
   "ui.end.good": "Une bonne fin",
   "ui.end.markFloor": "plancher",
   "ui.end.markGoal": "objectif",

@@ -11,7 +11,7 @@ import { friendPortrait } from '../friends';
 import { chooseLang, langRowHtml, offerHtml, offeredLang } from '../lang';
 import { openModal } from '../modal';
 
-const brand = () => `<p class="intro-brand" aria-hidden="true"><span class="logo">TAKE<i>OFF</i></span><span class="sub">${esc(t('ui.brand.sub', 'Europe’s Next Move'))}</span></p>`;
+const brand = () => `<p class="intro-brand" aria-hidden="true"><span class="logo">Takeoff</span><span class="sub">${esc(t('ui.brand.sub', 'Europe’s Next Move'))}</span></p>`;
 
 /** The "Built on" block: the three scenarios with links, the calendar, and the tags the news carries (in words). */
 function builtOn(): string {

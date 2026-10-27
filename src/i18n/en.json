@@ -1597,6 +1597,7 @@
   "ui.end.ctaTitle": "This was a game. The choices are real.",
   "ui.end.decisions": "Your decisions, in order",
   "ui.end.didNotWork": "(did not work)",
+  "ui.end.edition": "Final edition",
   "ui.end.gap": "The labs’ claims made AI look {n} points safer than it was.",
   "ui.end.gauges": "The four gauges at the end",
   "ui.end.good": "A good ending",

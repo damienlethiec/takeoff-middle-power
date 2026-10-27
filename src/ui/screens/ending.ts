@@ -63,6 +63,7 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
   const title = tc(`ending.${v.id}.title`, v.title);
   const cfgName = ENDING_BY_ID[v.id].cfgName;
   root.innerHTML = `<main class="ending-page ${v.good ? 'good' : 'bad'}" id="ending">
+    <p class="end-mast" aria-hidden="true"><span class="logo">Takeoff</span><span class="end-edition">${esc(t('ui.end.edition', 'Final edition'))}</span></p>
     <header class="end-hero">
       <p class="dateline">${esc(tr(v.dateLabel))} · ${esc(tr(v.worldName))}</p>
       <p class="end-kind">${esc(v.good ? t('ui.end.good', 'A good ending') : t('ui.end.bad', 'A bad ending'))}</p>

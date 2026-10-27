@@ -1564,6 +1564,7 @@
   "ui.end.didNotWork": "(hat nicht geklappt)",
   "ui.end.gap": "Durch die Angaben der Labore wirkte die KI {n} Punkte sicherer, als sie war.",
   "ui.end.gauges": "Die vier Anzeigen am Ende",
+  "ui.end.edition": "Letzte Ausgabe",
   "ui.end.good": "Ein gutes Ende",
   "ui.end.markFloor": "Untergrenze",
   "ui.end.markGoal": "Ziel",

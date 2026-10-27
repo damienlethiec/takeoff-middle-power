@@ -1564,6 +1564,7 @@
   "ui.end.didNotWork": "(no funcionó)",
   "ui.end.gap": "Lo que decían los laboratorios hacía que la IA pareciera {n} puntos más segura de lo que era.",
   "ui.end.gauges": "Los cuatro indicadores al final",
+  "ui.end.edition": "Última edición",
   "ui.end.good": "Un buen final",
   "ui.end.markFloor": "mínimo",
   "ui.end.markGoal": "objetivo",

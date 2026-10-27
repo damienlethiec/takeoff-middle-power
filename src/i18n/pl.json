@@ -1576,6 +1576,7 @@
   "ui.end.didNotWork": "(bez skutku)",
   "ui.end.gap": "Według deklaracji laboratoriów AI wyglądała na bezpieczniejszą, niż była, o {n} pkt.",
   "ui.end.gauges": "Cztery wskaźniki na końcu",
+  "ui.end.edition": "Ostatnie wydanie",
   "ui.end.good": "Dobre zakończenie",
   "ui.end.markFloor": "minimum",
   "ui.end.markGoal": "cel",
