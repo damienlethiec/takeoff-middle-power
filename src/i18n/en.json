@@ -1421,7 +1421,7 @@
   "tip.cooperation.title": "US–China cooperation",
   "tip.income.text": "Why you earn what you earn now shows by your Influence: +2 a round, +1 more when **Social cohesion** is 60 or more, −1 below 35, +1 once allies share the load, and −1 when you keep more than 4 unspent: unused weight wears off.",
   "tip.income.title": "Influence income",
-  "tip.influence.text": "Your political weight, and your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.\nClick a card to select it: the gauges and the line under them show its effect before you confirm. **Details** shows the whole card.",
+  "tip.influence.text": "Your political weight, and your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers. You can save a little: above 4, unused Influence fades.\nClick a card to select it: the gauges and the line under them show its effect before you confirm. **Details** shows the whole card.",
   "tip.influence.title": "Influence",
   "tip.mapFeed.text": "The map shows where things happen; the feed tells you what happened. Click an icon on the map to find its story in the news, or a story to see where it happened.",
   "tip.mapFeed.title": "The map and the news",

@@ -1401,7 +1401,7 @@
   "tip.cooperation.title": "Coopération États-Unis–Chine",
   "tip.income.text": "Ce que vous gagnez s’explique désormais à côté de votre Influence : +2 par tour, +1 de plus quand la **cohésion sociale** est à 60 ou plus, −1 sous 35, +1 quand des alliés partagent l’effort, et −1 si vous en gardez plus de 4 sans les dépenser : le poids inutilisé s’use.",
   "tip.income.title": "Revenu d’Influence",
-  "tip.influence.text": "Votre poids politique, et votre seule ressource. Vous en gagnez à chaque tour, davantage quand l’Europe reste unie et que les alliés partagent l’effort. Elle paie les cartes : jouez-en autant qu’elle le permet, ou gardez-la.\nCliquez sur une carte pour la choisir : les jauges et la ligne en dessous montrent son effet avant que vous confirmiez. **Détails** montre toute la carte.",
+  "tip.influence.text": "Votre poids politique, et votre seule ressource. Vous en gagnez à chaque tour, davantage quand l’Europe reste unie et que les alliés partagent l’effort. Elle paie les cartes : jouez-en autant qu’elle le permet. Vous pouvez en garder un peu : au-delà de 4, l’Influence inutilisée s’use.\nCliquez sur une carte pour la choisir : les jauges et la ligne en dessous montrent son effet avant que vous confirmiez. **Détails** montre toute la carte.",
   "tip.influence.title": "Influence",
   "tip.mapFeed.text": "La carte montre où les choses se passent ; le fil dit ce qui s’est passé. Cliquez sur une icône de la carte pour retrouver son histoire dans les actus, ou sur une actu pour voir où elle a eu lieu.",
   "tip.mapFeed.title": "La carte et les actus",
