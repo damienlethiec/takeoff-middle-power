@@ -11,6 +11,7 @@ export const US_ENVOY: RequestCard[] = [
     text: 'Washington is tightening its ban on selling advanced chips to China. We want Europe’s governments in: no advanced chips or chip-making tools for Chinese labs. Allies stand together, or they don’t.',
     left: {
       label: 'Keep trading',
+      why: 'Washington punishes Europe with tariffs',
       stance: 'refuse',
       set: ['kept_trading'],
       effects: { coop: 2 },

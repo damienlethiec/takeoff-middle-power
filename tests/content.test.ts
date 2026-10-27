@@ -7,6 +7,7 @@ import { ENDINGS } from '../src/data/endings';
 import { ALL_LETTERS, EPILOGUES, EPILOGUES_GAVE_IN, SIGNATURE } from '../src/data/letters';
 import { FRIEND_IDS } from '../src/data/friends';
 import { LEAK_REDACTED_ADVICE, LEAKS } from '../src/data/leaks';
+import { REQUESTS } from '../src/data/requests';
 import { VOICES, WORLD_HEADLINES } from '../src/data/mapcontent';
 import { SOURCES } from '../src/data/sources';
 import { EVENTS, THREATS } from '../src/data/threats';
@@ -14,6 +15,24 @@ import type { Fact } from '../src/engine/types';
 
 const words = (s: string) => s.trim().split(/\s+/).length;
 const BAD = /undefined|NaN|\[object Object\]|TODO/;
+
+describe('every cost has a why (plain-language pass, 27 Oct)', () => {
+  it('every card says why it costs what it costs, in 10 words or fewer', () => {
+    for (const c of CARDS) {
+      expect(c.why, c.id).toBeTruthy();
+      expect(words(c.why), c.id).toBeLessThanOrEqual(10);
+    }
+  });
+  it('every request answer that moves something says why, in 8 words or fewer', () => {
+    for (const r of REQUESTS)
+      for (const side of ['left', 'right'] as const) {
+        const a = r[side];
+        if (!Object.keys(a.effects).length && !a.later && !a.grow) continue;
+        expect(a.why, `${r.id}.${side}`).toBeTruthy();
+        expect(words(a.why!), `${r.id}.${side}`).toBeLessThanOrEqual(8);
+      }
+  });
+});
 
 describe('card texts', () => {
   it('card faces are 25 words or fewer, opened cards 60 or fewer', () => {

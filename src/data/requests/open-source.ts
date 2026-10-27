@@ -65,6 +65,7 @@ export const OPEN_SOURCE: RequestCard[] = [
     text: 'Criminals strip the safety locks off open models. We can build releases that resist tampering and track misuse, but it takes a year and real money.',
     left: {
       label: 'Not our problem',
+      why: 'Criminals keep stripping the safety locks',
       stance: 'refuse',
       effects: {},
       grow: ['ransomware'],

@@ -134,6 +134,8 @@ export const TEMPLATES: Record<string, string> = {
   'engine.note.asml': 'Washington will answer with a ban on European chip-tool sales to China.',
   'engine.note.accord': 'Influence {n} next round: the superpowers resist letting foreigners in.',
   'engine.note.chipVerification': 'Influence {n} next round: both capitals distrust it at first.',
+  'engine.note.aiOffice': 'Influence {n} next round: other budgets pay for the testers.',
+  'engine.note.biosecurity': 'Influence {n} next round: leading a worldwide pact spends political capital.',
   'engine.note.alignmentAccess': 'With an inspection accord, your teams would work inside the labs and count for more.',
   'engine.note.allies': 'Allies share the load: Influence +1 every round from now on.',
   'engine.note.talks': 'The diplomats rest next round.',

@@ -11,6 +11,7 @@ export const PARTNER: RequestCard[] = [
     text: 'Washington and Beijing have stopped talking. Our coalition, with neutral Switzerland, could carry messages between them, quietly. Will Europe host these secret talks?',
     left: {
       label: 'Not our fight',
+      why: 'The superpowers lose a go-between',
       stance: 'refuse',
       effects: { coop: -3 },
       reaction: 'It becomes our fight if they go to war.',

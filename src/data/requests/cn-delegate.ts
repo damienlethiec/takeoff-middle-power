@@ -11,6 +11,7 @@ export const CN_DELEGATE: RequestCard[] = [
     text: 'In 2024, Presidents Biden and Xi agreed that humans, not AI, must decide on nuclear weapons. Let us go further: a joint statement keeping AI out of all launch decisions.',
     left: {
       label: 'Leave it to them',
+      why: 'Beijing sees Europe shrug off a shared danger',
       stance: 'refuse',
       effects: { coop: -2 },
       reaction: 'Then Europe is only a spectator.',
@@ -89,6 +90,7 @@ export const CN_DELEGATE: RequestCard[] = [
     text: 'Beijing denies any theft. Accusations without proof poison the talks. Will Europe stay neutral, or join the American chorus?',
     left: {
       label: 'Back the accusation',
+      why: 'Beijing sees Europe join the US camp',
       stance: 'refuse',
       effects: { coop: -5, cohesion: 2 },
       reaction: 'Then Europe has chosen.',
@@ -113,6 +115,7 @@ export const CN_DELEGATE: RequestCard[] = [
     text: 'China is ready to discuss a mutual pause on the most powerful AI. We need a neutral verifier. Will Europe put its inspectors forward?',
     left: {
       label: 'Too risky',
+      why: 'Beijing sees Europe turn down peace',
       stance: 'refuse',
       effects: { coop: -3 },
       reaction: 'You wanted a pause. Now you are afraid of one.',

@@ -71,6 +71,7 @@ export const LEA_REQUESTS: RequestCard[] = [
     },
     right: {
       label: 'Set an age limit',
+      why: 'Teens may move to unregulated apps',
       stance: 'accept',
       effects: { cohesion: 3 },
       later: { rounds: 1, effects: { cohesion: -1 }, why: 'Teens move to unregulated apps' },

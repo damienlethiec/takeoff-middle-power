@@ -18,6 +18,7 @@ export const UNION: RequestCard[] = [
     },
     right: {
       label: 'Push for the tax',
+      why: 'Some firms may move abroad to avoid it',
       stance: 'accept',
       effects: { cohesion: 6 },
       later: { rounds: 2, effects: { cohesion: -3, ai: -1 }, why: 'Some firms move abroad' },

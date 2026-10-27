@@ -124,7 +124,9 @@ export const TUNING = {
      *  for the first: Europe tests at home); hidden `truth` per level (inspectors inside the labs, under a deal, can
      *  demand fixes); Influence lost the next round from the accord on. */
     inspections: { cost: [2, 3, 3], margin: -8, cooperation: [0, 2, 2], truth: [0, 3, 3], influence: -1, uses: 3 },
-    ai_office: { cost: 2, marginFactor: 0.5, cohesion: -1, inspectionsBonus: -2 },
+    /** Influence next round (was Social cohesion −1 until 27 Oct: no honest reason; paying testers like lab engineers
+     *  squeezes other budgets, which costs political capital). */
+    ai_office: { cost: 1, marginFactor: 0.5, influence: -1, inspectionsBonus: -2 },
     /** Hidden gain `truth`, plus `accessTruth` once the inspection accord (`accessInspections`) opens the labs. */
     alignment: { cost: 2, truth: 5, accessTruth: 4, accessInspections: 2, estimate: 2, cohesion: 0, uses: 3 },
     coalition: { cost: [2, 2, 3], cooperation: 2, cohesion: 0, uses: 3 },
@@ -139,7 +141,8 @@ export const TUNING = {
     chip_verification: { cost: 3, cooperation: 2, margin: -3, influence: -1, arrivesAt: 50 },
     /** Only with US–China cooperation in the Pause zone (`zones.pause`). */
     licensing_treaty: { cost: 3, margin: -6, truth: 6, cooperation: 2, cohesion: -2 },
-    biosecurity: { cost: 2, cooperation: 2, cohesion: -1 },
+    /** Influence next round (was Social cohesion −1 until 27 Oct: leading a worldwide pact spends political capital). */
+    biosecurity: { cost: 1, cooperation: 2, influence: -1 },
     /** Opens after any AI incident: `cooperation` when Europe was prepared (it leads), `cooperationFollow` otherwise. */
     summit: { cost: 1, cooperation: 10, cooperationFollow: 5, margin: -5, truth: 4, rounds: 2 },
     attribution: { cost: 1, cooperation: 3, rounds: 2 },

@@ -72,7 +72,7 @@ function cardHtml(c: CardView, o: { selected: boolean; recommended: boolean; opt
 
 /** The card's chips (its effects as authored, in words) that its icons do not already say: conditions and side
  *  effects ("Only in a pause", "Inspections sharper"). Matched on the engine's English, before translation. */
-const SAID_BY_ICONS = /^(US–China cooperation:|Social cohesion:|AI safety:|AI safety shown:|Real safety up|Protects against|Influence [+−]|Europe’s AI → (Open|Dependent)$|Shows the true|Accord: (US–China|real safety|Influence)|Level 2: Influence|Model theft: cut|Ransomware threat grows|Softens job shocks|Washington retaliates)/;
+const SAID_BY_ICONS = /^(US–China cooperation:|Social cohesion:|AI safety:|AI safety shown:|Real safety up|Protects against|Influence [+−]|Europe’s AI → (Open|Dependent)$|Shows the true|Accord: (US–China|real safety|Influence)|Level 2: Influence|AI theft: cut|Ransomware threat grows|Softens job shocks|Washington retaliates)/;
 const extra = (c: CardView) => [...c.ups, ...c.downs].filter((x) => !SAID_BY_ICONS.test(x.text));
 
 /** The full card in a dialog centred in the window (a bottom sheet on a phone). `onOption` applies a choice of what to ask for. */
@@ -89,6 +89,7 @@ async function showDetails(c: CardView, o: { selected: boolean; option?: string;
        .map((f) => `<li>${faceHtml([f], false)}<span>${esc(faceWords(f))}</span></li>`)
        .join('')}</ul>
      ${extra(c).length ? `<p class="pc-chips">${chips(extra(c))}</p>` : ''}
+     ${c.why ? `<p class="cd-why"><b>${esc(t('ui.card.whyLabel', 'Why the cost:'))}</b> ${esc(tr(c.why))}</p>` : ''}
      ${
        c.options.length
          ? `<fieldset class="opts"><legend>${esc(t('ui.card.askFor', 'What to ask for'))}</legend>${c.options

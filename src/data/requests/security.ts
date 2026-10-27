@@ -63,6 +63,7 @@ export const SECURITY: RequestCard[] = [
     text: 'We caught a spy passing AI secrets from a European lab to a foreign service. Expose them publicly, or deal with it quietly?',
     left: {
       label: 'Deal quietly',
+      why: 'Cover-ups tend to leak',
       stance: 'refuse',
       effects: { coop: 1 },
       later: { rounds: 2, effects: { cohesion: -5 }, why: 'The cover-up leaks anyway' },

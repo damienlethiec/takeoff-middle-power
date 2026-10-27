@@ -125,6 +125,7 @@ export const JOURNALIST: RequestCard[] = [
     },
     right: {
       label: 'Protect them',
+      why: 'Washington sees Europe shelter its leakers',
       stance: 'accept',
       effects: { margin: -3 },
       set: ['whistleblowers'],

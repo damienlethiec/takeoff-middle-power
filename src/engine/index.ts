@@ -1310,7 +1310,6 @@ function cardFx(s: GameState, p: Pick): Fx[] {
     case 'ai_office':
       return [
         { key: 'marginMul', amount: C.ai_office.marginFactor },
-        { key: 'cohesion', amount: C.ai_office.cohesion },
       ];
     case 'alignment':
       // published research helps a little; with an inspection accord, European teams work inside the labs
@@ -1368,7 +1367,6 @@ function cardFx(s: GameState, p: Pick): Fx[] {
     case 'biosecurity':
       return [
         { key: 'cooperation', amount: C.biosecurity.cooperation },
-        { key: 'cohesion', amount: C.biosecurity.cohesion },
       ];
     case 'summit': {
       // Europe leads the summit when its testers and coalition were ready for the incident, else it follows
@@ -1424,7 +1422,9 @@ export function playCard(state: GameState, p: Pick, opts: { assumeSuccess?: bool
       if (!s.flags.includes('us_chip_threat')) s.flags.push('us_chip_threat');
       break;
     case 'chip_verification':
-      s.penalties.push({ round: s.round + 1, amount: C.chip_verification.influence, card: 'chip_verification' });
+    case 'ai_office':
+    case 'biosecurity':
+      s.penalties.push({ round: s.round + 1, amount: C[p.id].influence, card: p.id });
       break;
     case 'coalition':
       s.coalition += 1;
@@ -1478,6 +1478,7 @@ function cardView(s: GameState, id: CardId): CardView {
     proposal: def.proposal,
     example: def.example ?? null,
     costLine: def.costLine ?? null,
+    why: def.why ?? null,
     ups: def.ups,
     downs: def.downs,
     protects,
@@ -1544,6 +1545,8 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
     if (p.id === 'asml') notes.push('Washington will answer with a ban on European chip-tool sales to China.');
     if (p.id === 'inspections' && (base.uses.inspections ?? 0) >= 1) notes.push(`Influence ${signed(T.cards.inspections.influence)} next round: the superpowers resist letting foreigners in.`);
     if (p.id === 'chip_verification') notes.push(`Influence ${signed(T.cards.chip_verification.influence)} next round: both capitals distrust it at first.`);
+    if (p.id === 'ai_office') notes.push(`Influence ${signed(T.cards.ai_office.influence)} next round: other budgets pay for the testers.`);
+    if (p.id === 'biosecurity') notes.push(`Influence ${signed(T.cards.biosecurity.influence)} next round: leading a worldwide pact spends political capital.`);
     if (p.id === 'alignment' && base.inspections < T.cards.alignment.accessInspections) notes.push('With an inspection accord, your teams would work inside the labs and count for more.');
     if (p.id === 'coalition' && base.coalition + 1 === T.influence.coalitionLevel) notes.push('Allies share the load: Influence +1 every round from now on.');
     if (p.id === 'talks') notes.push('The diplomats rest next round.');

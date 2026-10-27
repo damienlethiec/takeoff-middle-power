@@ -470,6 +470,10 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .built-on li, .built-on p { font-size: 13px !important; margin: 0 0 4px; line-height: 1.4; }
 .built-on .tag { white-space: nowrap; }
 
+/* card Details: why the card costs what it costs, in a few plain words */
+.cd-why { margin: 6px 0 10px; font-size: 14.5px; color: var(--ink); }
+.cd-why b { color: var(--mute); font-weight: 600; }
+
 /* breaking news */
 .modal.breaking { max-width: 680px; border-color: color-mix(in srgb, var(--rival) 55%, var(--rule)); }
 .modal.breaking::before { content: ''; position: absolute; inset: 0 0 auto; height: 5px; border-radius: 16px 16px 0 0; background: repeating-linear-gradient(-45deg, var(--rival) 0 10px, var(--night) 10px 20px); }

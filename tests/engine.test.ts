@@ -164,7 +164,7 @@ describe('cards', () => {
   });
 
   it('allows as many cards a round as Influence pays for, never the same card twice', () => {
-    let s = fresh(1, { influence: 5 });
+    let s = fresh(1, { influence: 4 });
     s = play(s, { id: 'talks' });
     expect(hand(s).find((c) => c.id === 'talks')!.reason).toMatch(/Already played|rest/);
     s = play(s, { id: 'ai_office' }, { id: 'inspections' });
@@ -175,8 +175,8 @@ describe('cards', () => {
 
   it('refuses a card you cannot afford', () => {
     const s = fresh(1, { influence: 1 });
-    expect(hand(s).find((c) => c.id === 'ai_office')!.playable).toBe(false);
-    expect(hand(s).find((c) => c.id === 'ai_office')!.reason).toMatch(/Not enough Influence/);
+    expect(hand(s).find((c) => c.id === 'inspections')!.playable).toBe(false);
+    expect(hand(s).find((c) => c.id === 'inspections')!.reason).toMatch(/Not enough Influence/);
   });
 
   it('diplomatic talks: Cooperation up, Cohesion down, then a round of rest', () => {

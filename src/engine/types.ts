@@ -602,6 +602,8 @@ export interface CardView {
   costLine: Fact | null;
   ups: Chip[];
   downs: Chip[];
+  /** Why the card costs what it costs (≤ 10 plain words), shown in Details. */
+  why: string | null;
   protects: ThreatId | null;
   protectsName: string | null;
   options: { id: string; label: string; ups: Chip[] }[];
