@@ -12,9 +12,9 @@ export const RESEARCHER: RequestCard[] = [
     left: {
       label: 'Trust the report',
       stance: 'refuse',
-      effects: {},
+      effects: { cohesion: -1 },
       tag: 'claim',
-      why: 'We only see what OpenBrain shows',
+      why: 'Researchers say Brussels takes the labs’ word',
       reaction: 'I hope you’re right.',
     },
     right: {
@@ -39,9 +39,9 @@ export const RESEARCHER: RequestCard[] = [
     left: {
       label: 'Take their word',
       stance: 'refuse',
-      effects: {},
+      effects: { cohesion: -2 },
       tag: 'claim',
-      why: 'Only OpenBrain checked the fix',
+      why: 'Critics say Europe took OpenBrain’s word',
       reaction: 'Their word was the problem.',
     },
     right: {
@@ -94,8 +94,8 @@ export const RESEARCHER: RequestCard[] = [
     left: {
       label: 'Keep our word',
       stance: 'refuse',
-      effects: {},
-      why: 'The model that matters stays unseen',
+      effects: { cohesion: -1 },
+      why: 'Critics say the riskiest model goes unchecked',
       reaction: 'Then we are testing yesterday’s model.',
     },
     right: {

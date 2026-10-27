@@ -110,6 +110,7 @@ export async function showInfluenceHelp(influence: number, inc: IncomeView): Pro
        <li>${th('ui.influence.high', '{n} while Social cohesion is {x} or more: the public backs you', { n: b('+1'), x: I.highCohesion })}</li>
        <li>${th('ui.influence.low', '{n} while Social cohesion is below {x}: a crisis at home', { n: b('−1'), x: I.lowCohesion })}</li>
        <li>${th('ui.influence.allies', '{n} once the coalition reaches level {x}: allies share the load', { n: b('+1'), x: I.coalitionLevel })}</li>
+       <li>${th('ui.influence.fade', '{n} if you kept more than {x} at the end of the last round: unused weight wears off', { n: b(sign(-I.fade)), x: I.fadeAbove })}</li>
        <li>${esc(t('ui.influence.limits', 'Never less than {min} a round; you can hold at most {max}.', { min: sign(I.minIncome), max: I.cap }))}</li>
      </ul>
      <p class="label">${esc(t('ui.influence.next', 'Next round'))}</p>

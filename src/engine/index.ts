@@ -308,6 +308,11 @@ export function nextIncome(s: GameState, forRound = s.round + 1): IncomeView {
     n += 1;
     reasons.push('Allies share the load +1');
   }
+  // political weight left unused for long wears off (27 Oct: acting early must matter)
+  if (s.influence > I.fadeAbove) {
+    n -= I.fade;
+    reasons.push(`Unused weight fades ${signed(-I.fade)}`);
+  }
   for (const p of s.penalties.filter((x) => x.round === forRound)) {
     n += p.amount;
     reasons.push(`${CARD_BY_ID[p.card].name} ${signed(p.amount)}`);

@@ -120,7 +120,7 @@ export class App {
    * time it matters. Display only: the engine's values exist and move from round 1. Players who turned the tips off
    * or finished a game see everything from round 1 (Coach.full). Once shown, a part stays for the game.
    */
-  private reveal = { cooperation: true, cohesion: true, heading: true, badge: true };
+  private reveal = { cooperation: true, cohesion: true, heading: true, badge: true, income: true };
 
   constructor(
     private root: HTMLElement,
@@ -255,7 +255,7 @@ export class App {
     this.coach.markSeen(tips);
     this.prevThreats = resume ? this.e.threats(state) : [];
     this.headingWhy = '';
-    this.reveal = { cooperation: false, cohesion: false, heading: false, badge: false };
+    this.reveal = { cooperation: false, cohesion: false, heading: false, badge: false, income: false };
     this.updateReveal();
     this.buildShell();
     const v = this.vals();
@@ -364,7 +364,7 @@ export class App {
     const ready: Partial<Record<TipId, boolean>> = { cooperation: this.reveal.cooperation, cohesion: this.reveal.cohesion, outlook: this.reveal.heading };
     for (const id of ['capabilities', 'safety', 'cooperation', 'cohesion', 'outlook'] as const) if (ready[id] !== false) await this.coach.show(id, s.round, this.root);
     // what Influence income depends on joins the header with Social cohesion (first game only: Influence's own tip says it)
-    if (!this.coach.full && this.reveal.cohesion) await this.coach.show('income', s.round, this.root);
+    if (!this.coach.full && this.reveal.income) await this.coach.show('income', s.round, this.root);
     // Europe's AI: its tip comes once the first decisions are made, or (first game) the first time it matters
     if (this.reveal.badge && (s.round >= 2 || !this.coach.full)) await this.coach.show('badge', s.round, this.root);
 
@@ -966,6 +966,7 @@ export class App {
     v.cooperation ||= full || r >= TUNING.reveal.cooperation;
     v.cohesion ||= full || r >= TUNING.reveal.cohesion;
     v.heading ||= v.cooperation;
+    v.income ||= full || v.cohesion;
     // Europe's AI matters once it is no longer Dependent, when AI looks set to stall (it then decides the ending), when
     // the selected cards would change it, or (a resumed game) once its tip was shown
     v.badge ||=
@@ -992,7 +993,7 @@ export class App {
     }
     this.root.querySelector('#heading-line')?.classList.toggle('early', !v.heading);
     this.root.querySelector('.stage > .panel')?.classList.toggle('no-targets', !v.heading);
-    this.root.querySelector('.top .inf')?.classList.toggle('inf-early', !v.cohesion);
+    this.root.querySelector('.top .inf')?.classList.toggle('inf-early', !v.income);
   }
 
   /** Something joined the dashboard mid-round (Europe's AI after an answer or a selection): say it once. */
@@ -1061,8 +1062,13 @@ export class App {
     const s = this.s;
     const inc = this.e.nextIncome(s);
     $('#inf-v', this.root).textContent = String(s.influence);
-    // what the income depends on (Social cohesion, allies) joins the header with Social cohesion (first game)
-    const reasons = this.reveal.cohesion ? inc.reasons.map(tr) : [];
+    // what the income depends on (Social cohesion, allies) joins the header with Social cohesion (first game), or from
+    // round 2 as soon as Influence kept unspent would wear off
+    if (!this.reveal.income && (this.reveal.cohesion || (s.round >= 2 && inc.reasons.some((r) => r.startsWith('Unused weight'))))) {
+      this.reveal.income = true;
+      this.applyReveal();
+    }
+    const reasons = this.reveal.income ? inc.reasons.map(tr) : [];
     $('#inf-next', this.root).textContent = inc.nextRoundExists ? t('ui.influence.nextShort', '{n} next round', { n: signed(inc.next) }) : t('ui.influence.noNext', 'no next round');
     $('#inf-why', this.root).textContent = inc.nextRoundExists ? reasons.join(' · ') : '';
     $('.inf', this.root).setAttribute(

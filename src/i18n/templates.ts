@@ -64,6 +64,7 @@ export const TEMPLATES: Record<string, string> = {
   // Influence
   'engine.income.base': 'Base {n}',
   'engine.income.public': 'The public backs you +1',
+  'engine.income.fade': 'Unused weight fades {n}',
   'engine.income.crisis': 'Crisis at home −1',
   'engine.income.allies': 'Allies share the load +1',
   'engine.income.atLeast': 'At least {n}',

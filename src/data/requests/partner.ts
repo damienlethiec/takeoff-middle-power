@@ -37,8 +37,8 @@ export const PARTNER: RequestCard[] = [
     left: {
       label: 'Our own tests',
       stance: 'refuse',
-      effects: {},
-      why: 'Europe tests alone, slower',
+      effects: { influence: -1 },
+      why: 'Partners feel snubbed',
       reaction: 'Duplicating work is a luxury.',
     },
     right: {

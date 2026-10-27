@@ -121,13 +121,16 @@ describe('creation and the clock', () => {
 });
 
 describe('Influence', () => {
-  it('earns +2 base, +1 with Cohesion 60+, −1 below 35, +1 with coalition level 2, capped at 10', () => {
-    const s = fresh(1, { cohesion: 50, coalition: 0, penalties: [] });
+  it('earns +2 base, +1 with Cohesion 60+, −1 below 35, +1 with coalition level 2, −1 with more than 4 kept, capped at 10', () => {
+    const s = fresh(1, { cohesion: 50, coalition: 0, penalties: [], influence: T.influence.fadeAbove });
     expect(nextIncome(s).next).toBe(2);
     expect(nextIncome({ ...s, cohesion: 60 }).next).toBe(3);
     expect(nextIncome({ ...s, cohesion: 34 }).next).toBe(1);
     expect(nextIncome({ ...s, cohesion: 60, coalition: 2 }).next).toBe(4);
     expect(nextIncome({ ...s, cohesion: 60, coalition: 2 }).reasons.join(' ')).toMatch(/public backs you.*Allies/i);
+    // unused political weight wears off: more than `fadeAbove` kept brings `fade` less
+    expect(nextIncome({ ...s, influence: T.influence.fadeAbove + 1 }).next).toBe(2 - T.influence.fade);
+    expect(nextIncome({ ...s, influence: T.influence.fadeAbove + 1 }).reasons.join(' ')).toMatch(/Unused weight fades −1/);
     const rich = { ...s, influence: 9, cohesion: 70, coalition: 2 };
     expect(startRound(endRound(rich).state).influence).toBe(10);
   });
@@ -229,7 +232,7 @@ describe('cards', () => {
   });
 
   it('the coalition gives +1 Influence a round from level 2', () => {
-    const s = fresh(1, { hand: ['talks', 'coalition'], coalition: 1, cohesion: 50 });
+    const s = fresh(1, { hand: ['talks', 'coalition'], coalition: 1, cohesion: 50, influence: 4 });
     expect(nextIncome(s).next).toBe(2);
     expect(nextIncome(play(s, { id: 'coalition' })).next).toBe(3);
   });

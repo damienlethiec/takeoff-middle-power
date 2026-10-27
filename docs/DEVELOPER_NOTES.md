@@ -240,6 +240,8 @@ Levers tried and dropped (one sim each): alignment research with four uses at +4
 | Big AI from (`plateau.bigAiFrom`) | 70 | 72 | Without the round-1 request the passive and random players' slow games ended just above 70 (Big AI), and *Powerful AI in every hand* fell to 0–1%. | Best 3% (random). |
 | Rupture's AI safety floor (`worlds.rupture.floor`) | 60 | 57 | With two uses of alignment research the home-first player's *A divided world that holds* fell from 9% to 1%: 60 true AI safety in a Rupture was out of reach without diplomacy. | 9% (home-first). |
 | Pause's AI safety target (`worlds.pause.target`), after the costs' why pass (`bf2409b`: the AI Office and the biosecurity pact cost Influence, not Social cohesion; ten request answers got a cost) | 60 | 59 | With those costs the thoughtful player fell to 58% and *The pause breaks down* took 13% of its games: the Pause is where Europe's diplomacy pays, and its bar sat a notch above what the verified levers reach by takeoff. | Thoughtful 63%, random 25%, home-first 33%, cooperation-only 6%. |
+| Unused Influence wears off (`influence.fadeAbove`, `fade`, new) | none | Influence kept above 4 at the end of a round brings 1 less the next round (shown in the income's reasons from round 2: "Unused weight fades −1"; in Influence's "?", Help and the income tip) | With round 1's small hand the saver lost nothing by waiting (63% vs thoughtful 63%). Political weight left unused wears off: acting early must matter. Tried first: the cap 10 → 8 (saver 60% vs 59%) and the fade above 6 (62% vs 63%), both too weak; above 4 the thoughtful player, which keeps about 2.6, is barely touched. | Saver 43% vs thoughtful 59%. |
+| Request answers that moved nothing visible (8, data: `rs_look_inside`, `rs_memo`, `rs_internal_warned`, `pt_joint_tests`, `jn_publish_tests`, `jn_memo`, `jn_whistleblowers`, `jn_logs`, all their left answers) | no effect | Social cohesion −1 or −2 (critics and the press: "cover-up", "took the labs' word"), Influence −1 for snubbing the partners' joint tests; each `why` rewritten to say it | The rule "every answer costs something visible": refusing transparency in AI 2027's story (the memo, the whistleblowers, the logs) costs public trust. | See the next table. |
 
 ### After the event scheduling of 27 Oct (`npm run sim`, 100 games a strategy)
 
@@ -270,19 +272,19 @@ Levers tried and dropped (one sim each): alignment research with four uses at +4
 
 Ransomware (6–16%) and silicon blackmail (0–12%) are unchanged: they still wait for a free slot.
 
-### After the learnability pass of 27 Oct (`npm run sim`, 100 games a strategy; with the costs' why pass of `bf2409b`)
+### After the learnability pass of 27 Oct (`npm run sim`, 100 games a strategy; with the costs' why pass of `bf2409b`, unused Influence wearing off and the eight answers' costs)
 
 | Strategy | Good endings | Takeoff | AI incident (prepared) | Bioweapon uplift | Committee slows down |
 | --- | --- | --- | --- | --- | --- |
-| Passive | 0% | 71% | 51% (0%) | 6% | 24% |
-| Random | 25% | 63% | 47% (60%) | 14% | 7% |
-| Thoughtful | 63% | 59% | 41% (88%) | 13% | 10% |
-| Cooperation-only | 6% | 70% | 48% (2%) | 8% | 67% |
-| Home-first (no diplomacy) | 33% | 64% | 47% (0%) | 12% | 0% |
-| Advised (one card a round) | 43% | 59% | 42% (50%) | 12% | 9% |
-| Saver (bursts) | 63% | 59% | 35% (71%) | 14% | 16% |
+| Passive | 0% | 71% | 51% (0%) | 6% | 25% |
+| Random | 23% | 63% | 45% (62%) | 12% | 10% |
+| Thoughtful | 58% | 59% | 40% (85%) | 13% | 8% |
+| Cooperation-only | 7% | 70% | 45% (0%) | 9% | 67% |
+| Home-first (no diplomacy) | 36% | 64% | 44% (0%) | 13% | 0% |
+| Advised (one card a round) | 42% | 59% | 43% (49%) | 12% | 9% |
+| Saver (bursts) | 44% | 61% | 41% (54%) | 11% | 11% |
 
-Every target passes but the saver's (a known, accepted miss: 63% vs 63%): every ending ≥ 2% for some strategy (lowest *Powerful AI in every hand* 3%), thoughtful's most played card alignment 15.5%, 5–10 requests in 100% of games (5–8), AI safety uncertainty ±19 median, earliest takeoff round 6, takeoff in 63.6% of games.
+Every target passes, the saver's too (44% vs 58%, −14 pts): every ending ≥ 2% for some strategy (lowest *Powerful AI in every hand* 3%), thoughtful's most played card alignment 16%, 5–10 requests in 100% of games (5–8), AI safety uncertainty ±18 median, earliest takeoff round 6, takeoff in 63.9% of games.
 
 ### Rebalancing backlog (owner's decision, 26 Oct: rebalance at the end, not now)
 

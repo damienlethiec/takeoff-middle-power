@@ -13,8 +13,8 @@ export const JOURNALIST: RequestCard[] = [
     left: {
       label: 'Keep it voluntary',
       stance: 'refuse',
-      effects: {},
-      why: 'Labs publish only good news',
+      effects: { cohesion: -1 },
+      why: 'The press cries cover-up',
       reaction: 'Voluntary means “when it flatters us”.',
     },
     right: {
@@ -66,9 +66,9 @@ export const JOURNALIST: RequestCard[] = [
     left: {
       label: 'Refuse to comment',
       stance: 'refuse',
-      effects: {},
+      effects: { cohesion: -2 },
       set: ['memo_heard'],
-      why: 'The truth stays hidden',
+      why: 'Silence looks like a cover-up',
       reaction: 'It will come out. It always does.',
     },
     right: {
@@ -119,8 +119,8 @@ export const JOURNALIST: RequestCard[] = [
     left: {
       label: 'Not our business',
       stance: 'refuse',
-      effects: {},
-      why: 'Insiders stay silent',
+      effects: { cohesion: -1 },
+      why: 'Critics say Europe abandons insiders',
       reaction: 'Then the next warning will die in a drawer.',
     },
     right: {
@@ -146,8 +146,8 @@ export const JOURNALIST: RequestCard[] = [
     left: {
       label: 'Stay out of it',
       stance: 'refuse',
-      effects: {},
-      why: 'The logs stay a rumour',
+      effects: { cohesion: -1 },
+      why: 'The press says Europe looked away',
       reaction: 'Then I publish alone, and they call it gossip.',
     },
     right: {

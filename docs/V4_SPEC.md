@@ -151,9 +151,11 @@ Short tips, one at a time, next to what they explain, each once; switchable off,
 | --- | --- | --- | --- |
 | 1 | AI capabilities, AI safety; the line under the gauges says "First, watch AI capabilities and AI safety…" (the two other gauges keep their place, dashed, "On the dashboard from round 2 / 3": no layout jump); Influence with its next-round amount | capabilities, safety, the map and the news (once the first items are out), Influence (decisions) | inspections (test the labs' models), AI Office capacity, AI safety research: AI safety only. No request in round 1. |
 | 2 | US–China cooperation and the line on where the world is heading (goals and floors on the gauges come with it) | cooperation, where the world is heading, a request (the first one), diplomacy can fail (the first card with a chance) | diplomatic talks (plus threat-driven cards as before) |
-| 3 | Social cohesion, and what Influence income depends on (the header's reasons) | cohesion, Influence income | open models, coalition, CERN for AI |
+| 3 | Social cohesion, and what Influence income depends on (the header's reasons; from round 2 already if unused Influence would wear off) | cohesion, Influence income | open models, coalition, CERN for AI |
 | 4+ | — | — | the audit (round 4), then as before |
 | when it matters | Europe's AI badge: once it is no longer Dependent, when AI looks set to stall, or when the selected cards would change it | Europe's AI; an accord (the first accord on offer); a threat | |
+
+**Unused Influence wears off (27 Oct).** Influence kept above 4 at the end of a round brings 1 less the next round ("Unused weight fades −1" in the income's reasons, in Influence's "?" and in Help): saving for a burst no longer beats acting each round.
 
 What joins the screen is also announced ("New on the dashboard: US–China cooperation, the line on where the world is heading."); a gauge not yet shown moves silently (no change by it, nothing announced for it). A player who has finished a game in this browser, or who turned the tips off (or `?notutorial`), sees the whole dashboard from round 1; this is kept in the tutorial's own key (`takeoff.v4.tutorial`: `on`, `off`, `done`, `done-off`), with no new tracking. Help says so under the tips switch.
 

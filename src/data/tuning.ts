@@ -66,7 +66,9 @@ export const TUNING = {
    *  dashboard shows from round 2 and 3): 5 to 10 a game, 5 when AI takes off in round 6. */
   requests: { maxPerGame: 8, chance: 0.6, minRate: 1, firstRound: 2 },
 
-  influence: { base: 2, highCohesion: 60, lowCohesion: 35, coalitionLevel: 2, cap: 10, minIncome: 1 },
+  /** `fadeAbove`, `fade` (27 Oct): Influence kept above `fadeAbove` at the end of a round brings `fade` less the next
+   *  round (political weight left unused wears off; acting early must matter). */
+  influence: { base: 2, highCohesion: 60, lowCohesion: 35, coalitionLevel: 2, cap: 10, minIncome: 1, fadeAbove: 4, fade: 1 },
 
   zones: { pause: 60, race: 30 },
   /** Small suspense at the tipping point: the final Cooperation moves by up to this much, either way. */
