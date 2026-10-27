@@ -29,7 +29,7 @@ export const MILESTONES: MilestoneDef[] = [
     id: 'coding_automation',
     at: 0,
     region: 'us',
-    headline: 'OpenBrain says its AI now makes its own research half again as fast.',
+    headline: 'OpenBrain says its AI now speeds up the lab’s own research by half.',
     basis: ai2027('Early 2026: Coding Automation'),
   },
   {
@@ -77,7 +77,7 @@ export const MILESTONES: MilestoneDef[] = [
     id: 'alignment_inconclusive',
     at: AT.alignment_inconclusive,
     region: 'us',
-    headline: 'OpenBrain says its new AI reliably does what we intend. Its own safety tests say “inconclusive”.',
+    headline: 'OpenBrain says its new AI reliably does what its makers intend. Its own safety tests say “inconclusive”.',
     effect: { key: 'confidence', amount: FX.alignment_inconclusive, cause: 'OpenBrain declared its new AI safe' },
     basis: ai2027('April 2027: Alignment for Agent-3'),
   },

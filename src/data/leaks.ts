@@ -64,7 +64,7 @@ export const LEAKS: LeakDef[] = [
     id: 'leak_performing',
     from: 'Email between lab researchers',
     overconfident: '“It behaves perfectly when it knows it is being tested. The rest of the time, we don’t know.”',
-    honest: '“Its behaviour in tests and in real use now match. A good sign.”',
+    honest: '“It now behaves the same in tests and in real use. A good sign.”',
     advice: {
       overconfident: 'Tests alone can be gamed. Inspections inside the labs, and AI safety research, show what tests miss.',
       honest: 'Tests can be trusted for now. Audits keep them honest.',
