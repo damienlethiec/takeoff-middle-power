@@ -11,6 +11,9 @@ import { engineStrings } from '../scripts/i18n-coverage';
 import { englishEntries, known, t, th, tn, tr, useCatalog } from '../src/i18n';
 import { numberKey } from '../src/i18n/match';
 import { pseudo } from '../src/i18n/pseudo';
+import { createInitialState, heading } from '../src/engine/index';
+import { headingLineHtml, safetyCaption } from '../src/ui/outlook';
+import { nextRound } from './helpers';
 
 const en = buildEnglish();
 
@@ -140,4 +143,35 @@ describe('the runtime', () => {
     expect(pseudo('Hello {name}')).toContain('{name}');
     expect(pseudo('Hello world, how are you').length).toBeGreaterThan('Hello world, how are you'.length * 1.25);
   });
+});
+
+describe('the heading line and AI safety’s caption in every language', () => {
+  const s = nextRound(createInitialState(9));
+  const h = heading(s);
+  const all = ['en', ...LOCALES, 'xx'] as const;
+  for (const l of all) {
+    it(`${l}: the line names the world and its goal; the gauge’s caption keeps the goal at rest`, () => {
+      useCatalog(l, l === 'en' || l === 'xx' ? {} : readJson(join(I18N_DIR, `${l}.json`)));
+      const d = h.decides;
+      const label = tr(d.label);
+      const line = headingLineHtml(h);
+      // the visible line: the goal's gauge and its bar, then its status
+      expect(line.html).toContain(`<b class="num">${d.bar}</b>`);
+      expect(line.html).toContain(label);
+      expect(line.html).toContain(tr(h.name));
+      // the same in words, for screen readers, with the safety net
+      expect(line.words).toContain(label);
+      expect(line.words).toContain(String(d.bar));
+      expect(line.words).toContain(String(h.net.bar));
+      // AI safety's caption under its gauge: at rest the goal is always written, wide and narrow
+      const tgt = th('ui.gauge.goalShort', 'goal {bar}', { bar: `${d.bar}` });
+      const long = th('ui.gauge.capSafety', 'Verified {low} · labs claim {claim}', { low: 45, claim: 56 });
+      const short = th('ui.gauge.capSafetyShort', '{low} verified', { low: 45 });
+      const cap = safetyCaption(long, short, tgt, false);
+      expect(cap.long).toContain(tgt);
+      expect(cap.short).toContain(tgt);
+      // a gauge that is neither the goal nor the net has no target to write
+      expect(safetyCaption(long, short, '', false)).toEqual({ long, short });
+    });
+  }
 });

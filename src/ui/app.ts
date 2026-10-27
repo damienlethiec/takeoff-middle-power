@@ -25,7 +25,7 @@ import { showRequest } from './screens/request';
 import { showPostcard } from './screens/postcard';
 import { FRIENDS } from '../data/friends';
 import { TUNING } from '../data/tuning';
-import { badgeHtml, headingLineHtml, statusOf, statusWord } from './outlook';
+import { badgeHtml, headingLineHtml, safetyCaption, statusOf, statusWord } from './outlook';
 import { GICON } from './fx';
 import { lang, lcFirst, onLangChange, t, tc, th, tn, tr } from '../i18n';
 import { bindLangMenu, chooseLang, langMenuHtml } from './lang';
@@ -1288,15 +1288,15 @@ export class App {
         if (k === 'confidence') {
           const c = this.safety();
           const a = this.safetyAfter() ?? c;
-          const plain = (x: string) => x.replace(/<[^>]+>/g, '');
           // a selection's effect in words before deciding ("Verified 41 up some"): numbers come after Confirm
           const would = (x: number, y: number) => (x === y ? `${x}` : `${x} <b class="pv">${esc(tr(moveWord(y - x)))}</b>`);
           if (c.audited) setCap(both(`${esc(t('ui.gauge.auditedTrue', 'Audited: the true value'))}${tgt ? ` · ${tgt}` : ''}`, `${esc(t('ui.gauge.auditedShort', 'audited'))}${tgt ? ` · ${tgt}` : ''}`));
           else {
             const long = th('ui.gauge.capSafety', 'Verified {low} · labs claim {claim}', { low: would(c.low, a.low), claim: would(c.claim, a.claim) });
             const short = th('ui.gauge.capSafetyShort', '{low} verified', { low: would(c.low, a.low) });
-            // the target joins the line when it fits on one line (it is always drawn on the bar)
-            setCap(both(plain(long + tgt).length <= 48 && tgt ? `${long} · ${tgt}` : long, plain(short + tgt).length <= 28 && tgt ? `${short} · ${tgt}` : short));
+            // the target joins the line when it fits; at rest it is always written (it is always drawn on the bar)
+            const cap = safetyCaption(long, short, tgt, a.low !== c.low || a.claim !== c.claim);
+            setCap(both(cap.long, cap.short));
           }
         } else if (k === 'cooperation') {
           // its zone is the status chip ("Race"), in the zone's colour and named in words; the caption keeps the range.

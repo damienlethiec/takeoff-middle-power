@@ -64,6 +64,21 @@ export function headingLineHtml(h: HeadingView, before?: HeadingView): { html: s
   return { html, words };
 }
 
+/**
+ * AI safety's caption under its gauge, wide and narrow: what is verified (and, wide, what the labs claim), then its
+ * target ("goal 62") when the gauge decides the world or is its safety net. The target joins the line when it fits on
+ * one line; when it does not (a longer language: Polish, Spanish), the caption at rest keeps the target and drops the
+ * claim (already the top of the value, "45–56"), so the goal is always written. Only while a selection moves AI
+ * safety may the preview's words take its place (the target stays drawn on the bar).
+ */
+export function safetyCaption(long: string, short: string, tgt: string, moving: boolean): { long: string; short: string } {
+  const len = (x: string) => x.replace(/<[^>]+>/g, '').length;
+  const keep = !!tgt && !moving;
+  const wide = tgt && len(long + tgt) <= 48 ? `${long} · ${tgt}` : keep ? `${short} · ${tgt}` : long;
+  const narrow = tgt && (len(short + tgt) <= 28 || keep) ? `${short} · ${tgt}` : short;
+  return { long: wide, short: narrow };
+}
+
 /** Would the selection change what the line says: the world, or the status of its goal or safety net? */
 function lineMoves(h: HeadingView, before: HeadingView): boolean {
   if (h.world !== before.world || h.decides.key !== before.decides.key || h.net.key !== before.net.key) return true;
