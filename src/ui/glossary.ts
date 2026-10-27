@@ -98,6 +98,19 @@ function place(b: HTMLButtonElement, box: HTMLElement) {
   box.dataset.side = above ? 'top' : 'bottom';
 }
 
+/** Is the word still on screen, inside every scrolling box around it (a dialog, a card)? */
+function inView(b: HTMLElement): boolean {
+  const r = b.getBoundingClientRect();
+  if (!b.isConnected || r.width === 0 || r.bottom < 0 || r.top > window.innerHeight || r.right < 0 || r.left > window.innerWidth) return false;
+  for (let p = b.parentElement; p && p !== document.body; p = p.parentElement) {
+    const o = getComputedStyle(p).overflowY;
+    if (o !== 'auto' && o !== 'scroll' && o !== 'hidden') continue;
+    const q = p.getBoundingClientRect();
+    if (r.bottom <= q.top || r.top >= q.bottom) return false;
+  }
+  return true;
+}
+
 /** Open or close one term's tooltip. `pin`: opened by a click or a key (stays until clicked again, Escape, or
  *  focus leaves); hover and focus open it unpinned. Only a deliberate open is announced (hover would flood). */
 function show(b: HTMLButtonElement, open: boolean, how: 'hover' | 'focus' | 'pin' = 'hover') {
@@ -171,10 +184,17 @@ export function installGlossary() {
     if (!open || termOf(ev.target) === open || boxOf(ev.target)?.id === open.getAttribute('aria-controls')) return;
     show(open, false);
   });
-  // the tooltip is placed in screen coordinates: a scroll or a resize closes it rather than leaving it adrift
-  const closeAll = () => document.querySelectorAll<HTMLButtonElement>('.gl-term[aria-expanded="true"]').forEach((x) => show(x, false));
-  window.addEventListener('scroll', closeAll, true);
-  window.addEventListener('resize', closeAll);
+  // the tooltip is placed in screen coordinates: a scroll or a resize moves it with its word, and closes it only once
+  // the word has left the view. (Closing on every scroll lost it at 200% zoom: Tab scrolls the word into view, and
+  // that scroll arrived just after Enter had opened the meaning.)
+  const follow = () =>
+    document.querySelectorAll<HTMLButtonElement>('.gl-term[aria-expanded="true"]').forEach((x) => {
+      const box = document.getElementById(x.getAttribute('aria-controls') ?? '');
+      if (box && inView(x)) place(x, box);
+      else show(x, false);
+    });
+  window.addEventListener('scroll', follow, true);
+  window.addEventListener('resize', follow);
   // capture: Escape closes an open definition before a dialog's own Escape (which would close the dialog)
   document.addEventListener(
     'keydown',

@@ -790,6 +790,9 @@ test.describe('key interactions', () => {
         await page.keyboard.press('Enter');
         await expect(term).toHaveAttribute('aria-expanded', 'true');
         await expect(meaning).toBeVisible();
+        // a scroll (Tab scrolling the word into view, at 200% zoom) moves the meaning with its word, never closes it
+        await d.evaluate((el) => el.closest('.overlay')!.dispatchEvent(new Event('scroll')));
+        await expect(meaning).toBeVisible();
         // the arrows still belong to the answers only when an answer has focus: not on a glossary word
         await page.keyboard.press('ArrowLeft');
         await expect(d.locator('.req-card.asking')).toHaveCount(1);

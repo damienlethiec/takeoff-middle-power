@@ -93,13 +93,14 @@ async function playRun(browser, base, run) {
       const d = document.getElementById(b?.getAttribute('aria-controls') ?? '');
       return b?.getAttribute('aria-expanded') === 'true' && !!d && !d.hidden;
     });
-    if (!open) fail(`${name}: Enter on a glossary word did not show its meaning`);
+    // a meaning that did not open: say so and stop here (Escape would close the dialog, and every later check with it)
+    if (!open) return fail(`${name}: Enter on a glossary word did not show its meaning (${await focused(page)})`);
     if (!/: /.test(await said())) fail(`${name}: the glossary meaning was not announced`);
     await audit('glossary');
     await press('Escape');
     await advance(page, 150);
-    if ((await screenOf(page)) !== name) fail(`${name}: Escape on an open glossary word closed the dialog`);
-    else if (!(await focusIs('.gl-term[aria-expanded="false"]'))) fail(`${name}: Escape did not close the glossary word's meaning (${await focused(page)})`);
+    if ((await screenOf(page)) !== name) return fail(`${name}: Escape on an open glossary word closed the dialog`);
+    if (!(await focusIs('.gl-term[aria-expanded="false"]'))) return fail(`${name}: Escape did not close the glossary word's meaning (${await focused(page)})`);
     log.push(`  glossary word: opened and closed with the keyboard in ${name}`);
   }
 
