@@ -61,6 +61,9 @@ try {
           await choice.click();
         } else await page.keyboard.press('Enter');
       } else if (c.includes('request')) {
+        // the request's tip stacks over the card a couple of frames after it opens: let the loop take it first
+        await advance(page, 200);
+        if (await has('.overlay.coach-ov:not(.leaving)')) continue;
         if (await has(`${modal} .req-card.asking`)) {
           if (!taken.has('request')) await shot('request');
           // look at an answer first (its preview), then take it
@@ -69,9 +72,10 @@ try {
           if (!taken.has('request-look')) await shot('request-look');
           await page.keyboard.press('ArrowRight');
           await advance(page, 500);
+          // the card turned over in place: the answer, the reaction, what changed (it would close by itself)
           if (!taken.has('request-outcome')) await shot('request-outcome');
         }
-        await page.keyboard.press('Enter');
+        if (await has(`${modal} .req-card.answered`)) await page.keyboard.press('Enter');
       } else if (c.includes('postcard')) {
         // a friend's letter opens the round: the first one, and Malik's
         const h = await page.evaluate((m) => document.querySelector(`${m} h2`)?.textContent ?? '', modal);
