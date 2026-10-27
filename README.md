@@ -34,4 +34,4 @@ Pushing to `main` deploys to GitHub Pages; every other branch gets a preview at 
 
 ## Licence
 
-Copyright © 2026 Damien Lethiec, Louis and Marcin. **All rights reserved** — see [LICENSE](LICENSE). You may play the game and read this repository, but not copy, modify or reuse any part of it without the authors’ written permission. Fonts are under the SIL Open Font License; the scenarios the game cites (AI 2027, CFG, Europe 2031) belong to their authors.
+Copyright © 2026 Damien Le Thiec, Louis Bonneau and Marcin Rabiza. **All rights reserved** — see [LICENSE](LICENSE). You may play the game and read this repository, but not copy, modify or reuse any part of it without the authors’ written permission. Fonts are under the SIL Open Font License; the scenarios the game cites (AI 2027, CFG, Europe 2031) belong to their authors.
