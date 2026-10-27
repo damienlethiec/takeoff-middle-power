@@ -1930,5 +1930,9 @@
   "world.rupture.name": "Ruptura",
   "zone.pause": "Pausa",
   "zone.race": "Carrera",
-  "zone.rupture": "Ruptura"
+  "zone.rupture": "Ruptura",
+  "ui.key.enter": "Intro",
+  "ui.key.esc": "Esc",
+  "ui.key.space": "Espacio",
+  "ui.decide.played": "Jugada"
 }

@@ -1982,5 +1982,9 @@
   "world.rupture.name": "Rozłam",
   "zone.pause": "Pauza",
   "zone.race": "Wyścig",
-  "zone.rupture": "Rozłam"
+  "zone.rupture": "Rozłam",
+  "ui.key.enter": "Enter",
+  "ui.key.esc": "Esc",
+  "ui.key.space": "Spacja",
+  "ui.decide.played": "Zagrana"
 }
