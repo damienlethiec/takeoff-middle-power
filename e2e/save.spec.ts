@@ -74,7 +74,8 @@ async function step(page: Page) {
     if (await d.locator('.req-card.asking').count()) {
       await d.locator('.ans-left').click();
       await until(page, () => expect(d.locator('.reaction')).toBeVisible({ timeout: 100 }));
-      await d.getByRole('button', { name: /^Back to the map/ }).click();
+      const go = page.locator('.overlay:not(.leaving) .req-card.answered [data-primary]');
+      if (await go.count()) await go.click();
     } else if (await d.locator('.choice').count()) await d.locator('.choice').first().click();
     else await page.keyboard.press('Enter');
     return advance(page, 300);

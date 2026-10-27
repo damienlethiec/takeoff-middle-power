@@ -120,7 +120,7 @@ export const TIPS = {
   cooperation: { anchor: 'cooperation', title: 'US–China cooperation', text: '**US–China cooperation** sets the kind of world at the tipping point. Pause 60+, Race 30–59, Rupture below 30: the calmer, the easier a good ending.' },
   cohesion: { anchor: 'cohesion', title: 'Social cohesion', text: '**Social cohesion** is whether Europe holds together: jobs, trust, safety from misuse. If it falls too low, even a calm world ends badly.' },
   outlook: { anchor: 'heading', title: 'Where the world is heading', text: 'If AI tipped now, this is the world you would get and what it needs to end well. Each round is six months from 2027; the game ends at the tipping point, or after 10 rounds.' },
-  influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your political weight, and your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.' },
+  influence: { anchor: 'dec-influence', title: 'Influence', text: 'Your political weight, and your one resource. You earn some every round, more when Europe holds together and allies share the load. It pays for policy cards: play as many as it covers, or save it.\nClick a card to select it: the gauges and the line under them show its effect before you confirm. **Details** shows the whole card.' },
   request: { anchor: 'request', title: 'A request', text: 'Someone needs an answer. Look at an answer first (click it, or press ← → once), then answer (again). Asking costs nothing: the cost is in the answer, sometimes Influence.' },
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages before they strike. Prepare with cards marked “Protects against”, or with some answers to requests. Open an icon to see what protects Europe.' },
   badge: { anchor: 'badge', title: 'Europe’s AI', text: 'Open or Dependent: does Europe run its own models? If AI never reaches the tipping point, this badge decides the kind of world.' },
@@ -143,8 +143,9 @@ export const HELP = {
     'AI safety shows what is verified and what the labs claim (for example 40–57). Only the verified part counts toward your goal. The truth lies in between and is revealed at the end. Checks (the AI Office, inspections, audits) grow the verified part; secrecy and AI whose thinking nobody can read shrink it.',
     'Requests: the right answer goes along with what is asked, the left one refuses or puts it off. Both cost something.',
     'Influence is your political weight in Brussels and abroad: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Play as many cards a round as your Influence covers, each card once.',
-    'Before you decide, a card says how much it moves each gauge in words: a little, some, a lot. The numbers show once it is played.',
+    'Before you decide, a card shows how much it moves each gauge with arrows: ↑ a little, ↑↑ some, ↑↑↑ a lot (↓ for down). Details says it in words, with the card’s conditions. The numbers show once it is played.',
     'Diplomacy can fail. The talks, the coalition, accords, the ASML lever, pacts, the pause call and the treaty say how likely they are to work. If one fails, its Influence is spent, nothing else happens, and the news says why.',
+    'To decide, click the cards you want, as many as your Influence covers: their effect shows on the gauges and the line under them. Nothing happens until you confirm; Play no card saves your Influence.',
   ],
   /** The Privacy section: what the game keeps, and where. The host's statement is linked after the last line. */
   privacy: [

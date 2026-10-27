@@ -2,7 +2,10 @@
 // dialog named after the character, with the request, a "Learn more" fact, and two answers that are real
 // buttons whose names say what they move. Answer by clicking, by swiping the card, or with ← and → (the first
 // press looks at an answer, the second takes it). Swiping is never the only way. Asking costs nothing:
-// the cost is in the answer (sometimes Influence). Then the character reacts, with what changed.
+// the cost is in the answer (sometimes Influence). Then the card turns over in place (27 Oct: the separate reaction
+// window felt heavy): your answer, the character's reaction and what changed, in numbers, for a few seconds, then it
+// closes by itself; a click, Enter or Continue closes it sooner, and a pointer resting on it holds it. Screen readers
+// hear it politely; with reduced motion the content simply changes. The reaction stays in the news feed.
 
 import type { AnswerView, RequestOutcome, RequestView, Side } from '../../engine/types';
 import { announce, reducedMotion, tryFocus } from '../a11y';
@@ -76,14 +79,17 @@ function requestHtml(v: RequestView, date: string): string {
   </div>`;
 }
 
-function outcomeHtml(v: RequestView, a: AnswerView, o: RequestOutcome): string {
-  return `<div class="req-card answered c-${v.character.id}">
-    <div class="req-who">${portrait(v.character.id, isFriend(v.character.id) ? 'relieved' : 'hopeful')}<div><h2 id="req-name" tabindex="-1">${esc(charName(v))}</h2><p class="req-role">${th('ui.request.answered', 'You answered: {label}', { label: `<b>${esc(tr(a.label))}</b>` })}</p></div></div>
+/** How long the turned card stays before it closes by itself (a pointer resting on it holds it). */
+const REACTION_MS = 4000;
+
+/** The back of the card once answered: the answer, the reaction, what changed (numbers, now that it is decided). */
+function outcomeHtml(v: RequestView, a: AnswerView, o: RequestOutcome, date: string, datelineId: string): string {
+  return `<div class="req-top"><span class="dateline" id="${esc(datelineId)}">${esc(date)} · ${th('ui.request.answered', 'You answered: {label}', { label: `<b>${esc(tr(a.label))}</b>` })}</span></div>
+    <div class="req-who">${portrait(v.character.id, isFriend(v.character.id) ? 'relieved' : 'hopeful')}<div><h2 id="req-name" tabindex="-1">${esc(charName(v))}</h2><p class="req-role">${esc(charRole(v))}</p></div></div>
     <p class="reaction" id="req-reaction">${esc(t('ui.quote.open', '“'))}${esc(tr(o.reaction))}${esc(t('ui.quote.close', '”'))}</p>
     <p class="pc-chips" aria-label="${esc(t('ui.request.whatChanged', 'What changed'))}">${o.chips.length ? chips(o.chips) : `<span class="chip flat">${esc(noChange())}</span>`}</p>
     ${o.notes.map((n) => `<p class="note-line">${esc(tr(n))}</p>`).join('')}
-    <div class="row-btns"><button type="button" class="btn-primary" data-primary data-action="ok">${esc(t('ui.common.backToMap', 'Back to the map'))} ${kbd('enter')}</button></div>
-  </div>`;
+    <div class="req-after"><span class="req-timer" aria-hidden="true"><i></i></span><button type="button" class="btn-quiet small req-go" data-primary data-action="ok">${esc(t('ui.common.continue', 'Continue'))} ${kbd('enter')}</button></div>`;
 }
 
 /**
@@ -153,23 +159,57 @@ export async function showRequest(v: RequestView, date: string, answer: (side: S
     if (focus && side) tryFocus(c.querySelector(`.ans-${side}`));
   };
 
+  /** Close the turned card: now, or by itself after REACTION_MS (held while a pointer rests on it). */
+  let closeTimer: ReturnType<typeof setTimeout> | null = null;
+  let left = REACTION_MS;
+  let since = 0;
+  const closeNow = () => m.el.querySelector<HTMLButtonElement>('[data-primary]')?.click();
+  const hold = (on: boolean) => {
+    const c = card();
+    if (!c.classList.contains('answered')) return;
+    if (on && closeTimer) {
+      clearTimeout(closeTimer);
+      closeTimer = null;
+      left = Math.max(400, left - (Date.now() - since));
+    } else if (!on && !closeTimer) {
+      since = Date.now();
+      closeTimer = setTimeout(closeNow, left);
+    }
+    c.classList.toggle('held', on);
+  };
+
   const choose = async (side: Side) => {
     if (chosen) return;
     chosen = side;
     const a = v[side];
     const outcome = answer(side);
     const c = card();
-    c.classList.add(reducedMotion() ? 'fade' : `fly-${side}`);
-    await wait(reducedMotion() ? 120 : 260);
-    c.outerHTML = outcomeHtml(v, a, outcome);
+    const datelineId = c.querySelector<HTMLElement>('.dateline')?.id || 'req-dateline';
+    // the card turns over toward the side answered (with reduced motion, the content simply changes)
+    const motion = !reducedMotion();
+    if (motion) {
+      c.classList.add(`turn-${side}`);
+      await wait(170);
+    }
+    c.classList.remove('asking', 'look-left', 'look-right', `turn-${side}`, 'dragging');
+    c.classList.add('answered', ...(motion ? [`turned-${side}`] : []));
+    c.innerHTML = outcomeHtml(v, a, outcome, date, datelineId);
+    c.style.setProperty('--reaction-ms', `${REACTION_MS}ms`);
     tryFocus(m.el.querySelector('[data-primary]'));
     const moved = outcome.chips.map((x) => `${x.tone === 'up' ? t('ui.chip.plus', 'Plus:') : t('ui.chip.minus', 'Minus:')} ${tr(x.text)}`).join(', ');
     announce(t('ui.request.sayAnswered', 'You answered {label}. {name}: {reaction} {moved}.', { label: tr(a.label), name: charName(v), reaction: tr(outcome.reaction), moved }));
+    since = Date.now();
+    closeTimer = setTimeout(closeNow, REACTION_MS);
+    c.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && hold(true));
+    c.addEventListener('pointerleave', (e) => e.pointerType === 'mouse' && hold(false));
   };
 
   m.el.addEventListener('click', (e) => {
-    const b = (e.target as HTMLElement).closest<HTMLElement>('.ans');
+    const tg = e.target as HTMLElement;
+    const b = tg.closest<HTMLElement>('.ans');
     if (b && !chosen) void choose(b.dataset.side as Side);
+    // the turned card: a click or tap anywhere on it closes it (Continue does the same, for the keyboard)
+    else if (chosen && tg.closest('.req-card.answered') && !tg.closest('button, a')) closeNow();
   });
   m.el.addEventListener('keydown', (e) => {
     if (chosen || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || e.altKey || e.ctrlKey || e.metaKey) return;
@@ -193,6 +233,7 @@ export async function showRequest(v: RequestView, date: string, answer: (side: S
   if (onOpen) requestAnimationFrame(() => requestAnimationFrame(() => void onOpen()));
 
   void m.result.then(() => {
+    if (closeTimer) clearTimeout(closeTimer);
     m.close();
     done(chosen!);
   });

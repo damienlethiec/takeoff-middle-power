@@ -26,6 +26,7 @@ import { showPostcard } from './screens/postcard';
 import { FRIENDS } from '../data/friends';
 import { TUNING } from '../data/tuning';
 import { badgeHtml, headingLineHtml, statusOf, statusWord } from './outlook';
+import { GICON } from './fx';
 import { lang, lcFirst, onLangChange, t, tc, th, tn, tr } from '../i18n';
 import { bindLangMenu, chooseLang, langMenuHtml } from './lang';
 import { Feed } from './feed';
@@ -39,13 +40,15 @@ const firstSentence = (t: string) => {
   return m && m[0].length < t.length ? `${m[0]} …` : t;
 };
 const KEYS: GaugeKey[] = ['aiPower', 'cooperation', 'confidence', 'cohesion'];
-/** US–China cooperation's zone (Pause 60+, Race 30–59, Rupture below 30). */
-const zoneOf = (v: number) =>
-  v >= 60
-    ? { id: 'p', name: tc('zone.pause', 'Pause'), range: '60+' }
-    : v >= 30
-      ? { id: 'a', name: tc('zone.race', 'Race'), range: '30–59' }
-      : { id: 'r', name: tc('zone.rupture', 'Rupture'), range: t('ui.zone.under30', 'under 30') };
+/** US–China cooperation's zone (Pause 60+, Race 30–59, Rupture below 30), and what would change it. */
+const zoneOf = (v: number) => {
+  const { pause: p, race: r } = TUNING.zones;
+  return v >= p
+    ? { id: 'p', world: 'pause', name: tc('zone.pause', 'Pause'), range: `${p}+`, hint: t('ui.zone.hintPause', 'Race below {n}', { n: p }) }
+    : v >= r
+      ? { id: 'a', world: 'race', name: tc('zone.race', 'Race'), range: `${r}–${p - 1}`, hint: t('ui.zone.hintRace', 'Pause from {n}, Rupture below {n1}', { n: p, n1: r }) }
+      : { id: 'r', world: 'rupture', name: tc('zone.rupture', 'Rupture'), range: t('ui.zone.under30', 'under 30'), hint: t('ui.zone.hintRupture', 'Race from {n}', { n: r }) };
+};
 /** A gauge's name in the player's language. */
 const gaugeName = (k: GaugeKey) => tc(`gauge.${k}.label`, GAUGE_LABEL[k]);
 type Vals = { aiPower: number; cooperation: number; confidence: number; margin: number; cohesion: number };
@@ -801,7 +804,7 @@ export class App {
     // one line, see fitSubs); the value, its change and a status chip; the bar with its marks; one caption.
     const gauge = (k: GaugeKey, coach: string) => `
       <section class="gauge g-${k}" data-key="${k}" data-coach="${coach}" aria-labelledby="gn-${k}">
-        <div class="g-head"><h3 class="g-name" id="gn-${k}">${esc(gaugeName(k))}</h3><span class="g-alerts" aria-hidden="true"></span>
+        <div class="g-head"><span class="g-ico" aria-hidden="true">${GICON[k]}</span><h3 class="g-name" id="gn-${k}">${esc(gaugeName(k))}</h3><span class="g-alerts" aria-hidden="true"></span>
           <button type="button" class="g-info" data-info="${k}" aria-label="${esc(t('ui.gauge.about', 'About {gauge}', { gauge: gaugeName(k) }))}" aria-describedby="gd-${k}" title="${esc(tc(`gauge.${k}.sub`, GAUGE_SUB[k]))}">?</button></div>
         <p class="g-sub" aria-hidden="true">${esc(tc(`gauge.${k}.sub`, GAUGE_SUB[k]))}</p>
         <div class="g-line" aria-hidden="true"><span class="g-val num"></span><span class="g-delta"></span><span class="g-after num"></span><span class="g-chip"></span></div>
@@ -1196,7 +1199,7 @@ export class App {
               ? t('ui.gauge.descAudited', '{n}, audited: the true value.', { n: v })
               : t('ui.gauge.descSafety', '{low} verified; the labs claim {claim}. Only the verified part counts toward your goal; the truth lies between {low} and {claim}.', { low: safety.low, claim: safety.claim })
             : t('ui.gauge.descValue', '{n} out of 100.', { n: v });
-      const zone = g.key === 'cooperation' ? ` ${t('ui.gauge.zone', 'Zone: {zone}.', { zone: zoneOf(v).name })}` : '';
+      const zone = g.key === 'cooperation' ? ` ${t('ui.gauge.zone', 'Zone: {zone}.', { zone: zoneOf(v).name })} ${zoneOf(v).hint}.` : '';
       const gsub = tr(g.sub);
       const sub = ` ${gsub}${/[.?!]$/.test(gsub) ? '' : '.'}`;
       const og = g.key === hd.decides.key ? hd.decides : g.key === hd.net.key ? hd.net : null;
@@ -1296,15 +1299,15 @@ export class App {
             setCap(both(plain(long + tgt).length <= 48 && tgt ? `${long} · ${tgt}` : long, plain(short + tgt).length <= 28 && tgt ? `${short} · ${tgt}` : short));
           }
         } else if (k === 'cooperation') {
+          // its zone is the status chip ("Race"), in the zone's colour and named in words; the caption keeps the range.
+          // A selection that would change the zone shows it on the chip, dashed ("Race → Pause")
           const z = zoneOf(Math.round(this.shown.cooperation));
           const i = pv?.impacts.find((x) => x.key === 'cooperation');
           const za = i ? zoneOf(Number(i.after)) : z;
-          const moving = `<b class="pv">${esc(z.name)} → ${esc(za.name)}</b>`;
-          setCap(
-            za.id !== z.id
-              ? both(th('ui.gauge.zoneMoving', '{zones} zone', { zones: moving }), moving)
-              : both(esc(t('ui.gauge.zoneRange', '{zone} zone · {range}', { zone: z.name, range: z.range })), esc(t('ui.gauge.zoneName', '{zone} zone', { zone: z.name }))),
-          );
+          chipHtml = za.id !== z.id ? both(`${esc(z.name)} → ${esc(za.name)}`, esc(za.name)) : esc(z.name);
+          chipCls += ` zone w-${za.world}${za.id !== z.id ? ' pv' : ''}`;
+          chip.title = z.hint;
+          setCap(esc(z.range));
         } else setCap(og ? both(role === 'goal' ? th('ui.gauge.capGoal', 'Goal {bar}: reach it to end well', { bar: barHtml }) : th('ui.gauge.capFloor', 'Floor {bar}: never fall below', { bar: barHtml }), tgt) : '');
       }
       if (chip.innerHTML !== chipHtml) chip.innerHTML = chipHtml;

@@ -22,6 +22,13 @@ describe('card texts', () => {
       expect(words(c.proposal), `${c.id} proposal`).toBeLessThanOrEqual(60);
     }
   });
+  it('a compact card says its purpose in 12 words or fewer, and shows at least one effect', () => {
+    for (const c of CARDS) {
+      expect(words(c.short), `${c.id} short`).toBeLessThanOrEqual(12);
+      expect(c.face.length + (c.options?.[0]?.face.length ?? 0), `${c.id} face`).toBeGreaterThan(0);
+      for (const f of [...c.face, ...(c.options ?? []).flatMap((o) => o.face)]) if (f.kind === 'move') expect(Math.abs(f.size), `${c.id} arrows`).toBeGreaterThanOrEqual(1);
+    }
+  });
   it('names are unique and chips are short', () => {
     expect(new Set(CARDS.map((c) => c.name)).size).toBe(CARDS.length);
     for (const c of CARDS) for (const chip of [...c.ups, ...c.downs]) expect(chip.text.length, chip.text).toBeLessThanOrEqual(52);

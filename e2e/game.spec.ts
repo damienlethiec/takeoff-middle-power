@@ -38,9 +38,14 @@ async function advance(page: Page, ms: number, answer = true) {
     if (answer && t % 500 === 0 && (await page.locator('.req-card.asking').count())) {
       await page.locator('.req-card.asking .ans-left').click();
       await page.clock.fastForward(400);
-      await page.locator('.req-card.answered').getByRole('button', { name: /^Back to the map/ }).click();
+      await closeReaction(page);
     }
   }
+}
+/** The answered request card closes by itself after a few seconds; close it now if it is still there. */
+async function closeReaction(page: Page) {
+  const go = page.locator('.overlay:not(.leaving) .req-card.answered [data-primary]');
+  if (await go.count()) await go.click();
 }
 /** Stop the page's time where it is; on a busy machine the target can pass before the call lands, so retry further ahead. */
 async function freeze(page: Page) {
@@ -96,7 +101,7 @@ async function closeDialog(page: Page, side: 'left' | 'right' = 'left') {
       expect(await tipOpen()).toBe(0);
       await expect(req.locator('.reaction')).toBeVisible({ timeout: 100 });
     });
-    await req.getByRole('button', { name: /^Back to the map/ }).click();
+    await closeReaction(page);
     return 'request';
   }
   const choice = d.locator('.choice').first();
@@ -297,7 +302,12 @@ test.describe('key interactions', () => {
     await expect(page.locator('#mapwrap')).toBeHidden();
     await expect(page.locator('#feed')).toBeHidden();
     await expect(dk.getByRole('heading', { name: 'Play your cards' })).toBeVisible();
-    await expect(dk.getByText('Your chief of staff:')).toBeVisible();
+    await expect(dk.locator('.dk-side .dk-adv')).toContainText('Your chief of staff:');
+    await expect(dk.locator('.dk-side .dk-adv')).toBeVisible();
+    // one grid of cards, all the same height; each says its effects (icons, and words for screen readers) and opens its Details
+    const heights = await dk.locator('.cards:not(.later) .pc-wrap').evaluateAll((els) => [...new Set(els.map((e) => Math.round(e.getBoundingClientRect().height)))]);
+    expect(heights).toHaveLength(1);
+    await expect(dk.getByRole('button', { name: /^Details: Diplomatic talks/ })).toBeVisible();
     // focus lands on a card; nothing is selected yet
     await expect(dk.locator('.pcard:focus')).toHaveCount(1);
     await expect(dk.getByRole('button', { name: 'Pick a card first' })).toBeDisabled();
@@ -376,9 +386,17 @@ test.describe('key interactions', () => {
           await expect(d.locator('.req-card.asking')).toHaveCount(1);
           await page.keyboard.press('ArrowRight');
         }
-        await expect(d.locator('.reaction')).toBeVisible();
-        await expect(d.getByRole('button', { name: /^Back to the map/ })).toBeFocused();
-        await page.keyboard.press('Enter');
+        // the card turns over in place: the answer, the reaction, what changed; Continue has focus
+        await expect(d.locator('.req-card.answered .reaction')).toBeVisible();
+        await expect(d.getByRole('button', { name: /^Continue/ })).toBeFocused();
+        if (done.keys) await page.keyboard.press('Enter');
+        else {
+          // left alone, it closes by itself after a few seconds
+          await page.clock.fastForward(3000);
+          await expect(page.locator('.overlay:not(.leaving) .req-card.answered')).toHaveCount(1);
+          await page.clock.fastForward(1200);
+          await expect(page.locator('.overlay:not(.leaving) .req-card')).toHaveCount(0);
+        }
         await advance(page, 300, false);
         await expect(page.locator('#phase')).not.toHaveText('A request');
         continue;

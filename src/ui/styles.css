@@ -220,6 +220,11 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .g-chip { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--f-data); font-size: 11.5px; font-weight: 600; line-height: 1.35; border: 1px solid currentColor; border-radius: 4px; padding: 0 6px; }
 .g-chip:empty { display: none; }
 .g-chip.yes { color: var(--good); } .g-chip.no { color: var(--crit-text); } .g-chip.eta { color: var(--cap); }
+/* US–China cooperation's zone as its status chip, in the zone's colour (its name says it) */
+.g-chip.zone { font-family: var(--f-display); font-weight: 800; font-size: 13px; letter-spacing: .04em; line-height: 1.25; border-radius: 999px; padding: 0 8px; background: color-mix(in srgb, currentColor 12%, transparent); cursor: help; }
+/* each gauge's icon, the same as on the cards' effects */
+.g-ico { display: inline-flex; flex: none; color: var(--mute); }
+.g-ico .ico { width: 15px; height: 15px; }
 .g-chip.pv { border-style: dashed; }
 .g-bar { position: relative; align-self: center; height: 14px; margin: 3px 0; border-radius: 7px; background: var(--deck-2); }
 .g-fill { position: absolute; left: 0; top: 2px; bottom: 2px; border-radius: 5px; background: var(--c, var(--ink)); transition: width .2s linear; }
@@ -568,41 +573,59 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .modal.coach :focus-visible { outline-color: var(--paper-ink); }
 
 /* =================================================================== DECISION */
-/* v4: the decisions take the map's place; the gauges and the outlook stay in view and show the preview */
+/* v4: the decisions take the map's place; the gauges and the outlook stay in view and show the preview.
+   Compact cards of 27 Oct (owner's feedback: cut cards, uneven sizes, four confusing family columns): one grid of
+   cards all the same height (each row as tall as the tallest card), about three columns on a laptop, two on a
+   tablet, a list on a phone; the chief of staff and the threats in the right column; one bar at the bottom. */
 .game.deciding .theatre > .mapwrap, .game.deciding .theatre > .feed { display: none; }
 .decide { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 8px; min-height: 0; min-width: 0; }
-.dk-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--deck); border: 1px solid var(--align); border-radius: 14px; padding: 10px 12px 8px; }
-.dk-head { display: flex; gap: 6px 18px; align-items: center; flex-wrap: wrap; }
-.dk-head h2 { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 26px; line-height: 1.05; }
+.dk-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--deck); border: 1px solid var(--align); border-radius: 14px; padding: 8px 12px 6px; }
+.dk-head { display: flex; gap: 2px 12px; align-items: baseline; flex-wrap: wrap; }
+.dk-head h2 { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 22px; line-height: 1.05; }
 .dk-head h2:focus { outline: none; }
-.dk-say { flex: 1 1 320px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.dk-adv { display: flex; gap: 8px; align-items: center; margin: 0; font-size: 13.5px; line-height: 1.35; }
-.dk-adv .ava { width: 28px; height: 28px; font-size: 12px; }
-.dk-main .hand { margin-top: 8px; }
-.dk-hint { display: flex; gap: 6px; align-items: center; margin: 0; font-size: 13.5px; font-weight: 600; color: var(--concern); }
-.dk-hint .ico { width: 15px; height: 15px; flex: none; }
-.dk-bar { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "inf notes" "btns btns"; align-items: center; gap: 6px 14px; border-top: 1px solid var(--rule); padding-top: 7px; margin-top: 8px; }
-.dk-bar .dec-inf { grid-area: inf; margin: 0; }
-.dk-bar .dec-inf .inf-v { font-size: 26px; }
-.dk-bar .dec-notes { grid-area: notes; margin: 0; }
-.dk-bar .dec-btns { grid-area: btns; flex-wrap: nowrap; }
-.dk-bar .btn-quiet { padding: 8px 12px; }
-.dk-bar .btn-primary { font-size: 17px; padding: 9px 14px; }
-/* a wide window: Influence, the notes and the buttons on one row, so the cards keep the height */
-@media (min-width: 1100px) and (min-height: 541px) {
-  .dk-bar { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "inf notes btns"; }
-}
+.dk-adv { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); font-size: 13.5px; line-height: 1.38; }
+.dk-adv .ava, .dk-adv-m .ava { width: 28px; height: 28px; font-size: 12px; }
+/* the chief of staff on a phone: one line over the cards that opens */
+.dk-adv-m { display: none; margin: 6px 0 0; border: 1px solid var(--rule); border-radius: 10px; background: var(--deck-2); font-size: 13.5px; line-height: 1.35; }
+.dk-adv-m summary { display: flex; gap: 8px; align-items: center; padding: 5px 8px; cursor: pointer; min-height: 40px; list-style: none; }
+.dk-adv-m summary::-webkit-details-marker { display: none; }
+.dk-adv-m summary::after { content: '▾'; margin-left: auto; color: var(--mute); }
+.dk-adv-m[open] summary::after { content: '▴'; }
+.dk-adv-m p { margin: 0; padding: 0 10px 8px 44px; }
+.dk-bar { display: flex; align-items: center; gap: 6px 14px; border-top: 1px solid var(--rule); padding-top: 6px; margin-top: 6px; }
+.dk-bar .dec-inf { margin: 0 auto 0 0; }
+.dk-bar .dec-inf .ico { width: 20px; height: 20px; color: var(--concern); }
+.dk-bar .dec-inf .inf-v { font-size: 24px; }
+.dk-bar .dec-btns { flex-wrap: nowrap; }
+.dk-bar .btn-quiet { padding: 7px 12px; white-space: nowrap; }
+.dk-bar .btn-primary { font-size: 17px; padding: 7px 14px; white-space: nowrap; }
 .dk-side { background: var(--deck); border: 1px solid var(--rule); border-radius: 14px; padding: 9px 12px; overflow: auto; min-height: 0; }
 .dk-side-h { margin: 0 0 6px; font-family: var(--f-data); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
-.dk-thr { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.dk-thr li { display: flex; gap: 8px; align-items: flex-start; border-left: 3px solid var(--crit); border-radius: 6px; background: var(--deck-2); padding: 6px 8px; font-size: 13px; line-height: 1.3; }
+.dk-thr { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.dk-thr li { display: flex; gap: 7px; align-items: flex-start; border-left: 3px solid var(--crit); border-radius: 6px; background: var(--deck-2); padding: 5px 8px; font-size: 13px; line-height: 1.3; }
 .dk-thr li.yes { border-left-color: var(--good); }
 .dk-thr li.soon { border-left-style: dashed; }
 .dk-thr-ico { padding-top: 1px; } .dk-thr li.no .dk-thr-ico { color: var(--crit-text); } .dk-thr li.yes .dk-thr-ico { color: var(--good); }
 .dk-thr-b small { font-family: var(--f-data); font-size: 11px; color: var(--mute); }
 .dk-thr-p { display: block; font-size: 12px; color: var(--mute); }
 .dk-thr li.soon .dk-thr-p { color: var(--good); }
-.dk-side-note { margin: 10px 0 0; }
+.dk-sel { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--rule); font-size: 13px; line-height: 1.38; }
+.dk-sel p { margin: 0; }
+@media (min-width: 1000px) and (max-width: 1199px) {
+  .decide { grid-template-columns: minmax(0, 1fr) 230px; }
+}
+/* a tablet: the cards take the whole width (two columns); the advice and the threats sit side by side under them */
+@media (min-width: 768px) and (max-width: 999px) and (min-height: 541px) {
+  .decide { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .dk-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: start; gap: 0 16px; max-height: 30vh; }
+  .dk-side > * { grid-column: 2; }
+  .dk-side > .dk-adv { grid-column: 1; grid-row: 1 / span 3; margin: 0; padding: 0; border: 0; }
+}
+/* a laptop-height window: the gauges' subtitles (also behind "?") give their row to the cards while deciding */
+@media (min-width: 768px) and (min-height: 541px) and (max-height: 860px) {
+  .game.deciding .g-sub { display: none; }
+  .game.deciding .panel .gauge { grid-row: span 4; padding-top: 5px; padding-bottom: 6px; row-gap: 3px; }
+}
 /* the preview on the real gauges: "→ 55" by the value, dotted ghost marks on the bar, dashed targets */
 .g-after { font-family: var(--f-data); font-size: 12.5px; white-space: nowrap; }
 .g-after:empty { display: none; }
@@ -614,125 +637,77 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .g-ghost { position: absolute; top: -5px; bottom: -5px; width: 0; margin-left: -1px; border-left: 3px dotted var(--ink); z-index: 2; }
 .g-ghost.good { border-left-color: var(--good); } .g-ghost.bad { border-left-color: var(--crit-text); }
 .badge-was { font-size: 12px; color: var(--mute); }
-.dec-inf { margin: 0 0 6px auto; display: flex; gap: 8px; align-items: center; }
+.dec-inf { margin: 0 0 6px auto; display: flex; gap: 6px; align-items: center; }
 .dec-inf small { font-size: 14px; color: var(--mute); }
 .dec-inf .inf-v { white-space: nowrap; }
-.dec-inf .inf-l { padding: 0; }
+.dec-inf .inf-l { padding: 0; font-family: var(--f-data); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--mute); }
 .ava { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--align); color: var(--night); font-family: var(--f-display); font-weight: 800; font-size: 14px; }
-.hand { margin: 10px 0 0; padding: 3px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-content: flex-start; overflow: auto; flex: 1; min-height: 0; --card-w: 258px; }
-/* v4 (playtests): the hand in families, each with a short heading over its cards; the families sit side by side and
-   wrap like words in a line, so a small hand still fits on one row and Tab follows the reading order */
-.fam { flex: 0 1 auto; min-width: 0; max-width: 100%; display: flex; flex-direction: column; }
-.fam-h { margin: 0 0 5px; padding-bottom: 3px; border-bottom: 1px solid var(--rule); font-family: var(--f-data); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
-.fam-new { color: var(--warn); text-transform: none; letter-spacing: 0; }
-.fam-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; flex: 1; }
-.fam-cards > .pc-wrap { width: var(--card-w); max-width: 100%; }
-.hand-cols { display: contents; }
-/* desktop: the families follow each other in balanced columns (a family may continue at the top of the next one),
-   so a normal hand of up to nine or so cards fits in the space the map left without scrolling; the cards are
-   compact (long texts cut at three lines, in full in Details and for screen readers). A small hand sits in the
-   middle, no more columns than cards, its cards a little larger when the window is tall. A really big hand still
-   scrolls inside (the page does not grow). Tab follows the columns, top to bottom then left to right. */
-@media (min-width: 768px) and (min-height: 541px) {
-  /* one header line: the date, the title and the hint */
-  .dk-title { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; }
-  .dk-head h2 { font-size: 24px; }
-  .dk-main { padding: 8px 12px 6px; }
-  .dk-bar { padding-top: 6px; margin-top: 6px; }
-  .dk-bar .btn-quiet { padding: 7px 12px; }
-  .dk-bar .btn-primary { padding: 7px 14px; }
-  .decide { grid-template-columns: minmax(0, 1fr) 250px; }
-  .dk-side > .dk-adv { align-items: flex-start; margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
-  .dk-main .hand { container: hand / inline-size; display: block; margin-top: 6px; }
-  .dk-main .hand.few { flex: 0 1 auto; margin: auto 0; }
-  .hand-cols { display: block; columns: 200px var(--cols, 6); column-gap: 12px; }
-  .hand.few .hand-cols { max-width: calc(var(--cols, 4) * 300px); margin: 0 auto; }
-  .hand-cols .fam { display: block; max-width: none; }
-  .hand-cols .fam + .fam { margin-top: 8px; }
-  .hand-cols .fam-h { break-after: avoid; margin-bottom: 5px; font-size: 11.5px; letter-spacing: .05em; }
-  .hand-cols .fam-cards { display: block; }
-  .hand-cols .fam-cards > .pc-wrap { width: auto; break-inside: avoid; margin-bottom: 8px; }
-  .hand-cols .pcard { gap: 5px; padding: 8px 10px 5px; }
-  .hand-cols .pc-name { font-size: 15px; }
-  .hand-cols .pc-cost { font-size: 20px; }
-  .hand-cols .pc-cost .ico { width: 15px; height: 15px; }
-  .hand-cols .pc-chips { gap: 3px; }
-  .hand-cols .pc-chips .chip { font-size: 12px; line-height: 1.3; padding: 1px 6px 1px 5px; }
-  .hand-cols .pc-prot, .hand-cols .pc-odds { font-size: 12px; line-height: 1.3; }
-  .hand-cols .pc-text { font-size: 12.5px; line-height: 1.36; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
-  .hand-cols .pc-reason { font-size: 12.5px; line-height: 1.3; }
-  /* Details sits at the end of the tags row (in the flow again when the card shows its options) */
-  .hand-cols .pc-wrap:not(:has(.opts)) .pc-tags { min-height: 24px; align-items: center; padding-right: 64px; }
-  .hand-cols .pc-wrap:not(:has(.opts)) .pc-details { position: absolute; right: 5px; bottom: 5px; margin: 0; min-height: 24px; padding: 2px 6px; font-size: 12.5px; }
-  /* a bigger hand (decide.ts fitHand): shorter texts and tighter chips, then one line of text, then none */
-  .hand.dense .pcard { gap: 4px; padding-top: 7px; }
-  .hand.dense .pc-chips { gap: 2px; }
-  .hand.dense .pc-chips .chip { font-size: 11.5px; line-height: 1.25; }
-  .hand.dense .pc-text { -webkit-line-clamp: 2; line-clamp: 2; }
-  .hand.denser .pc-text { -webkit-line-clamp: 1; line-clamp: 1; }
-  .hand.denser .hand-cols .fam-cards > .pc-wrap { margin-bottom: 6px; }
-  .hand.denser .hand-cols .fam + .fam { margin-top: 4px; }
-  .hand.denser .hand-cols .fam-h { margin-bottom: 4px; }
-  /* the densest: the text only in Details (and for screen readers: it still describes the card) */
-  .hand.densest .pcard { padding: 6px 9px 3px; gap: 3px; }
-  .hand.densest .hand-cols .fam-cards > .pc-wrap { margin-bottom: 5px; }
-  .hand.densest .pc-name { font-size: 14.5px; }
-  .hand.densest .pc-chips .chip { padding-top: 0; padding-bottom: 0; }
-  .hand.densest .pc-text { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-}
-@media (min-width: 768px) and (max-width: 1099px) and (min-height: 541px) {
-  .decide { grid-template-columns: minmax(0, 1fr) 230px; }
-}
-/* a laptop-height window: the gauges' subtitles (also behind "?") give their row to the cards while deciding */
-@media (min-width: 768px) and (min-height: 541px) and (max-height: 860px) {
-  .game.deciding .g-sub { display: none; }
-  .game.deciding .panel .gauge { grid-row: span 4; padding-top: 5px; padding-bottom: 6px; row-gap: 3px; }
-}
-@media (min-width: 768px) and (min-height: 860px) {
-  @container hand (min-width: 820px) {
-    .hand.few { --card-w: 300px; }
-    .hand.few .pcard { gap: 10px; padding: 16px 18px 8px; }
-    .hand.few .pc-name { font-size: 20px; }
-    .hand.few .pc-cost { font-size: 27px; }
-    .hand.few .pc-cost .ico { width: 20px; height: 20px; }
-    .hand.few .pc-chips .chip { font-size: 14px; }
-    .hand.few .pc-prot { font-size: 14.5px; }
-    .hand.few .pc-text { font-size: 16px; line-height: 1.42; }
-    .hand.few .pc-level, .hand.few .tag { font-size: 12px; }
-    .hand.few .pc-details { font-size: 14.5px; margin: 0 10px 8px; }
-  }
-}
-.pc-wrap { display: flex; flex-direction: column; background: var(--deck-2); border: 1.5px solid var(--edge); border-radius: 12px; }
+/* the hand: one grid; every row as tall as its tallest card, and every card the height of the tallest (1fr rows in
+   an auto-height grid), so all cards are the same size. A big hand scrolls inside; the page does not grow. */
+.hand { margin: 6px 0 0; padding: 3px; overflow: auto; flex: 1; min-height: 0; }
+.cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); grid-auto-rows: 1fr; gap: 8px; }
+.cards.later { margin-top: 8px; }
+.dk-more { display: flex; align-items: center; gap: 8px; width: 100%; margin: 8px 0 0; padding: 6px 10px; min-height: 36px; border: 1px dashed var(--edge); border-radius: 10px; background: transparent; color: var(--mute); font-size: 13.5px; font-weight: 600; text-align: left; }
+.dk-more:hover { color: var(--ink); border-color: var(--ink); }
+.dk-more .dk-more-c { margin-left: auto; }
+.pc-wrap { position: relative; display: flex; flex-direction: column; min-width: 0; background: var(--deck-2); border: 1.5px solid var(--edge); border-radius: 12px; }
 .pc-wrap:hover { border-color: var(--ink); }
 .pc-wrap.sel { border-color: var(--align); box-shadow: 0 0 0 2px var(--align) inset; background: color-mix(in srgb, var(--align) 10%, var(--deck-2)); }
 .pc-wrap.locked { background: var(--deck); border-color: var(--rule); }
-.pc-wrap.locked .pc-name, .pc-wrap.locked .pc-text { color: var(--mute); }
-.pc-wrap.locked .chip.good, .pc-wrap.locked .chip.bad { filter: saturate(.4); }
+.pc-wrap.locked .pc-name, .pc-wrap.locked .pc-short { color: var(--mute); }
+.pc-wrap.locked .pc-fx { filter: saturate(.35); opacity: .85; }
 .pc-wrap.opp { border-style: dashed; border-color: var(--warn); }
-.pcard { flex: 1; text-align: left; display: flex; flex-direction: column; gap: 7px; background: transparent; border: 0; border-radius: 11px; padding: 11px 12px 6px; color: var(--ink); }
+.pc-wrap.opp.sel { border-style: solid; border-color: var(--align); }
+.pcard { flex: 1; width: 100%; text-align: left; display: flex; flex-direction: column; gap: 4px; background: transparent; border: 0; border-radius: 11px; padding: 7px 9px 6px; color: var(--ink); min-width: 0; }
 .pcard:focus-visible { outline-offset: -2px; }
-.pc-top { display: flex; gap: 8px; align-items: flex-start; }
-.pc-name { font-weight: 700; font-size: 16px; line-height: 1.2; margin-right: auto; }
-.pc-cost { display: inline-flex; align-items: center; gap: 3px; font-family: var(--f-display); font-weight: 800; font-size: 22px; color: var(--concern); line-height: 1; }
-.pc-cost .ico { width: 17px; height: 17px; }
-.pc-level { font-family: var(--f-data); font-size: 11px; color: var(--mute); align-self: center; margin-right: 2px; }
-.pc-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
-.pc-chips .chip { font-size: 12.5px; white-space: normal; }
-.pc-prot { display: flex; gap: 5px; align-items: center; font-size: 12.5px; color: var(--good); margin: 0; }
-.pc-text { font-size: 13px; line-height: 1.38; color: var(--ink); }
-/* cards that can fail: the odds in words (v4, playtests); the word carries the meaning, the colour only repeats it */
-.pc-odds { font-size: 12.5px; line-height: 1.3; color: var(--mute); }
+.pc-top { display: flex; gap: 6px; align-items: flex-start; }
+.pc-check { display: none; flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 50%; background: var(--align); color: var(--night); place-items: center; }
+.pc-check .ico { width: 12px; height: 12px; }
+.pc-wrap.sel .pc-check { display: inline-grid; }
+.pc-name { font-weight: 700; font-size: 14.5px; line-height: 1.2; margin-right: auto; min-width: 0; }
+.pc-cost { display: inline-flex; align-items: center; gap: 3px; font-family: var(--f-display); font-weight: 800; font-size: 20px; color: var(--concern); line-height: 1; flex: none; }
+.pc-cost .ico { width: 16px; height: 16px; }
+.pc-short { font-size: 12.5px; line-height: 1.32; color: var(--ink); }
+.pc-fx { display: flex; flex-wrap: wrap; gap: 4px; }
+.pc-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: auto; min-height: 26px; padding-right: var(--det-w, 92px); }
+/* an effect: the gauge's icon and its arrows (or a number, a word); the colour only repeats what they say */
+.fxi { display: inline-flex; align-items: center; border: 1px solid; border-radius: 6px; padding: 0 5px 0 4px; line-height: 1.3; min-height: 22px; }
+.fxi-in { display: inline-flex; align-items: center; gap: 2px; }
+.fxi .ico { width: 15px; height: 15px; }
+.fxi-v { font-family: var(--f-data); font-weight: 700; font-size: 13px; letter-spacing: -.04em; }
+.fxi-w { font-family: var(--f-body); font-weight: 600; font-size: 12px; letter-spacing: 0; margin-left: 1px; }
+.fxi-x { font-weight: 500; font-size: 11.5px; color: var(--mute); letter-spacing: 0; margin-left: 1px; }
+.fxi-maybe { opacity: .7; }
+.fxi.good { color: var(--good); border-color: color-mix(in srgb, var(--good) 55%, transparent); background: color-mix(in srgb, var(--good) 9%, transparent); }
+.fxi.bad { color: #ff9c99; border-color: color-mix(in srgb, #ff9c99 55%, transparent); background: color-mix(in srgb, var(--crit) 9%, transparent); }
+.fxi.flat, .fxi.grp { color: var(--ink); border-color: var(--edge); }
+.fxs { display: inline-flex; align-items: center; gap: 1px; }
+.fxs + .fxs { margin-left: 5px; }
+.fxs.good { color: var(--good); } .fxs.bad { color: #ff9c99; }
+.fxs > .ico:first-child { color: var(--ink); }
+.fxi .fxi-in > .ico:first-child, .fxi .fxi-when + .ico { color: var(--ink); }
+/* only with an accord (or from level 2): dashed, with the accord's small document before it */
+.fxi.later { border-style: dashed; }
+.fxi-when { display: inline-flex; align-items: center; margin-right: 2px; padding-right: 3px; border-right: 1px solid currentColor; color: var(--mute); }
+.fxi-when .ico { width: 13px; height: 13px; }
+.fxi-when.lv { font-family: var(--f-data); font-size: 10.5px; font-weight: 600; }
+/* cards that can fail: the odds in a word (v4, playtests); the word carries the meaning, the colour only repeats it */
+.pc-odds { font-size: 12px; line-height: 1.3; color: var(--mute); }
 .pc-odds b { font-weight: 700; color: var(--ink); }
 .pc-odds.o-uncertain b { color: var(--warn); }
 .pc-odds.o-long b { color: var(--crit-text); }
-.pc-reason { display: block; font-size: 13px; line-height: 1.35; color: var(--crit-text); }
-.pc-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-.pc-tags:empty { display: none; }
+.pc-odds-p .pc-odds { font-size: inherit; color: var(--ink); }
 .tag { font-family: var(--f-data); font-size: 10.5px; border-radius: 4px; padding: 1px 5px; border: 1px solid; }
 .tag.prov { color: var(--mute); border-style: dashed; } .tag.prov.p-real { color: var(--good); border-style: solid; }
-.tag.new { color: var(--warn); font-weight: 600; } .tag.opp { color: var(--warn); } .tag.rec { color: var(--align); } .tag.sel { color: var(--night); background: var(--align); border-color: var(--align); }
-.pc-details { align-self: flex-start; margin: 0 8px 6px; padding: 4px 6px; font-size: 13px; color: var(--align); min-height: 32px; }
-.pc-wrap .opts { margin: 0 12px 6px; }
+.tag.new { color: var(--warn); font-weight: 600; } .tag.opp { color: var(--warn); } .tag.rec { color: var(--night); background: var(--align); border-color: var(--align); font-weight: 600; } .tag.sel { color: var(--night); background: var(--align); border-color: var(--align); }
+.tag.lock { display: inline-flex; align-items: center; gap: 3px; color: var(--mute); }
+.tag.lock .ico { width: 11px; height: 11px; }
+/* Details: a real button with its word, at the card's foot */
+.pc-details { position: absolute; right: 6px; bottom: 5px; display: inline-flex; align-items: center; gap: 4px; min-height: 26px; padding: 2px 8px 2px 6px; border: 1px solid var(--edge); border-radius: 8px; background: var(--deck); color: var(--ink); font-size: 12.5px; font-weight: 600; }
+.pc-details:hover { border-color: var(--align); color: var(--align); }
+.pc-details .ico { width: 15px; height: 15px; color: var(--align); }
+.pc-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
+.pc-chips .chip { font-size: 12.5px; white-space: normal; }
 .proposal { font-size: 15px; }
 .levels { list-style: none; padding: 0; margin: 0 0 6px; display: flex; flex-wrap: wrap; gap: 4px; font-size: 12px; }
 .levels li { border: 1px solid var(--rule); border-radius: 6px; padding: 1px 6px; color: var(--mute); }
@@ -741,10 +716,32 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .opts { border: 1px solid var(--rule); border-radius: 10px; padding: 6px 10px; margin: 8px 0; font-size: 13px; }
 .opts label { display: flex; gap: 6px; align-items: center; padding: 3px 0; flex-wrap: wrap; }
 .bad-text { color: var(--crit-text); }
-.dec-notes { margin: 0; font-size: 12.5px; color: var(--mute); }
-.dec-notes:empty { visibility: hidden; }
+.bad-text .ico { width: 14px; height: 14px; }
 .dec-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.modal.card-details { max-width: 600px; }
+/* the card's details: over the cards, the gauges above still in view on a wide window; a bottom sheet on a phone */
+.overlay.card-ov { background: color-mix(in srgb, var(--night) 55%, transparent); backdrop-filter: none; }
+@media (min-width: 768px) and (min-height: 541px) {
+  .overlay.card-ov { padding-top: max(16px, var(--dk-top, 28px)); }
+  .overlay.card-ov .modal { margin: 0; }
+}
+.modal.card-details { max-width: 620px; }
+@media (max-width: 767px), (max-height: 540px) {
+  .overlay.card-ov { align-items: flex-end; padding: 24px 0 0; }
+  .overlay.card-ov .modal.card-details { margin: 0; max-width: none; max-height: 88dvh; overflow: auto; border-radius: 16px 16px 0 0; border-bottom: 0; padding: 14px 16px 16px; animation: sheetin .25s ease-out; }
+  .card-details h2 { font-size: 26px; }
+}
+@keyframes sheetin { from { transform: translateY(40px); opacity: .4; } }
+@media (min-width: 768px) and (min-height: 541px) {
+  .overlay.card-ov .modal.card-details { max-height: calc(100dvh - max(16px, var(--dk-top, 28px)) - 12px); overflow: auto; padding: 16px 22px; }
+}
+.card-details .cd-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.card-details h2 { margin: 4px 0 8px; font-size: 30px; }
+.card-details h3 { margin: 12px 0 6px; font-family: var(--f-data); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.card-details .proposal { margin: 6px 0; }
+.cd-fx { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.cd-fx li { display: flex; align-items: center; gap: 8px; }
+.cd-fx .fxi { flex: none; }
+.card-details .row-btns { margin-top: 14px; }
 /* =================================================================== ENDING */
 body.ended { overflow: auto; }
 .ending-page { max-width: 860px; margin: 0 auto; padding: 32px 18px 60px; }
@@ -830,6 +827,25 @@ body.ended { overflow: auto; }
 .learn .basis, .learn .src { color: var(--mute); font-size: 12.5px; }
 .req-hint { margin: 4px 0 0; font-size: 12px; color: var(--mute); }
 .reaction { margin: 10px 0 6px; font-family: var(--f-diary); font-style: italic; font-size: 18px; }
+/* answered: the card turns over in place (toward the side answered), shows the reaction for a few seconds with a thin
+   bar running out, then closes by itself; a pointer resting on it holds it (the bar stops). No turn with reduced motion. */
+.req-card { transform-origin: 50% 50%; }
+.req-card.turn-left, .req-card.turn-right { transition: transform .17s ease-in, opacity .17s ease-in; opacity: .4; }
+.req-card.turn-left { transform: perspective(1200px) rotateY(80deg); }
+.req-card.turn-right { transform: perspective(1200px) rotateY(-80deg); }
+.req-card.turned-left { animation: turnin-l .22s ease-out; }
+.req-card.turned-right { animation: turnin-r .22s ease-out; }
+@keyframes turnin-l { from { transform: perspective(1200px) rotateY(-80deg); opacity: .4; } }
+@keyframes turnin-r { from { transform: perspective(1200px) rotateY(80deg); opacity: .4; } }
+.req-card.answered { cursor: pointer; border-color: var(--edge); }
+.req-card.answered .req-who { margin-top: 4px; }
+.req-card.answered .reaction { margin: 8px 0 8px; }
+.req-after { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.req-timer { flex: 1; height: 3px; border-radius: 2px; background: var(--rule); overflow: hidden; }
+.req-timer i { display: block; height: 100%; background: var(--align); transform-origin: left; animation: runout var(--reaction-ms, 4s) linear forwards; }
+.req-card.held .req-timer i { animation-play-state: paused; }
+@keyframes runout { to { transform: scaleX(0); } }
+.req-go { flex: none; }
 .note-line { margin: 4px 0; font-size: 13.5px; color: var(--warn); }
 
 /* =================================================================== RESPONSIVE */
@@ -871,6 +887,11 @@ body.ended { overflow: auto; }
   .dk-main .hand { overflow: visible; flex: none; }
   .dk-bar .dec-btns { flex-wrap: wrap; }
   .dk-bar { position: sticky; bottom: 0; background: var(--deck); z-index: 4; padding-bottom: 6px; }
+}
+/* phones and narrow tablets: the chief of staff is a line over the cards that opens; the threats come after them */
+@media (max-width: 767px) {
+  .dk-adv-m { display: block; }
+  .dk-side .dk-adv { display: none; }
   .game { height: auto; min-height: 100dvh; grid-template-rows: auto auto auto auto; overflow: visible; }
   .stage { grid-template-rows: auto auto; }
   .theatre { grid-template-columns: minmax(0, 1fr); }
@@ -888,9 +909,17 @@ body.ended { overflow: auto; }
   .dk-bar { position: static; }
 }
 @media (max-width: 560px) {
-  .dk-bar { grid-template-columns: minmax(0, 1fr); grid-template-areas: "inf" "notes" "btns"; }
-  .dk-bar .btn-primary { width: 100%; justify-content: center; font-size: 16px; }
-  .dk-head h2 { font-size: 22px; }
+  /* the bar on two rows: Influence and Confirm, then the map and Play no card */
+  .dk-bar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "inf ok" "map none"; gap: 6px 8px; }
+  .dk-bar .dec-btns { display: contents; }
+  .dk-bar .dec-inf { grid-area: inf; }
+  .dk-bar [data-action="confirm"] { grid-area: ok; justify-content: center; font-size: 16px; }
+  .dk-bar [data-action="map"] { grid-area: map; }
+  .dk-bar [data-action="none"] { grid-area: none; }
+  .dk-bar .btn-quiet, .dk-bar .btn-primary { justify-content: center; white-space: normal; }
+  .dk-head h2 { font-size: 20px; }
+  /* a list: each card as tall as it needs */
+  .cards { grid-auto-rows: auto; gap: 6px; }
   .dk-adv { font-size: 13px; }
   .game { padding: 6px 10px; gap: 6px; }
   .top { gap: 6px 10px; }
@@ -910,6 +939,8 @@ body.ended { overflow: auto; }
   .g-val { font-size: 21px; }
   .g-delta, .g-after { font-size: 11px; }
   .g-chip { font-size: 10.5px; padding: 0 4px; }
+  .g-chip.zone { font-size: 12px; padding: 0 6px; }
+  .g-ico .ico { width: 12px; height: 12px; }
   .g-cap { font-size: 10.5px; }
   .g-cap .long, .g-chip .long { display: none; }
   .g-cap .short, .g-chip .short { display: inline; }
@@ -927,8 +958,6 @@ body.ended { overflow: auto; }
   .intro .intro-friends p { font-size: 14.5px; }
   .stakes li { font-size: 20px; }
   .overlay { padding: 12px 8px; }
-  .fam, .fam-cards > .pc-wrap { width: 100%; }
-  .fam-cards { gap: 8px; }
   .req-answers { grid-template-columns: 1fr; }
   .req-card { padding: 10px 12px 12px; }
   .req-text { font-size: 16.5px; }
@@ -936,9 +965,7 @@ body.ended { overflow: auto; }
   .req-who h2 { font-size: 22px; }
   .modal.request { margin: auto 0 0; }
   .dec-inf small { display: none; }
-  .dec-notes { font-size: 11.5px; }
-  .dec-btns { justify-content: stretch; }
-  .dec-btns .btn-quiet { flex: 1; justify-content: center; padding: 8px 10px; }
+  .dk-bar .btn-quiet { padding: 8px 10px; }
   .deb-list li { grid-template-columns: 1fr; }
   .end-friend { gap: 10px; }
   .end-friend .friend-face { width: 48px; height: 48px; }
@@ -1038,7 +1065,8 @@ body.ended { overflow: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
   /* no pulsing, flashing or flowing: looping animations stop, and the states they signalled stay visible */
   .lab-ring, .threat-btn .tb-ico, .burst-ring, .protest-ring { animation: none !important; }
-  .req-card.fly-left, .req-card.fly-right { transform: none; }
+  .req-card.fly-left, .req-card.fly-right, .req-card.turn-left, .req-card.turn-right { transform: none; }
+  .req-timer i { animation: none !important; }
   .modal.postcard { transform: none; animation: ovin .3s ease-out !important; }
   .protest-ring { opacity: .6; transform: none; }
   .lab-ring { opacity: .35; transform: none; }
@@ -1109,10 +1137,17 @@ html:not([lang="en"]) body { hyphens: auto; }
 .g-line { flex-wrap: wrap; row-gap: 2px; overflow: visible; }
 .g-chip { overflow: visible; white-space: nowrap; }
 .m-cluster.calling::after { content: attr(data-calling); }
-/* the decisions' bar on one row (wide windows): the notes keep a readable width, the buttons wrap before they squeeze it */
-@media (min-width: 1100px) and (min-height: 541px) {
-  .dk-bar { grid-template-columns: auto minmax(14em, 1fr) minmax(0, max-content); }
+/* the decisions' bar: one row while it fits; in a long language the buttons wrap before anything is cut */
+@media (min-width: 768px) {
+  .dk-bar { flex-wrap: wrap; }
   .dk-bar .dec-btns { flex-wrap: wrap; justify-content: flex-end; }
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .dk-bar { gap: 6px 10px; }
+  .dk-bar .btn-quiet { font-size: 13px; padding: 6px 9px; }
+  .dk-bar .btn-primary { font-size: 15px; padding: 6px 11px; }
+  .dk-bar .btn-primary:disabled { font-size: 13px; }
+  .dk-bar .dec-inf .inf-l { letter-spacing: .02em; }
 }
 .in-en { font-size: .85em; color: var(--mute); white-space: nowrap; }
 /* the header's language button and its small list */

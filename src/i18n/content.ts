@@ -27,7 +27,7 @@ const SKIP = new Set([
   'id', 'kind', 'region', 'basis', 'source', 'url', 'tone', 'move', 'effects', 'when', 'set', 'grow', 'badge', 'stance',
   'character', 'prepares', 'followup', 'opportunity', 'weight', 'priority', 'arrives', 'family', 'protects', 'protectedBy',
   'gauge', 'certainty', 'mood', 'friend', 'after', 'via', 'at', 'lon', 'lat', 'size', 'dir', 'jobs', 'echo', 'good',
-  'world', 'match', 'cfgName', 'bad', 'tag', 'coalition', 'inspections', 'where', 'effect', 'later',
+  'world', 'match', 'cfgName', 'bad', 'tag', 'coalition', 'inspections', 'where', 'effect', 'later', 'face',
 ]);
 
 /** "BREAKING: OpenBrain’s AI model stolen": the banner's text is the catalog entry, the prefix a template. */

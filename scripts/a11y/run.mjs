@@ -398,10 +398,12 @@ async function playRun(browser, base, run) {
       const side = await page.evaluate(() => (document.activeElement?.classList.contains('ans-left') ? 'ArrowLeft' : 'ArrowRight'));
       await press(side);
       await advance(page, 500);
-      if (!(await focusIs('[data-primary]'))) fail(`request: focus did not move to Continue after answering (${await focused(page)})`);
+      // the card turns over in place (answer, reaction, what changed) with Continue focused; it would close by itself
+      if (!(await focusIs('.req-card.answered [data-primary]'))) fail(`request: focus did not move to Continue after answering (${await focused(page)})`);
       if (!/You answered/.test(await said())) fail('request: the answer was not announced');
       await audit('request-outcome');
-      await press('Enter');
+      // time flows while axe runs: the card may have closed by itself meanwhile
+      if (await page.evaluate((m) => !!document.querySelector(`${m} .req-card.answered`), MODAL)) await press('Enter');
     } else if (['help', 'info', 'worlds', 'card-details'].includes(screen)) {
       await press('Escape');
     } else {
