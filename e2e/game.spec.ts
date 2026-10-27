@@ -218,20 +218,30 @@ test.describe('a full game', () => {
 });
 
 test.describe('key interactions', () => {
-  test('the build ships its Content-Security-Policy; the intro has two screens and Skip', async ({ page }) => {
+  test('the build ships its Content-Security-Policy; the intro is a landing, two screens and Skip', async ({ page }) => {
     const s = await boot(page, '?notutorial&seed=4');
     await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveCount(1);
     const intro = page.getByRole('dialog', { name: 'Introduction' });
+    // the landing: the goal in one sentence, the three stakes with their gauges, Play
     await expect(intro.getByRole('heading', { level: 2 })).toHaveText(INTRO[0].title);
-    await expect(intro.getByText('Already real')).toBeVisible();
+    await expect(intro.locator('.stakes li')).toHaveCount(3);
+    await expect(intro.locator('.stakes li').nth(0)).toContainText('AI safety');
+    await expect(intro.getByRole('button', { name: /^Play \(about 15 min\)/ })).toBeVisible();
     await page.keyboard.press('Enter');
     await advance(page, 300);
     await expect(intro.getByRole('heading', { level: 2 })).toHaveText(INTRO[1].title);
+    await expect(intro.getByText('Already real')).toBeVisible();
+    await page.keyboard.press('Enter');
+    await advance(page, 300);
+    await expect(intro.getByRole('heading', { level: 2 })).toHaveText(INTRO[2].title);
     await expect(intro.getByRole('heading', { level: 3, name: 'The people you’re doing this for' })).toBeVisible();
     await expect(intro.locator('.intro-friends li')).toHaveCount(3);
     await expect(intro.locator('.intro-friends li .friend-face')).toHaveCount(3);
     await intro.getByRole('button', { name: 'Back' }).click();
     await advance(page, 300);
+    await intro.getByRole('button', { name: 'Back' }).click();
+    await advance(page, 300);
+    await expect(intro.getByRole('heading', { level: 2 })).toHaveText(INTRO[0].title);
     await intro.getByRole('button', { name: 'Skip to round 1' }).click();
     await advance(page, 600);
     await expect(intro).toHaveCount(0);

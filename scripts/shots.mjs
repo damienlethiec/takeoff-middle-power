@@ -44,6 +44,9 @@ try {
     await advance(page, 300);
     await shot('intro-2');
     await page.keyboard.press('Enter');
+    await advance(page, 300);
+    await shot('intro-3');
+    await page.keyboard.press('Enter');
     await advance(page, 400);
     let decisions = 0;
     for (let i = 0; i < 2000; i++) {

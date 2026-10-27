@@ -457,6 +457,11 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .stakes li::before { content: ''; position: absolute; left: 0; top: 2px; bottom: 2px; width: 4px; border-radius: 2px; background: var(--align); }
 .stakes li:nth-child(2)::before { background: linear-gradient(var(--align), var(--cap), var(--rival)); }
 .stakes li:nth-child(3)::before { background: var(--concern); }
+/* the landing: one sentence, the three stakes (each with its gauge's name under it), Play */
+.intro .landing .lead { font-size: 20px; line-height: 1.45; margin: 10px 0 4px; }
+.stake-g { display: block; font-family: var(--f-data); font-size: 11.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); margin-top: 1px; }
+.intro .intro-after { color: var(--mute); font-size: 16px; }
+.intro .intro-credit { color: var(--mute); font-size: 13px; margin: 14px 0 0; }
 .built-on { font-size: 13px; color: var(--mute); border-top: 1px solid var(--rule); margin-top: 10px; padding-top: 8px; }
 .built-on h3 { font-size: 13px; margin: 0 0 4px; color: var(--ink); }
 .built-on ul { margin: 0 0 4px; padding-left: 18px; }
@@ -960,6 +965,9 @@ body.ended { overflow: auto; }
   .intro-friends .friend-face { width: 40px; height: 40px; }
   .intro .intro-friends p { font-size: 14.5px; }
   .stakes li { font-size: 20px; }
+  .intro .landing .lead { font-size: 17.5px; }
+  .intro .intro-after { font-size: 15px; }
+  .landing .stakes { margin: 10px 0; gap: 6px; }
   .overlay { padding: 12px 8px; }
   .req-answers { grid-template-columns: 1fr; }
   .req-card { padding: 10px 12px 12px; }

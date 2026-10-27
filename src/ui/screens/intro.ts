@@ -1,8 +1,10 @@
-// The two intro screens: the world today, then you, your goal and the three friends back home (the people you are
-// doing this for). Skip goes straight to round 1. The first screen carries the languages, and on a first visit the
+// The intro: a landing that says in one sentence what you do and why, with the three stakes and Play (it fits one
+// phone screen); then the world today, and what you can do with the three friends back home (the people you are
+// doing this for). Skip goes straight to round 1. The landing carries the languages, and on a first visit the
 // offer to play in the browser's language (src/ui/lang.ts).
 
-import { BUILT_ON, INTRO } from '../../data/copy';
+import { BUILT_ON, GAUGE_LABEL, INTRO } from '../../data/copy';
+import type { GaugeKey } from '../../engine/types';
 import { t, tc, type AnyLang } from '../../i18n';
 import { esc, factBox, kbd, link, provLabel } from '../format';
 import { friendPortrait } from '../friends';
@@ -22,19 +24,36 @@ function builtOn(): string {
     .join(' ')}</p></section>`;
 }
 
+/** The landing's stakes, in order: each names the gauge that measures it (and takes its colour). */
+const STAKE_GAUGES: GaugeKey[] = ['confidence', 'cooperation', 'cohesion'];
+
 function screenHtml(i: number, focusLang: AnyLang | null): string {
   const sc = INTRO[i];
   const last = i === INTRO.length - 1;
-  const offer = i === 0 ? offeredLang() : null;
-  const row = i === 0 ? langRowHtml() : '';
-  return `<div class="intro-in">
+  const landing = i === 0;
+  const offer = landing ? offeredLang() : null;
+  const row = landing ? langRowHtml() : '';
+  const primary = landing
+    ? `<button type="button" class="btn-primary big" data-primary data-action="next">${esc(t('ui.intro.play', 'Play (about 15 min)'))} ${kbd('enter')}</button>`
+    : `<button type="button" class="btn-primary" data-primary data-action="next">${esc(last ? t('ui.intro.start', 'Start round 1') : t('ui.common.next', 'Next'))} ${kbd('enter')}</button>`;
+  return `<div class="intro-in${landing ? ' landing' : ''}">
         ${brand()}
         ${row}
         ${offer ? offerHtml(offer) : ''}
-        <div class="dateline">${esc(t('ui.intro.nOf', '{n} of {count}', { n: i + 1, count: INTRO.length }))}</div>
+        ${landing ? '' : `<div class="dateline">${esc(t('ui.intro.nOf', '{n} of {count}', { n: i, count: INTRO.length - 1 }))}</div>`}
         <h2 tabindex="-1" ${focusLang ? '' : 'data-autofocus'}>${esc(tc(`intro.${i}.title`, sc.title))}</h2>
-        ${sc.paragraphs.map((p, j) => `<p>${esc(tc(`intro.${i}.paragraphs.${j}`, p))}</p>`).join('')}
-        ${sc.stakes ? `<ul class="stakes">${sc.stakes.map((s, j) => `<li>${esc(tc(`intro.${i}.stakes.${j}`, s))}</li>`).join('')}</ul>` : ''}
+        ${sc.paragraphs.map((p, j) => `<p${landing ? ' class="lead"' : ''}>${esc(tc(`intro.${i}.paragraphs.${j}`, p))}</p>`).join('')}
+        ${
+          sc.stakes
+            ? `<ul class="stakes">${sc.stakes
+                .map((s, j) => {
+                  const g = STAKE_GAUGES[j];
+                  return `<li>${esc(tc(`intro.${i}.stakes.${j}`, s))}${g ? `<span class="stake-g">${esc(tc(`gauge.${g}.label`, GAUGE_LABEL[g]))}</span>` : ''}</li>`;
+                })
+                .join('')}</ul>`
+            : ''
+        }
+        ${sc.after ? `<p class="intro-after">${esc(tc(`intro.${i}.after`, sc.after))}</p>` : ''}
         ${
           sc.friends?.length
             ? `<section class="intro-friends" aria-labelledby="intro-friends-h"><h3 id="intro-friends-h">${esc(t('ui.intro.friends', 'The people you’re doing this for'))}</h3><ul>${sc.friends
@@ -46,9 +65,10 @@ function screenHtml(i: number, focusLang: AnyLang | null): string {
         ${last ? builtOn() : ''}
         <div class="row-btns">
           ${i > 0 ? `<button type="button" class="btn-quiet" data-action="back">${esc(t('ui.common.back', 'Back'))}</button>` : ''}
-          <button type="button" class="btn-primary" data-primary data-action="next">${esc(last ? t('ui.intro.start', 'Start round 1') : t('ui.common.next', 'Next'))} ${kbd('enter')}</button>
+          ${primary}
           ${last ? '' : `<button type="button" class="btn-link" data-action="skip" data-escape>${esc(t('ui.intro.skip', 'Skip to round 1'))}</button>`}
         </div>
+        ${sc.credit ? `<p class="intro-credit">${esc(tc(`intro.${i}.credit`, sc.credit))}</p>` : ''}
       </div>`;
 }
 
@@ -93,7 +113,7 @@ export async function showContinue(label: string): Promise<'continue' | 'new'> {
       `<div class="intro-in">
         ${brand()}
         <div class="dateline">${esc(t('ui.continue.dateline', 'Saved game'))}</div>
-        <h2>${esc(t('ui.continue.title', 'Welcome back, Envoy'))}</h2>
+        <h2>${esc(t('ui.continue.title', 'Welcome back'))}</h2>
         <p>${esc(t('ui.continue.text', 'Your game was saved where you left it. The current six months start again from their beginning, with every decision you made kept.'))}</p>
         <div class="row-btns">
           <button type="button" class="btn-primary" data-primary data-autofocus data-action="continue">${esc(t('ui.continue.button', 'Continue your game ({where})', { where: label }))} ${kbd('enter')}</button>

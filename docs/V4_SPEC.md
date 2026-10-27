@@ -98,7 +98,7 @@ A dot-matrix world centred on the US–Europe–China band (Europe's colour cove
 
 ## Friends back home (26 Oct)
 
-Léa used to be the game's human heart; she had become one feed item among others. Team decision of 26 October: **three friends back home**, each the human face of one part of the world, introduced on the intro's second screen with their portraits ("the people you're doing this for", one line each):
+Léa used to be the game's human heart; she had become one feed item among others. Team decision of 26 October: **three friends back home**, each the human face of one part of the world, introduced on the intro's last screen with their portraits ("the people you're doing this for", one line each):
 
 - **Léa**, your old friend, a translator in Lyon: her job, the fear of being replaced → **Social cohesion**. Her letters are v3's, kept.
 - **Your mother**, a retired nurse in Lyon who still helps at her old hospital: AI arriving in the wards, trust, then a near miss or an inspection → **AI safety as lived**.
@@ -128,6 +128,12 @@ The game rests on three scenarios: **AI 2027** (the race and its milestones), **
 - **Washington rations Europe's AI** (Breaking news, a choice): a US rule puts most of Europe in a capped tier of access to American AI. *Take the cloud deal* (US cloud firms build in Europe under European law: US–China cooperation down a little, AI capabilities up a little) or *Build our own* (years away; firms ration AI meanwhile: Social cohesion down). Only for a Dependent Europe, outside a pause, after AI 2027's national-security milestone; once a game.
 - **The squeeze in the news**: US models and Chinese robots, a US AI giant buying a German carmaker's plants for robots, a million Chinese humanoids a year, bond spreads and the euro; a Commission official's voice; a car worker in Saxony and a graduate in Lille; a march in Rome against cuts (social event).
 - **Re-based**: the coalition of middle powers, the ASML lever, flexicurity and OpenBrain's data-centre request now rest on Europe 2031's recommendations and chapters.
+
+## Plain words for newcomers (27 Oct)
+
+Playtesters without an AI-governance background said "we don't get the point", "too jargony", "way too complex". The owner validated a plain-language pass:
+
+- **Landing.** The first screen states the goal in one sentence and fits one phone screen (390×844): "You speak for Europe on AI. AI is about to start improving itself. You have five years to make sure that, when it does:" then the three stakes, each with its gauge's colour bar and name (AI is safe · AI safety; The US and China are talking · US–China cooperation; Europe holds together · Social cohesion), one line on what you do and when it ends, and a big **Play (about 15 min)**. Languages, Skip and a one-line credit (the three scenarios) are secondary; the full *Built on* block stays on the intro's last screen. Play leads to two short screens (the world today; what you can do, with the three friends), which Skip jumps over.
 
 ## Tutorial
 

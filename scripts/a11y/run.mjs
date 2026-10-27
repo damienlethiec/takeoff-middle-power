@@ -116,6 +116,9 @@ async function playRun(browser, base, run) {
     await advance(page, 300);
     await audit('intro-2');
     await press('Enter');
+    await advance(page, 300);
+    await audit('intro-3');
+    await press('Enter');
     await advance(page, 400);
   }
 

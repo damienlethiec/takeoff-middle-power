@@ -52,8 +52,8 @@ describe('real facts', () => {
     for (const [where, f] of facts) expect(f.text, where).not.toMatch(/OpenBrain|DeepCent/);
   });
   it('the intro says the labs come from AI 2027 and the future is fiction', () => {
-    expect(INTRO[0].paragraphs.join(' ')).toMatch(/AI 2027 scenario and are fictional/);
-    expect(INTRO[0].paragraphs.join(' ')).not.toMatch(/invented for this game/);
+    expect(INTRO[1].paragraphs.join(' ')).toMatch(/AI 2027 scenario and are fictional/);
+    expect(INTRO[1].paragraphs.join(' ')).not.toMatch(/invented for this game/);
   });
   it('the Built on block is short (it fits a phone), links the three scenarios and names the five tags', () => {
     const all = [BUILT_ON.title, ...BUILT_ON.scenarios.flatMap((x) => [x.name, x.by, x.what]), BUILT_ON.calendar.text, BUILT_ON.tagsText, ...BUILT_ON.tags].join(' ');
@@ -62,8 +62,10 @@ describe('real facts', () => {
     for (const x of [...BUILT_ON.scenarios.map((s) => s.source), BUILT_ON.calendar.source]) expect(Object.values(SOURCES)).toContain(x);
     expect(BUILT_ON.tags).toEqual(['Real', 'From AI 2027', 'From CFG', 'From Europe 2031', 'Invented']);
   });
-  it('the intro has two screens with one or two facts', () => {
-    expect(INTRO).toHaveLength(2);
+  it('the intro is a landing (the goal, three stakes) and two screens with facts', () => {
+    expect(INTRO).toHaveLength(3);
+    expect(INTRO[0].stakes).toHaveLength(3);
+    expect(INTRO[0].fact).toBeUndefined();
     expect(INTRO.filter((i) => i.fact).length).toBeGreaterThanOrEqual(1);
   });
 });

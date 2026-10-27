@@ -58,31 +58,44 @@ export const STAGE_WORD = { 1: 'Watch', 2: 'Rising', 3: 'Imminent' } as const;
 export interface IntroScreen {
   title: string;
   paragraphs: string[];
+  /** The three stakes, one per gauge that decides the ending (AI safety, US–China cooperation, Social cohesion, in
+   *  that order: each takes its gauge's colour and name). */
   stakes?: string[];
+  /** A line after the stakes. */
+  after?: string;
+  /** A small line under the buttons (the landing's credit). */
+  credit?: string;
   /** The three friends back home, one line each with their portrait: the people you are doing this for. */
   friends?: { friend: FriendId; line: string }[];
   fact?: Fact;
 }
 
+/** The landing (the first screen, one phone screen: what you do and why, in one sentence, then Play), then two
+ *  screens for those who want the story before playing. Skip goes straight to round 1. */
 export const INTRO: IntroScreen[] = [
+  {
+    title: 'You speak for Europe on AI',
+    paragraphs: ['AI is about to start improving itself. You have five years to make sure that, when it does:'],
+    stakes: ['AI is safe', 'The US and China are talking', 'Europe holds together'],
+    after: 'Each round, answer requests and play policy cards. When AI starts improving itself, the game ends and shows the world you built.',
+    credit: 'Built on three published scenarios: AI 2027, CFG’s Possible Futures and Europe 2031.',
+  },
   {
     title: 'The world today',
     paragraphs: [
       'AI is grown, not built. Nobody writes these systems line by line: they are trained on huge amounts of data, and what they learn is hard to check, even for their makers. They are improving fast.',
       'Two labs lead the race: OpenBrain in the US and DeepCent in China. Both come from the AI 2027 scenario and are fictional, as is everything that happens after today.',
     ],
-    stakes: ['Will AI do what we intend?', 'Will the superpowers race, or talk?', 'Will our societies hold together?'],
     fact: {
       text: 'In 2025, Anthropic wrote that its AI models “aren’t programmed directly by humans” and that “we don’t understand how models do most of the things they do.”',
       source: SOURCES.anthropicInterp,
     },
   },
   {
-    title: 'You are the EU’s AI Envoy',
+    title: 'What you can do',
     paragraphs: [
       'Europe cannot stop the race. It can shape it, with Influence and policies.',
-      'Your goal: when AI reaches the tipping point, have AI we can trust, superpowers who talk, and a society that holds. The calmer the world, the easier a good ending.',
-      'Ten rounds of six months, from 2027 to 2031. Each round, watch the world move, then play as many cards as your Influence allows.',
+      'Ten rounds of six months, from 2027 to 2031. Each round, watch the news, answer requests, then play as many cards as your Influence allows. The calmer the world, the easier a good ending.',
     ],
     friends: [
       { friend: 'lea', line: 'Léa, your oldest friend, translates for a living in Lyon. She wonders whether there will still be work for people like her.' },

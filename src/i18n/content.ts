@@ -80,6 +80,8 @@ export function collectContent(): Out {
     out[`intro.${i}.title`] = sc.title;
     sc.paragraphs.forEach((p, j) => (out[`intro.${i}.paragraphs.${j}`] = p));
     sc.stakes?.forEach((p, j) => (out[`intro.${i}.stakes.${j}`] = p));
+    if (sc.after) out[`intro.${i}.after`] = sc.after;
+    if (sc.credit) out[`intro.${i}.credit`] = sc.credit;
     sc.friends?.forEach((f) => (out[`intro.${i}.friends.${f.friend}`] = f.line));
     if (sc.fact) out[`intro.${i}.fact`] = sc.fact.text;
   });
