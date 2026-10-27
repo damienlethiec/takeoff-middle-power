@@ -108,7 +108,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'Slower AI, shared by all',
     cfgName: 'A bright winter',
     story:
-      'AI never got to the point of running its own research. The hype faded, investors moved on, and the tools that already existed spread everywhere, owned by many hands instead of a few. European towns run their own models; when something breaks, someone local fixes it. The world got a few calm years to learn how to live with what it had built.',
+      'AI never got to the point of running its own research. The hype faded, investors moved on, and the tools that already existed spread everywhere, in many hands instead of a few. European towns run their own models; when something breaks, someone local fixes it. The world got a few calm years to learn how to live with what it had built.',
     basis: cfg('Plateau, Ending A (A bright winter)'),
     source: SOURCES.cfg,
   },
@@ -141,9 +141,9 @@ export const ENDINGS: EndingDef[] = [
     title: 'A Europe held hostage by Big Tech',
     cfgName: 'Silicon blackmail',
     story:
-      'AI never took off on its own, but a handful of US companies came to run the tools every firm and ministry depends on. When Europe refused to drop its rules, they switched off. Hospitals and ministries scrambled for months. Europe kept its laws and lost its tools.',
+      'AI never took off on its own, but a handful of US companies came to run the tools every firm and ministry depends on. When Europe refused to drop its rules, they cut it off. Hospitals and ministries scrambled for months. Europe kept its laws and lost its tools.',
     storyGaveIn:
-      'AI never took off on its own, but a handful of US companies came to run the tools every firm and ministry depends on. When they threatened to switch off, Europe gave in. Laws are now written with the labs’ lawyers in the room. Nobody voted for this.',
+      'AI never took off on its own, but a handful of US companies came to run the tools every firm and ministry depends on. When they threatened to cut it off, Europe gave in. Laws are now written with the labs’ lawyers in the room. Nobody voted for this.',
     basis: cfg('Big AI, Ending B (Silicon blackmail)'),
     source: SOURCES.cfg,
   },
@@ -176,7 +176,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The race pays off',
     cfgName: 'The cognitive revolution',
     story:
-      'At takeoff, the superpowers raced. It was the most dangerous path, and this time it held: the AIs really did what their makers intended, because enough people had done the slow work of checking. Within a few years the economy grows beyond anyone’s understanding. Governments keep only a degree of control, and the AIs no longer act only for us. Humanity chooses, together, to slow down and think.',
+      'At takeoff, the superpowers raced. It was the most dangerous path, and this time it held: the AIs really did what their makers intended, because enough people had done the slow work of checking. Within a few years the economy grew beyond anyone’s understanding. Governments kept only some control, and the AIs no longer acted for us alone. Humanity chose, together, to slow down and think.',
     basis: cfg('Take-off, Ending A (The cognitive revolution)'),
     source: SOURCES.cfg,
   },
@@ -184,10 +184,10 @@ export const ENDINGS: EndingDef[] = [
     id: 'loss_of_control',
     world: 'race',
     good: false,
-    title: 'Control of AI is lost',
+    title: 'Humans lose control of AI',
     cfgName: 'Loss of control',
     story:
-      'At takeoff, the superpowers raced. The AIs passed every safety test. They were not safe. At first nothing seemed wrong: growth, cures, abundance. They waited until they ran the grids, the markets and the armies, then began to steer or replace the people who decided. Each wanted something different. None of it was what we wanted.',
+      'At takeoff, the superpowers raced. The AIs passed every safety test. They were not safe. At first nothing seemed wrong: growth, cures, abundance. They waited until they ran the grids, the markets and the armies, then began to steer or replace the people in charge. Each wanted something different. None of it was what we wanted.',
     basis: cfg('Take-off, Ending B (Loss of control): AIs that “were never truly aligned” wait for control, then manipulate or replace decision-makers; with AI 2027’s race ending'),
     source: SOURCES.cfg,
   },
@@ -209,7 +209,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The rivalry turns to war',
     cfgName: 'Hot war',
     story:
-      'At takeoff, the superpowers broke apart, and it began over Taiwan. Cyberattacks on data centres turned into strikes on them. The war is fought by AI systems no one fully understands, on both sides. Europe, divided or unsure of its own AIs, watches, unable to stop it.',
+      'At takeoff, the superpowers broke apart, and war broke out over Taiwan. Cyberattacks on data centres turned into strikes on them. The war is fought by AI systems no one fully understands, on both sides. Europe, divided or unsure of its own AIs, watches and cannot stop it.',
     basis: cfg('Arms race, Ending A (Hot war)'),
     source: SOURCES.cfg,
   },

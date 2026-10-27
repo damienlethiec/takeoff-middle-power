@@ -765,7 +765,7 @@ describe('endings', () => {
   it('decides on the true Confidence, and says so in one sentence', () => {
     const s = ended({ ...tip, cooperation: 45, cohesion: 60, confidence: { truth: 58, estimate: 70, margin: 15 } });
     const v = ending(s);
-    expect(v.sentence).toBe(`The superpowers raced. AI safety was 58 (55 verified, the labs claimed 70), below the ${T.worlds.race.target} a race needs: control of AI is lost.`);
+    expect(v.sentence).toBe(`The superpowers raced. AI safety was 58 (55 verified, the labs claimed 70), below the ${T.worlds.race.target} a race needs: humans lose control of AI.`);
     expect(v.reveal.truth).toBe(58);
     expect(v.counterfactuals[0]).toMatch(/^With US–China cooperation at 60 or more at takeoff/);
   });

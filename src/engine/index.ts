@@ -1973,7 +1973,8 @@ export function letters(s: GameState): LetterView[] {
       const m = /^end_(.+)_(lea|mother|malik|\d)$/.exec(l.id)!;
       const ending = m[1] as EndingId;
       const friend: FriendId = /^\d$/.test(m[2]) ? 'lea' : (m[2] as FriendId);
-      const e = EPILOGUES[ending][friend];
+      // the same set as the ending screen: the gave-in epilogues when Europe gave in to the blackmail
+      const e = (ending === 'silicon_blackmail' && s.threats.blackmail?.choice === 'give_in' ? EPILOGUES_GAVE_IN : EPILOGUES[ending])[friend];
       return { slot: 'end', round: l.round, id: l.id, friend, mood: e.mood, text: e.text, postcard: false, basis: EPILOGUE_BASIS(ending) };
     }
     const d = letterDef(l.id)!;

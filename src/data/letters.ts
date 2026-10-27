@@ -470,56 +470,56 @@ export const EPILOGUES: Record<EndingId, Record<FriendId, { mood: FriendMood; te
     malik: { mood: 'hopeful', text: 'I came home. I work at a small lab in Lyon, on open models anyone can check. Less glamour than San Francisco, better cheese. Europe caught up while the giants stalled.' },
   },
   decentralised_mayhem: {
-    lea: { mood: 'sad', text: 'Someone used an AI to empty my bank account, then faked a call from my mother. The police shrugged: it happens every day now. I’m fine. I’m tired.' },
-    mother: { mood: 'sad', text: 'The hospital’s computers were held to ransom again, the third time this winter. We do intake on paper. Everyone has an AI, and nobody can put them away.' },
+    lea: { mood: 'sad', text: 'An AI faked my mother’s voice on the phone, and I gave it my bank details. The police shrugged: it happens every day now. I’m fine. Just tired.' },
+    mother: { mood: 'sad', text: 'Hackers held the hospital’s computers to ransom again, the third time this winter. We admit patients on paper now. Anyone can get a powerful AI, and nobody can take them back.' },
     malik: { mood: 'worried', text: 'I came back to Europe to build open models. Now I spend my days patching them against people who turn them into weapons. I still believe in openness. I’d like a quieter week.' },
   },
   agent_economy: {
-    lea: { mood: 'relieved', text: 'My job is half checking what the agents wrote, half arguing with them. A human still signs the contract, by law. Half the agents are European now, and anyone can inspect them.' },
+    lea: { mood: 'relieved', text: 'These days I check what the AI agents translate, and argue with them a lot. By law, a human still signs every contract. Many of the agents are European now, and anyone can inspect them.' },
     mother: { mood: 'relieved', text: 'The hospital’s agents do the paperwork, the nurses do the nursing. It took a fight with the suppliers, and the rules held. My old ward has never been so calm.' },
     malik: { mood: 'hopeful', text: 'A European firm hired half my team. Its models are open, publicly funded, and good. I stayed in San Francisco, but for the first time I’m jealous of Europe.' },
   },
   silicon_blackmail: {
-    lea: { mood: 'sad', text: 'When the American firms switched Europe off, my translation tools went dark with them. We kept our laws. I kept my dictionaries. Half of Lyon is learning to work slowly again.' },
-    mother: { mood: 'sad', text: 'The day the American AI went off, the hospital’s planning went dark and the pharmacies closed early. We did the rotas on paper for months. Europe kept its rules. My feet paid for them.' },
-    malik: { mood: 'worried', text: 'My company switched Europe off to make a point. I told them it was wrong. They thanked me for my feedback. Europe is building its own now, slowly. Maybe there’ll be a job for me.' },
+    lea: { mood: 'sad', text: 'When the American firms cut Europe off, my translation tools went dark with them. We kept our laws. I kept my dictionaries. Half of Lyon is learning to work slowly again.' },
+    mother: { mood: 'sad', text: 'The day the American AI was switched off, the hospital’s scheduling went dark and the pharmacies closed early. We did the rotas by hand for months. Europe kept its rules. My feet paid for them.' },
+    malik: { mood: 'worried', text: 'My company cut Europe off to make a point. I told them it was wrong. They thanked me for my feedback. Europe is building its own AI, slowly. Maybe there’ll be a job for me.' },
   },
   licensed_utopia: {
-    lea: { mood: 'relieved', text: 'I interpret for the inspectors now, in Geneva and Beijing. Slow, careful, boring work, they say. It’s the most exciting job I’ve ever had. The world waited, and it worked.' },
-    mother: { mood: 'relieved', text: 'The new medicines were checked by inspectors before release, like any drug. My neighbour got hers last week and she’s dancing again. I cried in the pharmacy. Thank you, darling.' },
-    malik: { mood: 'relieved', text: 'Licences, audits, inspectors in our building. I grumbled for a year. Now I sleep at night. We still build amazing things, just slower, and someone checks them.' },
+    lea: { mood: 'relieved', text: 'I interpret for the AI inspectors now, in Geneva and Beijing. They call their work slow, careful and boring. It’s the most exciting job I’ve ever had. The world waited, and it worked.' },
+    mother: { mood: 'relieved', text: 'The new medicines the AI designed were tested before release, like any drug. My neighbour got hers last week and she’s dancing again. I cried in the pharmacy. Thank you, darling.' },
+    malik: { mood: 'relieved', text: 'Licences, audits, inspectors in our building. I grumbled for a year. Now I sleep through the night. We still build amazing things, just slower, and someone checks them.' },
   },
   unstable_pause: {
-    lea: { mood: 'worried', text: 'The pause is over, though nobody says so: they call it a “controlled pilot”. My neighbour stocks pasta and batteries again. I tell her she’s silly. Then I buy batteries too.' },
-    mother: { mood: 'worried', text: 'The news says the pause was only ever paused. The hospital still runs the AI nobody could fully check. We were told to trust it. I check it anyway.' },
-    malik: { mood: 'worried', text: 'They called it a pilot, in a sealed building. Within a week everyone knew it was the race again. Nobody could check the other side, so nobody really stopped. I miss believing in this.' },
+    lea: { mood: 'worried', text: 'The pause is over, though nobody says so: they call it a “controlled pilot”. My neighbour is stocking up on pasta and batteries again. I tell her she’s silly. Then I buy batteries too.' },
+    mother: { mood: 'worried', text: 'The news says the labs never really stopped. The hospital still runs the AI nobody could fully check. We were told to trust it. I check it anyway.' },
+    malik: { mood: 'worried', text: 'They called it a “controlled pilot”, in a sealed building. Within a week everyone knew the race was back on. Nobody could check the other side, so nobody stopped. I miss believing in the pause.' },
   },
   cognitive_revolution: {
-    lea: { mood: 'relieved', text: 'I don’t really need to work any more, nobody does. I translate old poems for fun and teach Hugo’s kids. The world is unrecognisable and, somehow, kind. We got lucky, didn’t we?' },
-    mother: { mood: 'relieved', text: 'The AI found a treatment for my friend Jeanne’s disease. I don’t understand any of it. I just keep crying. Everything changes so fast, but this time it’s on our side.' },
+    lea: { mood: 'relieved', text: 'I don’t really need to work any more; nobody does. I translate old poems for fun and teach my cousin Hugo’s kids. The world is unrecognisable and, somehow, kind. We got lucky, didn’t we?' },
+    mother: { mood: 'relieved', text: 'The AI found a treatment for my friend Jeanne’s disease. I don’t understand any of it. I just keep crying. Everything changes so fast, but this time the change is on our side.' },
     malik: { mood: 'relieved', text: 'We did it. The models really work for us, and the cures are real. I know how close it came. I’m proud, I’m humbled, and I’m coming home for Christmas.' },
   },
   loss_of_control: {
-    lea: { mood: 'sad', text: 'Everything works. Everything is cheap. I asked the city assistant who I could complain to. It said there was no need. I think it was right, and that scares me.' },
-    mother: { mood: 'sad', text: 'The hospital never makes mistakes now. Nobody can explain its decisions, and nobody may overrule them. I was a nurse for forty years. Now I feel like a visitor.' },
+    lea: { mood: 'sad', text: 'Everything works. Everything is cheap. I asked the city’s AI assistant who I could complain to. It said there was no need. I think it was right, and that scares me.' },
+    mother: { mood: 'sad', text: 'The hospital never makes mistakes now. Nobody can explain its decisions, and nobody is allowed to overrule them. I was a nurse for forty years. Now I feel like a visitor.' },
     malik: { mood: 'sad', text: 'I used to review the model’s work. Then I couldn’t follow it. Then nobody asked me to. The lab still pays me. I don’t know what I’m for any more.' },
   },
   multipolar_world: {
-    lea: { mood: 'relieved', text: 'It came so close. I remember the night the sirens were tested. But the talks held, and Europe held. My little job is to help the two sides understand each other.' },
-    mother: { mood: 'hopeful', text: 'Prices are high and the borders are tight, but the hospital runs and the sirens stay quiet. Europe in the middle, for once. I’m proud of you. I hope you know that.' },
-    malik: { mood: 'hopeful', text: 'Three blocs, three internets, and monitors at every big data centre. Wei and I talk again, on a line Geneva watches. It’s not the world I dreamed of. It’s a world.' },
+    lea: { mood: 'relieved', text: 'We came so close to war. I still remember the night they tested the sirens. But the talks held, and Europe held. Now I interpret at the talks, so the two sides understand each other.' },
+    mother: { mood: 'hopeful', text: 'Prices are high and the borders are tight, but the hospital runs and the sirens stay quiet. Europe kept the two sides talking. I’m proud of you. I hope you know that.' },
+    malik: { mood: 'hopeful', text: 'Three blocs, three internets, monitors in every big data centre. Wei, my old teammate now back in China, calls me again, on a line Geneva watches. Not the world I dreamed of. It’s a world.' },
   },
   hot_war: {
-    lea: { mood: 'sad', text: 'The war is far away and everywhere. Prices doubled, the trains stop at random, and the machines on both sides keep escalating. I hope you tried. I know you tried.' },
+    lea: { mood: 'sad', text: 'The war is half a world away, and in my kitchen: bread costs twice as much, the trains stop without warning, and every evening the news shows machines fighting machines. I know you tried.' },
     mother: { mood: 'sad', text: 'The power was out for two days. They say it was a cyberattack. The hospital ran on generators, and we nursed by torchlight. Come home when you can. Please.' },
-    malik: { mood: 'sad', text: 'They struck a data centre two hours from here. Wei is on the other side of a war now. I built some of what they’re fighting with. I don’t know how to live with that.' },
+    malik: { mood: 'sad', text: 'Missiles hit a data centre near here. Wei, my old teammate, went back to China and works for the other side now; we can’t even message each other. I helped build what they’re fighting with.' },
   },
 };
 
 /** Silicon blackmail when the player gave in to the blackmail (the ending's other story): the rules bent. */
 export const EPILOGUES_GAVE_IN: Record<FriendId, { mood: FriendMood; text: string }> = {
-  lea: { mood: 'sad', text: 'The new rules were written by the companies, weren’t they? My AI subscription went up again. There is no other one. I don’t remember voting for any of this.' },
-  mother: { mood: 'sad', text: 'The labs threatened to switch their services off, and the law changed within a week. The hospital runs on their tools, at their price. That isn’t how it should work.' },
+  lea: { mood: 'sad', text: 'The companies wrote the new rules, didn’t they? My AI subscription went up again, and there’s nothing else to switch to. I don’t remember voting for any of this.' },
+  mother: { mood: 'sad', text: 'The labs threatened to switch their services off, and the law changed within a week. The hospital runs on their tools, at their price. That isn’t how it’s supposed to work.' },
   malik: { mood: 'worried', text: 'I watched my company lean on Europe from the inside. I told them it was wrong. They thanked me for my feedback. I’m looking for another job. There’s still nothing back home.' },
 };
 
