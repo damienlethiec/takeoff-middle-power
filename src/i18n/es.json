@@ -1880,6 +1880,7 @@
   "ui.threats.none": "Todavía no hay amenazas en el mapa.",
   "ui.threats.notPrepared": "Sin protección · protege: {names}",
   "ui.threats.prepared": "Con protección",
+  "ui.tip.alreadyMoved": "Tus decisiones anteriores ya lo han cambiado.",
   "ui.tip.dateline": "Consejo",
   "ui.tip.off": "Desactivar consejos",
   "ui.tip.ok": "Entendido",
@@ -2052,6 +2053,8 @@
   "ui.fx.influenceEach": "Influencia {n} por ronda",
   "ui.fx.influenceNext": "Influencia {n} la próxima ronda",
   "ui.fx.influenceRounds": "Influencia {n} durante {rounds} rondas",
+  "ui.fx.joinsBadge": "{badge}: llega a tu panel cuando importe",
+  "ui.fx.joinsRound": "{gauge}: llega a tu panel en la ronda {n}",
   "ui.fx.lv2": "N2",
   "ui.fx.move": "{gauge}: {move}",
   "ui.fx.protectsPartly": "Protege en parte contra: {threat}",
@@ -2071,6 +2074,7 @@
   "ui.fx.truth": "Seguridad real de la IA: sube (no se muestra)",
   "ui.fx.verified": "{gauge}, parte verificada: {move}",
   "ui.fx.withAccord": "Con un acuerdo: {fx}",
+  "ui.fx.withJoin": "{fx} ({join})",
   "help.rules.8": "Para decidir, haz clic en las cartas que quieras, tantas como cubra tu Influencia: su efecto aparece en los indicadores y en la línea de debajo. Nada pasa hasta que confirmas; No jugar cartas guarda tu Influencia.",
   "ui.common.copyright": "© 2026 {authors}. Todos los derechos reservados."
 }

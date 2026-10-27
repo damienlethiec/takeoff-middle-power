@@ -1880,6 +1880,7 @@
   "ui.threats.none": "Pas encore de menace sur la carte.",
   "ui.threats.notPrepared": "Pas prête · protège : {names}",
   "ui.threats.prepared": "Prête",
+  "ui.tip.alreadyMoved": "Vos décisions l’ont déjà fait bouger.",
   "ui.tip.dateline": "Astuce",
   "ui.tip.off": "Couper les astuces",
   "ui.tip.ok": "Compris",
@@ -2052,6 +2053,8 @@
   "ui.fx.influenceEach": "Influence {n} par tour",
   "ui.fx.influenceNext": "Influence {n} au tour suivant",
   "ui.fx.influenceRounds": "Influence {n} pendant {rounds} tours",
+  "ui.fx.joinsBadge": "{badge} : arrive sur votre tableau de bord quand elle compte",
+  "ui.fx.joinsRound": "{gauge} : arrive sur votre tableau de bord au tour {n}",
   "ui.fx.lv2": "N2",
   "ui.fx.move": "{gauge} : {move}",
   "ui.fx.protectsPartly": "Protège en partie contre : {threat}",
@@ -2071,6 +2074,7 @@
   "ui.fx.truth": "Vraie Sûreté de l’IA : en hausse (non affichée)",
   "ui.fx.verified": "{gauge}, part vérifiée : {move}",
   "ui.fx.withAccord": "Avec un accord : {fx}",
+  "ui.fx.withJoin": "{fx} ({join})",
   "help.rules.8": "Pour décider, cliquez sur les décisions voulues, autant que votre Influence le permet : leur effet s’affiche sur les jauges et sur la ligne en dessous. Rien ne se passe avant que vous confirmiez ; « Aucune décision » garde votre Influence.",
   "ui.common.copyright": "© 2026 {authors}. Tous droits réservés."
 }

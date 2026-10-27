@@ -26,7 +26,7 @@ import { showPostcard } from './screens/postcard';
 import { FRIENDS } from '../data/friends';
 import { TUNING } from '../data/tuning';
 import { badgeHtml, headingLineHtml, safetyCaption, statusOf, statusWord } from './outlook';
-import { GICON } from './fx';
+import { GICON, type Hidden } from './fx';
 import { lang, lcFirst, onLangChange, t, tc, th, tn, tr } from '../i18n';
 import { bindLangMenu, chooseLang, langMenuHtml } from './lang';
 import { Feed } from './feed';
@@ -134,6 +134,13 @@ export class App {
       this.updateReveal();
       this.lastSig = '';
       this.renderAll();
+    };
+    // a gauge that joins the dashboard after the player's decisions already moved it: its first tip says so
+    this.coach.extraFor = (id) => {
+      const key = id === 'cooperation' ? 'cooperation' : id === 'cohesion' ? 'cohesion' : id === 'badge' ? 'europeAi' : null;
+      if (!key || !this.s) return undefined;
+      const moved = [...this.s.history.flatMap((r) => r.changes), ...this.s.changes].some((c) => !!c.by && c.key === key);
+      return moved ? t('ui.tip.alreadyMoved', 'Your earlier decisions already moved it.') : undefined;
     };
     // a change of language re-draws the screen in place: the game, the clock and any open decision stay as they are
     onLangChange(() => this.relocalize());
@@ -408,6 +415,7 @@ export class App {
       const d = await showDecision(this.e, this.s, date, {
         host: $('#decide', this.root),
         onPreview: (pv) => this.setPreview(pv),
+        hidden: () => this.hiddenParts(),
         onOpen: async () => {
           await this.coach.show('influence', this.s.round, this.root);
           // the first card that can fail, and the first accord on offer (each waits until one is in the hand)
@@ -655,7 +663,7 @@ export class App {
       this.map.setThreats(this.prevThreats);
       this.renderAll(true);
       return r.outcome;
-    }, () => this.coach.show('request', this.s.round, this.root)); // the tip waits until the card is on screen
+    }, () => this.coach.show('request', this.s.round, this.root), this.hiddenParts()); // the tip waits until the card is on screen
     this.map.setCalling(null);
     this.renderAll();
     // an answer that changed Europe's AI brought its badge to the line: its tip, once the clock runs again
@@ -979,6 +987,19 @@ export class App {
   }
 
   // ------------------------------------------------------------------ the progressive dashboard (27 Oct)
+
+  /**
+   * A first game: the parts not on the dashboard yet, each with when it joins. A card or an answer that moves one
+   * still works (the gauge exists from round 1); its effect shows dimmed and says when the gauge joins.
+   */
+  private hiddenParts(): Hidden {
+    const v = this.reveal;
+    const out: Hidden = {};
+    if (!v.cooperation) out.cooperation = t('ui.fx.joinsRound', '{gauge}: joins your dashboard in round {n}', { gauge: gaugeName('cooperation'), n: TUNING.reveal.cooperation });
+    if (!v.cohesion) out.cohesion = t('ui.fx.joinsRound', '{gauge}: joins your dashboard in round {n}', { gauge: gaugeName('cohesion'), n: TUNING.reveal.cohesion });
+    if (!v.badge) out.europeAi = t('ui.fx.joinsBadge', '{badge}: joins your dashboard when it matters', { badge: t('ui.badge.label', 'Europe’s AI') });
+    return out;
+  }
 
   /** Is this gauge on the dashboard yet? */
   private gaugeOn(k: GaugeKey): boolean {

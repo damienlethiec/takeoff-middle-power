@@ -105,6 +105,27 @@ export function faceWords(f: Face): string {
   return when === 'accord' ? t('ui.fx.withAccord', 'With an accord: {fx}', { fx: base }) : when === 'level2' ? t('ui.fx.atLevel2', 'From level 2: {fx}', { fx: base }) : base;
 }
 
+/**
+ * A first game's progressive dashboard: the parts not on it yet, each with the sentence that says when it joins
+ * ("Social cohesion: joins your dashboard in round 3"). An effect on one of them still applies (the gauge exists from
+ * round 1); its icon shows dimmed with a dashed outline, and the sentence joins its words, tooltip and Details.
+ */
+export type Hidden = Partial<Record<'cooperation' | 'cohesion' | 'europeAi', string>>;
+
+/** The sentence saying when the part an effect moves joins the dashboard, if it is not on it yet. */
+export function joinOf(f: Face, hidden?: Hidden): string | undefined {
+  if (!hidden) return undefined;
+  if (f.kind === 'move' && (f.gauge === 'cooperation' || f.gauge === 'cohesion')) return hidden[f.gauge];
+  if (f.kind === 'europeAi') return hidden.europeAi;
+  return undefined;
+}
+
+/** An effect's words, with when its gauge joins the dashboard (first game). */
+const wordsWith = (f: Face, hidden?: Hidden) => {
+  const join = joinOf(f, hidden);
+  return join ? t('ui.fx.withJoin', '{fx} ({join})', { fx: faceWords(f), join }) : faceWords(f);
+};
+
 /** Whether an effect is good news for Europe (green, with ↑ / + / a shield) or bad (red, with ↓ / − / a warning). */
 const tone = (f: Face) =>
   f.kind === 'move' ? (f.size > 0 ? 'good' : 'bad') : f.kind === 'influence' ? (f.n > 0 ? 'good' : 'bad') : f.kind === 'europeAi' ? (f.to === 'Open' ? 'good' : 'bad') : f.kind === 'risk' ? 'bad' : f.kind === 'reveal' ? 'flat' : 'good';
@@ -133,7 +154,7 @@ function faceVisual(f: Face): string {
 /** A card's effects as a row of icons; effects that come only with an accord (or from level 2) share one dashed group
  *  behind its mark. `words`: with each one's sentence for screen readers and as a tooltip (off where the sentence is
  *  written out beside it, in Details). */
-export function faceHtml(list: Face[], words = true): string {
+export function faceHtml(list: Face[], words = true, hidden?: Hidden): string {
   const groups: Face[][] = [];
   for (const f of list) {
     const when = 'when' in f ? f.when : undefined;
@@ -145,10 +166,17 @@ export function faceHtml(list: Face[], words = true): string {
   return groups
     .map((g) => {
       const when = 'when' in g[0] ? g[0].when : undefined;
-      const said = g.length === 1 ? faceWords(g[0]) : (when === 'accord' ? t('ui.fx.withAccord', 'With an accord: {fx}', { fx: g.map((f) => faceWords({ ...f, when: undefined } as Face)).join('; ') }) : t('ui.fx.atLevel2', 'From level 2: {fx}', { fx: g.map((f) => faceWords({ ...f, when: undefined } as Face)).join('; ') }));
+      const said =
+        g.length === 1
+          ? wordsWith(g[0], hidden)
+          : when === 'accord'
+            ? t('ui.fx.withAccord', 'With an accord: {fx}', { fx: g.map((f) => wordsWith({ ...f, when: undefined } as Face, hidden)).join('; ') })
+            : t('ui.fx.atLevel2', 'From level 2: {fx}', { fx: g.map((f) => wordsWith({ ...f, when: undefined } as Face, hidden)).join('; ') });
       const mark = when === 'accord' ? `<span class="fxi-when">${GICON.accord}</span>` : when === 'level2' ? `<span class="fxi-when lv">${esc(t('ui.fx.lv2', 'L2'))}</span>` : '';
-      const inner = g.length === 1 ? faceVisual(g[0]) : g.map((f) => `<span class="fxs ${tone(f)}">${faceVisual(f)}</span>`).join('');
-      const cls = g.length === 1 ? tone(g[0]) : 'grp';
+      // a gauge not on the dashboard yet: dimmed, with a dashed outline (never colour alone; the words say when it joins)
+      const hid = (f: Face) => (joinOf(f, hidden) ? ' hid' : '');
+      const inner = g.length === 1 ? faceVisual(g[0]) : g.map((f) => `<span class="fxs ${tone(f)}${hid(f)}">${faceVisual(f)}</span>`).join('');
+      const cls = g.length === 1 ? `${tone(g[0])}${hid(g[0])}` : 'grp';
       return `<span class="fxi ${cls}${when ? ' later' : ''}"${words ? ` title="${esc(said)}"` : ''}><span class="fxi-in" aria-hidden="true">${mark}${inner}</span>${words ? `<span class="sr-only">${esc(said)}</span>` : ''}</span>`;
     })
     .join('');

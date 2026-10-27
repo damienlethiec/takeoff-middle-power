@@ -1688,3 +1688,12 @@ kbd { opacity: .75; }
 .modal-x { flex: none; width: 40px; height: 40px; margin: -12px -14px 0 0; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--edge); background: var(--deck); color: var(--ink); font-size: 24px; line-height: 1; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); }
 .modal-x:hover { border-color: var(--ink); }
 .modal-x-bar + * { padding-right: 36px; }
+
+/* A first game: an effect on a gauge not on the dashboard yet. Dimmed, with a dashed outline (not colour alone);
+   its words say when the gauge joins (tooltip, screen readers, Details)
+   (greyed with the muted text colour rather than faded, so its text keeps AA contrast) */
+.fxi.hid, .chip.hid { color: var(--mute); background: transparent; border: 1px dashed var(--mute); }
+.fxi.hid .fxi-v, .chip.hid span { color: var(--mute); }
+.fxs.hid { color: var(--mute); outline: 1px dashed var(--mute); outline-offset: 1px; border-radius: 4px; }
+.cd-join { display: block; color: var(--mute); font-size: 13px; }
+.coach-extra { margin-top: 6px; }

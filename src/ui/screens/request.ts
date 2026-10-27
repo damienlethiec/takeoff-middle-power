@@ -10,7 +10,10 @@
 import type { AnswerView, RequestOutcome, RequestView, Side } from '../../engine/types';
 import { announce, reducedMotion, tryFocus } from '../a11y';
 import { t, tc, th, tr } from '../../i18n';
+import { GAUGE_LABEL } from '../../data/copy';
+import type { Chip } from '../../engine/types';
 import { chips, esc, kbd, link } from '../format';
+import type { Hidden } from '../fx';
 import { glossed } from '../glossary';
 import { openModal, wait } from '../modal';
 import { isFriend, portrait } from '../portraits';
@@ -21,9 +24,18 @@ const noChange = () => t('ui.request.noChange', 'No visible change');
 const charName = (v: RequestView) => tc(`character.${v.character.id}.name`, v.character.name);
 const charRole = (v: RequestView) => tc(`character.${v.character.id}.role`, v.character.role);
 
+/** A first game: when the gauge an answer's chip moves joins the dashboard, if it is not on it yet. */
+function joinOfChip(c: Chip, hidden?: Hidden): string | undefined {
+  if (!hidden) return undefined;
+  const key =
+    c.move?.key ?? (c.text.startsWith(GAUGE_LABEL.cooperation) ? 'cooperation' : c.text.startsWith(GAUGE_LABEL.cohesion) ? 'cohesion' : c.text.startsWith('Europe’s AI') ? 'europeAi' : undefined);
+  return key === 'cooperation' || key === 'cohesion' || key === 'europeAi' ? hidden[key] : undefined;
+}
+
 /** An answer's effects in words, for its accessible name and the announcement when the player looks at it. */
-function answerWords(a: AnswerView): string {
-  const parts = [tr(a.words)];
+function answerWords(a: AnswerView, hidden?: Hidden): string {
+  const joins = [...new Set(a.chips.map((c) => joinOfChip(c, hidden)).filter((x): x is string => !!x))];
+  const parts = [tr(a.words), ...joins];
   if (a.world) parts.push(t('ui.request.worldWouldTurn', 'If takeoff happened now, the world would be: {world}', { world: tr(a.world) }));
   if (a.why) parts.push(t('ui.request.cost', 'Cost: {why}', { why: tr(a.why) }));
   if (a.tag === 'safety') parts.push(safetyTag());
@@ -31,14 +43,14 @@ function answerWords(a: AnswerView): string {
   return parts.join('. ');
 }
 
-function answerButton(a: AnswerView): string {
+function answerButton(a: AnswerView, hidden?: Hidden): string {
   const arrow = a.side === 'left' ? '←' : '→';
   const tag = a.tag === 'safety' ? `<span class="ans-tag safety">${esc(safetyTag())}</span>` : a.tag === 'claim' ? `<span class="ans-tag claim">${esc(claimTag())}</span>` : '';
   // named by its content: the label, then the effects in words (the chips are hidden from screen readers, which hear the words)
-  const words = `. ${answerWords(a)}`;
+  const words = `. ${answerWords(a, hidden)}`;
   return `<button type="button" class="ans ans-${a.side}" data-side="${a.side}" aria-keyshortcuts="Arrow${a.side === 'left' ? 'Left' : 'Right'}">
     <span class="ans-top"><kbd aria-hidden="true">${arrow}</kbd><span class="ans-label">${esc(tr(a.label))}</span><span class="sr-only">${esc(words)}</span></span>
-    <span class="ans-chips" aria-hidden="true">${a.chips.length ? chips(a.chips, false) : `<span class="chip flat">${esc(noChange())}</span>`}</span>
+    <span class="ans-chips" aria-hidden="true">${a.chips.length ? chips(a.chips, false, (c) => joinOfChip(c, hidden)) : `<span class="chip flat">${esc(noChange())}</span>`}</span>
     ${a.world ? `<span class="ans-world" aria-hidden="true">${esc(t('ui.request.ifTipped', 'If takeoff happened now: {world}', { world: tr(a.world) }))}</span>` : ''}
     ${a.why ? `<span class="ans-why" aria-hidden="true">${th('ui.request.cost', 'Cost: {why}', { why: `<span class="ans-why-t">${esc(tr(a.why))}</span>` })}</span>` : ''}
     ${tag ? `<span aria-hidden="true">${tag}</span>` : ''}
@@ -54,7 +66,7 @@ const KIND = (v: RequestView) =>
         ? t('ui.request.kindOpportunity', 'Opportunity')
         : '';
 
-function requestHtml(v: RequestView, date: string): string {
+function requestHtml(v: RequestView, date: string, hidden?: Hidden): string {
   const kind = KIND(v);
   // glossary terms: marked once on the card, in the request first
   const seen = new Set<string>();
@@ -73,7 +85,7 @@ function requestHtml(v: RequestView, date: string): string {
     <div class="req-who">${portrait(v.character.id, 'worried')}<div><h2 id="req-name" tabindex="-1" data-autofocus>${esc(charName(v))}</h2><p class="req-role">${esc(charRole(v))}</p></div></div>
     <p class="req-text" id="req-text">${esc(t('ui.quote.open', '“'))}${glossed(v.text, seen)}${esc(t('ui.quote.close', '”'))}</p>
     <p class="req-free">${esc(t('ui.request.free', 'Free of Influence: the cost is in the answer.'))}</p>
-    <div class="req-answers" role="group" aria-label="${esc(t('ui.request.yourAnswer', 'Your answer'))}">${answerButton(v.left)}${answerButton(v.right)}</div>
+    <div class="req-answers" role="group" aria-label="${esc(t('ui.request.yourAnswer', 'Your answer'))}">${answerButton(v.left, hidden)}${answerButton(v.right, hidden)}</div>
     <details class="learn"><summary>${esc(t('ui.request.learnMore', 'Learn more'))}</summary><p>${glossed(v.learnMore.text, seen)}</p><p class="src">${esc(t('ui.fact.source', 'Source:'))} ${link(v.learnMore.source)}</p><p class="basis">${esc(basis)} <span lang="en">${esc(v.basis.ref)}</span>.</p></details>
     <p class="req-hint" aria-hidden="true">${th('ui.request.hint', 'Click an answer, swipe the card, or press {left} {right} (once to look, twice to answer).', { left: '<kbd>←</kbd>', right: '<kbd>→</kbd>' })}</p>
   </div>`;
@@ -145,8 +157,8 @@ function enableSwipe(card: HTMLElement, onLook: (side: Side | null) => void, onA
 
 /** Show a request; resolves once the player has answered and read the reaction. */
 /** `onOpen` runs once the card is on screen (the tutorial's tip about requests, stacked over it and anchored to it). */
-export async function showRequest(v: RequestView, date: string, answer: (side: Side) => RequestOutcome, onOpen?: () => Promise<void>): Promise<Side> {
-  const m = openModal(requestHtml(v, date), { cls: 'request', overlayCls: 'req-ov', describedBy: '#req-text', keep: true });
+export async function showRequest(v: RequestView, date: string, answer: (side: Side) => RequestOutcome, onOpen?: () => Promise<void>, hidden?: Hidden): Promise<Side> {
+  const m = openModal(requestHtml(v, date, hidden), { cls: 'request', overlayCls: 'req-ov', describedBy: '#req-text', keep: true });
   const card = () => m.el.querySelector<HTMLElement>('.req-card')!;
   let chosen: Side | null = null;
   let done!: (s: Side) => void;

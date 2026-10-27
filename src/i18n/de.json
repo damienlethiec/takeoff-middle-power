@@ -1880,6 +1880,7 @@
   "ui.threats.none": "Noch keine Bedrohung auf der Karte.",
   "ui.threats.notPrepared": "Nicht vorbereitet · schützt: {names}",
   "ui.threats.prepared": "Vorbereitet",
+  "ui.tip.alreadyMoved": "Deine bisherigen Entscheidungen haben sie schon bewegt.",
   "ui.tip.dateline": "Tipp",
   "ui.tip.off": "Tipps ausschalten",
   "ui.tip.ok": "Verstanden",
@@ -2052,6 +2053,8 @@
   "ui.fx.influenceEach": "Einfluss {n} pro Runde",
   "ui.fx.influenceNext": "Einfluss {n} nächste Runde",
   "ui.fx.influenceRounds": "Einfluss {n} für {rounds} Runden",
+  "ui.fx.joinsBadge": "{badge}: wird angezeigt, sobald sie zählt",
+  "ui.fx.joinsRound": "{gauge}: wird ab Runde {n} angezeigt",
   "ui.fx.lv2": "S2",
   "ui.fx.move": "{gauge}: {move}",
   "ui.fx.protectsPartly": "Schützt teilweise vor: {threat}",
@@ -2071,6 +2074,7 @@
   "ui.fx.truth": "Echte KI-Sicherheit: rauf (nicht angezeigt)",
   "ui.fx.verified": "{gauge}, belegter Teil: {move}",
   "ui.fx.withAccord": "Mit Abkommen: {fx}",
+  "ui.fx.withJoin": "{fx} ({join})",
   "help.rules.8": "Zum Entscheiden klickst du die gewünschten Karten an, so viele, wie dein Einfluss deckt: Ihre Wirkung erscheint auf den Anzeigen und in der Zeile darunter. Nichts passiert, bevor du bestätigst; „Keine Karte spielen“ spart deinen Einfluss.",
   "ui.common.copyright": "© 2026 {authors}. Alle Rechte vorbehalten."
 }

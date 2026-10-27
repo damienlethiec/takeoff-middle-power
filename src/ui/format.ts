@@ -24,9 +24,14 @@ export function factBox(f: Fact, label = t('ui.fact.real', 'Already real')): str
 }
 
 /** Green chips for what goes up, red for what goes down; the words say it too (never colour alone). */
-export function chips(list: Chip[], hiddenLabel = true): string {
+/** `later`: for a chip whose gauge is not on the dashboard yet (a first game), when it joins: the chip shows dimmed
+ *  with a dashed outline and the sentence as its tooltip (the caller says it to screen readers). */
+export function chips(list: Chip[], hiddenLabel = true, later?: (c: Chip) => string | undefined): string {
   return list
-    .map((c) => `<span class="chip ${c.tone === 'up' ? 'good' : 'bad'}">${hiddenLabel ? `<span class="sr-only">${esc(c.tone === 'up' ? t('ui.chip.plus', 'Plus:') : t('ui.chip.minus', 'Minus:'))} </span>` : ''}${esc(tr(c.text))}</span>`)
+    .map((c) => {
+      const join = later?.(c);
+      return `<span class="chip ${c.tone === 'up' ? 'good' : 'bad'}${join ? ' hid' : ''}"${join ? ` title="${esc(join)}"` : ''}>${hiddenLabel ? `<span class="sr-only">${esc(c.tone === 'up' ? t('ui.chip.plus', 'Plus:') : t('ui.chip.minus', 'Minus:'))} </span>` : ''}${esc(tr(c.text))}</span>`;
+    })
     .join('');
 }
 

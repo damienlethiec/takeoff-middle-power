@@ -43,3 +43,27 @@ describe('the ASML lever in the hand', () => {
     host.remove();
   });
 });
+
+describe('a first game: effects on a gauge not on the dashboard yet', () => {
+  it('show dimmed, say when the gauge joins (tooltip, screen readers, Details) and still apply', async () => {
+    const s = fresh(1);
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const hidden = { cohesion: 'Social cohesion: joins your dashboard in round 3' };
+    const done = showDecision(engine, s, 'H1 2027', { host, onPreview: () => {}, hidden: () => hidden });
+    const talks = host.querySelector<HTMLButtonElement>('.pcard[data-card="talks"]')!;
+    const dim = [...talks.querySelectorAll<HTMLElement>('.fxi.hid')];
+    expect(dim).toHaveLength(1);
+    expect(dim[0].getAttribute('title')).toBe('Social cohesion: down a little (Social cohesion: joins your dashboard in round 3)');
+    expect(dim[0].querySelector('.sr-only')!.textContent).toContain('joins your dashboard in round 3');
+    // US–China cooperation is on the dashboard: its effect shows as usual
+    expect(talks.querySelectorAll('.fxi:not(.hid)').length).toBeGreaterThan(0);
+    expect(talks.textContent).not.toMatch(/joins your dashboard.*US–China/);
+    // the effect still applies: confirming plays the card as usual
+    talks.click();
+    await Promise.resolve();
+    host.querySelector<HTMLButtonElement>('#dec-ok')!.click();
+    expect(await done).toEqual({ kind: 'play', picks: [{ id: 'talks' }] });
+    host.remove();
+  });
+});

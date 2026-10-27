@@ -16,7 +16,7 @@ import { impactWords } from '../../data/effects';
 import { onLangChange, t, tc, tn, tr } from '../../i18n';
 import { announce, reducedMotion } from '../a11y';
 import { ICON, chips, esc, factBox, kbd, provTag } from '../format';
-import { GICON, faceHtml, faceWords } from '../fx';
+import { GICON, faceHtml, faceWords, joinOf, type Hidden } from '../fx';
 import { glossed } from '../glossary';
 import { modalOpen, openModal, wait } from '../modal';
 
@@ -29,6 +29,8 @@ export interface DecisionView {
   onPreview(pv: PreviewView | null): void;
   /** Runs once the panel is up (the tutorial's tips about Influence and the cards). */
   onOpen?: () => Promise<void>;
+  /** A first game: the gauges not on the dashboard yet, and when they join (their effects show dimmed). */
+  hidden?: () => Hidden;
 }
 
 /**
@@ -75,7 +77,7 @@ const oddsFull = (c: CardView) =>
     ? `<span class="pc-odds o-${oddsClass(c)}"><b>${esc(tr(c.odds.word))}</b>${c.odds.why.length ? `<span class="pc-odds-why">: ${esc(c.odds.why.map(tr).join(t('ui.list.separator', ', ')))}</span>` : ''}</span>`
     : '';
 
-function cardHtml(x: Tile, o: { selected: boolean; recommended: boolean; fresh: boolean; lever: Tile | null }): string {
+function cardHtml(x: Tile, o: { selected: boolean; recommended: boolean; fresh: boolean; lever: Tile | null; hidden?: Hidden }): string {
   const c = x.c;
   const locked = (!c.playable || !!o.lever) && !o.selected;
   const id = esc(keyOf(x));
@@ -95,7 +97,7 @@ function cardHtml(x: Tile, o: { selected: boolean; recommended: boolean; fresh: 
       <span class="pc-top"><span class="pc-check" aria-hidden="true">${ICON.check}</span><span class="pc-name">${esc(titleOf(x))}</span><span class="pc-cost num"><span class="sr-only">${esc(t('ui.card.costs', 'costs'))} </span>${ICON.influence}${c.cost}<span class="sr-only"> ${esc(t('ui.influence.name', 'Influence'))}.</span></span></span>
       <span class="pc-short">${esc(short(x))}</span>
       ${locked && o.lever ? `<span class="pc-lever" id="${rid}">${esc(reason)}</span>` : ''}
-      <span class="pc-fx">${faceHtml(faceOf(c, x.opt?.id))}</span>
+      <span class="pc-fx">${faceHtml(faceOf(c, x.opt?.id), true, o.hidden)}</span>
       <span class="pc-foot">${c.odds ? `<span class="pc-odds o-${oddsClass(c)}" data-coach="odds"><b>${esc(tr(c.odds.word))}</b></span>` : ''}${tags}${o.selected ? `<span class="sr-only">${esc(t('ui.card.selected', 'Selected'))}</span>` : ''}</span>
     </button>
     ${locked && reason && !o.lever ? `<span class="sr-only" id="${rid}">${esc(reason)}</span>` : ''}
@@ -109,7 +111,7 @@ const SAID_BY_ICONS = /^(US–China cooperation:|Social cohesion:|AI safety:|AI 
 const extra = (c: CardView) => [...c.ups, ...c.downs].filter((x) => !SAID_BY_ICONS.test(x.text));
 
 /** The full card in a dialog centred in the window (a bottom sheet on a phone). */
-async function showDetails(x: Tile, o: { selected: boolean; lever: Tile | null }): Promise<void> {
+async function showDetails(x: Tile, o: { selected: boolean; lever: Tile | null; hidden?: Hidden }): Promise<void> {
   const c = x.c;
   const level = c.level ? ` · ${t('ui.card.levelLower', 'level {level} of {count}', { level: c.level, count: c.levels!.length })}` : '';
   const option = x.opt?.id;
@@ -121,7 +123,10 @@ async function showDetails(x: Tile, o: { selected: boolean; lever: Tile | null }
      <p class="proposal">${glossed(x.opt?.proposal ?? c.proposal)}</p>
      <h3>${esc(t('ui.card.effects', 'What it does'))}</h3>
      <ul class="cd-fx">${faceOf(c, option)
-       .map((f) => `<li>${faceHtml([f], false)}<span>${esc(faceWords(f))}</span></li>`)
+       .map((f) => {
+         const join = joinOf(f, o.hidden);
+         return `<li>${faceHtml([f], false, o.hidden)}<span>${esc(faceWords(f))}${join ? `<span class="cd-join">${esc(join)}</span>` : ''}</span></li>`;
+       })
        .join('')}</ul>
      ${extra(c).length ? `<p class="pc-chips">${chips(extra(c))}</p>` : ''}
      ${c.why ? `<p class="cd-why"><b>${esc(t('ui.card.whyLabel', 'Why the cost:'))}</b> ${esc(tr(c.why))}</p>` : ''}
@@ -253,7 +258,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     const { after, cards } = views();
     const card = (c: CardView) =>
       tilesOf(c)
-        .map((x) => cardHtml(x, { selected: picks.some((p) => p.id === c.id && (!x.opt || p.option === x.opt.id)), recommended: isRec(x), fresh: fresh(c), lever: leverTakenBy(x, picks) }))
+        .map((x) => cardHtml(x, { selected: picks.some((p) => p.id === c.id && (!x.opt || p.option === x.opt.id)), recommended: isRec(x), fresh: fresh(c), lever: leverTakenBy(x, picks), hidden: view.hidden?.() }))
         .join('');
     const now = cards.filter((c) => !later.has(c.id));
     const held = cards.filter((c) => later.has(c.id));
@@ -326,7 +331,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     if (det) {
       const key = det.dataset.details!;
       const x = tileOf(key);
-      await showDetails(x, { selected: picks.some((p) => p.id === x.c.id && (!x.opt || p.option === x.opt.id)), lever: leverTakenBy(x, picks) });
+      await showDetails(x, { selected: picks.some((p) => p.id === x.c.id && (!x.opt || p.option === x.opt.id)), lever: leverTakenBy(x, picks), hidden: view.hidden?.() });
       render(`[data-details="${CSS.escape(key)}"]`);
       return;
     }

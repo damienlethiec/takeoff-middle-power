@@ -42,6 +42,8 @@ export class Coach {
   finished: boolean;
   /** Called when the tips are switched on or off (the dashboard shows in full once they are off). */
   onChange?: () => void;
+  /** One more line for a tip, if any (a gauge joining the dashboard that the player's decisions already moved). */
+  extraFor?: (id: TipId) => string | undefined;
 
   constructor(off = false) {
     let stored: string | null = null;
@@ -123,10 +125,11 @@ export class Coach {
     this.log.push({ round, title: tip.title, text: tip.text });
     if (!this.enabled) return;
     for (const el of els) el.classList.add('coach-target');
+    const extra = this.extraFor?.(id);
     const m = openModal(
       `<div class="dateline">${esc(t('ui.tip.dateline', 'Tip'))}</div>
        <h2>${esc(tc(`tip.${id}.title`, tip.title))}</h2>
-       <div class="coach-text">${tipHtml(tc(`tip.${id}.text`, tip.text))}</div>
+       <div class="coach-text">${tipHtml(tc(`tip.${id}.text`, tip.text))}${extra ? `<p class="coach-extra"><b>${esc(extra)}</b></p>` : ''}</div>
        <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.tip.ok', 'Got it'))} ${kbd('enter')}</button><button type="button" class="btn-link" data-action="off">${esc(t('ui.tip.off', 'Turn off tips'))}</button></div>`,
       // over a dialog already open (the decision screen), the tip stacks on it instead of closing it
       { cls: 'coach', overlayCls: 'coach-ov', describedBy: '.coach-text', stacked: modalOpen() },

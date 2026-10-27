@@ -657,6 +657,45 @@ test.describe('key interactions', () => {
     expect(s.errors).toEqual([]);
   });
 
+  test('a first game: effects on gauges not yet shown are dimmed and say when they join; the gauge’s tip says earlier decisions moved it', async ({ page }) => {
+    const s = await boot(page, '?skipintro&seed=4');
+    await freeze(page);
+    const tipOpen = () => page.locator('.overlay.coach-ov:not(.leaving)');
+    let cohesionTip = '';
+    const step = async (play?: RegExp) => {
+      if (await tipOpen().count()) {
+        const text = (await tipOpen().textContent()) ?? '';
+        if (/Social cohesion/.test(await tipOpen().getByRole('heading').textContent() ?? '')) cohesionTip = text;
+        await page.keyboard.press('Enter');
+      } else if (await dialog(page).count()) await closeDialog(page);
+      else if (await decisions(page).count()) {
+        const dk = decisions(page);
+        const card = play ? dk.locator('.pcard', { hasText: play }) : null;
+        if (card && (await card.count())) {
+          await card.click();
+          await dk.getByRole('button', { name: /^Confirm 1 card/ }).click();
+        } else await dk.getByRole('button', { name: 'Play no card' }).click();
+      } else if (await dockButton(page, /^Make my/).count()) await dockButton(page, /^Make my/).click();
+      await advance(page, 300, false);
+    };
+    // round 1: the inspection card's accord would move US–China cooperation, not on the dashboard until round 2
+    for (let i = 0; i < 200 && !(await decisions(page).count()); i++) await step();
+    const coop = decisions(page).locator('.hid').first();
+    await expect(coop).toHaveCount(1);
+    await expect(decisions(page).locator('.fxi[title*="US–China cooperation: joins your dashboard in round 2"]')).toHaveCount(1);
+    await expect(decisions(page).locator('.sr-only', { hasText: 'US–China cooperation: joins your dashboard in round 2' })).toHaveCount(1);
+    // round 2: the talks move Social cohesion, which joins in round 3; play them
+    for (let i = 0; i < 300 && (await page.locator('#date').textContent()) !== 'H2 2027'; i++) await step();
+    for (let i = 0; i < 200 && !(await decisions(page).count()); i++) await step();
+    await expect(decisions(page).locator('.fxi[title*="Social cohesion: joins your dashboard in round 3"]').first()).toBeAttached();
+    await expect(decisions(page).locator('.fxi[title*="US–China cooperation: joins"]')).toHaveCount(0);
+    for (let i = 0; i < 20 && (await decisions(page).count()); i++) await step(/^Host US–China talks/);
+    // round 3: Social cohesion joins, and its tip says the player's decisions already moved it
+    for (let i = 0; i < 300 && !cohesionTip; i++) await step();
+    expect(cohesionTip).toContain('Your earlier decisions already moved it.');
+    expect(s.errors).toEqual([]);
+  });
+
   test('the tutorial shows coach marks once, and can be turned off', async ({ page }) => {
     const s = await boot(page, '?skipintro&seed=4');
     await advance(page, 400);
