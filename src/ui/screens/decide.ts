@@ -31,7 +31,34 @@ export interface DecisionView {
   onOpen?: () => Promise<void>;
 }
 
-const short = (c: CardView) => tc(`card.${c.id}.short`, CARD_BY_ID[c.id].short);
+/**
+ * What the hand shows: one card per card, except a card with two asks on one lever (ASML), which shows as two cards
+ * ("Trade chip machines for safety tests", "… for AI access"). They share the engine's card (cost, chance, uses,
+ * blowback): selecting one locks the other for the round, and the locked one says why in words.
+ */
+interface Tile {
+  c: CardView;
+  opt?: CardView['options'][number];
+}
+const tilesOf = (c: CardView): Tile[] => (c.options.length ? c.options.map((opt) => ({ c, opt })) : [{ c }]);
+/** The tile's key: the card's id, or "id:option" (data-card, data-details). */
+const keyOf = (x: Tile) => (x.opt ? `${x.c.id}:${x.opt.id}` : x.c.id);
+const parseKey = (k: string) => {
+  const [id, option] = k.split(':');
+  return { id, option };
+};
+/** A safe element id for a tile ("asml-safety"). */
+const domId = (x: Tile) => keyOf(x).replace(':', '-');
+const titleOf = (x: Tile) => (x.opt ? tc(`card.${x.c.id}.options.${x.opt.id}.name`, x.opt.name) : tr(x.c.title));
+const short = (x: Tile) => (x.opt ? tc(`card.${x.c.id}.options.${x.opt.id}.short`, x.opt.short) : tc(`card.${x.c.id}.short`, CARD_BY_ID[x.c.id].short));
+/** The card of the same lever already selected this round, if any (the other ask). */
+const leverTakenBy = (x: Tile, picks: Pick[]): Tile | null => {
+  if (!x.opt) return null;
+  const p = picks.find((q) => q.id === x.c.id && q.option !== x.opt!.id);
+  const o = p && x.c.options.find((y) => y.id === p.option);
+  return o ? { c: x.c, opt: o } : null;
+};
+const leverLine = (by: Tile) => t('ui.card.sameLever', 'Uses the same ASML lever as “{name}”: one of the two a round.', { name: titleOf(by) });
 const tooExpensive = (c: CardView) => !!c.reason && /^Not enough Influence/.test(c.reason);
 
 /** The face's effects: the chosen option's first (a card with options), then the card's own. */
@@ -48,10 +75,13 @@ const oddsFull = (c: CardView) =>
     ? `<span class="pc-odds o-${oddsClass(c)}"><b>${esc(tr(c.odds.word))}</b>${c.odds.why.length ? `<span class="pc-odds-why">: ${esc(c.odds.why.map(tr).join(t('ui.list.separator', ', ')))}</span>` : ''}</span>`
     : '';
 
-function cardHtml(c: CardView, o: { selected: boolean; recommended: boolean; option?: string; fresh: boolean }): string {
-  const locked = !c.playable && !o.selected;
-  const id = esc(c.id);
-  const lockWord = locked ? (tooExpensive(c) ? t('ui.card.tooExpensive', 'Too expensive') : t('ui.card.notNow', 'Not now')) : '';
+function cardHtml(x: Tile, o: { selected: boolean; recommended: boolean; fresh: boolean; lever: Tile | null }): string {
+  const c = x.c;
+  const locked = (!c.playable || !!o.lever) && !o.selected;
+  const id = esc(keyOf(x));
+  const rid = `pc-${esc(domId(x))}-r`;
+  const reason = o.lever ? leverLine(o.lever) : c.reason ? tr(c.reason) : '';
+  const lockWord = locked ? (o.lever ? t('ui.card.sameLeverTag', 'Same lever') : tooExpensive(c) ? t('ui.card.tooExpensive', 'Too expensive') : t('ui.card.notNow', 'Not now')) : '';
   const tags = [
     o.recommended ? `<span class="tag rec">${esc(t('ui.card.recommended', 'Recommended'))}</span>` : '',
     o.fresh ? `<span class="tag new">${esc(t('ui.card.new', 'New'))}</span>` : '',
@@ -61,14 +91,15 @@ function cardHtml(c: CardView, o: { selected: boolean; recommended: boolean; opt
   // an accord on offer (the tutorial's tip points at it the first time)
   const accord = !locked && ((c.id === 'inspections' && (c.level ?? 1) >= 2) || c.id === 'licensing_treaty');
   return `<li class="pc-wrap${o.selected ? ' sel' : ''}${locked ? ' locked' : ''}${c.opportunity ? ' opp' : ''}${o.recommended ? ' rec' : ''}"${accord ? ' data-coach="accord"' : ''}>
-    <button type="button" class="pcard" data-card="${id}" aria-pressed="${o.selected}"${locked && c.reason ? ` aria-describedby="pc-${id}-r"` : ''}>
-      <span class="pc-top"><span class="pc-check" aria-hidden="true">${ICON.check}</span><span class="pc-name">${esc(tr(c.title))}</span><span class="pc-cost num"><span class="sr-only">${esc(t('ui.card.costs', 'costs'))} </span>${ICON.influence}${c.cost}<span class="sr-only"> ${esc(t('ui.influence.name', 'Influence'))}.</span></span></span>
-      <span class="pc-short">${esc(short(c))}</span>
-      <span class="pc-fx">${faceHtml(faceOf(c, o.option))}</span>
+    <button type="button" class="pcard" data-card="${id}" aria-pressed="${o.selected}"${locked && reason ? ` aria-describedby="${rid}"` : ''}>
+      <span class="pc-top"><span class="pc-check" aria-hidden="true">${ICON.check}</span><span class="pc-name">${esc(titleOf(x))}</span><span class="pc-cost num"><span class="sr-only">${esc(t('ui.card.costs', 'costs'))} </span>${ICON.influence}${c.cost}<span class="sr-only"> ${esc(t('ui.influence.name', 'Influence'))}.</span></span></span>
+      <span class="pc-short">${esc(short(x))}</span>
+      ${locked && o.lever ? `<span class="pc-lever" id="${rid}">${esc(reason)}</span>` : ''}
+      <span class="pc-fx">${faceHtml(faceOf(c, x.opt?.id))}</span>
       <span class="pc-foot">${c.odds ? `<span class="pc-odds o-${oddsClass(c)}" data-coach="odds"><b>${esc(tr(c.odds.word))}</b></span>` : ''}${tags}${o.selected ? `<span class="sr-only">${esc(t('ui.card.selected', 'Selected'))}</span>` : ''}</span>
     </button>
-    ${locked && c.reason ? `<span class="sr-only" id="pc-${id}-r">${esc(tr(c.reason))}</span>` : ''}
-    <button type="button" class="pc-details" data-details="${id}" aria-label="${esc(t('ui.card.detailsOf', 'Details: {name}', { name: tr(c.title) }))}">${GICON.info}<span>${esc(t('ui.card.details', 'Details'))}</span></button>
+    ${locked && reason && !o.lever ? `<span class="sr-only" id="${rid}">${esc(reason)}</span>` : ''}
+    <button type="button" class="pc-details" data-details="${id}" aria-label="${esc(t('ui.card.detailsOf', 'Details: {name}', { name: titleOf(x) }))}">${GICON.info}<span>${esc(t('ui.card.details', 'Details'))}</span></button>
   </li>`;
 }
 
@@ -77,41 +108,35 @@ function cardHtml(c: CardView, o: { selected: boolean; recommended: boolean; opt
 const SAID_BY_ICONS = /^(US–China cooperation:|Social cohesion:|AI safety:|AI safety shown:|Real safety up|Protects against|Influence [+−]|Europe’s AI → (Open|Dependent)$|Shows the true|Accord: (US–China|real safety|Influence)|Level 2: Influence|AI theft: cut|Ransomware threat grows|Softens job shocks|Washington retaliates)/;
 const extra = (c: CardView) => [...c.ups, ...c.downs].filter((x) => !SAID_BY_ICONS.test(x.text));
 
-/** The full card in a dialog centred in the window (a bottom sheet on a phone). `onOption` applies a choice of what to ask for. */
-async function showDetails(c: CardView, o: { selected: boolean; option?: string; onOption: (id: string) => void }): Promise<void> {
+/** The full card in a dialog centred in the window (a bottom sheet on a phone). */
+async function showDetails(x: Tile, o: { selected: boolean; lever: Tile | null }): Promise<void> {
+  const c = x.c;
   const level = c.level ? ` · ${t('ui.card.levelLower', 'level {level} of {count}', { level: c.level, count: c.levels!.length })}` : '';
-  const option = o.option ?? c.options[0]?.id;
+  const option = x.opt?.id;
+  const title = titleOf(x);
   const m = openModal(
     `<div class="cd-head"><div class="dateline">${esc(t('ui.card.dateline', 'Card · {cost} Influence', { cost: c.cost }))}${esc(level)}</div>${provTag(c.basis)}</div>
-     <h2>${esc(tr(c.title))}</h2>
+     <h2>${esc(title)}</h2>
      ${c.levels ? `<ol class="levels">${c.levels.map((l, i) => `<li class="${i + 1 === c.level ? 'now' : i + 1 < (c.level ?? 1) ? 'done' : ''}">${esc(tr(l))}${i + 1 === c.level ? `<span class="sr-only"> ${esc(t('ui.card.thisLevel', '(this level)'))}</span>` : i + 1 < (c.level ?? 1) ? `<span class="sr-only"> ${esc(t('ui.card.done', '(done)'))}</span>` : ''}</li>`).join('')}</ol>` : ''}
-     <p class="proposal">${glossed(c.proposal)}</p>
+     <p class="proposal">${glossed(x.opt?.proposal ?? c.proposal)}</p>
      <h3>${esc(t('ui.card.effects', 'What it does'))}</h3>
      <ul class="cd-fx">${faceOf(c, option)
        .map((f) => `<li>${faceHtml([f], false)}<span>${esc(faceWords(f))}</span></li>`)
        .join('')}</ul>
      ${extra(c).length ? `<p class="pc-chips">${chips(extra(c))}</p>` : ''}
      ${c.why ? `<p class="cd-why"><b>${esc(t('ui.card.whyLabel', 'Why the cost:'))}</b> ${esc(tr(c.why))}</p>` : ''}
-     ${
-       c.options.length
-         ? `<fieldset class="opts"><legend>${esc(t('ui.card.askFor', 'What to ask for'))}</legend>${c.options
-             .map((x) => `<label><input type="radio" name="cd-opt" value="${esc(x.id)}" ${option === x.id ? 'checked' : ''}/> ${esc(tr(x.label))} ${chips(x.ups)}</label>`)
-             .join('')}</fieldset>`
-         : ''
-     }
      ${c.odds ? `<p class="pc-odds-p">${oddsFull(c)}. ${esc(t('ui.card.canFail', 'Diplomacy can fail: if it does, the Influence is spent and nothing else happens. You can try again in a later round.'))}</p>` : ''}
-     ${!c.playable && !o.selected && c.reason ? `<p class="bad-text">${GICON.lock} ${esc(tr(c.reason))}</p>` : ''}
+     ${!o.selected && o.lever ? `<p class="bad-text">${GICON.lock} ${esc(leverLine(o.lever))}</p>` : !c.playable && !o.selected && c.reason ? `<p class="bad-text">${GICON.lock} ${esc(tr(c.reason))}</p>` : ''}
      ${c.example ? factBox(c.example, t('ui.card.example', 'Real-world example')) : ''}
      ${c.costLine ? factBox(c.costLine, t('ui.card.realCost', 'What this costs in the real world')) : ''}
      <p class="muted small">${esc(t('ui.basis.basedOn', 'Based on:'))} <span lang="en">${esc(c.basis.ref)}</span>.</p>
      <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.card.back', 'Back to the cards'))} ${kbd('esc')}</button></div>`,
-    { cls: 'info card-details', overlayCls: 'card-ov', label: tr(c.title), describedBy: '.proposal' },
+    { cls: 'info card-details', overlayCls: 'card-ov', label: title, describedBy: '.proposal' },
   );
   // centred in the window (a bottom sheet on a phone); a click outside closes it
   m.overlay.addEventListener('click', (ev) => {
     if (ev.target === m.overlay) m.el.querySelector<HTMLButtonElement>('[data-escape]')?.click();
   });
-  m.el.querySelectorAll<HTMLInputElement>('input[name="cd-opt"]').forEach((r) => r.addEventListener('change', () => r.checked && o.onOption(r.value)));
   await m.result;
 }
 
@@ -142,8 +167,6 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   const adv = e.advisor(s);
   const threats = e.threats(s);
   const picks: Pick[] = [];
-  /** What to ask for, per card with options (kept when the card is removed and selected again). */
-  const optPref: Record<string, string> = {};
   const host = view.host;
   // the order is set once, from the hand as it opens, so cards never move while the player selects: the chief of
   // staff's pick, then what can be played, then what costs too much; cards that wait for something else go last,
@@ -154,7 +177,10 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   let laterOpen = false;
   // "New" marks a card that arrived this round (not the opening hand of round 1)
   const fresh = (c: CardView) => c.isNew && s.round > 1;
-  const recName = adv.recommend ? hand.find((c) => c.id === adv.recommend) : undefined;
+  const recCard = adv.recommend ? hand.find((c) => c.id === adv.recommend) : undefined;
+  const recTile = recCard ? (tilesOf(recCard).find((x) => !x.opt || x.opt.id === adv.option) ?? tilesOf(recCard)[0]) : undefined;
+  const isRec = (x: Tile) => adv.recommend === x.c.id && (!x.opt || x.opt.id === recTile?.opt?.id);
+  const tileCount = hand.reduce((n, c) => n + tilesOf(c).length, 0);
   let handEl!: HTMLElement;
   let notesEl!: HTMLElement;
   let thrEl!: HTMLElement;
@@ -169,7 +195,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
         <div class="dateline">${esc(date)} · ${esc(t('ui.decide.dateline', 'Your decisions'))}</div><h2 id="dk-h" tabindex="-1">${esc(t('ui.decide.title', 'Play your cards'))}</h2>
         <p class="sr-only" id="dk-hint">${esc(t('ui.decide.hint', 'Play as many cards as your Influence allows.'))}</p>
       </header>
-      <details class="dk-adv-m"><summary>${advice}<span>${recName ? `<b>${esc(t('ui.decide.chief', 'Your chief of staff:'))}</b> ${esc(t('ui.decide.recommends', 'recommends {card}', { card: tr(recName.title) }))}` : `<b>${esc(t('ui.decide.adviceTitle', 'Your chief of staff’s advice'))}</b>`}</span></summary><p>${esc(tr(adv.text))}</p></details>
+      <details class="dk-adv-m"><summary>${advice}<span>${recTile ? `<b>${esc(t('ui.decide.chief', 'Your chief of staff:'))}</b> ${esc(t('ui.decide.recommends', 'recommends {card}', { card: titleOf(recTile) }))}` : `<b>${esc(t('ui.decide.adviceTitle', 'Your chief of staff’s advice'))}</b>`}</span></summary><p>${esc(tr(adv.text))}</p></details>
       <div class="hand" role="group" aria-label="${esc(t('ui.decide.cards', 'Your cards'))}" aria-describedby="dk-hint" data-coach="hand"></div>
       <div class="dk-bar">
         <p class="dec-inf" data-coach="dec-influence">${ICON.influence}<span class="inf-v num" id="dec-inf"></span><span class="inf-l">${esc(t('ui.decide.left', 'Influence left'))}</span></p>
@@ -228,16 +254,16 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   /** `moved`: the card just selected or removed, for a brief lift or settle (decorative; none with reduced motion). */
   const render = (refocus?: string, moved?: { id: string; on: boolean }) => {
     const { after, cards } = views();
-    const card = (c: CardView) => {
-      const p = picks.find((x) => x.id === c.id);
-      return cardHtml(c, { selected: !!p, recommended: adv.recommend === c.id, option: p?.option ?? optPref[c.id], fresh: fresh(c) });
-    };
+    const card = (c: CardView) =>
+      tilesOf(c)
+        .map((x) => cardHtml(x, { selected: picks.some((p) => p.id === c.id && (!x.opt || p.option === x.opt.id)), recommended: isRec(x), fresh: fresh(c), lever: leverTakenBy(x, picks) }))
+        .join('');
     const now = cards.filter((c) => !later.has(c.id));
     const held = cards.filter((c) => later.has(c.id));
     handEl.innerHTML = cards.length
       ? `${now.length ? `<ul class="cards">${now.map(card).join('')}</ul>` : ''}${
           held.length
-            ? `<button type="button" class="dk-more" aria-expanded="${laterOpen}" aria-controls="dk-later">${GICON.lock}<span>${esc(t('ui.decide.later', 'Not available yet ({n})', { n: held.length }))}</span><span class="dk-more-c" aria-hidden="true">${laterOpen ? '▴' : '▾'}</span></button><ul class="cards later" id="dk-later"${laterOpen ? '' : ' hidden'}>${held.map(card).join('')}</ul>`
+            ? `<button type="button" class="dk-more" aria-expanded="${laterOpen}" aria-controls="dk-later">${GICON.lock}<span>${esc(t('ui.decide.later', 'Not available yet ({n})', { n: held.reduce((n, c) => n + tilesOf(c).length, 0) }))}</span><span class="dk-more-c" aria-hidden="true">${laterOpen ? '▴' : '▾'}</span></button><ul class="cards later" id="dk-later"${laterOpen ? '' : ' hidden'}>${held.map(card).join('')}</ul>`
             : ''
         }`
       : `<p class="muted">${esc(t('ui.decide.empty', 'No cards in your hand.'))}</p>`;
@@ -253,30 +279,39 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     if (refocus) handEl.querySelector<HTMLElement>(refocus)?.focus({ preventScroll: false });
   };
 
-  const optionLabel = (c: CardView, id: string | undefined) => tr(c.options.find((o) => o.id === id)?.label ?? c.options[0]?.label ?? '');
+  /** The tile a key names, from the hand as it would be after the picks so far. */
+  const tileOf = (key: string): Tile => {
+    const { id, option } = parseKey(key);
+    const c = views().cards.find((x) => x.id === id) ?? hand.find((x) => x.id === id)!;
+    return { c, ...(option ? { opt: c.options.find((o) => o.id === option) } : {}) };
+  };
 
-  const toggle = (id: string) => {
-    const c = hand.find((x) => x.id === id)!;
-    const i = picks.findIndex((p) => p.id === id);
+  const toggle = (key: string) => {
+    const x = tileOf(key);
+    const { c } = x;
+    const option = x.opt?.id;
+    const i = picks.findIndex((p) => p.id === c.id && (!option || p.option === option));
     if (i >= 0) {
       picks.splice(i, 1);
       announce(
-        `${t('ui.decide.sayRemoved', 'Removed {name}.', { name: tr(c.title) })} ${picks.length ? tn('ui.decide.saySelected', picks.length, { one: '{n} card selected.', other: '{n} cards selected.' }) : t('ui.decide.sayNone', 'No card selected.')}`,
+        `${t('ui.decide.sayRemoved', 'Removed {name}.', { name: titleOf(x) })} ${picks.length ? tn('ui.decide.saySelected', picks.length, { one: '{n} card selected.', other: '{n} cards selected.' }) : t('ui.decide.sayNone', 'No card selected.')}`,
       );
       return true;
     }
-    const v = views().cards.find((x) => x.id === id);
-    if (!v?.playable) {
-      announce(`${tr(c.title)}: ${v?.reason ? tr(v.reason) : t('ui.decide.notAvailable', 'not available')}`);
+    const lever = leverTakenBy(x, picks);
+    if (lever) {
+      announce(`${titleOf(x)}: ${leverLine(lever)}`);
       return false;
     }
-    const option = c.options.length ? (optPref[id] ?? c.options[0].id) : undefined;
+    if (!c.playable) {
+      announce(`${titleOf(x)}: ${c.reason ? tr(c.reason) : t('ui.decide.notAvailable', 'not available')}`);
+      return false;
+    }
     picks.push({ id: c.id as Pick['id'], ...(option ? { option } : {}) });
     const pv = e.preview(s, picks);
     const turn = pv.worldAfter !== pv.worldBefore ? ` ${t('ui.decide.sayTurn', 'The world would turn from {from} to {to}.', { from: tr(pv.worldBefore), to: tr(pv.worldAfter) })}` : '';
-    const ask = option ? ` ${t('ui.decide.sayOption', 'You ask for: {option}. Details lets you change it.', { option: optionLabel(c, option) })}` : '';
     announce(
-      `${t('ui.decide.saySelectedCard', 'Selected {name}.', { name: tr(c.title) })} ${pv.impacts.map((x) => tr(impactWords(x))).join(', ')}.${turn}${ask} ${pv.influenceAfter > 0 ? t('ui.decide.sayAnother', 'You can add another card, or Tab to Confirm.') : t('ui.decide.sayConfirm', 'Tab to Confirm.')}`,
+      `${t('ui.decide.saySelectedCard', 'Selected {name}.', { name: titleOf(x) })} ${pv.impacts.map((m) => tr(impactWords(m))).join(', ')}.${turn} ${pv.influenceAfter > 0 ? t('ui.decide.sayAnother', 'You can add another card, or Tab to Confirm.') : t('ui.decide.sayConfirm', 'Tab to Confirm.')}`,
     );
     return true;
   };
@@ -292,29 +327,18 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
     }
     const det = tg.closest<HTMLButtonElement>('[data-details]');
     if (det) {
-      const id = det.dataset.details!;
-      const v = views().cards.find((x) => x.id === id)!;
-      const p = picks.find((x) => x.id === id);
-      await showDetails(v, {
-        selected: !!p,
-        option: p?.option ?? optPref[id],
-        onOption: (o) => {
-          optPref[id] = o;
-          const pick = picks.find((x) => x.id === id);
-          if (pick) {
-            pick.option = o;
-            showPreview();
-          }
-        },
-      });
-      render(`[data-details="${id}"]`);
+      const key = det.dataset.details!;
+      const x = tileOf(key);
+      await showDetails(x, { selected: picks.some((p) => p.id === x.c.id && (!x.opt || p.option === x.opt.id)), lever: leverTakenBy(x, picks) });
+      render(`[data-details="${CSS.escape(key)}"]`);
       return;
     }
     const b = tg.closest<HTMLButtonElement>('.pcard');
     if (!b) return;
-    const id = b.dataset.card!;
-    const was = picks.some((p) => p.id === id);
-    if (toggle(id)) render(`[data-card="${id}"]`, { id, on: !was });
+    const key = b.dataset.card!;
+    const { id, option } = parseKey(key);
+    const was = picks.some((p) => p.id === id && (!option || p.option === option));
+    if (toggle(key)) render(`[data-card="${CSS.escape(key)}"]`, { id: key, on: !was });
   });
 
   render();
@@ -333,7 +357,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   announce(
     t('ui.decide.sayOpenGrid', 'Your decisions, {date}. {cards} Play as many as your Influence allows: {n}. {advice}', {
       date,
-      cards: tn('ui.decide.sayHand', hand.length, { one: '{n} card.', other: '{n} cards.' }),
+      cards: tn('ui.decide.sayHand', tileCount, { one: '{n} card.', other: '{n} cards.' }),
       n: s.influence,
       advice: tr(adv.text),
     }),

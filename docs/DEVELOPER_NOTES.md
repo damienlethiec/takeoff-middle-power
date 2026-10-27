@@ -58,7 +58,7 @@ Once the memo has leaked (`memo_public`), the committee votes at the tipping poi
 | Fund alignment research | 2 | Truth +5 (+4 more with inspections level 2), estimate +2 | 3 | Round 2 |
 | Middle-power coalition | 2 / 2 / 3 | Cooperation +2; level 2: Influence +1 a round | 3 levels | Round 3 |
 | Independent audit (a game device) | 1 | Estimate set to the truth; the true value shown for 2 rounds | 2 | Round 4 |
-| Push to use the ASML lever | 2 | Safety: margin −8; or access: Cohesion +6. Cooperation −2; Washington answers with the chip-tool ban | 2 | AI power 35 |
+| Push to use the ASML lever (two cards in the hand: safety tests / AI access, one a round) | 2 | Safety: margin −8; or access: Cohesion +6. Cooperation −2; Washington answers with the chip-tool ban | 2 | AI power 35 |
 | Weight security standards | 1 | Cuts a theft short; Europe's AI → Dependent unless Europe funded open models; Cohesion −2 | 1 | Theft threat seen |
 | Fund open models | 2 | Europe's AI → Open, Cohesion +6; ransomware pressure +15 | 1 | Round 2 |
 | Back flexicurity in member states | 3 | Cohesion +10; softens job shocks; Influence −1 for 2 rounds | 1 | AI takes jobs milestone |

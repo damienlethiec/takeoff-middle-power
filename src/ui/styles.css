@@ -1679,3 +1679,6 @@ kbd { opacity: .75; }
 /* "Replay with the tutorial" on the landing: small and secondary, under Play */
 .intro .intro-replay { margin: 10px 0 0; color: var(--mute); font-size: 13px; }
 .intro .intro-replay .btn-link { font-size: 14px; padding: 8px 4px; }
+
+/* The ASML lever's two cards: the one not chosen says, in words, that it uses the same lever */
+.pc-lever { display: flex; gap: 4px; font-size: 12.5px; line-height: 1.32; color: var(--ink); font-style: italic; }

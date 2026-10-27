@@ -59,6 +59,18 @@ export const FAMILIES: { id: CardFamily; name: string }[] = [
   { id: 'home', name: 'At home' },
 ];
 
+export interface CardOption {
+  id: string;
+  /** The name of its card in the hand, the news and the ending. */
+  name: string;
+  /** Its card's one line (≤ 12 words). */
+  short: string;
+  /** Its card's full text in Details (≤ 60 words). */
+  proposal: string;
+  ups: Chip[];
+  face: Face[];
+}
+
 export interface CardDef {
   id: CardId;
   name: string;
@@ -78,7 +90,11 @@ export interface CardDef {
   /** The face's effects as icons; a card with options adds the chosen option's. */
   face: Face[];
   protects?: ThreatId;
-  options?: { id: string; label: string; ups: Chip[]; face: Face[] }[];
+  /**
+   * One card, two asks (the ASML lever): each option shows as its own card in the hand, with its own name, one line
+   * and proposal; they share the card's cost, chance, uses and blowback, so playing one locks the other that round.
+   */
+  options?: CardOption[];
   arrives: Arrival;
   opportunity?: boolean;
   basis: Basis;
@@ -211,9 +227,12 @@ export const CARDS: CardDef[] = [
     family: 'tech',
     name: 'Bargain with ASML’s chip machines',
     text: 'ASML, a Dutch firm, alone makes the machines for the best chips. Tie their sales to a deal: labs give way; Washington hits back.',
-    short: 'Tie ASML’s chip-machine sales to a deal. You choose the ask.',
+    short: 'Tie ASML’s chip-machine sales to a deal with the AI labs.',
     proposal:
       'Every advanced chip needs ASML’s chip-printing machines, and the Dutch government decides, with Washington, who may buy them. Europe pushes for that leverage: ask the labs to open their newest models to European testers, or to give European firms and public services access. Washington won’t let Europe set terms: expect it to block European chip-tool sales to China.',
+    // Changed (27 Oct, owner): the two asks were a radio button inside Details; they are now two cards in the hand,
+    // "Trade chip machines for safety tests" and "Trade chip machines for AI access", on the same lever (same cost,
+    // chance, uses, blowback and basis; one of the two a round).
     example: {
       text: 'The Europe 2031 report: “The only card Europe still holds is ASML - the one bottleneck the entire AI race runs through.”',
       source: SOURCES.europe2031,
@@ -223,8 +242,24 @@ export const CARDS: CardDef[] = [
     why: 'Washington won’t let Europe set chip terms; tension rises.',
     face: [mv('cooperation', C.asml.cooperation), { kind: 'risk', what: 'chip_ban' }],
     options: [
-      { id: 'safety', label: 'Labs open their models to EU testers', ups: [up('AI safety: more verified')], face: [mv('confidence', -C.asml.safety.margin)] },
-      { id: 'access', label: 'Model access for European firms', ups: [up(COH(C.asml.access.cohesion))], face: [mv('cohesion', C.asml.access.cohesion)] },
+      {
+        id: 'safety',
+        name: 'Trade chip machines for safety tests',
+        short: 'ASML sells chip machines only if labs let EU testers check models.',
+        proposal:
+          'Every advanced chip needs ASML’s chip-printing machines, and the Dutch government decides, with Washington, who may buy them. Europe uses that leverage: no new machines unless the AI labs open their newest models to European testers. Washington won’t let Europe set terms: expect it to block European chip-tool sales to China.',
+        ups: [up('AI safety: more verified')],
+        face: [mv('confidence', -C.asml.safety.margin)],
+      },
+      {
+        id: 'access',
+        name: 'Trade chip machines for AI access',
+        short: 'ASML sells chip machines only if EU firms get the labs’ models.',
+        proposal:
+          'Every advanced chip needs ASML’s chip-printing machines, and the Dutch government decides, with Washington, who may buy them. Europe uses that leverage: no new machines unless the AI labs let European firms and public services use their newest models. Washington won’t let Europe set terms: expect it to block European chip-tool sales to China.',
+        ups: [up(COH(C.asml.access.cohesion))],
+        face: [mv('cohesion', C.asml.access.cohesion)],
+      },
     ],
     arrives: { aiPower: C.asml.arrivesAt },
     basis: e2031('Recommendation 2 (supply-chain chokepoints as joint leverage for frontier access or safer models) and May 2028: The compute crunch (Washington answers with the Foreign Direct Product Rule); with CFG, Arms race'),

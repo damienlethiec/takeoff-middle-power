@@ -27,7 +27,6 @@ export const TEMPLATES: Record<string, string> = {
   'engine.arrow': '{from} → {to}',
   'engine.labelNumber': '{label} {n}',
   'engine.change': '{label} {before} → {after}',
-  'engine.withOption': '{name} ({option})',
   'engine.breaking': 'BREAKING: {text}',
   // regions, Europe's AI, words the engine uses as values
   'engine.region.eu': 'Europe',

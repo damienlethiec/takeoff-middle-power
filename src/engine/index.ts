@@ -1929,7 +1929,8 @@ export function advisor(s: GameState): AdvisorView {
   );
   const best = rank.filter((r) => r.v > 1.5).sort((a, b) => b.ratio - a.ratio)[0];
   if (!best) return { recommend: null, text: 'Nothing pressing this round. Saving Influence for the next crisis is a fine choice too.' };
-  const name = best.cv.id === 'asml' ? `${best.cv.name} (${best.cv.options.find((o) => o.id === best.option)!.label.toLowerCase()})` : best.cv.title;
+  // a card with two asks is named by the ask (each shows as its own card)
+  const name = best.cv.options.find((o) => o.id === best.option)?.name ?? best.cv.title;
   const world = WORLDS[hd.world].name;
   let text: string;
   switch (best.why) {
@@ -2056,7 +2057,7 @@ export function ending(s: GameState): EndingView {
       const def = CARD_BY_ID[p.id];
       const nth = s.history.filter((x) => x.round < r.round).flatMap((x) => x.decisions).filter((x) => x.id === p.id && !x.failed).length;
       const ups: Chip[] = p.option && def.options ? def.options.find((o) => o.id === p.option)!.ups : def.ups;
-      const name = def.levels ? def.levels[Math.min(nth, def.levels.length - 1)] : def.name;
+      const name = (p.option && def.options?.find((o) => o.id === p.option)?.name) || (def.levels ? def.levels[Math.min(nth, def.levels.length - 1)] : def.name);
       if (p.failed) return { round: r.round, date: dateLabel(r.round), name, ups: [], downs: [], failed: def.failure?.text ?? 'It did not work.' };
       return { round: r.round, date: dateLabel(r.round), name, ups, downs: def.downs };
     }),
@@ -2246,15 +2247,16 @@ function roundFeed(s: GameState, r: RoundRecord, pending: PendingEvent | null): 
     const def = CARD_BY_ID[p.id];
     const nth = earlier.filter((x) => x.id === p.id).length;
     const name = def.levels ? def.levels[Math.min(nth, def.levels.length - 1)] : def.name;
-    const opt = p.option && def.options ? ` (${def.options.find((o) => o.id === p.option)!.label.toLowerCase()})` : '';
+    // a card with two asks shows under the ask's name (the changes it caused are still filed under the card's)
+    const shown = (p.option && def.options?.find((o) => o.id === p.option)?.name) || name;
     if (p.failed && def.failure) {
       // it did not work: the news says why, in one plain sentence (with its basis), and the decision says what it cost
-      out.push({ ...base, id: `f_${p.id}`, at: 1.1 + i * 0.01, kind: 'headline', label: 'Headline', text: def.failure.text, detail: `Your decision did not work: ${name}.`, region: 'eu', tone: -1, prov: def.failure.basis });
-      out.push({ ...base, id: `d_${p.id}`, at: 1.1 + i * 0.01 + 0.005, kind: 'decision', label: 'Your decision', text: `${name}${opt}: did not work`, detail: 'Influence spent; nothing else changed.', region: 'eu', tone: -1, prov: def.basis });
+      out.push({ ...base, id: `f_${p.id}`, at: 1.1 + i * 0.01, kind: 'headline', label: 'Headline', text: def.failure.text, detail: `Your decision did not work: ${shown}.`, region: 'eu', tone: -1, prov: def.failure.basis });
+      out.push({ ...base, id: `d_${p.id}`, at: 1.1 + i * 0.01 + 0.005, kind: 'decision', label: 'Your decision', text: `${shown}: did not work`, detail: 'Influence spent; nothing else changed.', region: 'eu', tone: -1, prov: def.basis });
       return;
     }
     const detail = r.changes.filter((c) => c.by === 'card' && c.cause === name).map((c) => c.text);
-    out.push({ ...base, id: `d_${p.id}`, at: 1.1 + i * 0.01, kind: 'decision', label: 'Your decision', text: `${name}${opt}`, detail: detail.length ? detail.join(', ') : null, region: 'eu', tone: 0, prov: def.basis });
+    out.push({ ...base, id: `d_${p.id}`, at: 1.1 + i * 0.01, kind: 'decision', label: 'Your decision', text: shown, detail: detail.length ? detail.join(', ') : null, region: 'eu', tone: 0, prov: def.basis });
   });
   // ids are unique across the whole game
   return out.map((x) => ({ ...x, id: `r${r.round}_${x.id}` }));

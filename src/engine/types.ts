@@ -606,7 +606,8 @@ export interface CardView {
   why: string | null;
   protects: ThreatId | null;
   protectsName: string | null;
-  options: { id: string; label: string; ups: Chip[] }[];
+  /** A card with two asks on one lever (ASML): the UI shows each as its own card; one of them a round. */
+  options: { id: string; name: string; short: string; proposal: string; ups: Chip[] }[];
   level: number | null;
   levels: string[] | null;
   usesLeft: number;
