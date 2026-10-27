@@ -270,6 +270,7 @@ export class WorldMap {
     const defs = el('defs', {}, svg);
     defs.innerHTML = `
       <pattern id="sea" width="3" height="3" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r=".17" class="sea-dot"/></pattern>
+      <filter id="bg-tile" filterUnits="userSpaceOnUse" x="-60" y="-60" width="360" height="220" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation=".45" result="b"/><feColorMatrix in="b" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 14 -6" result="t"/><feOffset in="t" dy=".5" result="o"/><feColorMatrix in="o" type="matrix" values="0 0 0 0 .42 0 0 0 0 .28 0 0 0 0 .12 0 0 0 .4 0" result="s"/><feMerge><feMergeNode in="s"/><feMergeNode in="t"/></feMerge></filter>
       <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>
       <linearGradient id="south-fade" gradientUnits="userSpaceOnUse" x1="0" y1="${NORTH.from}" x2="0" y2="${FADE.to}"><stop offset="0" stop-color="#262626"/><stop offset="${((NORTH.to - NORTH.from) / (FADE.to - NORTH.from)).toFixed(3)}" stop-color="#fff"/><stop offset="${((FADE.from - NORTH.from) / (FADE.to - NORTH.from)).toFixed(3)}" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
       <mask id="south-mask" maskUnits="userSpaceOnUse" x="-60" y="-60" width="360" height="220"><rect x="-60" y="-60" width="360" height="220" fill="url(#south-fade)"/></mask>`;

@@ -11,13 +11,14 @@
 
 import type { EngineApi } from '../../engine/api';
 import type { CardView, GameState, Pick, PreviewView, ThreatView } from '../../engine/types';
-import { CARD_BY_ID, type Face } from '../../data/cards';
+import { CARD_BY_ID, FAMILIES, type Face } from '../../data/cards';
 import { impactWords } from '../../data/effects';
 import { onLangChange, t, tc, tn, tr } from '../../i18n';
 import { announce, reducedMotion } from '../a11y';
 import { ICON, chips, esc, factBox, kbd, provTag } from '../format';
 import { GICON, faceHtml, faceWords } from '../fx';
 import { glossed } from '../glossary';
+import { FAMILY_ART } from '../boardgame';
 import { modalOpen, openModal, wait } from '../modal';
 
 export type DecisionResult = { kind: 'play'; picks: Pick[] } | { kind: 'map' };
@@ -60,8 +61,10 @@ function cardHtml(c: CardView, o: { selected: boolean; recommended: boolean; opt
   ].join('');
   // an accord on offer (the tutorial's tip points at it the first time)
   const accord = !locked && ((c.id === 'inspections' && (c.level ?? 1) >= 2) || c.id === 'licensing_treaty');
-  return `<li class="pc-wrap${o.selected ? ' sel' : ''}${locked ? ' locked' : ''}${c.opportunity ? ' opp' : ''}${o.recommended ? ' rec' : ''}"${accord ? ' data-coach="accord"' : ''}>
+  const fam = FAMILIES.find((f) => f.id === c.family);
+  return `<li class="pc-wrap f-${esc(c.family)}${o.selected ? ' sel' : ''}${locked ? ' locked' : ''}${c.opportunity ? ' opp' : ''}${o.recommended ? ' rec' : ''}"${accord ? ' data-coach="accord"' : ''}>
     <button type="button" class="pcard" data-card="${id}" aria-pressed="${o.selected}"${locked && c.reason ? ` aria-describedby="pc-${id}-r"` : ''}>
+      <span class="pc-art" aria-hidden="true">${FAMILY_ART[c.family]}${fam ? `<span class="pc-fam">${esc(tc(`family.${c.family}`, fam.name))}</span>` : ''}</span>
       <span class="pc-top"><span class="pc-check" aria-hidden="true">${ICON.check}</span><span class="pc-name">${esc(tr(c.title))}</span><span class="pc-cost num"><span class="sr-only">${esc(t('ui.card.costs', 'costs'))} </span>${ICON.influence}${c.cost}<span class="sr-only"> ${esc(t('ui.influence.name', 'Influence'))}.</span></span></span>
       <span class="pc-short">${esc(short(c))}</span>
       <span class="pc-fx">${faceHtml(faceOf(c, o.option))}</span>

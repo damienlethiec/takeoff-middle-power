@@ -10,6 +10,7 @@ import { esc, factBox, kbd, link, provLabel } from '../format';
 import { friendPortrait } from '../friends';
 import { chooseLang, langRowHtml, offerHtml, offeredLang } from '../lang';
 import { openModal } from '../modal';
+import { BOX_ART } from '../boardgame';
 
 const brand = () => `<p class="intro-brand" aria-hidden="true"><span class="logo">TAKE<i>OFF</i></span><span class="sub">${esc(t('ui.brand.sub', 'Europe’s Next Move'))}</span></p>`;
 
@@ -38,6 +39,7 @@ function screenHtml(i: number, focusLang: AnyLang | null): string {
     : `<button type="button" class="btn-primary" data-primary data-action="next">${esc(last ? t('ui.intro.start', 'Start round 1') : t('ui.common.next', 'Next'))} ${kbd('enter')}</button>`;
   return `<div class="intro-in${landing ? ' landing' : ''}">
         ${brand()}
+        ${landing ? BOX_ART : ''}
         ${row}
         ${offer ? offerHtml(offer) : ''}
         ${landing ? '' : `<div class="dateline">${esc(t('ui.intro.nOf', '{n} of {count}', { n: i, count: INTRO.length - 1 }))}</div>`}
