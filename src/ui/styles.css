@@ -1153,6 +1153,6 @@ html:not([lang="en"]) body { hyphens: auto; }
 }
 /* phones: Influence gives way before Help does (its words wrap), so the header keeps its two rows */
 @media (max-width: 560px) {
-  .top .inf { flex: 0 1 auto; min-width: 0; }
+  .top .inf { flex: 0 1 auto; min-width: 0; max-width: calc(100% - 190px); }
   .top .inf-l { min-width: 0; }
 }
