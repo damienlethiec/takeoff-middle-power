@@ -110,7 +110,7 @@ export const CARDS: CardDef[] = [
     text: 'Bring US and Chinese diplomats to one table in Geneva. Trust rises a little; at home, some call you soft on rivals.',
     short: 'Host US and Chinese diplomats in Geneva to keep them talking.',
     proposal:
-      'Europe hosts quiet talks between Washington and Beijing on the risks both fear: AI in military command, stolen models, accidents. No treaty, only ways to keep talking. Critics at home say Europe is cosying up to rivals. After each round of talks, the envoys need a round off.',
+      'Europe hosts quiet talks between Washington and Beijing on the risks both fear: AI in military command, stolen models, accidents. No treaty, only ways to keep talking. Critics at home say Europe is cosying up to rivals. After each round of talks, the diplomats need a round off.',
     example: {
       text: 'In November 2024, Presidents Biden and Xi agreed on “the need to maintain human control over the decision to use nuclear weapons”.',
       source: SOURCES.bidenXi,
@@ -138,7 +138,7 @@ export const CARDS: CardDef[] = [
     },
     ups: [up('AI safety: more verified'), up(`Accord: ${COOP(C.inspections.cooperation[1])}`), up('Accord: real safety up (not shown)')],
     downs: [down('Accord: only after a crisis or in a pause'), down(`Accord: Influence ${n(C.inspections.influence)} next round`)],
-    why: 'Superpowers resent inspectors; only a crisis or pause opens labs.',
+    why: 'Only a crisis or a pause opens the superpowers’ labs.',
     face: [mv('confidence', -C.inspections.margin), { ...mv('cooperation', C.inspections.cooperation[1]), when: 'accord' }, { kind: 'truth', when: 'accord' }, { kind: 'influence', n: C.inspections.influence, span: 'next', when: 'accord' }, { kind: 'protects', threat: 'incident' }],
     protects: 'incident',
     arrives: { round: TUNING.arrive.inspections },
@@ -185,8 +185,8 @@ export const CARDS: CardDef[] = [
     id: 'coalition',
     family: 'diplomacy',
     name: 'Team up with friendly countries',
-    levels: ['UK and Norway join', 'Canada joins', 'Japan and Korea join'],
-    text: 'Team up with the UK, Norway, Canada, Japan and Korea. Allies add weight; from level 2 they share the load.',
+    levels: ['UK and Norway join', 'Canada joins', 'Japan and South Korea join'],
+    text: 'Team up with the UK, Norway, Canada, Japan and South Korea. Allies add weight; from level 2 they share the load.',
     short: 'Team up with the UK, Canada, Japan and other mid-sized countries.',
     proposal:
       'Europe builds a small, nimble coalition: the UK and Norway first, then Canada, then Japan and South Korea. Together they speak with one voice in Washington and Beijing. From level 2, allies share the load: +1 Influence every round. Washington may tempt its closest allies away with special access, and compromises cost goodwill at home.',
@@ -210,7 +210,7 @@ export const CARDS: CardDef[] = [
     text: 'A game shortcut: auditors show you the true AI safety for two rounds. Real audits only narrow the doubt. Nothing else moves.',
     short: 'A game shortcut: see the true AI safety for two rounds.',
     proposal:
-      'This card is a device of the game: for two rounds, your AI safety gauge shows the truth instead of the labs’ reports. No real audit can see that much; in AI 2027 even the lab cannot tell whether its AI truly does what it intends. It changes nothing by itself: you spend a turn learning where you really stand.',
+      'This card is a game device: for two rounds, your AI safety gauge shows the truth instead of the labs’ reports. No real audit can see that much; in AI 2027 even the lab cannot tell whether its AI truly does what the lab intends. It changes nothing by itself: you spend a round learning where you really stand.',
     example: {
       text: 'In late 2024, the UK and US AI Safety Institutes tested OpenAI’s o1 model before its release, during a limited period of access.',
       source: SOURCES.aisiO1,
@@ -281,7 +281,7 @@ export const CARDS: CardDef[] = [
       text: 'A 2024 RAND study found that securing model weights against the most capable attackers “will require significantly more investment over the coming years”.',
       source: SOURCES.rand,
     },
-    ups: [up('AI theft: cut short, partly')],
+    ups: [up('AI theft: cut short, in part')],
     downs: [down('Europe’s AI → Dependent, unless it funds its own'), down(COH(C.weight_security.cohesion))],
     why: 'Only big labs can pay; small European firms lose out.',
     face: [{ kind: 'protects', threat: 'theft', partly: true }, { kind: 'europeAi', to: 'Dependent' }, mv('cohesion', C.weight_security.cohesion)],
@@ -475,7 +475,7 @@ export const CARDS: CardDef[] = [
     id: 'pause_call',
     family: 'diplomacy',
     name: 'Call for a pause with other countries',
-    text: 'The memo is out. Demand a pause with India and others; Beijing joins, Washington cries betrayal. It sways Washington’s new AI committee toward slowing down.',
+    text: 'The memo is out. Demand a pause with India and others; Beijing joins, Washington cries betrayal. It sways Washington’s new oversight committee toward slowing down.',
     short: 'Call for a pause on AI, with India and other capitals.',
     proposal:
       'Europe’s leaders accuse Washington of building an AI it cannot control and host a summit demanding a pause. India and others join; Beijing says yes. Washington’s new oversight committee will vote at takeoff: race on, or slow down. Your call adds one vote for slowing down. Washington will make you pay for it.',
