@@ -200,7 +200,13 @@ export async function showRequest(v: RequestView, date: string, answer: (side: S
     announce(t('ui.request.sayAnswered', 'You answered {label}. {name}: {reaction} {moved}.', { label: tr(a.label), name: charName(v), reaction: tr(outcome.reaction), moved }));
     since = Date.now();
     closeTimer = setTimeout(closeNow, REACTION_MS);
-    c.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && hold(true));
+    // A pointer resting on the card holds it, but only a deliberate one: the mouse is already over the card when
+    // the player clicks an answer, and the turn moves the card under it, so the hold starts only on a real move
+    // made a moment after the card turned (otherwise the countdown stalled at its start).
+    const armedAt = Date.now() + 600;
+    c.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'mouse' && Date.now() >= armedAt && !c.classList.contains('held')) hold(true);
+    });
     c.addEventListener('pointerleave', (e) => e.pointerType === 'mouse' && hold(false));
   };
 

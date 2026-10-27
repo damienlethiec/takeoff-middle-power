@@ -1,6 +1,7 @@
 // Glossary terms inline (src/data/glossary.ts). In a request, an opened card, Breaking news or a threat, the first
-// occurrence of a few glossary terms becomes a real button (a toggletip): it shows the definition right after the
-// word and announces it. Click, Enter or Space toggles it; Escape closes it (before any dialog sees the key).
+// occurrence of a few glossary terms becomes a real button with a tooltip: hovering or focusing the word shows its
+// definition next to it; a click or tap (or Enter / Space) pins it open and announces it; Escape closes it (before
+// any dialog sees the key).
 // Kept light: at most two terms a text, and each term once per screen (pass the same `seen` set).
 // Everything reaching innerHTML is escaped.
 
@@ -70,7 +71,7 @@ export function glossed(english: string, seen: Set<string> = new Set(), max = 2)
   for (const h of hits) {
     const id = `gl-${++next}`;
     out += esc(text.slice(at, h.start));
-    out += `<span class="gl"><button type="button" class="gl-term" data-gl="${esc(h.g.id)}" aria-expanded="false" aria-controls="${id}" aria-describedby="gl-hint">${esc(text.slice(h.start, h.end))}</button><span class="gl-def" id="${id}" hidden><b>${esc(term(h.g))}:</b> ${esc(def(h.g))}</span></span>`;
+    out += `<span class="gl"><button type="button" class="gl-term" data-gl="${esc(h.g.id)}" aria-expanded="false" aria-controls="${id}" aria-describedby="gl-hint">${esc(text.slice(h.start, h.end))}</button><span class="gl-def" id="${id}" role="tooltip" hidden><b>${esc(term(h.g))}:</b> ${esc(def(h.g))}</span></span>`;
     at = h.end;
   }
   return out + esc(text.slice(at));
@@ -81,14 +82,46 @@ export function glossaryListHtml(): string {
   return `<dl class="gloss">${GLOSSARY.map((g) => `<div><dt>${esc(term(g))}</dt><dd>${esc(def(g))}${g.source ? ` <span class="fact-src">${esc(t('ui.fact.source', 'Source:'))} ${link(g.source)}</span>` : ''}</dd></div>`).join('')}</dl>`;
 }
 
-function toggle(b: HTMLButtonElement, open: boolean) {
+/** The definition floats as a tooltip next to the word: placed in viewport coordinates (position: fixed) so no
+ *  scrolling card or dialog clips it, above the word when there is room, else below, kept inside the screen. */
+function place(b: HTMLButtonElement, box: HTMLElement) {
+  const r = b.getBoundingClientRect();
+  const m = 8;
+  box.style.left = '0px';
+  box.style.top = '0px';
+  const w = box.offsetWidth;
+  const h = box.offsetHeight;
+  const left = Math.min(Math.max(m, r.left + r.width / 2 - w / 2), window.innerWidth - w - m);
+  const above = r.top - h - 6 >= m;
+  box.style.left = `${Math.round(left)}px`;
+  box.style.top = `${Math.round(above ? r.top - h - 6 : r.bottom + 6)}px`;
+  box.dataset.side = above ? 'top' : 'bottom';
+}
+
+/** Open or close one term's tooltip. `pin`: opened by a click or a key (stays until clicked again, Escape, or
+ *  focus leaves); hover and focus open it unpinned. Only a deliberate open is announced (hover would flood). */
+function show(b: HTMLButtonElement, open: boolean, how: 'hover' | 'focus' | 'pin' = 'hover') {
   const box = document.getElementById(b.getAttribute('aria-controls') ?? '');
   if (!box) return;
-  box.hidden = !open;
-  b.setAttribute('aria-expanded', String(open));
+  if (!open) {
+    box.hidden = true;
+    b.setAttribute('aria-expanded', 'false');
+    delete b.dataset.pinned;
+    return;
+  }
+  // one tooltip at a time
+  document.querySelectorAll<HTMLButtonElement>('.gl-term[aria-expanded="true"]').forEach((x) => x !== b && show(x, false));
+  box.hidden = false;
+  b.setAttribute('aria-expanded', 'true');
+  if (how === 'pin') b.dataset.pinned = '1';
+  place(b, box);
   const g = GLOSSARY_BY_ID[b.dataset.gl ?? ''];
-  if (open && g) announce(`${term(g)}: ${def(g)}`);
+  if (how !== 'hover' && g) announce(`${term(g)}: ${def(g)}`);
 }
+
+const termOf = (el: EventTarget | null) => (el as HTMLElement | null)?.closest?.<HTMLButtonElement>('.gl-term') ?? null;
+const boxOf = (el: EventTarget | null) => (el as HTMLElement | null)?.closest?.<HTMLElement>('.gl-def') ?? null;
+const termOfBox = (box: HTMLElement) => document.querySelector<HTMLButtonElement>(`.gl-term[aria-controls="${box.id}"]`);
 
 let installed = false;
 
@@ -103,23 +136,49 @@ export function installGlossary() {
   say();
   onLangChange(say);
   document.body.append(hint);
+  // hover: the tooltip opens over the word and stays while the pointer is on the word or on the tooltip itself
+  document.addEventListener('mouseover', (ev) => {
+    const b = termOf(ev.target);
+    if (b && b.getAttribute('aria-expanded') !== 'true') show(b, true, 'hover');
+  });
+  document.addEventListener('mouseout', (ev) => {
+    const from = termOf(ev.target) ?? (boxOf(ev.target) ? termOfBox(boxOf(ev.target)!) : null);
+    if (!from || from.dataset.pinned || from === document.activeElement) return;
+    const to = ev.relatedTarget as Node | null;
+    const box = document.getElementById(from.getAttribute('aria-controls') ?? '');
+    if (to && (from.contains(to) || box?.contains(to))) return;
+    show(from, false);
+  });
+  // keyboard focus opens it too; leaving closes it
+  document.addEventListener('focusin', (ev) => {
+    const b = termOf(ev.target);
+    if (b && b.matches(':focus-visible')) show(b, true, 'focus');
+  });
+  document.addEventListener('focusout', (ev) => {
+    const b = termOf(ev.target);
+    if (b) show(b, false);
+  });
+  // click or tap (touch screens have no hover): pin it open, or close it
   document.addEventListener('click', (ev) => {
-    const b = (ev.target as HTMLElement | null)?.closest?.<HTMLButtonElement>('.gl-term');
+    const b = termOf(ev.target);
     if (!b) return;
     ev.preventDefault();
-    toggle(b, b.getAttribute('aria-expanded') !== 'true');
+    show(b, !b.dataset.pinned, 'pin');
   });
+  // the tooltip is placed in screen coordinates: a scroll or a resize closes it rather than leaving it adrift
+  const closeAll = () => document.querySelectorAll<HTMLButtonElement>('.gl-term[aria-expanded="true"]').forEach((x) => show(x, false));
+  window.addEventListener('scroll', closeAll, true);
+  window.addEventListener('resize', closeAll);
   // capture: Escape closes an open definition before a dialog's own Escape (which would close the dialog)
   document.addEventListener(
     'keydown',
     (ev) => {
       if (ev.key !== 'Escape') return;
-      const a = document.activeElement as HTMLElement | null;
-      const b = a?.closest?.<HTMLButtonElement>('.gl-term');
-      if (!b || b.getAttribute('aria-expanded') !== 'true') return;
+      const open = document.querySelector<HTMLButtonElement>('.gl-term[aria-expanded="true"]');
+      if (!open) return;
       ev.preventDefault();
       ev.stopPropagation();
-      toggle(b, false);
+      show(open, false);
     },
     true,
   );
