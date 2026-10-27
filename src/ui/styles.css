@@ -111,9 +111,11 @@ kbd { font-family: var(--f-data); font-size: 11px; font-weight: 400; letter-spac
 .date { display: flex; align-items: baseline; gap: 2px; white-space: nowrap; }
 #date { font-family: var(--f-display); font-weight: 800; font-size: 26px; letter-spacing: .03em; line-height: 1; }
 .round-of { font-size: 13px; color: var(--mute); }
-.rounds { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 10px; gap: 3px; }
-.rounds li { position: relative; height: 16px; border-radius: 2px; background: var(--deck-2); overflow: hidden; }
-.rounds li:nth-child(2n) { margin-right: 3px; }
+/* one cell a round, all the same width; a slightly wider gap after each year's two rounds (flex, so the extra gap
+   adds space instead of eating the cell, as the grid did) */
+.rounds { list-style: none; margin: 0; padding: 0; display: flex; gap: 3px; }
+.rounds li { position: relative; flex: none; width: 10px; height: 16px; border-radius: 2px; background: var(--deck-2); overflow: hidden; }
+.rounds li:nth-child(2n):not(:last-child) { margin-right: 3px; }
 .rounds li i { position: absolute; inset: 0 auto 0 0; background: var(--mute); }
 .rounds li.now i { background: var(--align); }
 .rounds li.now { box-shadow: 0 0 0 1px var(--align); }
