@@ -42,3 +42,28 @@ Relecture de `src/i18n/fr.json` contre l’anglais de référence (`src/i18n/en.
   intervalles (30–59), signe moins − dans les nombres.
 - Nombres : espace fine insécable comme séparateur de milliers (931 690 €).
 - Pas de majuscule aux mois ni aux nationalités adjectivales ; « M. », « Mme », « Dr » sans point final pour Dr.
+- Gabarits (`engine.*`) : jamais d’adjectif accordé avec un nom invisible ; les jauges de fin (`engine.ending.*`)
+  ne reçoivent que la Sûreté de l’IA ou la Cohésion sociale, toutes deux féminines (« la {gauge} était à… »). Le
+  conseiller cite une décision entre guillemets (« {card} » aiderait), sans « La carte ».
+
+## Relecture du 27 octobre 2026
+
+Toutes les familles relues contre l’anglais (≈ 700 chaînes modifiées sur 2 074) : fins, mondes, épilogues, lettres,
+demandes, décisions, titres, témoignages, événements sociaux, menaces, flashs info, jalons, fuites, interface, aide,
+astuces, glossaire, gabarits. Vérification visuelle (`SHOTS_QUERY=lang=fr node scripts/shots.mjs`) à 1280×800 et
+390×844 : pas de débordement.
+
+### Les dix corrections les plus marquantes
+
+| Clé | Avant | Après |
+|---|---|---|
+| `epilogue.hot_war.lea` | La guerre est à l’autre bout du monde, et dans ma cuisine : … chaque soir les infos montrent des machines qui combattent des machines. | La guerre est à l’autre bout du monde, et pourtant jusque dans ma cuisine : … chaque soir, aux infos, des machines se battent contre des machines. |
+| `epilogue.hot_war.malik` | J’ai aidé à construire ce avec quoi ils se battent. | J’ai aidé à construire les armes de cette guerre. |
+| `ending.loss_of_control.story` | Chacune voulait autre chose. Rien de tout cela n’était ce que nous voulions. | Chacune poursuivait son propre but. Aucun n’était le nôtre. |
+| `ending.cognitive_revolution.story` | C’était la voie la plus dangereuse, et cette fois elle a tenu … l’économie grandit au-delà de ce que quiconque comprend. (temps mélangés) | C’était le pari le plus dangereux, et cette fois il a réussi … l’économie a dépassé l’entendement de quiconque. |
+| `threat.blackmail.name` (et 15 autres) | Menace de couper l’Europe | Menace de débrancher l’Europe |
+| `ending.unstable_pause.story` | un « pilote contrôlé » a discrètement relancé la course | un « projet pilote encadré » a discrètement relancé la course |
+| `engine.advisor.*` | La carte « {card} » nous protégerait. (« carte » = la carte du monde) | « {card} » nous protégerait. |
+| `engine.ending.below` | Sûreté de l’IA était à 59 … (article manquant à l’écran) | La Sûreté de l’IA était à 59 … |
+| `request.jn_whistleblowers.left.why` | Les critiques disent que l’Europe abandonne les lanceurs d’alerte (1,8× l’anglais) | L’Europe accusée de lâcher ses sources |
+| `letter.mum1_diabetic` | Je l’ai écrit en rouge sur son dossier. Vieilles habitudes. | Je l’ai noté au stylo rouge sur sa feuille. On ne se refait pas. |
