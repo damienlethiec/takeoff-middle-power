@@ -1,11 +1,12 @@
 # Scenario basis for v3
 
-What the game takes from its two source scenarios, read on 25–26 October 2026 with WebFetch from the primary pages. Every card, event, threat, headline, leak, public voice and friend's letter in `src/data/` carries a `basis` field pointing to a section below (`ai2027`, `cfg`), to a real source (`real`, with the source in `src/data/sources.ts`), or naming a device invented for the game (`game`, e.g. the independent audit). A test (`tests/basis.test.ts`) fails when one is missing. Players see it as a provenance tag: Real, From AI 2027, From CFG, or Invented.
+What the game takes from its three source scenarios, read on 25–27 October 2026 with WebFetch from the primary pages. Every card, event, threat, headline, leak, public voice and friend's letter in `src/data/` carries a `basis` field pointing to a section below (`ai2027`, `cfg`, `e2031`), to a real source (`real`, with the source in `src/data/sources.ts`), or naming a device invented for the game (`game`, e.g. the independent audit). A test (`tests/basis.test.ts`) fails when one is missing. Players see it as a provenance tag: Real, From AI 2027, From CFG, From Europe 2031, or Invented.
 
 **Sources read**
 
 - **AI 2027**, Kokotajlo, Alexander, Larsen, Lifland, Dean (AI Futures Project, 3 April 2025): <https://ai-2027.com> (shared story to October 2027), <https://ai-2027.com/race> and <https://ai-2027.com/slowdown> (the two endings), and the PDF <https://ai-2027.com/ai-2027.pdf>.
 - **CFG, Advanced AI: Possible Futures** (Centre for Future Generations, 10 July 2025): <https://cfg.eu/advanced-ai-possible-futures/> and the scenarios PDF <https://cfg.eu/wp-content/uploads/AAIPF_scenarios_only.pdf>.
+- **Europe 2031: What getting AI wrong means for us**, Juijn, van Baarsen, Dada, Negele, Stelling, Fox, Petropoulos, Bakker; edited by Tom Chivers (11 June 2026): <https://europe2031.ai/> (the scenario; read in full in its Markdown version <https://europe2031.ai/agents/scenario.md>, with an offset for the epilogue) and the executive summary with the five recommendations <https://europe2031.ai/summary>. Read on 27 October 2026.
 
 **Texts the fetch tool could not read, pasted by the owner on 26 October 2026** (kept in the team's audit folder): AI 2027's slowdown ending from *November 2027: Tempted by Power* to 2030 (the Defense Production Act consolidation, the Oversight Committee formalised, *December 2027: A U.S.-China Deal?* with the "CERN for AI" and "IAEA for AI" options and hardware verification, Safer-2 to Safer-4, *July 2028: The Deal* and Consensus-1, *August 2028: Treaty Verification* with tamper-evident chips); CFG's *Loss of control* (Take-off, Ending B, early 2030 – early 2032); and the AI Act as published in the Official Journal (Regulation (EU) 2024/1689; Article 55(1)(d) on the cybersecurity of models with systemic risk). The race and slowdown openings (the committee's two 6–4 votes) were read on ai-2027.com with an offset.
 
@@ -77,6 +78,40 @@ CFG builds five scenarios on two variables, **speed** (fast: self-improving agen
 
 ---
 
-## 3. Real-world facts
+## 3. Europe 2031: Europe's own scenario
+
+An ~18,000-word story told through Caroline Dubois, a young Commission official (DG TRADE) whose superiors will not take AI seriously, from January 2025 (a prologue on what already happened) to March 2031, then a 2034 epilogue on "what could have been". Its fictional firms are Atlas (US), Helios (Europe) and Zimo (China). It is the scenario of **Europe's squeeze**: AI 2027 tells the race, CFG the five worlds it can lead to, Europe 2031 what the race does to Europe in between if Europe does not act. Basis refs name a chapter (*April 2029: Access all areas*) or one of the summary's five recommendations.
+
+| Europe 2031 chapter | What happens | In the game |
+| --- | --- | --- |
+| *Nov 2025: Worlds apart* (prologue) | Coding agents take off; Commission staff may not use frontier AI on their work devices | Voice: a Commission official who regulates the newest AI and may not use it (`v_eu_official`) |
+| *Jun 2026: Disillusionment* (prologue) | Largest US AI supercomputer 1,250 MW, Europe's 83 MW; Europe hosts "only five per cent of the world's total AI compute" (the US about 80%); the Gigafactories delayed and scaled back | Learn more of OpenBrain's data-centre request; the fact on the rationing Breaking news |
+| *May 2028: The compute crunch* | Washington presses The Hague to halt ASML's DUVi exports and servicing to China and threatens the Foreign Direct Product Rule; Member States split; the Dutch back down, Europe gets nothing in return | The ASML lever's blowback and failure (with CFG's *Arms race*) |
+| *Aug 2028: Writing on the wall* | European growth 1.6% vs 3.8% in the US: US ownership of AI's value, slower adoption, slower restructuring | Background of the eurozone items |
+| *Jan 2029: Dreams of a robot economy* | Beijing bets on robotics: more than a million humanoids a year; China's labs a year behind | Headlines `h_cn_humanoids`, `h_squeeze` (US models, Chinese robots) |
+| *Apr 2029: Access all areas* | The Frontier Inference Services Rule: Tier 1 (the Five Eyes, Japan, South Korea, Taiwan, the Netherlands), most of Europe in Tier 2 (at most 25% of a provider's frontier inference), Tier 3 denied; Europe's allocations roughly halve; ministers are told Tier 2 reflects "the current state of the bilateral relationship" | **Breaking news `compute_rationing`** (Washington rations Europe's AI); the coalition card's failure (partners lured by privileged access); voice `v_eu_official_rationed` |
+| *May 2029: Tilt* | The Commission finds coercion under the Anti-Coercion Instrument; countermeasures fail to reach a qualified majority | (not used: the game's rationing asks a simpler choice) |
+| *Feb 2030: Labour shock* | AI that learns on the job; the worst graduate job market in living memory (Caroline's brother, a logistics graduate) | Voice `v_graduate` (Lille) |
+| *Jun 2030: An offer you can't refuse* | Atlas buys a German carmaker's underused plants to make robots; Berlin's veto meets US car tariffs within 72 hours; the deal returns as a "partnership" | Headline `h_robot_factory`, voice `v_car_plant` (Saxony) |
+| *Aug 2030: Model Collapse* | Corporate tax revenue down, French debt service above 12% of the budget, the French–German spread at its widest; Italy, Spain and Greece downgraded; violent protests; Chinese credit lines; the euro under pressure | Headline `h_bond_spread`; social event `se_bond_strain` (Rome) |
+| *Mar 2031: Between giants* | Washington offers to fold ASML into a US-controlled holding, Beijing counters; Europe chooses between protectorate, China or isolation | Background of the ASML lever (not a separate event: the game ends at the tipping point, usually earlier) |
+
+**The five recommendations** (summary) and where they are in the game:
+
+1. *Compute and supply chains*: tens of gigawatts of compute in Europe, partner with American hyperscalers while keeping infrastructure under European jurisdiction with guaranteed access. → OpenBrain's data-centre request; the rationing's **cloud deal** answer and its echo headline `h_rationing_deal`.
+2. *A coalition of middle powers* (the Netherlands, Germany and France with Norway, the UK, Canada, Japan, South Korea), using its chokepoints as leverage for frontier access or safer models, and perhaps mediating between the US and China. → The **coalition** card (its levels follow this list) and the **ASML lever** (its two options are the two uses of the leverage); headline `h_coalition`.
+3. *Labour markets*: Danish-style flexicurity. → The **flexicurity** card, headline `h_retrain`, voice `v_welder`; the Copenhagen social event keeps its real precedent (Denmark's model).
+4. *Robotics and industrial AI*: Europe can lead in physical AI; screen foreign investment. → Background of `h_squeeze` and the robot-factory items (what happens without it).
+5. *A positive vision*. → Not a mechanic.
+
+**How the game reads Europe 2031**
+
+- **Its clock is slower than AI 2027's**: no self-improving AI by 2031. The game's clock stays AI 2027's; Europe 2031's events are gated on the state of the world, never on its dates: the rationing comes only after AI 2027's *national security* milestone (May 2027, when allies are kept out of the loop), for a Europe whose AI is Dependent and outside a pause; the robot factories and the bond strain come late, for a Dependent Europe.
+- **An Open Europe escapes part of the squeeze**: in Europe 2031 the US–China ban on open frontier models deepens Europe's reliance on American closed models. The game's open-model ban is CFG's; the rationing hits a Dependent Europe only.
+- **Directions follow the text**: Tier 2 rationing hurts Europe's firms (Cohesion) unless Europe makes a deal; a deal with US hyperscalers ties Europe to one camp (Beijing reads it so, as it does the ASML holding in March 2031) and feeds the compute race.
+
+---
+
+## 4. Real-world facts
 
 Real facts shown to players are listed in `src/data/sources.ts` and were checked with WebFetch on 25–26 October 2026 (quotes in `docs/V3_BUILD_NOTES.md`, "Facts checked", and in the content rewrite's realism notes in `docs/V4_BUILD_NOTES.md`). Fiction (OpenBrain, DeepCent, every event after today) is never presented as real, and "Already real" boxes only hold sourced facts (2021–2026).

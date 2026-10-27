@@ -112,11 +112,20 @@ Léa used to be the game's human heart; she had become one feed item among other
 
 A content pass on the decisions, threats, events and endings, from the audit against AI 2027 and CFG (rules in [DEVELOPER_NOTES.md](DEVELOPER_NOTES.md), stretches in [V4_BUILD_NOTES.md](V4_BUILD_NOTES.md), realism notes 18–31):
 
-- **A provenance tag** on every decision card and Breaking news: *Real*, *From AI 2027*, *From CFG* or *Invented* (a game device such as the independent audit).
+- **A provenance tag** on every decision card and Breaking news: *Real*, *From AI 2027*, *From CFG*, *From Europe 2031* (since 27 Oct) or *Invented* (a game device such as the independent audit).
 - **AI 2027's turning point**: the misalignment memo leaks (Breaking news) before the tipping point; Europe can **call for a pause with other capitals**; at the tipping point **Washington's oversight committee votes**, race on or slow down, and its vote moves the final US–China cooperation. The vote shows in Why?, on the end screen, and in the heading line's world.
 - **Europe acts on its own ground**, with real blowback: EU testing before any inspection accord (which needs a crisis or a pause), Washington's chip-tool ban after the ASML lever, labs withholding models after the oversight mandate, the Five Eyes pulling partners away. Weight security and the AI Office protect in part.
 - **New decisions**: a CERN for AI on the gigafactories, chips that prove where they run, a licensing treaty within a pause, a biosecurity pact; **new crises**: Taiwan, a US–China ban on large open models, bioweapon uplift.
 - **The gradual worlds** are picked by how far AI got (Plateau below 70, Big AI from 70; 60 until the rebalancing of 26 Oct), and in Big AI only an Open Europe ends well; three endings retold as CFG tells them (*The agent economy*, *Silicon blackmail*, *Unstable pause*).
+
+
+## Europe 2031, a third scenario (27 Oct)
+
+The game rests on three scenarios: **AI 2027** (the race and its milestones), **CFG, Advanced AI: Possible Futures** (the five worlds and ten endings) and **Europe 2031** (Juijn et al., June 2026, <https://europe2031.ai/>: Europe squeezed between the US and China if it does not act, and its five recommendations). The intro's *Built on* block and the ending's footer name all three; content resting on Europe 2031 is tagged *From Europe 2031*. What it brings (details in [SCENARIO_BASIS.md](SCENARIO_BASIS.md), section 3; stretches in the build notes, realism notes 38–43):
+
+- **Washington rations Europe's AI** (Breaking news, a choice): a US rule puts most of Europe in a capped tier of access to American AI. *Take the cloud deal* (US cloud firms build in Europe under European law: US–China cooperation down a little, AI capabilities up a little) or *Build our own* (years away; firms ration AI meanwhile: Social cohesion down). Only for a Dependent Europe, outside a pause, after AI 2027's national-security milestone; once a game.
+- **The squeeze in the news**: US models and Chinese robots, a US AI giant buying a German carmaker's plants for robots, a million Chinese humanoids a year, bond spreads and the euro; a Commission official's voice; a car worker in Saxony and a graduate in Lille; a march in Rome against cuts (social event).
+- **Re-based**: the coalition of middle powers, the ASML lever, flexicurity and OpenBrain's data-centre request now rest on Europe 2031's recommendations and chapters.
 
 ## Tutorial
 
