@@ -121,11 +121,14 @@ try {
         } else await page.click('#decide [data-action="none"]');
       } else if (await has('.dock:not([hidden]) [data-go="decide"]')) {
         if (!taken.has('dock')) await shot('dock');
-        if (!taken.has('worlds') && decisions >= 1) {
+        // a first game: the heading line (and its Why?) joins in round 2, Europe's AI badge when it first matters
+        if (!taken.has('worlds') && (await visible('#heading-line:not(.early) [data-worlds]'))) {
           await page.click('[data-worlds]');
           await advance(page, 300);
           await shot('worlds');
           await escape();
+        }
+        if (!taken.has('badge') && (await visible('.badge-btn'))) {
           await page.click('.badge-btn');
           await advance(page, 300);
           await shot('badge');
