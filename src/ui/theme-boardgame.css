@@ -105,7 +105,7 @@ kbd { font-family: var(--f-body); font-weight: 700; border-radius: 6px; border-w
 .sub { font-family: var(--f-display); font-weight: 500; font-size: 14px; letter-spacing: .08em; }
 #date { font-family: var(--f-display); font-weight: 600; font-size: 24px; letter-spacing: 0; }
 .rounds { grid-auto-columns: 12px; gap: 4px; }
-.rounds li { height: 12px; border-radius: 50%; background: #e8d8b8; box-shadow: inset 0 1px 2px rgb(90 60 20 / .25); }
+.rounds li { width: 12px; height: 12px; border-radius: 50%; background: #e8d8b8; box-shadow: inset 0 1px 2px rgb(90 60 20 / .25); }
 .rounds li i { background: #b5a083; }
 .rounds li.now i { background: var(--align-fill); }
 .rounds li.now { box-shadow: 0 0 0 2px var(--align); }
@@ -408,7 +408,7 @@ kbd { font-family: var(--f-body); font-weight: 700; border-radius: 6px; border-w
 
 /* the header keeps one row on a laptop: Fredoka is wider than the condensed face it replaces */
 .rounds { grid-auto-columns: 10px; gap: 3px; }
-.rounds li { height: 10px; }
+.rounds li { width: 10px; height: 10px; }
 .top .inf-why { max-width: 150px; }
 @media (max-width: 1400px) { .top .phase { display: none; } }
 /* the decisions' bar: "6 of 9" in one gold pill */
