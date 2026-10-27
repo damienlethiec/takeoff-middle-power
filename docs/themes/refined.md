@@ -10,7 +10,7 @@ Preview: https://damienlethiec.github.io/takeoff-middle-power/preview/theme-refi
 4. One colour per gauge, everywhere it appears (icon, number, bar, card effects, the map, the news); green and red only for good and bad; everything else is neutral, including the interface's own accent (focus, selection, the main button are ink).
 5. Frames only on what can be pressed: surfaces (gauges, map, news, panels, modals) lose their borders; buttons, cards and answers keep a 3:1 outline.
 
-## Token changes (`src/ui/styles.css` `:root`, rules in `src/ui/refined.css`)
+## Token changes (`src/ui/styles.css` `:root`, its rules at the end of `src/ui/styles.css` since 27 Oct)
 
 | Token | Before | After |
 |---|---|---|
@@ -27,7 +27,7 @@ Preview: https://damienlethiec.github.io/takeoff-middle-power/preview/theme-refi
 | Scales | ad hoc | spacing `--s1..--s5` (4, 8, 12, 16, 24), radius `--r-s/m/l` (8, 12, 16) |
 | Type | body 15 px; mono 10–12 px capitals for labels | body 16 px; labels 13–15 px sentence case; gauge names 15.5 px bold; numbers 38 px |
 
-Markup changes: only the four gauge icons get a class (`gi-<gauge>`, `src/ui/fx.ts`) so they wear their colour everywhere, and `src/main.ts` loads `refined.css` after `styles.css`. No logic, no new strings. The end page's call to action (inline styles in `ending.ts`) is restyled from CSS.
+Markup changes: only the four gauge icons get a class (`gi-<gauge>`, `src/ui/fx.ts`) so they wear their colour everywhere, (the theme's rules first lived in `src/ui/refined.css`, loaded after `styles.css`; on adoption, 27 Oct, they moved to the end of `styles.css`, order kept). No logic, no new strings. The end page's call to action (inline styles in `ending.ts`) is restyled from CSS.
 
 ## Screenshots (`docs/screenshots/theme-refined/`)
 
@@ -57,4 +57,4 @@ Cons
 - Less "war room" drama: the map and the decisions feel quieter; US vs China no longer read as rival colours.
 - Bigger type takes room: the AI progress caption wraps to two lines at 1280 px, and the map is a little shorter.
 - The white main button is strong but plain; the brand loses its teal signature.
-- `refined.css` overrides `styles.css` rather than replacing it: if adopted, fold it into `styles.css` to avoid two sources of truth.
+- Adopted on 27 Oct: the rules now sit at the end of `styles.css` (same order, same result). A later clean-up can fold each override into the rule it refines.

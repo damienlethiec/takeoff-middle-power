@@ -1,6 +1,5 @@
 import './ui/fonts.css';
 import './ui/styles.css';
-import './ui/refined.css';
 import { engine } from './engine';
 import { onLangChange, setLang, t } from './i18n';
 import { App } from './ui/app';
