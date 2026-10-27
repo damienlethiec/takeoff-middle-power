@@ -48,7 +48,7 @@ export async function showBadge(ai: EuropeAi, locked: boolean): Promise<void> {
      <p>${esc(
        locked
          ? t('ui.badge.changesLocked', 'It turns Open when you fund open models; it turns Dependent when you make labs lock down their models, or pass a rule that makes labs withhold their models (unless Europe funded its own). It is now locked: Europe gave in to the labs.')
-         : t('ui.badge.changes', 'It turns Open when you fund open models; it turns Dependent when you make labs lock down their models, or pass a rule that makes labs withhold their models (unless Europe funded its own), or if Europe gives in to silicon blackmail.'),
+         : t('ui.badge.changes', 'It turns Open when you fund open models; it turns Dependent when you make labs lock down their models, or pass a rule that makes labs withhold their models (unless Europe funded its own), or if Europe gives in when the labs threaten to cut it off.'),
      )}</p>
      ${close()}`,
     { cls: 'info', label: t('ui.badge.label', 'Europe’s AI'), describedBy: '.why' },
@@ -116,7 +116,7 @@ export async function showInfluenceHelp(influence: number, inc: IncomeView): Pro
      <p>${inc.nextRoundExists ? `<b class="num">${sign(inc.next)}</b>: ${esc(inc.reasons.map(tr).join(' · '))}` : esc(t('ui.influence.last', 'No next round: this is your last Influence.'))}</p>
      <p class="label">${esc(t('ui.influence.more', 'To earn more'))}</p>
      <p>${esc(
-       t('ui.influence.howMore', 'Keep Europe together (Social cohesion {high}+) and build the coalition. Some cards cost Influence for a while: safety nets for AI layoffs {flex} a round for {flexRounds} rounds, the cyber shield {cyber} a round for {cyberRounds} rounds.', {
+       t('ui.influence.howMore', 'Keep Europe together (Social cohesion {high}+) and build the coalition. Some cards cost Influence for a while: helping workers learn new jobs {flex} a round for {flexRounds} rounds, shielding hospitals {cyber} a round for {cyberRounds} rounds.', {
          high: I.highCohesion,
          flex: sign(C.flexicurity.influence),
          flexRounds: C.flexicurity.rounds,

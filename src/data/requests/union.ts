@@ -8,7 +8,7 @@ export const UNION: RequestCard[] = [
   {
     id: 'un_agent_tax',
     character: 'union',
-    text: 'Firms that replace workers with AI agents should pay for it. Push for an EU levy on the agents, with every euro spent on retraining.',
+    text: 'Firms that replace workers with AI agents should pay for it. Push for an EU tax on the agents, with every euro spent on retraining.',
     left: {
       label: 'No new tax',
       stance: 'refuse',
@@ -17,7 +17,7 @@ export const UNION: RequestCard[] = [
       reaction: 'So the profits stay private.',
     },
     right: {
-      label: 'Push for the levy',
+      label: 'Push for the tax',
       stance: 'accept',
       effects: { cohesion: 6 },
       later: { rounds: 2, effects: { cohesion: -3, ai: -1 }, why: 'Some firms move abroad' },

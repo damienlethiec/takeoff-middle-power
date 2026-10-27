@@ -138,7 +138,7 @@ describe('Influence', () => {
     const after = playCard(flex, { id: 'flexicurity' });
     const inc = nextIncome(after);
     expect(inc.next).toBe(1);
-    expect(inc.reasons.join(' ')).toContain('Back safety nets for AI layoffs');
+    expect(inc.reasons.join(' ')).toContain('Help workers learn new jobs');
   });
 
   it('never pays less than the minimum', () => {
@@ -204,7 +204,7 @@ describe('cards', () => {
     const pause = { ...s, cooperation: 62 };
     const b = play(pause, { id: 'inspections' });
     expect(b.cooperation - pause.cooperation).toBe(T.cards.inspections.cooperation[1]);
-    expect(nextIncome(b).reasons.join(' ')).toMatch(/Push for inspections −1/);
+    expect(nextIncome(b).reasons.join(' ')).toMatch(/Inspect the AI labs −1/);
   });
 
   it('AI Office capacity halves the margin', () => {

@@ -617,7 +617,7 @@ function eventOptions(s: GameState, id: EventId, prepared: boolean): { id: strin
       {
         id: 'protest',
         label: 'Protest',
-        detail: s.europeAi === 'open' ? 'Washington threatens to withdraw American AI from Europe; Europe’s own open models blunt the threat.' : 'Washington threatens to withdraw American AI from Europe: the silicon blackmail threat grows.',
+        detail: s.europeAi === 'open' ? 'Washington threatens to withdraw American AI from Europe; Europe’s own open models blunt the threat.' : 'Washington threatens to withdraw American AI from Europe: the threat to cut Europe off grows.',
       },
     ];
   if (id === 'open_ban')
@@ -1539,7 +1539,7 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
       notes.push(
         used(base, 'open_models')
           ? 'Some labs keep their newest models out of Europe; Europe’s own open models keep it Open.'
-          : 'Some labs keep their newest models out of Europe: Europe’s AI turns Dependent, and the big labs threaten to pull out (silicon blackmail).',
+          : 'Some labs keep their newest models out of Europe: Europe’s AI turns Dependent, and the big labs threaten to cut Europe off.',
       );
     if (p.id === 'asml') notes.push('Washington will answer with a ban on European chip-tool sales to China.');
     if (p.id === 'inspections' && (base.uses.inspections ?? 0) >= 1) notes.push(`Influence ${signed(T.cards.inspections.influence)} next round: the superpowers resist letting foreigners in.`);
@@ -2115,7 +2115,7 @@ function shortfall(key: GaugeKey, gap: number): string {
   if (key === 'confidence')
     return `${GAUGE_LABEL.confidence} needed ${gap} more point${gap > 1 ? 's' : ''}. AI safety research raises the real value; the AI Office, inspections and audits show you where it stands.`;
   if (key === 'cohesion')
-    return `${GAUGE_LABEL.cohesion} needed ${gap} more point${gap > 1 ? 's' : ''}. Safety nets for AI layoffs, human sign-off on AI and open models lift it; a cyber shield and those safety nets protect it from shocks.`;
+    return `${GAUGE_LABEL.cohesion} needed ${gap} more point${gap > 1 ? 's' : ''}. Helping workers learn new jobs, human sign-off on AI and open models lift it; shielding hospitals from hackers and helping workers protect it from shocks.`;
   return `${GAUGE_LABEL[key]} needed ${gap} more.`;
 }
 

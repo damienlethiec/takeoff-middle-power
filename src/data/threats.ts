@@ -32,7 +32,7 @@ export interface ThreatDef {
 export const THREATS: ThreatDef[] = [
   {
     id: 'theft',
-    name: 'Model theft',
+    name: 'AI theft',
     region: 'cn',
     where: { lon: 84, lat: 43, place: 'China' },
     certainty: 'likely',
@@ -41,7 +41,7 @@ export const THREATS: ThreatDef[] = [
     ifPrepared: `The theft is cut short, part of the model gets out: AI progress ${n(T.theft.prepared.aiPower)}, US–China cooperation ${n(T.theft.prepared.cooperation)}.`,
     protectedBy: ['weight_security'],
     gauge: 'cooperation',
-    marker: `Model theft: ${n(T.theft.unprepared.cooperation)} if unprepared`,
+    marker: `AI theft: ${n(T.theft.unprepared.cooperation)} if unprepared`,
     stageHeadlines: [
       'Spy agencies warn: the top AI labs are a prime target for spies.',
       'Insiders report unusual interest in the files that hold OpenBrain’s AI.',
@@ -89,7 +89,7 @@ export const THREATS: ThreatDef[] = [
   },
   {
     id: 'ransomware',
-    name: 'Ransomware wave',
+    name: 'Cyberattack wave',
     region: 'eu',
     where: { lon: 24, lat: 46.5, place: 'Europe' },
     certainty: 'likely',
@@ -98,7 +98,7 @@ export const THREATS: ThreatDef[] = [
     ifPrepared: `Defences hold: Social cohesion ${n(T.ransomware.prepared.cohesion)} only.`,
     protectedBy: ['cyber_shield'],
     gauge: 'cohesion',
-    marker: `Ransomware wave: ${n(T.ransomware.unprepared.cohesion)} if unprepared`,
+    marker: `Cyberattack wave: ${n(T.ransomware.unprepared.cohesion)} if unprepared`,
     stageHeadlines: [
       'Police warn of AI-written hacking tools for sale online.',
       'Ransomware attacks on town halls double in a year.',
@@ -108,7 +108,7 @@ export const THREATS: ThreatDef[] = [
   },
   {
     id: 'blackmail',
-    name: 'Silicon blackmail',
+    name: 'Threat to cut Europe off',
     region: 'eu',
     where: { lon: 8, lat: 57.5, place: 'Europe' },
     certainty: 'likely',
@@ -117,7 +117,7 @@ export const THREATS: ThreatDef[] = [
     ifPrepared: 'With its own open models, Europe stands firm at no cost.',
     protectedBy: ['open_models'],
     gauge: 'cohesion',
-    marker: `Silicon blackmail: ${n(T.blackmail.holdFirm.cohesion)} if you hold firm unprepared`,
+    marker: `Threat to cut Europe off: ${n(T.blackmail.holdFirm.cohesion)} if you hold firm unprepared`,
     stageHeadlines: [
       'US labs call Europe’s rules “unworkable”.',
       'Lobbyists hint that AI services in Europe could be “paused”.',
@@ -227,7 +227,7 @@ export const EVENTS: Record<EventId, EventDef> = {
   },
   ransomware: {
     id: 'ransomware',
-    title: 'Ransomware wave',
+    title: 'Cyberattack wave',
     region: 'eu',
     headline: 'BREAKING: Hospitals across Europe hit by AI-written ransomware',
     scene: {
@@ -246,7 +246,7 @@ export const EVENTS: Record<EventId, EventDef> = {
   },
   blackmail: {
     id: 'blackmail',
-    title: 'Silicon blackmail',
+    title: 'Labs threaten to cut Europe off',
     region: 'eu',
     headline: 'BREAKING: Big labs threaten to leave Europe',
     scene: {

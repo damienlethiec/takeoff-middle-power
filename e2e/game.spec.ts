@@ -317,7 +317,7 @@ test.describe('key interactions', () => {
     // one grid of cards, all the same height; each says its effects (icons, and words for screen readers) and opens its Details
     const heights = await dk.locator('.cards:not(.later) .pc-wrap').evaluateAll((els) => [...new Set(els.map((e) => Math.round(e.getBoundingClientRect().height)))]);
     expect(heights).toHaveLength(1);
-    await expect(dk.getByRole('button', { name: /^Details: Diplomatic talks/ })).toBeVisible();
+    await expect(dk.getByRole('button', { name: /^Details: Host US–China talks/ })).toBeVisible();
     // focus lands on a card; nothing is selected yet
     await expect(dk.locator('.pcard:focus')).toHaveCount(1);
     await expect(dk.getByRole('button', { name: 'Pick a card first' })).toBeDisabled();
@@ -325,7 +325,7 @@ test.describe('key interactions', () => {
     const gauges = page.getByRole('region', { name: 'Gauges' });
     await expect(gauges).not.toContainText(/(up|down) (a little|some|a lot)/);
 
-    const talks = dk.getByRole('button', { name: /^Diplomatic talks/ });
+    const talks = dk.getByRole('button', { name: /^Host US–China talks/ });
     await talks.click();
     await expect(talks).toHaveAttribute('aria-pressed', 'true');
     // the preview is on the gauges themselves: "up some" next to the value (words before deciding, never the number
@@ -339,10 +339,10 @@ test.describe('key interactions', () => {
     // nothing committed yet
     expect(Number(await page.locator('#inf-v').textContent())).toBe(inf);
 
-    const office = dk.getByRole('button', { name: /^AI Office capacity/ });
+    const office = dk.getByRole('button', { name: /^Hire testers for the AI Office/ });
     await office.click();
     const cost = async (name: RegExp) => Number((await dk.getByRole('button', { name }).locator('.pc-cost').textContent())!.replace(/\D/g, ''));
-    const spent = (await cost(/^Diplomatic talks/)) + (await cost(/^AI Office capacity/));
+    const spent = (await cost(/^Host US–China talks/)) + (await cost(/^Hire testers for the AI Office/));
     await expect(dk.locator('#dec-inf')).toContainText(`${inf - spent} of ${inf}`);
     await expect(dk.getByRole('button', { name: /^Confirm 2 cards/ })).toBeEnabled();
     // a second click removes a card
@@ -356,21 +356,21 @@ test.describe('key interactions', () => {
     await expect(page.locator('#mapwrap')).toBeVisible();
     await expect(gauges).not.toContainText(/(up|down) (a little|some|a lot)/);
     await dockButton(page, /^Make my decisions/).click();
-    await dk.getByRole('button', { name: /^Diplomatic talks/ }).click();
-    await dk.getByRole('button', { name: /^AI Office capacity/ }).click();
+    await dk.getByRole('button', { name: /^Host US–China talks/ }).click();
+    await dk.getByRole('button', { name: /^Hire testers for the AI Office/ }).click();
     // time stands still while the consequences are checked (the next round's income would follow them)
     await freeze(page);
     await dk.getByRole('button', { name: /^Confirm 2 cards/ }).click();
     await expect(page.locator('#inf-v')).toHaveText(String(inf - spent));
     // what the decisions changed is in the feed's decision items (no line lingers under the heading)
     await expect(page.locator('#heading-why')).toHaveCount(0);
-    await expect(page.locator('#feed-now .fd-item.k-decision', { hasText: 'Diplomatic talks' })).toContainText(/US–China cooperation \d+ → \d+/);
+    await expect(page.locator('#feed-now .fd-item.k-decision', { hasText: 'Host US–China talks' })).toContainText(/US–China cooperation \d+ → \d+/);
     await expect(page.locator('#phase')).toHaveText('Consequences');
     await page.clock.resume();
     // no stop between rounds: the next six months begin by themselves
     await advance(page, 2000);
     await expect(page.locator('#date')).toHaveText('H2 2027');
-    await expect(page.locator('#feed-past')).toContainText('Diplomatic talks');
+    await expect(page.locator('#feed-past')).toContainText('Host US–China talks');
     expect(s.errors).toEqual([]);
   });
 

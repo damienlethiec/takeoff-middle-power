@@ -88,7 +88,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'talks',
     family: 'diplomacy',
-    name: 'Diplomatic talks',
+    name: 'Host US–China talks',
     text: 'Bring US and Chinese diplomats to one table in Geneva. Trust rises a little; at home, some call you soft on rivals.',
     short: 'Host US and Chinese diplomats in Geneva to keep them talking.',
     proposal:
@@ -107,7 +107,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'inspections',
     family: 'oversight',
-    name: 'Push for inspections',
+    name: 'Inspect the AI labs',
     levels: ['Test the labs’ models in Europe', 'Inspection accord', 'Joint inspection agency'],
     text: 'European inspectors test the AI labs’ models. You can check more of their claims; Washington and Beijing resist letting foreigners in.',
     short: 'European inspectors test the labs’ AI models, later inside the labs.',
@@ -128,7 +128,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'ai_office',
     family: 'oversight',
-    name: 'AI Office capacity',
+    name: 'Hire testers for the AI Office',
     text: 'Hire top AI testers for the AI Office. You check far more of the labs’ claims, even when AI thinking turns unreadable. Other budgets pay.',
     short: 'Hire top testers so the AI Office can check the labs’ claims.',
     proposal:
@@ -162,10 +162,10 @@ export const CARDS: CardDef[] = [
   {
     id: 'coalition',
     family: 'diplomacy',
-    name: 'Coalition of middle powers',
+    name: 'Team up with friendly countries',
     levels: ['UK and Norway join', 'Canada joins', 'Japan and Korea join'],
     text: 'Team up with the UK, Norway, Canada, Japan and Korea. Allies add weight; from level 2 they share the load.',
-    short: 'Team up with the UK, Canada, Japan and other middle powers.',
+    short: 'Team up with the UK, Canada, Japan and other mid-sized countries.',
     proposal:
       'Europe builds a small, nimble coalition: the UK and Norway first, then Canada, then Japan and South Korea. Together they speak with one voice in Washington and Beijing. From level 2, allies share the load: +1 Influence every round. Washington may tempt its closest allies away with special access, and compromises cost goodwill at home.',
     example: {
@@ -201,7 +201,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'asml',
     family: 'tech',
-    name: 'Push to use the ASML lever',
+    name: 'Bargain with ASML’s chip machines',
     text: 'ASML, a Dutch firm, alone makes the machines for the best chips. Tie their sales to a deal: labs give way; Washington hits back.',
     short: 'Tie ASML’s chip-machine sales to a deal. You choose the ask.',
     proposal:
@@ -224,7 +224,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'weight_security',
     family: 'oversight',
-    name: 'Lock down AI models',
+    name: 'Guard AI from theft',
     text: 'Labs selling in Europe must guard their model weights, the files that are the AI. Harder to steal, not impossible; only big labs can pay.',
     short: 'Make the labs guard their model files against theft.',
     proposal:
@@ -237,7 +237,7 @@ export const CARDS: CardDef[] = [
       text: 'A 2024 RAND study found that securing model weights against the most capable attackers “will require significantly more investment over the coming years”.',
       source: SOURCES.rand,
     },
-    ups: [up('Model theft: cut short, partly')],
+    ups: [up('AI theft: cut short, partly')],
     downs: [down('Europe’s AI → Dependent, unless it funds its own'), down(COH(C.weight_security.cohesion))],
     face: [{ kind: 'protects', threat: 'theft', partly: true }, { kind: 'europeAi', to: 'Dependent' }, mv('cohesion', C.weight_security.cohesion)],
     protects: 'theft',
@@ -247,7 +247,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'open_models',
     family: 'home',
-    name: 'Fund open models',
+    name: 'Fund open European AI',
     text: 'Fund open European models anyone can run. Europe’s AI turns Open and local firms grow, but criminals get the same tools.',
     short: 'Fund open European AI models that anyone can run.',
     proposal:
@@ -262,7 +262,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'flexicurity',
     family: 'home',
-    name: 'Back safety nets for AI layoffs',
+    name: 'Help workers learn new jobs',
     text: 'Back the Danish model, “flexicurity”: firms adopt AI freely, laid-off workers get pay and retraining. Job shocks soften; unions are wary at first.',
     short: 'Pay and retrain the workers AI puts out of a job.',
     proposal:
@@ -281,7 +281,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'cyber_shield',
     family: 'home',
-    name: 'Cyber shield for hospitals and grids',
+    name: 'Shield hospitals from hackers',
     text: 'Harden hospitals, grids and town halls before AI-written attacks arrive. Ransomware bounces off; the bill strains budgets for a while.',
     short: 'Harden hospitals, grids and town halls against AI-written attacks.',
     proposal:
@@ -300,7 +300,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'oversight_mandate',
     family: 'home',
-    name: 'Human oversight mandate',
+    name: 'Humans sign off on AI decisions',
     text: 'A human must sign off on AI decisions in hospitals, courts and grids. People trust it; some labs withhold their newest models from Europe.',
     short: 'A human signs off on AI decisions in hospitals, courts and grids.',
     proposal:
@@ -314,7 +314,7 @@ export const CARDS: CardDef[] = [
       source: SOURCES.metaEu,
     },
     ups: [up(COH(C.oversight_mandate.cohesion))],
-    downs: [down('Models withheld: Europe’s AI → Dependent'), down('Silicon blackmail threat if Dependent')],
+    downs: [down('Models withheld: Europe’s AI → Dependent'), down('Threat to cut Europe off, if Dependent')],
     face: [mv('cohesion', C.oversight_mandate.cohesion), { kind: 'europeAi', to: 'Dependent' }, { kind: 'risk', what: 'blackmail' }],
     arrives: { round: C.oversight_mandate.arrivesRound },
     basis: cfg('Big AI, Ending B (Silicon blackmail): US firms threaten to withdraw from the EU over its rules'),
@@ -322,7 +322,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'cern_ai',
     family: 'tech',
-    name: 'A CERN for AI safety',
+    name: 'A public lab for AI safety',
     text: 'Give a third of Europe’s new giant AI computer centres to safety research, run like CERN. You can check more; taxpayers ask why.',
     short: 'Give a third of Europe’s big AI computer centres to safety research.',
     proposal:
@@ -340,9 +340,9 @@ export const CARDS: CardDef[] = [
   {
     id: 'chip_verification',
     family: 'tech',
-    name: 'Fund chips that prove where they run',
-    text: 'Fund hardware that lets AI chips prove where they run. A pause becomes checkable; both capitals distrust the idea at first.',
-    short: 'Fund AI chips that can prove where they run.',
+    name: 'Track where AI chips are',
+    text: 'Fund AI chips that can report where they are and what they run. A pause becomes checkable; both capitals distrust the idea at first.',
+    short: 'Fund AI chips that report where they are, so pauses are checkable.',
     proposal:
       'Europe’s toolmakers and chip researchers develop features, hard to fake, that let a chip report where it runs and what it trains. Without them, any pause is a promise nobody can check. Washington and Beijing both suspect the other would cheat, and both suspect Europe’s motives at first: it costs goodwill.',
     ups: [up(COOP(C.chip_verification.cooperation)), up('AI safety: more verified')],
@@ -354,7 +354,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'licensing_treaty',
     family: 'diplomacy',
-    name: 'Push for a licensing treaty',
+    name: 'Treaty to license the strongest AI',
     text: 'In a pause, draft a treaty: the strongest AI only under licence, checked like nuclear power is. Labs lobby hard; prices rise at home.',
     short: 'A treaty: the strongest AI only under licence, checked like nuclear power.',
     proposal:
@@ -419,7 +419,7 @@ export const CARDS: CardDef[] = [
   {
     id: 'pause_call',
     family: 'diplomacy',
-    name: 'Call for a pause with other capitals',
+    name: 'Call for a pause with other countries',
     text: 'The memo is out. Demand a pause with India and others; Beijing joins, Washington cries betrayal. It sways Washington’s new AI committee toward slowing down.',
     short: 'Call for a pause on AI, with India and other capitals.',
     proposal:

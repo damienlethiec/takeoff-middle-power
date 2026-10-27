@@ -35,7 +35,7 @@ export const OPEN_SOURCE: RequestCard[] = [
   {
     id: 'os_exemption',
     character: 'open_source',
-    text: 'Brussels may lower the size at which an AI model counts as a “systemic risk”, with the strictest rules. Push to keep small open models out, or Europe’s open scene dies.',
+    text: 'Brussels may put smaller AI models under its strictest rules. Push to keep small open models out, or Europe’s small AI makers die.',
     left: {
       label: 'Same rules for all',
       stance: 'refuse',

@@ -7,7 +7,7 @@ export const LEA_REQUESTS: RequestCard[] = [
   {
     id: 'lea_retrain',
     character: 'lea',
-    text: 'My agency just replaced half of us with AI. There’s an EU retraining fund, but it takes a year to see a cent. Can you make it faster for people like me?',
+    text: 'My agency just replaced half of us with AI. There’s EU money to help people learn a new job, but it takes a year to see a cent. Can you make it faster for people like me?',
     left: {
       label: 'Rules are rules',
       stance: 'refuse',

@@ -24,7 +24,7 @@ const charRole = (v: RequestView) => tc(`character.${v.character.id}.role`, v.ch
 /** An answer's effects in words, for its accessible name and the announcement when the player looks at it. */
 function answerWords(a: AnswerView): string {
   const parts = [tr(a.words)];
-  if (a.world) parts.push(t('ui.request.worldWouldTurn', 'The world would turn: {world}', { world: tr(a.world) }));
+  if (a.world) parts.push(t('ui.request.worldWouldTurn', 'If takeoff happened now, the world would be: {world}', { world: tr(a.world) }));
   if (a.why) parts.push(t('ui.request.cost', 'Cost: {why}', { why: tr(a.why) }));
   if (a.tag === 'safety') parts.push(safetyTag());
   if (a.tag === 'claim') parts.push(claimTag());

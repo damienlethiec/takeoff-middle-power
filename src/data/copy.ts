@@ -157,7 +157,7 @@ export const HELP = {
     'Requests: the right answer goes along with what is asked, the left one refuses or puts it off. Both cost something.',
     'Influence is your political weight in Brussels and abroad: +2 a round, +1 when Social cohesion is 60 or more, −1 below 35, +1 with coalition level 2. Play as many cards a round as your Influence covers, each card once.',
     'Before you decide, a card shows how much it moves each gauge with arrows: ↑ a little, ↑↑ some, ↑↑↑ a lot (↓ for down). Details says it in words, with the card’s conditions. The numbers show once it is played.',
-    'Diplomacy can fail. The talks, the coalition, accords, the ASML lever, pacts, the pause call and the treaty say how likely they are to work. If one fails, its Influence is spent, nothing else happens, and the news says why.',
+    'Diplomacy can fail. The talks, the coalition, accords, the ASML bargain, pacts, the pause call and the treaty say how likely they are to work. If one fails, its Influence is spent, nothing else happens, and the news says why.',
     'To decide, click the cards you want, as many as your Influence covers: their effect shows on the gauges and the line under them. Nothing happens until you confirm; Play no card saves your Influence.',
   ],
   /** The Privacy section: what the game keeps, and where. The host's statement is linked after the last line. */

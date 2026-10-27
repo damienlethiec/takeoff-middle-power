@@ -95,7 +95,7 @@ export function faceWords(f: Face): string {
         return f.what === 'ransomware'
           ? t('ui.fx.risk.ransomware', 'Risk: the ransomware threat grows')
           : f.what === 'blackmail'
-            ? t('ui.fx.risk.blackmail', 'Risk: the labs threaten to pull out (silicon blackmail)')
+            ? t('ui.fx.risk.blackmail', 'Risk: the labs threaten to cut Europe off')
             : t('ui.fx.risk.chipBan', 'Risk: Washington bans European chip-tool sales');
       case 'reveal':
         return t('ui.fx.reveal', 'Shows the true AI safety for {n} rounds', { n: f.rounds });
