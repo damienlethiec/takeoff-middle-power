@@ -138,6 +138,35 @@ export const WORLD_HEADLINES: MapLine[] = [
     when: (w) => w.aiPower >= 30,
     basis: cfg('Plateau (European policymakers question how all this computing fits decarbonisation targets)'),
   },
+  {
+    id: 'h_squeeze',
+    region: 'eu',
+    text: 'America leads in AI models, China in robots. Europe buys from both and builds little.',
+    when: (w) => w.europeAi === 'dependent' && w.aiPower >= 45,
+    basis: e2031('January 2029: Dreams of a robot economy (Beijing bets on robots while US labs lead in models); Recommendation 4 (Europe can still lead in physical AI)'),
+  },
+  {
+    id: 'h_robot_factory',
+    region: 'eu',
+    text: 'In this story, a US AI giant buys a German carmaker’s idle plants to build robots.',
+    when: (w) => w.europeAi === 'dependent' && w.aiPower >= 62,
+    basis: e2031('June 2030: An offer you can’t refuse (a US AI firm buys a German carmaker’s plants to make robots; Berlin’s veto is met with tariffs)'),
+  },
+  {
+    id: 'h_bond_spread',
+    region: 'eu',
+    text: 'Investors sell French and Italian bonds as AI profits flow to US firms. The euro wobbles.',
+    when: (w) => w.europeAi === 'dependent' && w.aiPower >= 60 && w.cohesion < 50,
+    basis: e2031('August 2030: Model Collapse (tax revenue falls, French borrowing costs pull away from Germany’s, the euro under pressure)'),
+  },
+  {
+    id: 'h_rationing_deal',
+    region: 'eu',
+    text: 'US cloud firms break ground on data centres across Europe, under European law.',
+    when: (w) => flag(w, 'compute_rationing_deal'),
+    echo: true,
+    basis: e2031('Recommendation 1 (partner with American hyperscalers, with infrastructure under European jurisdiction)'),
+  },
   // ------------------------------------------------------------ the US
   {
     id: 'h_agents_lunch',
@@ -324,6 +353,13 @@ export const WORLD_HEADLINES: MapLine[] = [
     when: (w) => at(w, 'geopolitics') && w.zone !== 'rupture',
     basis: ai2027('August 2027 (China’s “overtures to U.S. diplomats lead nowhere”)'),
   },
+  {
+    id: 'h_cn_humanoids',
+    region: 'cn',
+    text: 'In this story, China now builds a million humanoid robots a year.',
+    when: (w) => w.aiPower >= 55,
+    basis: e2031('January 2029: Dreams of a robot economy (annual humanoid production above 1 million units)'),
+  },
 ];
 
 export const VOICES: MapLine[] = [
@@ -486,6 +522,35 @@ export const VOICES: MapLine[] = [
     when: (w) => retraining(w) && w.jobShocks > 0,
     echo: true,
     basis: e2031('Recommendation 3 (flexicurity: retraining for workers whose jobs change)'),
+  },
+  {
+    id: 'v_eu_official',
+    region: 'eu',
+    text: 'A Commission official in Brussels: “We regulate the newest AI. We may not use it.”',
+    when: (w) => w.round <= 5,
+    basis: e2031('November 2025: Worlds apart (the protagonist, a Commission official, may not use frontier AI on her work devices)'),
+  },
+  {
+    id: 'v_eu_official_rationed',
+    region: 'eu',
+    text: 'A Commission official: “I warned them years ago. Now Washington rations our AI.”',
+    when: (w) => flag(w, 'compute_rationing_done'),
+    echo: true,
+    basis: e2031('April 2029: Access all areas (the protagonist’s memo of 2026 went unheeded; “It’s just too late”)'),
+  },
+  {
+    id: 'v_car_plant',
+    region: 'eu',
+    text: 'A car worker in Saxony: “American owners now. The plant makes robots, with fewer of us.”',
+    when: (w) => w.europeAi === 'dependent' && w.aiPower >= 64,
+    basis: e2031('June 2030: An offer you can’t refuse (car plants turned into robot factories under US control)'),
+  },
+  {
+    id: 'v_graduate',
+    region: 'eu',
+    text: 'A logistics graduate in Lille: “A master’s degree, two hundred applications, no job.”',
+    when: (w) => w.jobShocks >= 1,
+    basis: e2031('February 2030: Labour shock (the worst graduate job market in living memory; the protagonist’s brother, a logistics graduate)'),
   },
   {
     id: 'v_pause_call',

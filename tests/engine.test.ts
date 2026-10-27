@@ -394,7 +394,7 @@ describe('threats and events', () => {
 
   it('a prepared AI incident opens the emergency summit for two rounds', () => {
     const s = ripe(
-      fresh(1, { round: 7, aiPower: 64, jobShocks: 2, coalition: 1, inspections: 2, confidence: { truth: 20, estimate: 30, margin: 12 }, milestones: MILESTONES.slice(0, 6).map((m) => ({ id: m.id, round: 1 })) }),
+      fresh(1, { round: 7, aiPower: 64, jobShocks: 2, coalition: 1, inspections: 2, flags: ['compute_rationing_done'], confidence: { truth: 20, estimate: 30, margin: 12 }, milestones: MILESTONES.slice(0, 6).map((m) => ({ id: m.id, round: 1 })) }),
       'incident',
     );
     let hit: GameState | null = null;
@@ -411,7 +411,7 @@ describe('threats and events', () => {
 
   it('an unprepared AI incident still opens the summit; Europe leads it only when prepared', () => {
     const s = ripe(
-      fresh(1, { round: 7, aiPower: 64, jobShocks: 2, confidence: { truth: 20, estimate: 30, margin: 12 }, milestones: MILESTONES.slice(0, 6).map((m) => ({ id: m.id, round: 1 })) }),
+      fresh(1, { round: 7, aiPower: 64, jobShocks: 2, flags: ['compute_rationing_done'], confidence: { truth: 20, estimate: 30, margin: 12 }, milestones: MILESTONES.slice(0, 6).map((m) => ({ id: m.id, round: 1 })) }),
       'incident',
     );
     let hit: GameState | null = null;
@@ -453,6 +453,25 @@ describe('threats and events', () => {
     expect(o.event?.id).toBe('open_ban');
     expect(resolveEvent(o, 'join').europeAi).toBe('dependent');
     expect(resolveEvent(o, 'keep').flags).toContain('open_ban_keep');
+  });
+
+  it('Washington rations Europe’s AI (Europe 2031) once, for a Dependent Europe outside a pause, after the national-security milestone', () => {
+    const ms = MILESTONES.slice(0, 8).map((m) => ({ id: m.id, round: 1 }));
+    expect(ms.map((m) => m.id)).toContain('national_security');
+    const race = fresh(1, { round: 6, aiPower: 63, cooperation: 45, jobShocks: 2, milestones: ms, flags: ['memo_public'] });
+    const r = startRound(race);
+    expect(r.event?.id).toBe('compute_rationing');
+    expect(r.event!.prepared).toBeNull();
+    expect(r.event!.options.map((o) => o.id)).toEqual(['deal', 'own']);
+    const deal = resolveEvent(r, 'deal');
+    expect(deal.cooperation - r.cooperation).toBe(T.events.rationing.deal.cooperation);
+    expect(deal.flags).toEqual(expect.arrayContaining(['compute_rationing_done', 'compute_rationing_deal']));
+    const own = resolveEvent(r, 'own');
+    expect(own.cohesion - r.cohesion).toBe(T.events.rationing.own.cohesion);
+    // never in a pause, never for an Open Europe, never twice
+    expect(startRound({ ...race, cooperation: 70 }).event?.id).not.toBe('compute_rationing');
+    expect(startRound({ ...race, europeAi: 'open' }).event?.id).not.toBe('compute_rationing');
+    expect(startRound({ ...race, flags: [...race.flags, 'compute_rationing_done'] }).event?.id).not.toBe('compute_rationing');
   });
 
   it('a licensing treaty arrives only within a pause, after a tested deal', () => {

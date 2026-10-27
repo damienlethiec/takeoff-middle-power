@@ -203,6 +203,12 @@ export const TUNING = {
      *  `from`, outside the Rupture zone. Join: Europe's AI → Dependent, open developers leave. Keep open: cooperation,
      *  and the ransomware threat grows a stage. */
     openBan: { from: 55, join: { cohesion: -2 }, keep: { cooperation: -4 } },
+    /** Washington rations Europe's access to American AI (Europe 2031, April 2029: the Frontier Inference Services
+     *  Rule puts most of Europe in Tier 2): once AI 2027's national-security milestone is reached, while Europe's AI
+     *  is Dependent, outside the Pause zone. Cloud deal (recommendation 1: US hyperscalers build in Europe under
+     *  European law): Beijing sees Europe pick a side, and the race gets more computers. Build our own: firms ration
+     *  AI for years. */
+    rationing: { deal: { cooperation: -2, aiPower: 1 }, own: { cohesion: -3 } },
   },
 
   /** The geopolitics milestone (AI 2027, August 2027): Five Eyes allies get privileged access. A coalition below

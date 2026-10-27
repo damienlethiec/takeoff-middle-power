@@ -40,6 +40,8 @@ function eventChoice(s: GameState, strat: Strategy, r: RngHolder): string | unde
   if (strat.name === 'passive') return opts[0].id;
   // the others keep Europe's open models when AI looks set to stall (where Europe's AI decides), else join the ban
   if (s.event!.id === 'open_ban') return heading(lite(s)).plateau ? 'keep' : 'join';
+  // Washington's compute rationing: build Europe's own while society holds, else take the cloud deal
+  if (s.event!.id === 'compute_rationing') return s.cohesion >= 55 ? 'own' : 'deal';
   return opts[0].id;
 }
 

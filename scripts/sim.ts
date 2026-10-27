@@ -72,7 +72,7 @@ for (const strat of RUN) {
   );
   const ev = (id: string) => res.filter((x) => x.final.threats[id as 'theft'].struck);
   const fl = (f: string) => pct(res.filter((x) => x.final.flags.includes(f)).length, N);
-  console.log(`turning points: memo ${fl('memo_public')} · pause call ${fl('pause_call')} · committee slows down ${fl('committee_slowdown')} / races ${fl('committee_race')} · chip-tool ban ${fl('chip_ban_done')} · Taiwan ${fl('taiwan_done')} · open-model ban ${fl('open_ban_done')}`);
+  console.log(`turning points: memo ${fl('memo_public')} · pause call ${fl('pause_call')} · committee slows down ${fl('committee_slowdown')} / races ${fl('committee_race')} · chip-tool ban ${fl('chip_ban_done')} · Taiwan ${fl('taiwan_done')} · open-model ban ${fl('open_ban_done')} · compute rationing ${fl('compute_rationing_done')} (deal ${fl('compute_rationing_deal')})`);
   console.log(
     `threats struck (prepared): ${['theft', 'opaque', 'incident', 'ransomware', 'blackmail', 'bio'].map((t) => `${t} ${pct(ev(t).length, N)} (${pct(ev(t).filter((x) => x.final.threats[t as 'theft'].prepared).length, Math.max(1, ev(t).length))})`).join(', ')}`,
   );

@@ -86,6 +86,10 @@ export const TEMPLATES: Record<string, string> = {
   'engine.event.join.detail': 'Europe stops publishing large open models. Europe’s AI turns Dependent; open developers leave: Social cohesion {n}.',
   'engine.event.keep': 'Keep them open',
   'engine.event.keep.detail': 'Washington and Beijing call Europe the leak: US–China cooperation {n}, and the ransomware threat grows.',
+  'engine.event.deal': 'Take the cloud deal',
+  'engine.event.deal.detail': 'US cloud firms build in Europe under European law, access guaranteed. Beijing sees Europe pick a side; the race gets more computers: US–China cooperation {n1}, AI capabilities {n2}.',
+  'engine.event.own': 'Build our own',
+  'engine.event.own.detail': 'Europe builds its own AI computer centres, years away. Meanwhile firms ration AI and prices climb: Social cohesion {n}.',
   // requests
   'engine.answer.cause': '{name}: “{answer}”',
   'engine.answer.realSafety': 'Real safety up (not shown)',

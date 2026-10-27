@@ -8,7 +8,7 @@
 import type { Basis, SocialKind } from '../engine/types';
 import type { PublicWorld } from './mapcontent';
 import { TUNING as T } from './tuning';
-import { ai2027, cfg, real } from './basis';
+import { ai2027, cfg, e2031, real } from './basis';
 import { SOURCES } from './sources';
 
 export type SocialSize = 'small' | 'medium' | 'large';
@@ -384,6 +384,19 @@ export const SOCIAL_EVENTS: SocialEventDef[] = [
     when: jobsArrived,
     basis: real('Europe 2031, recommendation 3 (flexicurity, modelled on Denmark)'),
     source: 'europe2031',
+  },
+  {
+    id: 'se_bond_strain',
+    kind: 'protest',
+    city: 'Rome',
+    country: 'Italy',
+    lon: 12.5,
+    lat: 41.9,
+    headline: 'Italy’s borrowing costs jump as AI profits flow abroad; Rome marches against cuts.',
+    why: 'In Europe 2031, Europe captures little of AI’s value: tax revenue falls, debt costs climb, the euro strains.',
+    effects: [down('medium')],
+    when: (w) => w.europeAi === 'dependent' && w.aiPower >= 58,
+    basis: e2031('August 2030: Model Collapse (corporate tax revenue down, Italy, Spain and Greece downgraded, protests turn violent)'),
   },
   {
     id: 'se_waiting_lists',

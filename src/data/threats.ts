@@ -3,7 +3,7 @@
 // sizes live in TUNING.threats and TUNING.jobShocks.
 
 import type { Basis, CardId, EventId, Fact, GaugeKey, RegionId, ThreatId } from '../engine/types';
-import { ai2027, cfg } from './basis';
+import { ai2027, cfg, e2031 } from './basis';
 import { SOURCES } from './sources';
 import { TUNING } from './tuning';
 
@@ -386,5 +386,24 @@ export const EVENTS: Record<EventId, EventDef> = {
     unpreparedText: 'No pact against bioweapons: it was caught late.',
     fact: null,
     basis: cfg('Take-off: a terrorist group uses a guardrail-free model to plan a bioterrorist attack'),
+  },
+  compute_rationing: {
+    id: 'compute_rationing',
+    title: 'Washington rations Europe’s AI',
+    region: 'us',
+    headline: 'BREAKING: Washington caps how much American AI Europe may use',
+    scene: {
+      unprepared:
+        'A new US rule sorts countries into tiers. Britain, Canada, Japan and Korea keep full access; most of Europe gets a capped share. Firms’ AI is rationed, prices jump. Take a US cloud deal, or build our own?',
+      prepared:
+        'A new US rule sorts countries into tiers. Britain, Canada, Japan and Korea keep full access; most of Europe gets a capped share. Firms’ AI is rationed, prices jump. Take a US cloud deal, or build our own?',
+    },
+    preparedText: '',
+    unpreparedText: '',
+    fact: {
+      text: 'In June 2026, Europe hosted only about 5% of the world’s AI computing power and the US about 80%, by Europe 2031’s estimate.',
+      source: SOURCES.e2031,
+    },
+    basis: e2031('April 2029: Access all areas (the Frontier Inference Services Rule: Tier 1 for the Five Eyes, Japan and South Korea; most of Europe in Tier 2, capped at 25% of a provider’s frontier inference); Recommendation 1 (hyperscaler partnerships under European jurisdiction)'),
   },
 };

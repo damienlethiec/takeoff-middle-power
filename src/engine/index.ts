@@ -562,6 +562,13 @@ function eventFx(s: GameState, id: EventId, choice?: string | null): Fx[] {
         { key: 'cohesion', amount: E.taiwan.cohesion },
         { key: 'aiPower', amount: E.taiwan.aiPower },
       ];
+    case 'compute_rationing':
+      return choice === 'own'
+        ? [{ key: 'cohesion', amount: E.rationing.own.cohesion }]
+        : [
+            { key: 'cooperation', amount: E.rationing.deal.cooperation },
+            { key: 'aiPower', amount: E.rationing.deal.aiPower },
+          ];
     case 'open_ban':
       return choice === 'keep'
         ? [{ key: 'cooperation', amount: E.openBan.keep.cooperation }]
@@ -586,7 +593,7 @@ function eventPrepared(s: GameState, id: EventId): boolean {
 }
 
 /** Events nobody can prepare for (a choice, or a crisis that simply happens) show no "prepared" line. */
-const NO_PREP: EventId[] = ['chip_ban', 'taiwan', 'open_ban'];
+const NO_PREP: EventId[] = ['chip_ban', 'taiwan', 'open_ban', 'compute_rationing'];
 
 /** The cards that prepare Europe for an event (or would have). */
 function eventPreparedBy(id: EventId): CardId[] {
@@ -617,6 +624,15 @@ function eventOptions(s: GameState, id: EventId, prepared: boolean): { id: strin
     return [
       { id: 'join', label: 'Join the ban', detail: `Europe stops publishing large open models. Europe’s AI turns Dependent; open developers leave: ${GAUGE_LABEL.cohesion} ${ch(E.openBan.join.cohesion)}.` },
       { id: 'keep', label: 'Keep them open', detail: `Washington and Beijing call Europe the leak: ${GAUGE_LABEL.cooperation} ${ch(E.openBan.keep.cooperation)}, and the ransomware threat grows.` },
+    ];
+  if (id === 'compute_rationing')
+    return [
+      {
+        id: 'deal',
+        label: 'Take the cloud deal',
+        detail: `US cloud firms build in Europe under European law, access guaranteed. Beijing sees Europe pick a side; the race gets more computers: ${GAUGE_LABEL.cooperation} ${ch(E.rationing.deal.cooperation)}, ${GAUGE_LABEL.aiPower} ${ch(E.rationing.deal.aiPower)}.`,
+      },
+      { id: 'own', label: 'Build our own', detail: `Europe builds its own AI computer centres, years away. Meanwhile firms ration AI and prices climb: ${GAUGE_LABEL.cohesion} ${ch(E.rationing.own.cohesion)}.` },
     ];
   return [];
 }
@@ -696,6 +712,7 @@ function crisisEvent(s: GameState): EventId | null {
   if (once('chip_ban') && (s.flags.includes('us_chip_threat') || (zone === 'rupture' && s.threats.theft.struck))) return 'chip_ban';
   if (once('taiwan') && zone === 'rupture' && s.threats.theft.struck && s.aiPower >= E.taiwan.from) return 'taiwan';
   if (once('open_ban') && s.europeAi === 'open' && zone !== 'rupture' && s.aiPower >= E.openBan.from) return 'open_ban';
+  if (once('compute_rationing') && s.europeAi === 'dependent' && zone !== 'pause' && reached(s, 'national_security')) return 'compute_rationing';
   return null;
 }
 

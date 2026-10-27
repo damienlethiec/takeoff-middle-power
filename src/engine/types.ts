@@ -42,7 +42,7 @@ export type ThreatId = 'theft' | 'opaque' | 'incident' | 'ransomware' | 'blackma
 /** Breaking news: the threats when they strike, the two job shocks, and the scenarios' turning points that are not
  *  threats: the leaked misalignment memo (AI 2027, October 2027), Washington's ban on European chip-tool sales to China
  *  (CFG, Arms race), a Taiwan Strait crisis (AI 2027, CFG), and a US–China ban on large open models (CFG). */
-export type EventId = ThreatId | 'job_shock_1' | 'job_shock_2' | 'memo' | 'chip_ban' | 'taiwan' | 'open_ban';
+export type EventId = ThreatId | 'job_shock_1' | 'job_shock_2' | 'memo' | 'chip_ban' | 'taiwan' | 'open_ban' | 'compute_rationing';
 
 /** AI 2027's Oversight Committee vote (October 2027): race on, or slow down. Held at the tipping point once the memo
  *  has leaked; built from public values only (the leak, Europe's pause call, what is verified, the zone). */
