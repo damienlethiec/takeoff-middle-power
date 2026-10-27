@@ -165,6 +165,12 @@ export function installGlossary() {
     ev.preventDefault();
     show(b, !b.dataset.pinned, 'pin');
   });
+  // a click or tap outside a pinned meaning closes it, like Escape (the dialog under it stays open: see modal.ts)
+  document.addEventListener('pointerdown', (ev) => {
+    const open = document.querySelector<HTMLButtonElement>('.gl-term[aria-expanded="true"][data-pinned]');
+    if (!open || termOf(ev.target) === open || boxOf(ev.target)?.id === open.getAttribute('aria-controls')) return;
+    show(open, false);
+  });
   // the tooltip is placed in screen coordinates: a scroll or a resize closes it rather than leaving it adrift
   const closeAll = () => document.querySelectorAll<HTMLButtonElement>('.gl-term[aria-expanded="true"]').forEach((x) => show(x, false));
   window.addEventListener('scroll', closeAll, true);

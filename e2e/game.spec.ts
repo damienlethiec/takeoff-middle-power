@@ -727,6 +727,56 @@ test.describe('key interactions', () => {
     expect(s.errors).toEqual([]);
   });
 
+  test('a click outside closes a dialog that can be closed (focus back on its trigger), never a request; long dialogs keep a × at the top', async ({ page }) => {
+    const s = await boot(page, '?skipintro&notutorial&seed=9');
+    await advance(page, 600, false);
+    await page.keyboard.press(' ');
+    const outside = () => page.mouse.click(40, 500);
+    // Help: a × in view at the top, the same as Close; a click on the backdrop closes it
+    await page.locator('#help-btn').click();
+    await page.clock.fastForward(100);
+    const help = page.getByRole('dialog', { name: /Help/ });
+    const x = help.locator('.modal-x');
+    await expect(x).toHaveAccessibleName('Close');
+    await expect(x).toBeInViewport();
+    await help.evaluate((el) => el.closest('.overlay')!.scrollTo(0, 99999));
+    await expect(x).toBeInViewport();
+    await outside();
+    await page.clock.fastForward(300);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('#help-btn')).toBeFocused();
+    // Why?: the same, and the × closes it too
+    const why = page.getByRole('button', { name: /^Why\?/ });
+    await why.click();
+    await page.clock.fastForward(100);
+    await outside();
+    await page.clock.fastForward(300);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(why).toBeFocused();
+    await why.click();
+    await page.clock.fastForward(100);
+    await dialog(page).locator('.modal-x').click();
+    await page.clock.fastForward(300);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(why).toBeFocused();
+    // a request waits for an answer: a click outside leaves it open
+    await page.locator('#play').click();
+    let seen = false;
+    for (let i = 0; i < 400 && !seen; i++) {
+      if (await page.locator('.overlay:not(.leaving) .req-card.asking').count()) {
+        await outside();
+        await page.clock.fastForward(300);
+        await expect(page.locator('.overlay:not(.leaving) .req-card.asking')).toHaveCount(1);
+        seen = true;
+      } else if (await dialog(page).count()) await closeDialog(page);
+      else if (await decisions(page).count()) await decisions(page).getByRole('button', { name: 'Play no card' }).click();
+      else if (await dockButton(page, /^Make my/).count()) await dockButton(page, /^Make my/).click();
+      else await advance(page, 200, false);
+    }
+    expect(seen).toBe(true);
+    expect(s.errors).toEqual([]);
+  });
+
   test('glossary words: a button opens the meaning, Escape closes it and keeps the request; Help lists the words', async ({ page }) => {
     const s = await boot(page, '?skipintro&notutorial&seed=4');
     let checked = false;

@@ -131,12 +131,9 @@ async function showDetails(x: Tile, o: { selected: boolean; lever: Tile | null }
      ${c.costLine ? factBox(c.costLine, t('ui.card.realCost', 'What this costs in the real world')) : ''}
      <p class="muted small">${esc(t('ui.basis.basedOn', 'Based on:'))} <span lang="en">${esc(c.basis.ref)}</span>.</p>
      <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.card.back', 'Back to the cards'))} ${kbd('esc')}</button></div>`,
-    { cls: 'info card-details', overlayCls: 'card-ov', label: title, describedBy: '.proposal' },
+    { closeX: true, cls: 'info card-details', overlayCls: 'card-ov', label: title, describedBy: '.proposal' },
   );
-  // centred in the window (a bottom sheet on a phone); a click outside closes it
-  m.overlay.addEventListener('click', (ev) => {
-    if (ev.target === m.overlay) m.el.querySelector<HTMLButtonElement>('[data-escape]')?.click();
-  });
+  // centred in the window (a bottom sheet on a phone); a click outside closes it (modal.ts)
   await m.result;
 }
 

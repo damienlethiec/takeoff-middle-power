@@ -1682,3 +1682,9 @@ kbd { opacity: .75; }
 
 /* The ASML lever's two cards: the one not chosen says, in words, that it uses the same lever */
 .pc-lever { display: flex; gap: 4px; font-size: 12.5px; line-height: 1.32; color: var(--ink); font-style: italic; }
+
+/* A long dialog's × at the top right: sticky, so it stays in view while the dialog (or its backdrop) scrolls */
+.modal-x-bar { position: sticky; top: 6px; height: 0; display: flex; justify-content: flex-end; z-index: 3; }
+.modal-x { flex: none; width: 40px; height: 40px; margin: -12px -14px 0 0; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--edge); background: var(--deck); color: var(--ink); font-size: 24px; line-height: 1; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); }
+.modal-x:hover { border-color: var(--ink); }
+.modal-x-bar + * { padding-right: 36px; }

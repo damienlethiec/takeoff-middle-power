@@ -86,7 +86,7 @@ export async function showIntro(onReplay?: () => void): Promise<void> {
   let focusLang: AnyLang | null = null;
   let replayed = false;
   for (let i = 0; i < INTRO.length; ) {
-    const m = openModal(screenHtml(i, focusLang, !!onReplay && !replayed), { cls: 'intro', overlayCls: 'intro-ov', label: t('ui.intro.label', 'Introduction') });
+    const m = openModal(screenHtml(i, focusLang, !!onReplay && !replayed), { cls: 'intro', overlayCls: 'intro-ov', label: t('ui.intro.label', 'Introduction'), outside: false });
     m.el.setAttribute('aria-label', t('ui.intro.label', 'Introduction'));
     m.el.removeAttribute('aria-labelledby');
     // after a change of language, focus goes back to the language just chosen

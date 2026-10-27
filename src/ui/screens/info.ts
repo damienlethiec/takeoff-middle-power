@@ -30,7 +30,7 @@ export async function showThreat(tv: ThreatView, hand: CardView[]): Promise<void
      ${tv.prepared ? '' : `<p><span class="label-in">${esc(t('ui.threat.ifPrepared', 'If prepared'))}</span> ${esc(tr(tv.ifPrepared))}</p>`}
      <p class="label">${esc(t('ui.threat.protects', 'What protects Europe'))}</p><ul class="plain">${cards.join('')}</ul>
      ${close()}`,
-    { cls: 'info threat-info', label: tr(tv.name), describedBy: '.why' },
+    { closeX: true, cls: 'info threat-info', label: tr(tv.name), describedBy: '.why' },
   );
   await m.result;
 }
@@ -51,7 +51,7 @@ export async function showBadge(ai: EuropeAi, locked: boolean): Promise<void> {
          : t('ui.badge.changes', 'It turns Open when you fund open models; it turns Dependent when you make labs lock down their models, or pass a rule that makes labs withhold their models (unless Europe funded its own), or if Europe gives in when the labs threaten to cut it off.'),
      )}</p>
      ${close()}`,
-    { cls: 'info', label: t('ui.badge.label', 'Europe’s AI'), describedBy: '.why' },
+    { closeX: true, cls: 'info', label: t('ui.badge.label', 'Europe’s AI'), describedBy: '.why' },
   );
   await m.result;
 }
@@ -66,7 +66,7 @@ export async function showLeak(l: Leak, date: string): Promise<void> {
          : `<p class="redacted-body" aria-hidden="true"><span></span><span></span><span class="short"></span></p><p class="why">${esc(t('ui.leak.redacted', 'You lack the oversight to read this one. AI Office testers, inspections and audits let you read leaks. All leaks are revealed at the end.'))}</p>`
      }
      ${close()}`,
-    { cls: 'info leak', label: t('ui.leak.dateline', 'Leak') },
+    { closeX: true, cls: 'info leak', label: t('ui.leak.dateline', 'Leak') },
   );
   await m.result;
 }
@@ -88,7 +88,7 @@ export async function showGaugeHelp(g: GaugeView, text: string): Promise<void> {
      ${g.target !== null ? `<p>${esc(target)}</p>` : ''}
      ${g.markers.map((mk) => `<p class="prep ${mk.prepared ? 'yes' : 'no'}">${mk.prepared ? ICON.check : ICON.alert}<span>${esc(tr(mk.text))}</span></p>`).join('')}
      ${close()}`,
-    { cls: 'info', label, describedBy: '.why' },
+    { closeX: true, cls: 'info', label, describedBy: '.why' },
   );
   await m.result;
 }
@@ -126,7 +126,7 @@ export async function showInfluenceHelp(influence: number, inc: IncomeView): Pro
        }),
      )}</p>
      <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.close', 'Close'))} ${kbd('esc')}</button></div>`,
-    { cls: 'info inf-info', label: t('ui.influence.name', 'Influence'), describedBy: '.why' },
+    { closeX: true, cls: 'info inf-info', label: t('ui.influence.name', 'Influence'), describedBy: '.why' },
   );
   await m.result;
 }

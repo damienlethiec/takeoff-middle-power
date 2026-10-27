@@ -39,7 +39,7 @@ export async function showHelp(opts: {
      <p class="muted small" id="forget-hint">${esc(tc('help.forgetHint', HELP.forgetHint))}</p>
      <p class="muted small">${esc(t('ui.common.copyright', '© 2026 {authors}. All rights reserved.', { authors: AUTHORS }))}</p>
      <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.close', 'Close'))} ${kbd('esc')}</button></div>`,
-    { cls: 'help', label: t('ui.help.dateline', 'Help') },
+    { closeX: true, cls: 'help', label: t('ui.help.dateline', 'Help') },
   );
   m.el.querySelector<HTMLInputElement>('#tut-switch')!.addEventListener('change', (e) => opts.onTutorial((e.target as HTMLInputElement).checked));
   m.el.querySelector<HTMLInputElement>('#keys-switch')!.addEventListener('change', (e) => opts.onShortcuts((e.target as HTMLInputElement).checked));

@@ -338,8 +338,19 @@ export class WorldMap {
           if (r) this.clusters[r].focus();
         }
       });
+      // a click or tap outside an open list closes it, like Escape; focus that was in the list (or on its group)
+      // goes back to the group's button unless the click put it somewhere else
       document.addEventListener('pointerdown', (ev) => {
-        if (this.pop && this.popPinned && !this.pop.contains(ev.target as Node) && !(ev.target as HTMLElement).closest?.('.m-cluster')) this.closePop(true);
+        if (!this.pop || !this.popPinned || this.pop.contains(ev.target as Node) || (ev.target as HTMLElement).closest?.('.m-cluster')) return;
+        const r = this.popRegion;
+        const a = document.activeElement;
+        const had = !!r && (this.pop.contains(a) || a === this.clusters[r]);
+        this.closePop(true);
+        if (had && r)
+          setTimeout(() => {
+            const now = document.activeElement;
+            if (!now || now === document.body || !now.isConnected) this.clusters[r].focus({ preventScroll: true });
+          }, 0);
       });
     }
     const fit = () => {

@@ -2,8 +2,13 @@
 // Enter clicks [data-primary] (unless a control already has focus), Escape clicks [data-escape].
 // Accessibility: each modal is a dialog labelled by its dateline and heading, focus moves in when it opens,
 // Tab is trapped inside, the page behind is inert, and focus returns where it was once the last dialog closes.
+// A click or tap outside the dialog (on its backdrop) acts like Escape: it closes a dialog that can be closed (one with
+// a [data-escape] button) and never one that waits for a choice (Breaking news with options, a request). `closeX` adds
+// a × at the top right that stays in view while a long dialog scrolls (Help, Details, the info dialogs).
 
+import { t } from '../i18n';
 import { flush, liveRegion, reducedMotion, tabbables, tryFocus } from './a11y';
+import { esc } from './format';
 
 export interface ModalHandle {
   el: HTMLElement;
@@ -97,7 +102,7 @@ function labelFromHeading(el: HTMLElement) {
 
 export function openModal(
   html: string,
-  opts: { cls?: string; overlayCls?: string; label?: string; keep?: boolean; describedBy?: string; stacked?: boolean } = {},
+  opts: { cls?: string; overlayCls?: string; label?: string; keep?: boolean; describedBy?: string; stacked?: boolean; outside?: boolean; closeX?: boolean } = {},
 ): ModalHandle {
   flush();
   const prev = document.activeElement as HTMLElement | null;
@@ -116,6 +121,13 @@ export function openModal(
   el.tabIndex = -1;
   el.innerHTML = html;
   labelFromHeading(el);
+  // the × at the top: the same action as the dialog's Escape button, reachable without scrolling
+  const escBtn = el.querySelector<HTMLElement>('[data-escape][data-action]');
+  if (opts.closeX && escBtn)
+    el.insertAdjacentHTML(
+      'afterbegin',
+      `<div class="modal-x-bar"><button type="button" class="modal-x" data-action="${esc(escBtn.dataset.action)}" aria-label="${esc(t('ui.common.close', 'Close'))}"><span aria-hidden="true">×</span></button></div>`,
+    );
   if (opts.describedBy) {
     // what a screen reader reads after the dialog's name when it opens
     const refs = [...el.querySelectorAll<HTMLElement>(opts.describedBy)].map((d) => (d.id ||= `dlg${++ids}-d`));
@@ -152,6 +164,16 @@ export function openModal(
       }
     },
   };
+  // a click or tap on the backdrop (pressed and released there, not a text selection that ends outside) acts like Escape
+  if (opts.outside !== false) {
+    let downOutside = false;
+    // with a glossary word's meaning pinned open, the first click outside closes only that meaning (as Escape does)
+    overlay.addEventListener('pointerdown', (ev) => (downOutside = ev.target === overlay && !document.querySelector('.gl-term[aria-expanded="true"][data-pinned]')));
+    overlay.addEventListener('click', (ev) => {
+      if (ev.target !== overlay || !downOutside || current !== handle || overlay.hasAttribute('inert')) return;
+      el.querySelector<HTMLButtonElement>('[data-escape]:not(:disabled)')?.click();
+    });
+  }
   el.addEventListener('click', (ev) => {
     const b = (ev.target as HTMLElement).closest<HTMLElement>('[data-action]');
     if (!b || !el.contains(b) || (b as HTMLButtonElement).disabled) return;
