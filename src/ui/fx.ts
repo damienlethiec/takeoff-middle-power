@@ -21,14 +21,14 @@ const ring = Array.from({ length: 8 }, (_, i) => {
   return `<circle cx="${(10 + 6.6 * Math.sin(a)).toFixed(2)}" cy="${(10 - 6.6 * Math.cos(a)).toFixed(2)}" r="1.25" fill="currentColor" stroke="none"/>`;
 }).join('');
 
-/** One icon per gauge, and the few others the cards need. */
+/** One icon per gauge (each with its gauge's class, so it wears the gauge's colour everywhere), and the few others the cards need. */
 export const GICON: Record<GaugeKey | 'europeAi' | 'truth' | 'shield' | 'accord' | 'eye' | 'info' | 'lock', string> = {
-  aiPower: svg('<rect x="5" y="5" width="10" height="10" rx="1.6"/><path d="M8 2.5v2.5M12 2.5v2.5M8 15v2.5M12 15v2.5M2.5 8h2.5M2.5 12h2.5M15 8h2.5M15 12h2.5"/>'),
-  confidence: svg('<circle cx="8.5" cy="8.5" r="5.6"/><path d="M12.7 12.7L17.2 17.2"/><path d="M6.1 8.7l1.7 1.7 3-3.3"/>'),
-  cooperation: svg('<circle cx="7.4" cy="10" r="4.6"/><circle cx="12.6" cy="10" r="4.6"/>'),
-  cohesion: svg('<circle cx="10" cy="6.6" r="2.6"/><path d="M5.2 16.8c0-3 2.1-5.1 4.8-5.1s4.8 2.1 4.8 5.1"/><circle cx="4.2" cy="8.6" r="1.8"/><circle cx="15.8" cy="8.6" r="1.8"/><path d="M1.6 15.2c.2-1.9 1.2-3.2 2.8-3.6M18.4 15.2c-.2-1.9-1.2-3.2-2.8-3.6"/>'),
+  aiPower: svg('<rect x="5" y="5" width="10" height="10" rx="1.6"/><path d="M8 2.5v2.5M12 2.5v2.5M8 15v2.5M12 15v2.5M2.5 8h2.5M2.5 12h2.5M15 8h2.5M15 12h2.5"/>', 'ico gi gi-aiPower'),
+  confidence: svg('<circle cx="8.5" cy="8.5" r="5.6"/><path d="M12.7 12.7L17.2 17.2"/><path d="M6.1 8.7l1.7 1.7 3-3.3"/>', 'ico gi gi-confidence'),
+  cooperation: svg('<circle cx="7.4" cy="10" r="4.6"/><circle cx="12.6" cy="10" r="4.6"/>', 'ico gi gi-cooperation'),
+  cohesion: svg('<circle cx="10" cy="6.6" r="2.6"/><path d="M5.2 16.8c0-3 2.1-5.1 4.8-5.1s4.8 2.1 4.8 5.1"/><circle cx="4.2" cy="8.6" r="1.8"/><circle cx="15.8" cy="8.6" r="1.8"/><path d="M1.6 15.2c.2-1.9 1.2-3.2 2.8-3.6M18.4 15.2c-.2-1.9-1.2-3.2-2.8-3.6"/>', 'ico gi gi-cohesion'),
   europeAi: svg(ring),
-  truth: svg('<circle cx="8.5" cy="8.5" r="5.6" stroke-dasharray="2.4 2"/><path d="M12.7 12.7L17.2 17.2"/><path d="M7 7.1a1.6 1.6 0 1 1 2.2 1.5c-.5.2-.7.6-.7 1.1"/><circle cx="8.5" cy="11.6" r=".6" fill="currentColor"/>'),
+  truth: svg('<circle cx="8.5" cy="8.5" r="5.6" stroke-dasharray="2.4 2"/><path d="M12.7 12.7L17.2 17.2"/><path d="M7 7.1a1.6 1.6 0 1 1 2.2 1.5c-.5.2-.7.6-.7 1.1"/><circle cx="8.5" cy="11.6" r=".6" fill="currentColor"/>', 'ico gi gi-confidence'),
   shield: svg('<path d="M10 2.4l6 2.3v4.7c0 3.8-2.6 6.6-6 8.2-3.4-1.6-6-4.4-6-8.2V4.7z"/><path d="M7.3 10.1l1.9 1.9 3.5-3.9"/>'),
   accord: svg('<path d="M5 2.6h7l3 3v11.8H5z"/><path d="M7.5 8h5M7.5 10.6h3.5"/><circle cx="12.2" cy="14.4" r="1.5"/>'),
   eye: svg('<path d="M1.8 10s3-5.4 8.2-5.4 8.2 5.4 8.2 5.4-3 5.4-8.2 5.4S1.8 10 1.8 10z"/><circle cx="10" cy="10" r="2.5"/>'),
