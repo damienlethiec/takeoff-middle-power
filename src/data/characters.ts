@@ -4,7 +4,7 @@
 import type { Character, CharacterId } from '../engine/types';
 
 export const CHARACTERS: Record<CharacterId, Character> = {
-  us_envoy: { id: 'us_envoy', name: 'Dana Whitfield', role: 'US envoy for AI and chips', region: 'us' },
+  us_envoy: { id: 'us_envoy', name: 'Dana Whitfield', role: 'US negotiator for AI and chips', region: 'us' },
   cn_delegate: { id: 'cn_delegate', name: 'Li Wen', role: 'China’s delegate in Geneva', region: 'cn' },
   openbrain_ceo: { id: 'openbrain_ceo', name: 'Marcus Hale', role: 'CEO of OpenBrain (fictional US lab)', region: 'us' },
   researcher: { id: 'researcher', name: 'Dr Ines Moreau', role: 'Independent AI safety evaluator', region: 'eu' },

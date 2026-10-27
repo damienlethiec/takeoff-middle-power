@@ -89,8 +89,8 @@ export const CARDS: CardDef[] = [
     id: 'talks',
     family: 'diplomacy',
     name: 'Diplomatic talks',
-    text: 'Bring US and Chinese envoys to one table in Geneva. Trust rises a little; at home, some call you soft on rivals.',
-    short: 'Host US and Chinese envoys in Geneva to keep them talking.',
+    text: 'Bring US and Chinese diplomats to one table in Geneva. Trust rises a little; at home, some call you soft on rivals.',
+    short: 'Host US and Chinese diplomats in Geneva to keep them talking.',
     proposal:
       'Europe hosts quiet talks between Washington and Beijing on the risks both fear: AI in military command, stolen models, accidents. No treaty, only ways to keep talking. Critics at home say Europe is cosying up to rivals. After each round of talks, the envoys need a round off.',
     example: {
@@ -423,7 +423,7 @@ export const CARDS: CardDef[] = [
     text: 'The memo is out. Demand a pause with India and others; Beijing joins, Washington cries betrayal. It sways Washington’s new AI committee toward slowing down.',
     short: 'Call for a pause on AI, with India and other capitals.',
     proposal:
-      'Europe’s leaders accuse Washington of building an AI it cannot control and host a summit demanding a pause. India and others join; Beijing says yes. Washington’s new oversight committee will vote at the tipping point: race on, or slow down. Your call adds one vote for slowing down. Washington will make you pay for it.',
+      'Europe’s leaders accuse Washington of building an AI it cannot control and host a summit demanding a pause. India and others join; Beijing says yes. Washington’s new oversight committee will vote at takeoff: race on, or slow down. Your call adds one vote for slowing down. Washington will make you pay for it.',
     ups: [up(COOP(C.pause_call.cooperation)), up('One more vote to slow down')],
     downs: [down(`Influence ${n(C.pause_call.influence)} next round`)],
     face: [mv('cooperation', C.pause_call.cooperation), { kind: 'influence', n: C.pause_call.influence, span: 'next' }],

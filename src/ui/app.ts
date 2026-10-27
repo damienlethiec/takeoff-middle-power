@@ -358,7 +358,7 @@ export class App {
     const last = !!this.s.tipping || this.s.round === TUNING.rounds;
     const lastWords = () =>
       this.s.tipping
-        ? t('ui.app.lastTipping', 'AI has reached the tipping point. This is your last round of decisions.')
+        ? t('ui.app.lastTipping', 'AI has taken off. This is your last round of decisions.')
         : this.s.round === TUNING.rounds
           ? t('ui.app.lastRound', 'The last six months. This is your last round of decisions.')
           : t('ui.app.sixMonths', 'Six months have passed: what changed is at the top of the news. The clock is stopped: take your time.');
@@ -809,7 +809,7 @@ export class App {
         <p class="g-sub" aria-hidden="true">${esc(tc(`gauge.${k}.sub`, GAUGE_SUB[k]))}</p>
         <div class="g-line" aria-hidden="true"><span class="g-val num"></span><span class="g-delta"></span><span class="g-after num"></span><span class="g-chip"></span></div>
         <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? '<i class="g-tipzone"></i>' : ''}<i class="g-fill"></i><i class="g-band"></i><i class="g-ghost g-ghost-low" hidden></i><i class="g-ghost" hidden></i><i class="g-target"></i></div>
-        <p class="g-cap" aria-hidden="true">${k === 'aiPower' ? `<span class="long">${esc(tr(TIPPING_LINE(tip)))}</span><span class="short">${esc(t('ui.gauge.tipShort', '{n} = the tipping point', { n: tip }))}</span>` : ''}</p>
+        <p class="g-cap" aria-hidden="true">${k === 'aiPower' ? `<span class="long">${esc(tr(TIPPING_LINE(tip)))}</span><span class="short">${esc(t('ui.gauge.tipShort', 'takeoff at {n}', { n: tip }))}</span>` : ''}</p>
         <p class="sr-only" id="gd-${k}"></p>
       </section>`;
     this.root.innerHTML = `
@@ -1193,7 +1193,7 @@ export class App {
       if (al.innerHTML !== alerts) al.innerHTML = alerts;
       const words =
         g.key === 'aiPower'
-          ? `${t('ui.gauge.descAi', '{n} out of 100. At 80, AI starts improving itself: the tipping point, where the world’s ending is decided.', { n: v })}${g.eta ? ` ${tr(g.eta)}` : ''}`
+          ? `${t('ui.gauge.descAi', '{n} out of 100. It only goes up. At 80, AI takes off: it improves itself, too fast to steer, and the game ends.', { n: v })}${g.eta ? ` ${tr(g.eta)}` : ''}`
           : safety
             ? safety.audited
               ? t('ui.gauge.descAudited', '{n}, audited: the true value.', { n: v })
@@ -1262,8 +1262,8 @@ export class App {
         if (eta) {
           const m = /in ~(\d+)(?:–(\d+))? rounds?/.exec(eta);
           const when = m ? (m[2] ? t('ui.gauge.etaRange', '~{lo}–{hi} rounds', { lo: m[1], hi: m[2] }) : tn('ui.gauge.eta', Number(m[1]), { one: '~{n} round', other: '~{n} rounds' })) : null;
-          const tipped = t('ui.gauge.tipped', 'tipped');
-          chipHtml = both(esc(when ? t('ui.gauge.tippingIn', 'tipping in {when}', { when }) : tipped), esc(when ?? tipped));
+          const tipped = t('ui.gauge.tipped', 'took off');
+          chipHtml = both(esc(when ? t('ui.gauge.tippingIn', 'takeoff in {when}', { when }) : tipped), esc(when ?? tipped));
           chipCls += ' eta';
         }
       } else {

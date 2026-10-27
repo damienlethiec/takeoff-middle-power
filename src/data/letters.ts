@@ -41,7 +41,7 @@ export const LEA_FIRST: LetterDef[] = [
   lea(
     'r1_manual',
     'hopeful',
-    'Dear old friend, it’s Léa! So you’re an envoy now! I told everyone at the market. Here, the agency bought an AI tool. It translated a whole washing-machine manual overnight. Not bad, not great. My boss keeps smiling at it. I keep my dictionaries close. L.',
+    'Dear old friend, it’s Léa! So you speak for Europe on AI now! I told everyone at the market. Here, the agency bought an AI tool. It translated a whole washing-machine manual overnight. Not bad, not great. My boss keeps smiling at it. I keep my dictionaries close. L.',
     ai2027('Early 2026: Coding Automation'),
   ),
   lea(

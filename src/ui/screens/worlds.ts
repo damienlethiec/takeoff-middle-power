@@ -29,8 +29,8 @@ function committeeLine(c: NonNullable<HeadingView['committee']>): string {
     shift: `${c.shift > 0 ? '+' : '−'}${Math.abs(c.shift)}`,
   };
   return c.outcome === 'slowdown'
-    ? th('ui.worlds.committeeSlow', '{who} would vote {votes} to slow down if AI tipped now. Its vote moves {gauge} by {shift} at the tipping point (included above).', vars)
-    : th('ui.worlds.committeeRace', '{who} would vote {votes} to race on if AI tipped now. Its vote moves {gauge} by {shift} at the tipping point (included above).', vars);
+    ? th('ui.worlds.committeeSlow', '{who} would vote {votes} to slow down if takeoff happened now. Its vote moves {gauge} by {shift} at takeoff (included above).', vars)
+    : th('ui.worlds.committeeRace', '{who} would vote {votes} to race on if takeoff happened now. Its vote moves {gauge} by {shift} at takeoff (included above).', vars);
 }
 
 /** With `h` (where the world is heading now), the dialog opens on that world and how to change course. */
@@ -40,7 +40,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
   const z = T.zones;
   const zone = (id: 'rupture' | 'race' | 'pause') => tc(`zone.${id}`, WORLDS[id].name);
   const diagram = `<div class="wd" aria-hidden="true">
-      <p class="wd-k">${esc(t('ui.worlds.ifTips', 'If AI tips (capabilities reach {n}), {gauge} picks the world', { n: T.tippingAt, gauge: gaugeName('cooperation') }))}</p>
+      <p class="wd-k">${esc(t('ui.worlds.ifTips', 'If AI takes off (AI progress reaches {n}), {gauge} picks the world', { n: T.tippingAt, gauge: gaugeName('cooperation') }))}</p>
       <div class="wd-zones">
         <span class="wd-z w-rupture${here('rupture')}"><b>${esc(zone('rupture'))}</b><small>${esc(t('ui.worlds.below', 'below {n}', { n: z.race }))}</small>${youAreHere('rupture')}</span>
         <span class="wd-z w-race${here('race')}"><b>${esc(zone('race'))}</b><small>${z.race}–${z.pause - 1}</small>${youAreHere('race')}</span>
@@ -48,7 +48,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
       </div>
       <p class="wd-k">${esc(t('ui.worlds.ifStalls', 'If AI stalls (never reaches {n}), how far it got picks it', { n: T.tippingAt }))}</p>
       <div class="wd-plat">
-        <span class="wd-z w-plateau_open${here('plateau_open')}"><b>${esc(worldName('plateau_open'))}</b><small>${esc(t('ui.worlds.capBelow', 'capabilities below {n}', { n: T.plateau.bigAiFrom }))}</small>${youAreHere('plateau_open')}</span>
+        <span class="wd-z w-plateau_open${here('plateau_open')}"><b>${esc(worldName('plateau_open'))}</b><small>${esc(t('ui.worlds.capBelow', 'AI progress below {n}', { n: T.plateau.bigAiFrom }))}</small>${youAreHere('plateau_open')}</span>
         <span class="wd-z w-plateau_labs${here('plateau_labs')}"><b>${esc(worldName('plateau_labs'))}</b><small>${esc(t('ui.worlds.capAbove', '{n} or more; Europe’s AI must be Open', { n: T.plateau.bigAiFrom }))}</small>${youAreHere('plateau_labs')}</span>
       </div>
     </div>`;
@@ -68,7 +68,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
   }).join('');
   const now = h
     ? `<section class="wd-now" aria-labelledby="wd-now-h">
-         <h3 id="wd-now-h">${h.plateau ? th('ui.worlds.nowStalls', 'If AI stalls, you are heading for {world}', { world: worldChip(h.world, tr(h.name)) }) : th('ui.worlds.nowTipped', 'If AI tipped now, you would be in {world}', { world: worldChip(h.world, tr(h.name)) })}</h3>
+         <h3 id="wd-now-h">${h.plateau ? th('ui.worlds.nowStalls', 'If AI stalls, you are heading for {world}', { world: worldChip(h.world, tr(h.name)) }) : th('ui.worlds.nowTipped', 'If takeoff happened now, you would be in {world}', { world: worldChip(h.world, tr(h.name)) })}</h3>
          <p>${esc(tr(h.meaning))} ${esc(tc(`world.${h.world}.explain`, WORLDS[h.world].explain))}</p>
          <p>${esc(
            t('ui.worlds.nowNeeds', 'To end well here: {gauge} must reach {bar} (you: {you}, {status}), and {net} must stay at {floor} or more (you: {you2}, {status2}).', {
@@ -96,7 +96,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
   const m = openModal(
     `<div class="dateline">${esc(h ? t('ui.worlds.datelineWhy', 'Why this world') : t('ui.worlds.datelineAll', 'The five worlds'))}</div>
      <h2>${esc(t('ui.worlds.title', 'Where the world can go'))}</h2>
-     <p class="why">${esc(t('ui.worlds.intro', 'The game ends when AI reaches the tipping point, or in late 2031. What the world looks like then decides how hard a good ending is: the calmer the world, the lower the bar.'))}</p>
+     <p class="why">${esc(t('ui.worlds.intro', 'The game ends when AI takes off, or in late 2031. What the world looks like then decides how hard a good ending is: the calmer the world, the lower the bar.'))}</p>
      ${now}
      ${diagram}
      ${badge}

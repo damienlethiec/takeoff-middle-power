@@ -334,7 +334,7 @@ test.describe('key interactions', () => {
     await expect(gauges).not.toContainText(/→ \d+/);
     await expect(talks).toContainText(/US–China cooperation: up (a little|some|a lot)/);
     // the line under the gauges and Europe's AI stay in view
-    await expect(page.locator('#hl-text')).toContainText('Heading for');
+    await expect(page.locator('#hl-text')).toContainText('If takeoff happened now:');
     await expect(page.getByRole('button', { name: /^Europe’s AI: (Open|Dependent)/ })).toBeVisible();
     // nothing committed yet
     expect(Number(await page.locator('#inf-v').textContent())).toBe(inf);
@@ -476,7 +476,7 @@ test.describe('key interactions', () => {
     await why.click();
     const d = dialog(page);
     await expect(d.getByRole('heading', { name: 'Where the world can go' })).toBeVisible();
-    await expect(d.getByRole('heading', { level: 3, name: /^If AI tipped now, you would be in/ })).toBeVisible();
+    await expect(d.getByRole('heading', { level: 3, name: /^If takeoff happened now, you would be in/ })).toBeVisible();
     await expect(d.getByRole('heading', { level: 3, name: 'Europe’s AI: Open or Dependent' })).toBeVisible();
     await expect(d.locator('.worlds-list > li')).toHaveCount(5);
     await page.keyboard.press('Escape');
@@ -613,7 +613,7 @@ test.describe('key interactions', () => {
   test('the tutorial shows coach marks once, and can be turned off', async ({ page }) => {
     const s = await boot(page, '?skipintro&seed=4');
     await advance(page, 400);
-    const tip = page.getByRole('dialog', { name: /AI capabilities/ });
+    const tip = page.getByRole('dialog', { name: /AI progress/ });
     await expect(tip).toBeVisible();
     // one tip per gauge: it points at its own gauge only
     await expect(page.locator('.coach-target')).toHaveCount(1);

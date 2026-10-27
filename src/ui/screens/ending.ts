@@ -15,7 +15,7 @@ const inEnglish = () => (lang() === 'en' ? '' : ` <span class="in-en">${esc(t('u
 
 function gaugeRow(g: EndingView['gauges'][number]): string {
   const pct = (x: number) => `${Math.max(0, Math.min(100, x))}%`;
-  const kindWord = g.targetKind === 'tipping' ? t('ui.end.markTipping', 'tipping') : g.targetKind === 'goal' ? t('ui.end.markGoal', 'goal') : t('ui.end.markFloor', 'floor');
+  const kindWord = g.targetKind === 'tipping' ? t('ui.end.markTipping', 'takeoff') : g.targetKind === 'goal' ? t('ui.end.markGoal', 'goal') : t('ui.end.markFloor', 'floor');
   const mark =
     g.target !== null
       ? `<i class="eg-mark ${g.targetKind}" style="left:${pct(g.target)}" aria-hidden="true"></i><span class="eg-mark-l ${g.targetKind}" style="left:${pct(g.target)}" aria-hidden="true">${esc(kindWord)} ${g.target}</span>`
@@ -23,7 +23,7 @@ function gaugeRow(g: EndingView['gauges'][number]): string {
   const verdict = g.met === null ? '' : g.met ? `<span class="eg-v yes">${ICON.check}${esc(t('ui.end.met', 'met'))}</span>` : `<span class="eg-v no">${ICON.cross}${esc(t('ui.end.missed', 'missed'))}</span>`;
   const label = tr(g.label);
   const seen = g.seen ? tr(g.seen) : '';
-  const target = g.target !== null ? (g.targetKind === 'tipping' ? t('ui.end.wordsTipping', 'tipping point {n}', { n: g.target }) : g.targetKind === 'goal' ? t('ui.end.wordsGoal', 'goal {n}', { n: g.target }) : t('ui.end.wordsFloor', 'floor {n}', { n: g.target })) : '';
+  const target = g.target !== null ? (g.targetKind === 'tipping' ? t('ui.end.wordsTipping', 'takeoff {n}', { n: g.target }) : g.targetKind === 'goal' ? t('ui.end.wordsGoal', 'goal {n}', { n: g.target }) : t('ui.end.wordsFloor', 'floor {n}', { n: g.target })) : '';
   const words = `${label}: ${g.value}${seen ? ` (${seen})` : ''}${target ? `, ${target}` : ''}${g.met === null ? '' : `, ${g.met ? t('ui.end.met', 'met') : t('ui.end.missed', 'missed')}`}.`;
   return `<li class="eg">
     <span class="eg-name">${esc(label)} <b class="num">${g.value}</b>${seen ? ` <small>${esc(seen)}</small>` : ''} ${verdict}</span>
@@ -81,8 +81,8 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
       <ul class="cf">${v.committee.reasons.map((r) => `<li>${esc(tr(r))}</li>`).join('')}</ul>
       <p>${
         v.committee.outcome === 'slowdown'
-          ? th('ui.end.committeeSlowMoved', 'Outside AI safety researchers were brought in, and US–China cooperation moved by {n} at the tipping point.', { n: `<b class="num">${signed(v.committee.shift)}</b>` })
-          : th('ui.end.committeeRaceMoved', 'Washington refused to stop, and US–China cooperation moved by {n} at the tipping point.', { n: `<b class="num">${signed(v.committee.shift)}</b>` })
+          ? th('ui.end.committeeSlowMoved', 'Outside AI safety researchers were brought in, and US–China cooperation moved by {n} at takeoff.', { n: `<b class="num">${signed(v.committee.shift)}</b>` })
+          : th('ui.end.committeeRaceMoved', 'Washington refused to stop, and US–China cooperation moved by {n} at takeoff.', { n: `<b class="num">${signed(v.committee.shift)}</b>` })
       } ${provTag({ kind: 'ai2027', ref: 'AI 2027, October 2027: Government Oversight; the race and slowdown endings (votes of 6–4)' })}</p>
     </section>`
         : ''

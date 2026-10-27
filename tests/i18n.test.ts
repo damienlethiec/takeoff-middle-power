@@ -100,13 +100,13 @@ describe('the runtime', () => {
       'engine.change': '{label} : {before} → {after}',
       'engine.list.comma': '{a} ; {b}',
       'engine.date.h1': 'S1 {year}',
-      'engine.eta.one': 'Point de bascule dans ~{n} tour',
-      'engine.eta.other': 'Point de bascule dans ~{n} tours',
+      'engine.eta.one': 'Décollage dans ~{n} tour',
+      'engine.eta.other': 'Décollage dans ~{n} tours',
     });
     expect(tr('Social cohesion 58 → 55')).toBe('Cohésion sociale : 58 → 55');
     expect(tr('US–China cooperation 53 → 56, Social cohesion 67 → 65')).toBe('Coopération États-Unis–Chine : 53 → 56 ; Cohésion sociale : 67 → 65');
     expect(tr('H1 2029')).toBe('S1 2029');
-    expect(tr('Tipping point in ~3 rounds')).toBe('Point de bascule dans ~3 tours');
+    expect(tr('Takeoff in ~3 rounds')).toBe('Décollage dans ~3 tours');
     // unknown text stays English
     expect(tr('Something the catalog never heard of')).toBe('Something the catalog never heard of');
   });

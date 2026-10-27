@@ -115,7 +115,7 @@ export const MILESTONES: MilestoneDef[] = [
     id: 'tipping_point',
     at: AT.tipping_point,
     region: 'us',
-    headline: 'AI now does AI research on its own, fifty times faster than humans. The tipping point.',
+    headline: 'AI now does AI research on its own, fifty times faster than humans. Takeoff.',
     basis: ai2027('September 2027: Agent-4, the Superhuman AI Researcher'),
   },
 ];

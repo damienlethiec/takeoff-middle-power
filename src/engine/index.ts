@@ -1278,7 +1278,7 @@ function blocked(s: GameState, id: CardId): string | null {
   if (!s.hand.includes(id)) return 'Not in your hand.';
   if ((s.uses[id] ?? 0) >= cardUses(id)) return 'Already used up.';
   if (id === 'open_models' && s.europeAiLocked) return 'Locked: Europe gave in to the labs.';
-  if ((s.restUntil[id] ?? 0) >= s.round) return 'The envoys need a round of rest.';
+  if ((s.restUntil[id] ?? 0) >= s.round) return 'The diplomats need a round of rest.';
   if (id === 'inspections' && (s.uses.inspections ?? 0) >= 1 && !inspectionDeal(s)) return 'An accord needs a deal first: an AI incident, the summit, or US–China cooperation 60+.';
   if (id === 'licensing_treaty' && zoneOf(s.cooperation) !== 'pause') return `Only in a pause: US–China cooperation ${T.zones.pause} or more.`;
   if (s.played.some((p) => p.id === id)) return 'Already played this round.';
@@ -1546,7 +1546,7 @@ export function preview(state: GameState, picks: Pick[]): PreviewView {
     if (p.id === 'chip_verification') notes.push(`Influence ${signed(T.cards.chip_verification.influence)} next round: both capitals distrust it at first.`);
     if (p.id === 'alignment' && base.inspections < T.cards.alignment.accessInspections) notes.push('With an inspection accord, your teams would work inside the labs and count for more.');
     if (p.id === 'coalition' && base.coalition + 1 === T.influence.coalitionLevel) notes.push('Allies share the load: Influence +1 every round from now on.');
-    if (p.id === 'talks') notes.push('The envoys rest next round.');
+    if (p.id === 'talks') notes.push('The diplomats rest next round.');
     if (p.id === 'pause_call') notes.push(`One more vote to slow down in Washington’s oversight committee. Influence ${signed(T.cards.pause_call.influence)} next round.`);
   }
   // cards that can fail: the preview shows them working; say so in words
@@ -1717,7 +1717,7 @@ export function heading(s: GameState): HeadingView {
   const plateau = world === 'plateau_open' || world === 'plateau_labs';
   const name = def.name;
   const open = needsOpen(world) ? `, Europe’s AI Open (you: ${s.europeAi === 'open' ? 'Open' : 'Dependent'})` : '';
-  const text = `${plateau ? 'If AI stalls' : 'If AI tipped now'}: ${name}. To end well: ${decides.label} ${w.target} (you: ${decides.you})${open} and ${net.label} ${w.floor} or more (you: ${net.you}).`;
+  const text = `${plateau ? 'If AI stalls' : 'If takeoff happened now'}: ${name}. To end well: ${decides.label} ${w.target} (you: ${decides.you})${open} and ${net.label} ${w.floor} or more (you: ${net.you}).`;
   const vote = s.phase === 'play' && !plateau ? committeeVote(s) : null;
   const committee = vote ? { ...vote, shift: committeeShift(vote) } : null;
   return { world, name, plateau, meaning: def.meaning, basis: def.basis, decides, net, needsOpen: needsOpen(world) ? { now: s.europeAi } : null, committee, alt: alternative(s, world, decides, net), text };
@@ -1761,7 +1761,7 @@ function alternative(s: GameState, world: WorldId, d: HeadingView['decides'], n:
  * test checks it).
  */
 export function tippingEstimate(s: GameState): string | null {
-  if (s.tipping) return 'AI has reached the tipping point.';
+  if (s.tipping) return 'AI has taken off.';
   if (s.round < 1 || s.phase !== 'play') return null;
   const left = T.rounds - s.round;
   if (left <= 0) return null;
@@ -1773,7 +1773,7 @@ export function tippingEstimate(s: GameState): string | null {
   const hi = Math.max(lo, Math.ceil(n * T.eta.high));
   if (hi > T.eta.showWithin || lo > left) return null;
   const top = Math.min(hi, left);
-  return lo >= top ? `Tipping point in ~${lo} round${lo > 1 ? 's' : ''}` : `Tipping point in ~${lo}–${top} rounds`;
+  return lo >= top ? `Takeoff in ~${lo} round${lo > 1 ? 's' : ''}` : `Takeoff in ~${lo}–${top} rounds`;
 }
 
 export function gauges(s: GameState): GaugeView[] {
@@ -2022,11 +2022,11 @@ export function ending(s: GameState): EndingView {
     const p = T.worlds.pause;
     const pauseGood = c.truth >= p.target && s.cohesion >= p.floor;
     cf.push(
-      `With ${GAUGE_LABEL.cooperation} at ${T.zones.pause} or more at the tipping point (you had ${val('cooperation')}), the superpowers would have paused, and ${GAUGE_LABEL.confidence} ${p.target} would have been enough${pauseGood ? `: ${ENDING_BY_ID.licensed_utopia.title.toLowerCase()}` : ''}.`,
+      `With ${GAUGE_LABEL.cooperation} at ${T.zones.pause} or more at takeoff (you had ${val('cooperation')}), the superpowers would have paused, and ${GAUGE_LABEL.confidence} ${p.target} would have been enough${pauseGood ? `: ${ENDING_BY_ID.licensed_utopia.title.toLowerCase()}` : ''}.`,
     );
   }
   if (s.committee?.outcome === 'race' && !s.flags.includes('pause_call') && s.committee.slowdown + 1 >= T.committee.needed)
-    cf.push('Calling for a pause with other capitals after the memo leaked would have tipped Washington’s oversight committee toward slowing down.');
+    cf.push('Calling for a pause with other capitals after the memo leaked would have swayed Washington’s oversight committee toward slowing down.');
   if (!dOk) cf.push(shortfall(w.decides, w.target - dv));
   else if (!nOk) cf.push(shortfall(w.net, w.floor - nv));
   else if (dv - w.target <= 4) cf.push(`It was close: ${label(w.decides)} cleared the bar by only ${dv - w.target}.`);

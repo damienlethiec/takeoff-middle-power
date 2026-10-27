@@ -1,7 +1,7 @@
 // "Words used in the game": the terms that must stay, each defined in 20 plain words or fewer. Shown in Help, and
 // inline: the first time a term appears in a request, an opened card, Breaking news or a threat, it is a button that
 // opens its definition (src/ui/glossary.ts). A definition that states a real fact cites its source; the game's own
-// words (Influence, the tipping point, "verified") say "In this game". Fiction (OpenBrain, DeepCent) is labelled.
+// words (Influence, takeoff, "verified") say "In this game". Fiction (OpenBrain, DeepCent) is labelled.
 
 import type { Basis, Source } from '../engine/types';
 import { ai2027, cfg, game, real } from './basis';
@@ -146,10 +146,10 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     id: 'tipping',
-    term: 'Tipping point',
-    words: 'tipping point',
-    def: 'In this game, the moment AI can do AI research by itself, faster than people, speeding up its own progress.',
-    match: /\btipping point\b/i,
+    term: 'Takeoff',
+    words: 'takeoff, takes off, took off',
+    def: 'In this game, when AI does AI research itself, faster than people: too fast to steer, so the game ends.',
+    match: /\btakeoff\b|\btak(?:es|ing) off\b|\btook off\b/i,
     basis: ai2027('September 2027: Agent-4, the Superhuman AI Researcher'),
   },
   {
@@ -158,7 +158,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     words: 'Influence',
     def: 'In this game, your political weight. You earn some every round and spend it on policy cards.',
     match: /\bInfluence\b/,
-    basis: game('the Envoy’s one resource'),
+    basis: game('the player’s one resource'),
   },
   {
     id: 'ai2027',

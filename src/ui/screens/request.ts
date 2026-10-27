@@ -39,7 +39,7 @@ function answerButton(a: AnswerView): string {
   return `<button type="button" class="ans ans-${a.side}" data-side="${a.side}" aria-keyshortcuts="Arrow${a.side === 'left' ? 'Left' : 'Right'}">
     <span class="ans-top"><kbd aria-hidden="true">${arrow}</kbd><span class="ans-label">${esc(tr(a.label))}</span><span class="sr-only">${esc(words)}</span></span>
     <span class="ans-chips" aria-hidden="true">${a.chips.length ? chips(a.chips, false) : `<span class="chip flat">${esc(noChange())}</span>`}</span>
-    ${a.world ? `<span class="ans-world" aria-hidden="true">${esc(t('ui.request.ifTipped', 'If AI tipped now: {world}', { world: tr(a.world) }))}</span>` : ''}
+    ${a.world ? `<span class="ans-world" aria-hidden="true">${esc(t('ui.request.ifTipped', 'If takeoff happened now: {world}', { world: tr(a.world) }))}</span>` : ''}
     ${a.why ? `<span class="ans-why" aria-hidden="true">${th('ui.request.cost', 'Cost: {why}', { why: `<span class="ans-why-t">${esc(tr(a.why))}</span>` })}</span>` : ''}
     ${tag ? `<span aria-hidden="true">${tag}</span>` : ''}
   </button>`;

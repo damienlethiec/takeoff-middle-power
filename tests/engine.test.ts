@@ -525,7 +525,7 @@ describe('hidden values never leak', () => {
     for (const seed of SEEDS.slice(0, 30)) {
       const s = fresh(seed, { round: 4, aiPower: 66, lastRise: 6 });
       const texts = (['slow', 'steady', 'fast'] as const).map((pace) => gauges({ ...s, pace }).find((g) => g.key === 'aiPower')!.eta);
-      expect(texts[0]).toMatch(/^Tipping point in ~\d/);
+      expect(texts[0]).toMatch(/^Takeoff in ~\d/);
       expect(new Set(texts).size).toBe(1);
       expect(texts[0]).not.toMatch(/slow|steady|fast/);
     }
@@ -593,7 +593,7 @@ describe('heading, report, letters', () => {
   it('the heading line names the world, the goal and the safety net', () => {
     const s = fresh(1, { cooperation: 50, cohesion: 58, confidence: { truth: 58, estimate: 60, margin: 15 } });
     const race = T.worlds.race;
-    expect(heading(s).text).toBe(`If AI tipped now: Race. To end well: AI safety ${race.target} (you: 45 verified, 60 claimed) and Social cohesion ${race.floor} or more (you: 58).`);
+    expect(heading(s).text).toBe(`If takeoff happened now: Race. To end well: AI safety ${race.target} (you: 45 verified, 60 claimed) and Social cohesion ${race.floor} or more (you: 58).`);
     expect(heading(s).meaning).toMatch(/race/i);
     expect(heading(s).basis.kind).toBe('cfg');
     expect(heading(s).decides).toMatchObject({ key: 'confidence', bar: race.target, low: 45, high: 60, met: 'no' });
@@ -749,7 +749,7 @@ describe('endings', () => {
     const v = ending(s);
     expect(v.sentence).toBe(`The superpowers raced. AI safety was 58 (55 verified, the labs claimed 70), below the ${T.worlds.race.target} a race needs: control of AI is lost.`);
     expect(v.reveal.truth).toBe(58);
-    expect(v.counterfactuals[0]).toMatch(/^With US–China cooperation at 60 or more at the tipping point/);
+    expect(v.counterfactuals[0]).toMatch(/^With US–China cooperation at 60 or more at takeoff/);
   });
 
   it('the reveal gives the band the player saw and names what widened it', () => {

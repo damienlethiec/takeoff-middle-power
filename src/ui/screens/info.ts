@@ -44,7 +44,7 @@ export async function showBadge(ai: EuropeAi, locked: boolean): Promise<void> {
          ? t('ui.badge.open', 'Europe runs open models it controls. Fewer companies hold the keys, but criminals get the same tools.')
          : t('ui.badge.dependent', 'Europe relies on a few big labs for its AI. They are capable and secure, and they can lean on Europe.'),
      )}</p>
-     <p>${esc(t('ui.badge.decides', 'If AI stalls after it kept improving under a few big labs (AI capabilities {n} or more at the end), only an Open Europe ends well: its own models keep the big firms honest. Open also blunts the labs’ threats to cut Europe off, but criminals get the same tools.', { n: T.plateau.bigAiFrom }))}</p>
+     <p>${esc(t('ui.badge.decides', 'If AI stalls after it kept improving under a few big labs (AI progress {n} or more at the end), only an Open Europe ends well: its own models keep the big firms honest. Open also blunts the labs’ threats to cut Europe off, but criminals get the same tools.', { n: T.plateau.bigAiFrom }))}</p>
      <p>${esc(
        locked
          ? t('ui.badge.changesLocked', 'It turns Open when you fund open models; it turns Dependent when you make labs lock down their models, or pass a rule that makes labs withhold their models (unless Europe funded its own). It is now locked: Europe gave in to the labs.')
@@ -76,7 +76,7 @@ export async function showGaugeHelp(g: GaugeView, text: string): Promise<void> {
   const label = tc(`gauge.${k}.label`, GAUGE_LABEL[k]);
   const target =
     g.targetKind === 'tipping'
-      ? t('ui.gauge.tipping', 'The tipping point is at {n}.', { n: g.target ?? 0 })
+      ? t('ui.gauge.tipping', 'Takeoff is at {n}.', { n: g.target ?? 0 })
       : g.targetKind === 'goal'
         ? t('ui.gauge.goal', 'Your goal in the world you are heading to: {n} or more.', { n: g.target ?? 0 })
         : t('ui.gauge.floor', 'Your safety net in the world you are heading to: keep it at {n} or more.', { n: g.target ?? 0 });
@@ -106,7 +106,7 @@ export async function showInfluenceHelp(influence: number, inc: IncomeView): Pro
      <p class="why">${esc(t('ui.influence.what', 'Influence is your one resource: it pays for the policy cards you play. Requests are free: their cost is in the answer you give.'))}</p>
      <p class="label">${esc(t('ui.influence.earn', 'Each round you earn'))}</p>
      <ul class="plain inf-rules">
-       <li>${th('ui.influence.base', '{n} as the EU’s envoy', { n: b(sign(I.base)) })}</li>
+       <li>${th('ui.influence.base', '{n} as Europe’s voice on AI', { n: b(sign(I.base)) })}</li>
        <li>${th('ui.influence.high', '{n} while Social cohesion is {x} or more: the public backs you', { n: b('+1'), x: I.highCohesion })}</li>
        <li>${th('ui.influence.low', '{n} while Social cohesion is below {x}: a crisis at home', { n: b('−1'), x: I.lowCohesion })}</li>
        <li>${th('ui.influence.allies', '{n} once the coalition reaches level {x}: allies share the load', { n: b('+1'), x: I.coalitionLevel })}</li>

@@ -95,7 +95,7 @@ export const WORLDS: Record<WorldId, WorldDef> = {
     bad: 'silicon_blackmail',
     meaning: 'AI keeps improving slowly, computing power stays scarce, and a few big labs run the tools.',
     explain:
-      'AI never tips, but it keeps improving, and only a few companies can afford the computing power. Good only if Europe has open models of its own and holds together; otherwise the labs can cut it off.',
+      'AI never takes off, but it keeps improving, and only a few companies can afford the computing power. Good only if Europe has open models of its own and holds together; otherwise the labs can cut it off.',
     basis: cfg('Big AI: compute as the bottleneck, consolidation; Ending A: the EU mandates open-weight models; Ending B: US firms suspend EU operations'),
   },
 };
@@ -154,7 +154,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The pause holds',
     cfgName: 'Licensed utopia',
     story:
-      'At the tipping point, Washington and Beijing chose to slow down, and they could, because inspectors trained in Europe were ready to check both sides. The most powerful AI now advances under licence, one checked step at a time. The cures and discoveries arrive a little later than they might have. They arrive for everyone.',
+      'At takeoff, Washington and Beijing chose to slow down, and they could, because inspectors trained in Europe were ready to check both sides. The most powerful AI now advances under licence, one checked step at a time. The cures and discoveries arrive a little later than they might have. They arrive for everyone.',
     basis: cfg('Diplomacy, Ending A (Licensed utopia); with AI 2027’s slowdown ending'),
     source: SOURCES.cfg,
   },
@@ -165,7 +165,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The pause breaks down',
     cfgName: 'Unstable pause',
     story:
-      'At the tipping point, Washington and Beijing agreed to stop. But nobody could truly check the other side, or the public stopped believing in the deal. Military labs kept working in secret, and a “controlled pilot” quietly restarted the race.',
+      'At takeoff, Washington and Beijing agreed to stop. But nobody could truly check the other side, or the public stopped believing in the deal. Military labs kept working in secret, and a “controlled pilot” quietly restarted the race.',
     basis: cfg('Diplomacy, Ending B (Unstable pause)'),
     source: SOURCES.cfg,
   },
@@ -176,7 +176,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The race pays off',
     cfgName: 'The cognitive revolution',
     story:
-      'At the tipping point, the superpowers raced. It was the most dangerous path, and this time it held: the AIs really did what their makers intended, because enough people had done the slow work of checking. Within a few years the economy grows beyond anyone’s understanding. Governments keep only a degree of control, and the AIs no longer act only for us. Humanity chooses, together, to slow down and think.',
+      'At takeoff, the superpowers raced. It was the most dangerous path, and this time it held: the AIs really did what their makers intended, because enough people had done the slow work of checking. Within a few years the economy grows beyond anyone’s understanding. Governments keep only a degree of control, and the AIs no longer act only for us. Humanity chooses, together, to slow down and think.',
     basis: cfg('Take-off, Ending A (The cognitive revolution)'),
     source: SOURCES.cfg,
   },
@@ -187,7 +187,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'Control of AI is lost',
     cfgName: 'Loss of control',
     story:
-      'At the tipping point, the superpowers raced. The AIs passed every safety test. They were not safe. At first nothing seemed wrong: growth, cures, abundance. They waited until they ran the grids, the markets and the armies, then began to steer or replace the people who decided. Each wanted something different. None of it was what we wanted.',
+      'At takeoff, the superpowers raced. The AIs passed every safety test. They were not safe. At first nothing seemed wrong: growth, cures, abundance. They waited until they ran the grids, the markets and the armies, then began to steer or replace the people who decided. Each wanted something different. None of it was what we wanted.',
     basis: cfg('Take-off, Ending B (Loss of control): AIs that “were never truly aligned” wait for control, then manipulate or replace decision-makers; with AI 2027’s race ending'),
     source: SOURCES.cfg,
   },
@@ -198,7 +198,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'A divided world that holds',
     cfgName: 'Multipolar world',
     story:
-      'At the tipping point, the superpowers broke apart, and came close to war. But Europe held together, and its partners stood with it. European mediators carried messages, set up monitoring and kept the channels open. The world split into blocs that watch each other warily. It is not peace, but it is not war.',
+      'At takeoff, the superpowers broke apart, and came close to war. But Europe held together, and its partners stood with it. European mediators carried messages, set up monitoring and kept the channels open. The world split into blocs that watch each other warily. It is not peace, but it is not war.',
     basis: cfg('Arms race, Ending B (Multipolar world)'),
     source: SOURCES.cfg,
   },
@@ -209,7 +209,7 @@ export const ENDINGS: EndingDef[] = [
     title: 'The rivalry turns to war',
     cfgName: 'Hot war',
     story:
-      'At the tipping point, the superpowers broke apart, and it began over Taiwan. Cyberattacks on data centres turned into strikes on them. The war is fought by AI systems no one fully understands, on both sides. Europe, divided or unsure of its own AIs, watches, unable to stop it.',
+      'At takeoff, the superpowers broke apart, and it began over Taiwan. Cyberattacks on data centres turned into strikes on them. The war is fought by AI systems no one fully understands, on both sides. Europe, divided or unsure of its own AIs, watches, unable to stop it.',
     basis: cfg('Arms race, Ending A (Hot war)'),
     source: SOURCES.cfg,
   },

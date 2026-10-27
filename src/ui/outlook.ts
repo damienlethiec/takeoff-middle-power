@@ -52,15 +52,15 @@ export function headingLineHtml(h: HeadingView, before?: HeadingView): { html: s
   const st = statusOf(d);
   const stWas = was ? statusOf(was) : null;
   const stMoved = !!before && (!was || stWas !== st);
-  const lead = h.plateau ? t('ui.heading.leadStalls', 'AI may stall. Heading for') : t('ui.heading.lead', 'Heading for');
+  const lead = h.plateau ? t('ui.heading.leadStalls', 'AI may stall, leading to') : t('ui.heading.lead', 'If takeoff happened now:');
   const chips = turned ? `${worldChip(before!.world, tr(before!.name))}<span class="hl-arrow" aria-hidden="true">→</span>${worldChip(h.world, tr(h.name))}` : worldChip(h.world, tr(h.name));
   const status = `<span class="hm ${st === 'on track' ? 'yes' : 'no'}">${stMoved && stWas ? `${esc(statusWord(stWas))} → ` : ''}${esc(statusWord(st))}</span>`;
   const goal = th('ui.heading.goal', '{gauge} must reach {bar} {status}', { gauge: esc(tr(d.label)), bar: `<b class="num">${d.bar}</b>`, status });
-  const html = `${before ? `<span class="hl-if">${esc(t('ui.heading.ifConfirm', 'If you confirm:'))}</span> ` : ''}${esc(lead)} ${chips}<span class="hl-colon">:</span> <span class="hl-goal">${goal}</span>`;
+  const html = `${before ? `<span class="hl-if">${esc(t('ui.heading.ifConfirm', 'If you confirm:'))}</span> ` : ''}${esc(lead)} ${chips} <span class="hl-sep" aria-hidden="true">·</span> <span class="hl-goal">${goal}</span>`;
   const open = h.needsOpen ? ` ${t('ui.heading.mustBeOpen', 'Europe’s AI must also be Open (it is {ai}).', { ai: h.needsOpen.now === 'open' ? t('ui.europeAi.open', 'Open') : t('ui.europeAi.dependent', 'Dependent') })}` : '';
   const where = turned ? t('ui.heading.turning', '{a} turning into {b}', { a: a(before!.world), b: a(h.world) }) : a(h.world);
   const state = stMoved && stWas ? t('ui.heading.wouldBecome', '{was} would become {now}', { was: statusWord(stWas), now: statusWord(st) }) : statusWord(st);
-  const words = `${before ? `${t('ui.heading.ifConfirm', 'If you confirm:')} ` : ''}${t('ui.heading.words', '{lead} {where}: {gauge} must reach {bar}, {state}.', { lead, where, gauge: tr(d.label), bar: d.bar, state })}${open} ${t('ui.heading.net', 'Safety net: {gauge} at least {bar}, {status}.', { gauge: tr(h.net.label), bar: h.net.bar, status: statusWord(statusOf(h.net)) })}`;
+  const words = `${before ? `${t('ui.heading.ifConfirm', 'If you confirm:')} ` : ''}${t('ui.heading.words', '{lead} {where}. {gauge} must reach {bar}, {state}.', { lead, where, gauge: tr(d.label), bar: d.bar, state })}${open} ${t('ui.heading.net', 'Safety net: {gauge} at least {bar}, {status}.', { gauge: tr(h.net.label), bar: h.net.bar, status: statusWord(statusOf(h.net)) })}`;
   return { html, words };
 }
 
