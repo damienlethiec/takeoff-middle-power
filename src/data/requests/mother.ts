@@ -22,7 +22,7 @@ export const MOTHER_REQUESTS: RequestCard[] = [
       effects: { cohesion: 3 },
       later: { rounds: 2, effects: { cohesion: -2 }, why: 'A sorting error makes the news' },
       why: 'Untested AI on real patients',
-      reaction: 'Wonderful! I’ll tell the nurses it was my child.',
+      reaction: 'Wonderful! I’ll tell the nurses it was my child who backed it.',
     },
     when: { milestone: 'ai_takes_jobs' },
     basis: { kind: 'real', ref: 'EU AI Act, Annex III, point 5(d) (emergency healthcare patient triage systems are high-risk)' },

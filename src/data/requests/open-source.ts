@@ -35,7 +35,7 @@ export const OPEN_SOURCE: RequestCard[] = [
   {
     id: 'os_exemption',
     character: 'open_source',
-    text: 'Brussels may put smaller AI models under its strictest rules. Push to keep small open models out, or Europe’s small AI makers die.',
+    text: 'Brussels may put smaller AI models under its strictest rules. Push to exempt small open models, or Europe’s small AI makers will die.',
     left: {
       label: 'Same rules for all',
       stance: 'refuse',
@@ -44,7 +44,7 @@ export const OPEN_SOURCE: RequestCard[] = [
       reaction: 'Then only giants can afford to build AI here.',
     },
     right: {
-      label: 'Keep them out',
+      label: 'Exempt small models',
       stance: 'accept',
       effects: { cohesion: 3 },
       badge: 'open',

@@ -72,7 +72,7 @@ export const RESEARCHER: RequestCard[] = [
       reaction: 'Then we learn its flaws once it’s in use.',
     },
     right: {
-      label: 'Attack-test it first',
+      label: 'Stress-test it first',
       stance: 'accept',
       effects: { truth: 4, margin: -3, cohesion: -2 },
       tag: 'safety',

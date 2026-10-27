@@ -35,7 +35,7 @@ export const CN_DELEGATE: RequestCard[] = [
     character: 'cn_delegate',
     text: 'Our companies want time on Europe’s supercomputers and its cloud. Open the door, and our labs will join your safety testing talks.',
     left: {
-      label: 'Keep it closed',
+      label: 'Keep the door shut',
       stance: 'refuse',
       effects: { coop: -3, cohesion: 1 },
       why: 'Beijing calls it a blockade',
@@ -67,7 +67,7 @@ export const CN_DELEGATE: RequestCard[] = [
       stance: 'refuse',
       effects: { coop: -2, cohesion: -2 },
       why: 'Public services pay more',
-      reaction: 'Fear is expensive, Envoy.',
+      reaction: 'Fear is expensive, my friend.',
     },
     right: {
       label: 'Allow them',
@@ -165,7 +165,7 @@ export const CN_DELEGATE: RequestCard[] = [
   {
     id: 'cn_watch_chips',
     character: 'cn_delegate',
-    text: 'Washington and Beijing could both stand down, if each may watch Europe’s chip factories. Our inspectors and theirs, side by side. Will you let them in?',
+    text: 'Washington and Beijing could both stand down, if each could watch Europe’s chip factories. Our inspectors and theirs, side by side. Will you let them in?',
     left: {
       label: 'Our factories, our rules',
       stance: 'refuse',

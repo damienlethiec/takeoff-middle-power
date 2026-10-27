@@ -80,7 +80,7 @@ export const LEA_REQUESTS: RequestCard[] = [
     when: { milestone: 'cheap_remote_worker' },
     basis: { kind: 'ai2027', ref: 'AI 2027, "Jul 2027: The Cheap Remote Worker" (10% of Americans, mostly young people, consider an AI a close friend)' },
     learnMore: {
-      text: 'In AI 2027, by mid 2027 one American in ten, mostly young people, considers an AI “a close friend”.',
+      text: 'In AI 2027, by mid-2027 one American in ten, mostly young people, considers an AI “a close friend”.',
       source: SOURCES.ai2027,
     },
   },

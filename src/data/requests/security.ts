@@ -44,7 +44,7 @@ export const SECURITY: RequestCard[] = [
       reaction: 'Wise, I think. Washington won’t agree.',
     },
     right: {
-      label: 'Back joining in',
+      label: 'Join the attacks',
       stance: 'accept',
       effects: { coop: -6, cohesion: 1 },
       why: 'Beijing sees Europe at war',
@@ -70,7 +70,7 @@ export const SECURITY: RequestCard[] = [
       reaction: 'Quiet it is. For now.',
     },
     right: {
-      label: 'Expose publicly',
+      label: 'Go public',
       stance: 'accept',
       effects: { coop: -4, cohesion: 3 },
       why: 'A diplomatic storm',

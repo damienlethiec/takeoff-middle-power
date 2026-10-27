@@ -8,7 +8,7 @@ export const US_ENVOY: RequestCard[] = [
   {
     id: 'us_chip_controls',
     character: 'us_envoy',
-    text: 'Washington is tightening its ban on selling advanced chips to China. We want Europe’s governments in: no advanced chips or chip-making tools for Chinese labs. Allies stand together, or they don’t.',
+    text: 'Washington is tightening its ban on selling advanced chips to China. We want Europe’s governments on board: no advanced chips or chip-making tools for Chinese labs. Allies stand together, or they don’t.',
     left: {
       label: 'Keep trading',
       why: 'Washington punishes Europe with tariffs',
