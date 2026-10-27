@@ -989,7 +989,8 @@ body.ended { overflow: auto; }
   .heading-line .badge-btn { min-height: 24px; padding: 0 6px; font-size: 12.5px; letter-spacing: .02em; vertical-align: middle; }
   .hl-sep { margin: 0 1px; }
   .hl-stall { font-size: 12.5px; }
-  .hl-text .wchip { font-size: 13px; vertical-align: 1px; }
+  .hl-text .wchip { font-size: 13px; min-height: 0; line-height: 1.25; vertical-align: -2px; }
+  .hl-colon { margin-left: 0; }
   .hl-why { display: inline-block; min-height: 24px; margin-left: 2px; vertical-align: middle; }
   .top-btns { margin-left: auto; }
   .game { padding-bottom: 120px; }
