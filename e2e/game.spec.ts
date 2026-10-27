@@ -512,7 +512,8 @@ test.describe('key interactions', () => {
     await threat.click();
     await expect(dialog(page).getByText('What protects Europe')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(threat).toBeFocused();
+    // the time is frozen: let the dialog's closing run its course
+    await until(page, () => expect(threat).toBeFocused({ timeout: 100 }));
     expect(s.errors).toEqual([]);
   });
 
