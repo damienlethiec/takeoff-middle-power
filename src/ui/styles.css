@@ -1203,3 +1203,15 @@ html:not([lang="en"]) body { hyphens: auto; }
   .top .inf { flex: 0 1 auto; min-width: 0; max-width: calc(100% - 190px); }
   .top .inf-l { min-width: 0; }
 }
+/* while deciding, a selection's preview never changes the gauges' height (27 Oct): the line with the value keeps room
+   for the preview's words with the status chip under them, and the caption room for a second line ("Verified 42
+   up a little · labs claim 56 up a little", longer in German or Polish). The room is taken when the decisions open
+   (the subtitles give theirs back on a laptop), not when a card is selected. */
+.game.deciding .g-line { min-height: 48px; align-content: flex-start; }
+.game.deciding .g-cap { min-height: calc(2em * 1.35); }
+/* the value and its status chip on the first line, the preview's words on the second: never a third */
+.game.deciding .gauge.previewing .g-chip { order: 1; }
+.game.deciding .gauge.previewing .g-after { order: 2; flex-basis: 100%; white-space: normal; line-height: 1.25; }
+@media (max-width: 560px) {
+  .game.deciding .g-line { min-height: 42px; }
+}
