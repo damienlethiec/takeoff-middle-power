@@ -35,7 +35,7 @@ export const LEA_FIRST: LetterDef[] = [
   lea(
     'r1_funeral',
     'hopeful',
-    'Dear old friend, it’s Léa, from Lyon! Congrats on the new job!! Brussels, wow. Here my agency is testing an AI translator. Yesterday it turned a funeral notice into a party invitation. My boss says we will “keep an eye on it”. Come for dinner when you’re back in Lyon? L.',
+    'Dear old friend, it’s Léa, from Lyon! Congrats on the new job!! Brussels, wow. Here, my agency is testing an AI translator. Yesterday it turned a funeral notice into a party invitation. My boss says we will “keep an eye on it”. Come for dinner when you’re back in Lyon? L.',
     ai2027('Mid 2025: Stumbling Agents (impressive but unreliable)'),
   ),
   lea(
@@ -64,7 +64,7 @@ export const LEA_WORK: Record<'hard' | 'calm', LetterDef[]> = {
     lea(
       'r4_cousin',
       'worried',
-      'My cousin Hugo lost his first job, the one in Villeurbanne writing code. They replaced the whole junior team with one AI licence. He’s twenty-three. He slept on my sofa all week. What are you all doing about this? L.',
+      'My cousin Hugo just lost his first job, writing code for a firm in Villeurbanne. They replaced the whole junior team with one AI licence. He’s twenty-three. He slept on my sofa all week. What are you all doing about this? L.',
       jobs,
     ),
     lea(
@@ -103,7 +103,7 @@ export const LEA_LATER: Record<'retrained' | 'rupture' | 'holding' | 'breaking',
     lea(
       'r8_interpreter',
       'relieved',
-      'Guess who finished retraining? I interpret in hospitals now, for doctors and families who don’t share a language. The programme paid my rent while I studied. Today I helped a grandmother understand her own diagnosis. No AI in that room. Thank you for whatever you voted for. L.',
+      'Guess who finished retraining? I interpret in hospitals now, for doctors and families who don’t share a language. The programme paid my rent while I studied. Today I helped a grandmother understand her own diagnosis. No AI in that room. Thank you for whatever you did up there. L.',
       worker,
     ),
     lea(
