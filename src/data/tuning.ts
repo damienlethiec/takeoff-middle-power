@@ -74,7 +74,7 @@ export const TUNING = {
 
   /** Deciding gauge and safety net of each world. */
   worlds: {
-    pause: { decides: 'confidence', target: 60, net: 'cohesion', floor: 42 },
+    pause: { decides: 'confidence', target: 59, net: 'cohesion', floor: 42 },
     race: { decides: 'confidence', target: 62, net: 'cohesion', floor: 47 },
     rupture: { decides: 'cohesion', target: 82, net: 'confidence', floor: 57 },
     plateau_open: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
