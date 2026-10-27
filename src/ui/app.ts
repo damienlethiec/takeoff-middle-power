@@ -17,7 +17,7 @@ import { modalOpen, setFocusFallback, wait } from './modal';
 import { showBreaking } from './screens/breaking';
 import { showDecision } from './screens/decide';
 import { renderEnding } from './screens/ending';
-import { showHelp } from './screens/help';
+import { confirmReplay, showHelp } from './screens/help';
 import { showBadge, showGaugeHelp, showInfluenceHelp, showLeak, showThreat } from './screens/info';
 import { showContinue, showIntro } from './screens/intro';
 import { showWorlds } from './screens/worlds';
@@ -190,8 +190,16 @@ export class App {
       url.searchParams.delete('forgotten');
       history.replaceState(history.state, '', url.toString());
     }
+    // just back from "Replay with the tutorial" (Help): the same, once
+    const replayed = params.has('tutorial');
+    if (replayed) {
+      const url = new URL(location.href);
+      url.searchParams.delete('tutorial');
+      history.replaceState(history.state, '', url.toString());
+    }
     const said = () => {
       if (forgotten) announce(t('ui.app.forgotten', 'Your save and settings are forgotten.'));
+      if (replayed) announce(t('ui.tutorial.on', 'Tutorial on: a new game as a first game, with every tip.'));
     };
     // a saved game: Continue or New game (a ?seed= or ?fresh link always starts a new game, for tests and replays)
     const saved = params.has('seed') || params.has('fresh') ? null : readSave(this.e.createInitialState(1));
@@ -201,7 +209,8 @@ export class App {
     }
     if (!params.has('skipintro')) {
       // showIntro opens its first dialog at once: the message lands in that dialog's live region
-      const intro = showIntro();
+      // a player who finished a game here (or turned the tips off) can get the first-game mode back from the landing
+      const intro = showIntro(this.coach.full ? () => this.coach.replay() : undefined);
       said();
       await intro;
     } else said();
@@ -716,10 +725,29 @@ export class App {
 
   private openHelp() {
     this.openFromMap(() =>
-      showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on), shortcuts: shortcutsOn(), onShortcuts: (on) => setSingleKeyShortcuts(on), tips: Object.values(TIPS).map((t) => ({ round: 0, title: t.title, text: t.text })) }).then((a) => {
+      showHelp({ tutorial: this.coach.enabled, onTutorial: (on) => this.coach.setEnabled(on), shortcuts: shortcutsOn(), onShortcuts: (on) => setSingleKeyShortcuts(on), tips: Object.values(TIPS).map((t) => ({ round: 0, title: t.title, text: t.text })) }).then(async (a) => {
         if (a === 'forget') this.forget();
+        // the clock stays paused while the player decides; Cancel gives focus back to Help's button
+        else if (a === 'replay' && (await confirmReplay())) this.replayTutorial();
       }),
     );
+  }
+
+  /**
+   * "Replay with the tutorial" (Help): a first game again (the dashboard one system at a time, every tip), from the
+   * introduction. Only the tutorial's key changes (Coach.replay); the save of the game in progress goes; sound,
+   * language, shortcuts and the recently seen news stay. The page reloads cleanly, like "Forget my save", and says
+   * why once it is back (?tutorial, read at boot and removed from the address).
+   */
+  private replayTutorial() {
+    this.forgetting = true;
+    this.coach.replay();
+    clearSave();
+    const url = new URL(location.href);
+    url.searchParams.delete('notutorial');
+    url.searchParams.delete('forgotten');
+    url.searchParams.set('tutorial', '');
+    location.replace(url.toString());
   }
 
   /**

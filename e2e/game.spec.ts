@@ -675,6 +675,58 @@ test.describe('key interactions', () => {
     expect(s.errors).toEqual([]);
   });
 
+  test('Replay with the tutorial: Help asks first, then a first game again; the landing offers it; other settings stay', async ({ page }) => {
+    const s = await boot(page, '?skipintro&seed=4');
+    // a tester who finished a game here (tips off), with single-key shortcuts off and news already seen
+    await page.evaluate(() => {
+      localStorage.setItem('takeoff.v4.tutorial', 'done-off');
+      localStorage.setItem('takeoff.singleKeyShortcuts', 'off');
+      localStorage.setItem('takeoff.recent', '{"x":1}');
+    });
+    await page.goto('?skipintro&fresh&seed=4');
+    await advance(page, 600, false);
+    await expect(page.locator('.gauge.g-off')).toHaveCount(0);
+    const replay = async () => {
+      await page.locator('#help-btn').click();
+      await dialog(page).getByRole('button', { name: 'Replay with the tutorial' }).click();
+      await page.clock.fastForward(100);
+      return page.getByRole('dialog', { name: /Start a new game with the tutorial\?/ });
+    };
+    // Cancel (Escape): the game goes on, focus back on Help's button
+    let ask = await replay();
+    await expect(ask).toBeVisible();
+    await expect(ask.getByRole('button', { name: 'Cancel' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await page.clock.fastForward(300);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('#help-btn')).toBeFocused();
+    expect(await page.evaluate(() => localStorage.getItem('takeoff.v4.tutorial'))).toBe('done-off');
+    // confirmed: a new first game, the dashboard one system at a time, and only the tutorial's key changed
+    ask = await replay();
+    await ask.getByRole('button', { name: 'Start with the tutorial' }).click();
+    await page.waitForURL(/tutorial/);
+    await page.clock.fastForward(100);
+    await page.waitForURL((u) => !u.searchParams.has('tutorial'));
+    await advance(page, 400, false);
+    await expect(page.locator('#date')).toHaveText('H1 2027');
+    await expect(page.locator('.gauge.g-off')).toHaveCount(2);
+    await expect(page.getByRole('dialog', { name: /AI progress/ })).toBeVisible();
+    expect(await page.evaluate(() => [localStorage.getItem('takeoff.v4.tutorial'), localStorage.getItem('takeoff.singleKeyShortcuts'), localStorage.getItem('takeoff.recent')])).toEqual(['on', 'off', '{"x":1}']);
+    // the landing: offered only once a game is finished (or tips are off); it turns the first-game mode back on
+    await page.evaluate(() => localStorage.setItem('takeoff.v4.tutorial', 'done'));
+    await page.goto('?fresh&seed=4');
+    await page.clock.fastForward(300);
+    const intro = page.getByRole('dialog', { name: 'Introduction' });
+    await intro.getByRole('button', { name: 'Replay with the tutorial' }).click();
+    await page.clock.fastForward(300);
+    await expect(intro.getByRole('heading', { level: 2 })).toHaveText(INTRO[1].title);
+    expect(await page.evaluate(() => localStorage.getItem('takeoff.v4.tutorial'))).toBe('on');
+    await page.goto('?fresh&seed=4');
+    await page.clock.fastForward(300);
+    await expect(page.getByRole('dialog', { name: 'Introduction' }).getByRole('button', { name: 'Replay with the tutorial' })).toHaveCount(0);
+    expect(s.errors).toEqual([]);
+  });
+
   test('glossary words: a button opens the meaning, Escape closes it and keeps the request; Help lists the words', async ({ page }) => {
     const s = await boot(page, '?skipintro&notutorial&seed=4');
     let checked = false;

@@ -1,5 +1,6 @@
 // Help: the rules in six lines, the keyboard shortcuts, the tutorial switch, every tip and a short privacy note.
-// Resolves 'forget' when the player asks to forget their save and settings (the caller does it), else 'ok'.
+// Resolves 'forget' when the player asks to forget their save and settings, 'replay' for a new game with the
+// tutorial (the caller does both, after asking), else 'ok'.
 
 import { AUTHORS, HELP } from '../../data/copy';
 import { t, tc, tr } from '../../i18n';
@@ -29,6 +30,8 @@ export async function showHelp(opts: {
      <h3>${esc(t('ui.help.tutorial', 'Tutorial'))}</h3>
      <label class="switch"><input type="checkbox" id="tut-switch" aria-describedby="tut-hint" ${opts.tutorial ? 'checked' : ''}/> ${esc(t('ui.help.tutorialSwitch', 'Show tips the first time each part of the screen matters'))}</label>
      <p class="muted small" id="tut-hint">${esc(t('ui.help.tutorialHint', 'In a first game the gauges join the screen one at a time. With tips off, or once you have finished a game, everything shows from round 1.'))}</p>
+     <p class="row-btns"><button type="button" class="btn-quiet small" data-action="replay" aria-describedby="replay-hint">${esc(t('ui.tutorial.replay', 'Replay with the tutorial'))}</button></p>
+     <p class="muted small" id="replay-hint">${esc(t('ui.tutorial.replayHint', 'A new game as a first game: the gauges one at a time and every tip. Your settings stay.'))}</p>
      ${opts.tips?.length ? `<details class="older"><summary>${esc(t('ui.help.allTips', 'All tips ({n})', { n: opts.tips.length }))}</summary><ul class="rules">${opts.tips.map((x) => `<li><b>${esc(tr(x.title))}</b>${tipHtml(tr(x.text))}</li>`).join('')}</ul></details>` : ''}
      <h3>${esc(t('ui.help.privacy', 'Privacy'))}</h3>
      <p>${HELP.privacy.map((x, i) => esc(tc(`help.privacy.${i}`, x))).join(' ')} ${link(HELP.privacyLink, t('ui.help.privacyLink', 'GitHub’s privacy statement'))}.</p>
@@ -41,4 +44,19 @@ export async function showHelp(opts: {
   m.el.querySelector<HTMLInputElement>('#tut-switch')!.addEventListener('change', (e) => opts.onTutorial((e.target as HTMLInputElement).checked));
   m.el.querySelector<HTMLInputElement>('#keys-switch')!.addEventListener('change', (e) => opts.onShortcuts((e.target as HTMLInputElement).checked));
   return m.result;
+}
+
+/** "Replay with the tutorial" during a game: ask first, in a dialog of its own (the game in progress is lost). */
+export async function confirmReplay(): Promise<boolean> {
+  const c = openModal(
+    `<div class="dateline">${esc(t('ui.help.tutorial', 'Tutorial'))}</div>
+     <h2>${esc(t('ui.tutorial.confirmTitle', 'Start a new game with the tutorial?'))}</h2>
+     <p class="confirm-text">${esc(t('ui.tutorial.confirmText', 'Your current game will be lost. Sound, language and shortcuts stay as they are.'))}</p>
+     <div class="row-btns">
+       <button type="button" class="btn-primary" data-action="replay">${esc(t('ui.tutorial.confirmButton', 'Start with the tutorial'))}</button>
+       <button type="button" class="btn-quiet" data-autofocus data-escape data-action="cancel">${esc(t('ui.common.cancel', 'Cancel'))}</button>
+     </div>`,
+    { cls: 'confirm', describedBy: '.confirm-text', label: t('ui.tutorial.confirmTitle', 'Start a new game with the tutorial?') },
+  );
+  return (await c.result) === 'replay';
 }

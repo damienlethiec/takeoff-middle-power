@@ -9,6 +9,7 @@ import { t, tc, type AnyLang } from '../../i18n';
 import { esc, factBox, kbd, link, provLabel } from '../format';
 import { friendPortrait } from '../friends';
 import { chooseLang, langRowHtml, offerHtml, offeredLang } from '../lang';
+import { announce } from '../a11y';
 import { openModal } from '../modal';
 
 const brand = () => `<p class="intro-brand" aria-hidden="true"><span class="logo">TAKE<i>OFF</i></span><span class="sub">${esc(t('ui.brand.sub', 'Europe’s Next Move'))}</span></p>`;
@@ -27,7 +28,7 @@ function builtOn(): string {
 /** The landing's stakes, in order: each names the gauge that measures it (and takes its colour). */
 const STAKE_GAUGES: GaugeKey[] = ['confidence', 'cooperation', 'cohesion'];
 
-function screenHtml(i: number, focusLang: AnyLang | null): string {
+function screenHtml(i: number, focusLang: AnyLang | null, replay = false): string {
   const sc = INTRO[i];
   const last = i === INTRO.length - 1;
   const landing = i === 0;
@@ -68,14 +69,24 @@ function screenHtml(i: number, focusLang: AnyLang | null): string {
           ${primary}
           ${last ? '' : `<button type="button" class="btn-link" data-action="skip" data-escape>${esc(t('ui.intro.skip', 'Skip to round 1'))}</button>`}
         </div>
+        ${
+          landing && replay
+            ? `<p class="intro-replay"><button type="button" class="btn-link small" data-action="replay" aria-describedby="intro-replay-hint">${esc(t('ui.tutorial.replay', 'Replay with the tutorial'))}</button> <span class="muted small" id="intro-replay-hint">${esc(t('ui.tutorial.landingHint', 'Played before? See the gauges one at a time and every tip again.'))}</span></p>`
+            : ''
+        }
         ${sc.credit ? `<p class="intro-credit">${esc(tc(`intro.${i}.credit`, sc.credit))}</p>` : ''}
       </div>`;
 }
 
-export async function showIntro(): Promise<void> {
+/**
+ * `onReplay`: offered on the landing to a player who has finished a game here or turned the tips off ("Replay with
+ * the tutorial", secondary): it turns the first-game mode back on and goes on like Play.
+ */
+export async function showIntro(onReplay?: () => void): Promise<void> {
   let focusLang: AnyLang | null = null;
+  let replayed = false;
   for (let i = 0; i < INTRO.length; ) {
-    const m = openModal(screenHtml(i, focusLang), { cls: 'intro', overlayCls: 'intro-ov', label: t('ui.intro.label', 'Introduction') });
+    const m = openModal(screenHtml(i, focusLang, !!onReplay && !replayed), { cls: 'intro', overlayCls: 'intro-ov', label: t('ui.intro.label', 'Introduction') });
     m.el.setAttribute('aria-label', t('ui.intro.label', 'Introduction'));
     m.el.removeAttribute('aria-labelledby');
     // after a change of language, focus goes back to the language just chosen
@@ -99,6 +110,12 @@ export async function showIntro(): Promise<void> {
       continue;
     }
     if (a === 'skip') return;
+    if (a === 'replay') {
+      onReplay?.();
+      replayed = true;
+      // said in the next screen's own live region, once it is open
+      setTimeout(() => announce(t('ui.tutorial.on', 'Tutorial on: a new game as a first game, with every tip.')), 60);
+    }
     i += a === 'back' ? -1 : 1;
   }
 }

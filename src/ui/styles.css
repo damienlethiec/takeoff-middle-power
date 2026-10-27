@@ -1675,3 +1675,7 @@ kbd { opacity: .75; }
 /* the end page has two big buttons: signing is the primary one, Play again the quiet one beside it */
 .end-again [data-again] { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--edge); }
 .end-again [data-again]:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
+
+/* "Replay with the tutorial" on the landing: small and secondary, under Play */
+.intro .intro-replay { margin: 10px 0 0; color: var(--mute); font-size: 13px; }
+.intro .intro-replay .btn-link { font-size: 14px; padding: 8px 4px; }

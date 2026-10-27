@@ -5,7 +5,9 @@
 // tips off never saw v4's: that is why the first-run tutorial seemed gone.
 // Progressive dashboard (27 Oct): a first game shows the gauges one system at a time (see App.reveal). The same key
 // remembers, without any new tracking, that the player has finished a game ('done', 'done-off'): from then on, like a
-// player who turned the tips off, they see the whole dashboard from round 1.
+// player who turned the tips off, they see the whole dashboard from round 1. "Replay with the tutorial" (Help, the
+// landing) sets it back to 'on' (Coach.replay): all previews share one origin, so a tester who finished a game once
+// gets the first-game mode back this way.
 
 import { TIPS, type TipId } from '../data/copy';
 import { t, tc } from '../i18n';
@@ -76,6 +78,17 @@ export class Coach {
     if (this.finished) return;
     this.finished = true;
     this.store();
+  }
+
+  /**
+   * "Replay with the tutorial" (Help, the landing): the next game is a first game again, with the progressive
+   * dashboard and every tip. Only this key changes: sound, language, shortcuts and the recently seen news stay.
+   */
+  replay() {
+    this.enabled = true;
+    this.finished = false;
+    this.store();
+    this.reset();
   }
 
   reset() {
