@@ -6,7 +6,7 @@
 
 import { TIPS, type TipId } from '../data/copy';
 import { t, tc } from '../i18n';
-import { esc } from './format';
+import { esc, kbd } from './format';
 import { modalOpen, openModal } from './modal';
 
 const KEY = 'takeoff.v4.tutorial';
@@ -89,7 +89,7 @@ export class Coach {
       `<div class="dateline">${esc(t('ui.tip.dateline', 'Tip'))}</div>
        <h2>${esc(tc(`tip.${id}.title`, tip.title))}</h2>
        <div class="coach-text">${tipHtml(tc(`tip.${id}.text`, tip.text))}</div>
-       <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.tip.ok', 'Got it'))} <kbd>Enter</kbd></button><button type="button" class="btn-link" data-action="off">${esc(t('ui.tip.off', 'Turn off tips'))}</button></div>`,
+       <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.tip.ok', 'Got it'))} ${kbd('enter')}</button><button type="button" class="btn-link" data-action="off">${esc(t('ui.tip.off', 'Turn off tips'))}</button></div>`,
       // over a dialog already open (the decision screen), the tip stacks on it instead of closing it
       { cls: 'coach', overlayCls: 'coach-ov', describedBy: '.coach-text', stacked: modalOpen() },
     );

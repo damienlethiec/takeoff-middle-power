@@ -231,7 +231,7 @@ test.describe('key interactions', () => {
     await advance(page, 600);
     await expect(intro).toHaveCount(0);
     await expect(page.locator('#date')).toHaveText('H1 2027');
-    await expect(page.locator('#round-of')).toHaveText(' · Round 1 of 10');
+    await expect(page.locator('#round-of .ro-long')).toHaveText(' · Round 1 of 10');
     await expect(page.locator('#game-title')).toContainText('Europe’s Next Move');
     expect(s.errors).toEqual([]);
   });

@@ -7,7 +7,7 @@
 import type { LetterView } from '../../engine/types';
 import { FRIENDS, letterLabel } from '../../data/friends';
 import { t, tc, tr } from '../../i18n';
-import { esc } from '../format';
+import { esc, kbd } from '../format';
 import { friendName, friendPortrait, moodWord } from '../friends';
 import { openModal } from '../modal';
 
@@ -22,7 +22,7 @@ export async function showPostcard(l: Pick<LetterView, 'friend' | 'mood' | 'text
        <div><p class="dateline">${esc(date)} · ${esc(t('ui.postcard.from', 'From {city}', { city }))}</p><h2>${esc(title)}</h2></div>
      </div>
      <p class="post-text">${esc(tr(l.text))}</p>
-     <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.continue', 'Continue'))} <kbd>Enter</kbd></button></div>`,
+     <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.continue', 'Continue'))} ${kbd('enter')}</button></div>`,
     { cls: 'postcard', overlayCls: 'postcard-ov', label: title, describedBy: '.post-text' },
   );
   await m.result;

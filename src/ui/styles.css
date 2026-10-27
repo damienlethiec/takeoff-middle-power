@@ -820,7 +820,8 @@ body.ended { overflow: auto; }
 .ans-chips .chip { white-space: normal; font-size: 12px; }
 .ans-world { font-size: 12.5px; color: var(--align); font-weight: 600; }
 .ans-why { font-size: 12.5px; color: var(--mute); }
-.ans-why::before { content: 'Cost: '; font-weight: 600; }
+.ans-why { font-weight: 600; }
+.ans-why .ans-why-t { font-weight: 400; }
 .ans-tag { font-family: var(--f-data); font-size: 10.5px; border-radius: 4px; padding: 0 5px; border: 1px solid; }
 .ans-tag.safety { color: var(--align); } .ans-tag.claim { color: var(--warn); }
 .learn { margin: 8px 0 0; font-size: 13.5px; }
@@ -1021,7 +1022,7 @@ body.ended { overflow: auto; }
 /* played: the chosen cards rise and a "Played" stamp lands on them for a moment, the others step back */
 .decide.playing .pc-wrap:not(.sel) { opacity: .45; transition: opacity .2s; }
 .decide.playing .pc-wrap.sel { animation: played .34s ease-in forwards; }
-.decide.playing .pc-wrap.sel::before { content: 'Played'; position: absolute; top: 40%; left: 50%; z-index: 2; transform: translate(-50%, -50%) rotate(-6deg); padding: 2px 10px; border: 2px solid var(--align); border-radius: 6px; background: var(--deck); color: var(--align); font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: .08em; text-transform: uppercase; animation: stamp .2s cubic-bezier(.2, .9, .3, 1.4); }
+.decide.playing .pc-wrap.sel::before { content: attr(data-played); position: absolute; top: 40%; left: 50%; z-index: 2; transform: translate(-50%, -50%) rotate(-6deg); padding: 2px 10px; border: 2px solid var(--align); border-radius: 6px; background: var(--deck); color: var(--align); font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: .08em; text-transform: uppercase; animation: stamp .2s cubic-bezier(.2, .9, .3, 1.4); }
 @keyframes played { to { transform: translateY(-8px); } }
 @keyframes stamp { from { transform: translate(-50%, -50%) rotate(-6deg) scale(1.6); opacity: 0; } }
 /* a gauge that changes: its number glows briefly in the change's colour as it counts to the new value */
@@ -1141,4 +1142,17 @@ html:not([lang="en"]) body { hyphens: auto; }
 @media (max-width: 560px) {
   .lang-row { gap: 4px; }
   .lang-row .lang-opt { padding: 2px 8px; font-size: 12.5px; min-height: 28px; }
+}
+/* the gauge's change sits in the name's row (app.ts popChanges): the name wraps beside it, never covered */
+.g-head .g-pop { position: static; flex: none; }
+/* the round in the header: "· Round 1 of 10", on phones "· 1/10" (its words are in the announcements) */
+.round-of .ro-short { display: none; }
+@media (max-width: 560px) {
+  .round-of .ro-long { display: none; }
+  .round-of .ro-short { display: inline; }
+}
+/* phones: Influence gives way before Help does (its words wrap), so the header keeps its two rows */
+@media (max-width: 560px) {
+  .top .inf { flex: 0 1 auto; min-width: 0; }
+  .top .inf-l { min-width: 0; }
 }

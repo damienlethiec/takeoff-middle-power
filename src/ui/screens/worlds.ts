@@ -9,7 +9,7 @@ import { SOURCES } from '../../data/sources';
 import { TUNING as T } from '../../data/tuning';
 import type { EuropeAi, HeadingView, WorldId } from '../../engine/types';
 import { t, tc, th, tr } from '../../i18n';
-import { esc, link } from '../format';
+import { esc, kbd, link } from '../format';
 import { openModal } from '../modal';
 import { statusOf, statusWord, worldChip } from '../outlook';
 import { aiWord } from './info';
@@ -102,7 +102,7 @@ export async function showWorlds(current: WorldId, h?: HeadingView, ai?: EuropeA
      ${badge}
      <ul class="worlds-list">${items}</ul>
      <p class="muted small">${th('ui.worlds.builtOn', 'Built on {cfg} (the five worlds and their ten endings) and {ai2027} (the oversight committee’s vote). Which world follows from which gauge is the game’s reading of these scenarios.', { cfg: link(SOURCES.cfg), ai2027: link(SOURCES.ai2027) })}</p>
-     <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.close', 'Close'))} <kbd>Esc</kbd></button></div>`,
+     <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.close', 'Close'))} ${kbd('esc')}</button></div>`,
     { cls: 'info worlds', label: t('ui.worlds.datelineAll', 'The five worlds'), describedBy: '.why' },
   );
   await m.result;

@@ -3,7 +3,7 @@
 
 import type { PendingEvent } from '../../engine/types';
 import { t, tr } from '../../i18n';
-import { ICON, andList, esc, factBox, impactLine, provTag } from '../format';
+import { ICON, andList, esc, factBox, impactLine, kbd, provTag } from '../format';
 import { glossed } from '../glossary';
 import { openModal } from '../modal';
 
@@ -29,7 +29,7 @@ export async function showBreaking(ev: PendingEvent, date: string, cardNames: st
      }
      ${ev.fact ? factBox(ev.fact) : ''}
      <p class="muted small">${esc(t('ui.basis.basedOn', 'Based on:'))} <span lang="en">${esc(ev.basis.ref)}</span>.</p>
-     ${choose ? '' : `<div class="row-btns"><button type="button" class="btn-primary" data-primary data-action="ok">${esc(t('ui.common.continue', 'Continue'))} <kbd>Enter</kbd></button></div>`}`,
+     ${choose ? '' : `<div class="row-btns"><button type="button" class="btn-primary" data-primary data-action="ok">${esc(t('ui.common.continue', 'Continue'))} ${kbd('enter')}</button></div>`}`,
     { cls: 'breaking', label: t('ui.breaking.tag', 'Breaking news'), describedBy: '.scene' },
   );
   const a = await m.result;

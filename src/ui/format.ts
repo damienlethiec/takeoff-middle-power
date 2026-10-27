@@ -62,6 +62,11 @@ export function andList(items: string[]): string {
   return t('ui.list.and', '{list} and {last}', { list: head, last });
 }
 
+/** A key on the keyboard, named as it is printed in the player's language ("Entrée", "Leertaste"). */
+export const keyName = (k: 'enter' | 'esc' | 'space'): string =>
+  ({ enter: t('ui.key.enter', 'Enter'), esc: t('ui.key.esc', 'Esc'), space: t('ui.key.space', 'Space') })[k];
+export const kbd = (k: 'enter' | 'esc' | 'space'): string => `<kbd>${esc(keyName(k))}</kbd>`;
+
 export const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
 
 export const ICON = {

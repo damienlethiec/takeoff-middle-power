@@ -4,7 +4,7 @@
 import { HELP } from '../../data/copy';
 import { t, tc, tr } from '../../i18n';
 import { tipHtml } from '../coach';
-import { esc, link } from '../format';
+import { esc, kbd, link } from '../format';
 import { glossaryListHtml } from '../glossary';
 import { openModal } from '../modal';
 
@@ -33,7 +33,7 @@ export async function showHelp(opts: {
      <p>${HELP.privacy.map((x, i) => esc(tc(`help.privacy.${i}`, x))).join(' ')} ${link(HELP.privacyLink, t('ui.help.privacyLink', 'GitHub’s privacy statement'))}.</p>
      <p class="row-btns"><button type="button" class="btn-quiet" data-action="forget" aria-describedby="forget-hint">${esc(t('ui.help.forget', 'Forget my save'))}</button></p>
      <p class="muted small" id="forget-hint">${esc(tc('help.forgetHint', HELP.forgetHint))}</p>
-     <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.close', 'Close'))} <kbd>Esc</kbd></button></div>`,
+     <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.close', 'Close'))} ${kbd('esc')}</button></div>`,
     { cls: 'help', label: t('ui.help.dateline', 'Help') },
   );
   m.el.querySelector<HTMLInputElement>('#tut-switch')!.addEventListener('change', (e) => opts.onTutorial((e.target as HTMLInputElement).checked));

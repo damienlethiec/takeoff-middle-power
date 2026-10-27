@@ -13,7 +13,7 @@ import { FAMILIES } from '../../data/cards';
 import { impactWords } from '../../data/effects';
 import { onLangChange, t, tc, tn, tr } from '../../i18n';
 import { announce, reducedMotion } from '../a11y';
-import { ICON, chips, esc, factBox, provTag } from '../format';
+import { ICON, chips, esc, factBox, kbd, provTag } from '../format';
 import { glossed } from '../glossary';
 import { modalOpen, openModal, wait } from '../modal';
 
@@ -83,7 +83,7 @@ async function showDetails(c: CardView, selected: boolean, canSelect: boolean): 
      ${!c.playable && !selected && c.reason ? `<p class="bad-text">${esc(tr(c.reason))}</p>` : ''}
      <div class="row-btns">
        ${selected ? `<button type="button" class="btn-quiet" data-action="toggle">${esc(t('ui.card.remove', 'Remove this card'))}</button>` : canSelect ? `<button type="button" class="btn-quiet" data-action="toggle">${esc(t('ui.card.select', 'Select this card'))}</button>` : ''}
-       <button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.card.back', 'Back to the cards'))} <kbd>Esc</kbd></button>
+       <button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.card.back', 'Back to the cards'))} ${kbd('esc')}</button>
      </div>`,
     { cls: 'info card-details', label: tr(c.title), describedBy: '.proposal' },
   );
@@ -142,7 +142,7 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
         <p class="dec-inf" data-coach="dec-influence"><span class="inf-v num" id="dec-inf"></span><span class="inf-l">${esc(t('ui.decide.left', 'Influence left'))}</span></p>
         <p class="dec-notes" id="dec-notes" aria-live="off"></p>
         <div class="dec-btns">
-          <button type="button" class="btn-quiet" data-action="map">${esc(t('ui.common.backToMap', 'Back to the map'))} <kbd>Esc</kbd></button>
+          <button type="button" class="btn-quiet" data-action="map">${esc(t('ui.common.backToMap', 'Back to the map'))} ${kbd('esc')}</button>
           <button type="button" class="btn-quiet" data-action="none">${esc(t('ui.decide.none', 'Play no card'))}</button>
           <button type="button" class="btn-primary" data-action="confirm" id="dec-ok"></button>
         </div>
@@ -346,6 +346,8 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
   // reduced motion: the gauges' change says it). Nothing can be pressed meanwhile.
   if (a === 'confirm' && picks.length && !reducedMotion()) {
     host.inert = true;
+    const stamp = t('ui.decide.played', 'Played');
+    host.querySelectorAll('.pc-wrap.sel').forEach((el) => el.setAttribute('data-played', stamp));
     host.classList.add('playing');
     await wait(340);
     host.classList.remove('playing');

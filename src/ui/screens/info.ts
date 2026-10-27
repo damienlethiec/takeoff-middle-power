@@ -4,11 +4,11 @@ import { GAUGE_HELP, GAUGE_LABEL, GAUGE_SUB } from '../../data/copy';
 import { TUNING as T } from '../../data/tuning';
 import type { CardView, EuropeAi, GaugeKey, GaugeView, IncomeView, Leak, ThreatView } from '../../engine/types';
 import { t, tc, th, tr } from '../../i18n';
-import { ICON, esc } from '../format';
+import { ICON, esc, kbd } from '../format';
 import { glossed } from '../glossary';
 import { openModal } from '../modal';
 
-const close = () => `<div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.backToMap', 'Back to the map'))} <kbd>Esc</kbd></button></div>`;
+const close = () => `<div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.backToMap', 'Back to the map'))} ${kbd('esc')}</button></div>`;
 
 /** "Open" or "Dependent", in the player's language. */
 export const aiWord = (ai: EuropeAi) => (ai === 'open' ? t('ui.europeAi.open', 'Open') : t('ui.europeAi.dependent', 'Dependent'));
@@ -124,7 +124,7 @@ export async function showInfluenceHelp(influence: number, inc: IncomeView): Pro
          cyberRounds: C.cyber_shield.rounds,
        }),
      )}</p>
-     <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.close', 'Close'))} <kbd>Esc</kbd></button></div>`,
+     <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.common.close', 'Close'))} ${kbd('esc')}</button></div>`,
     { cls: 'info inf-info', label: t('ui.influence.name', 'Influence'), describedBy: '.why' },
   );
   await m.result;

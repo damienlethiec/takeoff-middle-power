@@ -11,7 +11,7 @@ import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, TIPS, marginText } from '../data/
 import { moveWord } from '../data/effects';
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
 import { Coach } from './coach';
-import { $, ICON, andList, esc, signed } from './format';
+import { $, ICON, andList, esc, kbd, signed } from './format';
 import { WorldMap, type CityEvent, type MapEntry } from './map';
 import { modalOpen, setFocusFallback, wait } from './modal';
 import { showBreaking } from './screens/breaking';
@@ -26,7 +26,7 @@ import { showPostcard } from './screens/postcard';
 import { FRIENDS } from '../data/friends';
 import { TUNING } from '../data/tuning';
 import { badgeHtml, headingLineHtml, statusOf, statusWord } from './outlook';
-import { lcFirst, onLangChange, t, tc, th, tn, tr } from '../i18n';
+import { lang, lcFirst, onLangChange, t, tc, th, tn, tr } from '../i18n';
 import { bindLangMenu, chooseLang, langMenuHtml } from './lang';
 import { Feed } from './feed';
 import { Soundtrack } from './sound';
@@ -784,7 +784,7 @@ export class App {
     const text = st.text();
     const primary = st.buttons.find((b) => b.primary) ?? st.buttons[0];
     d.innerHTML = `<p id="dock-text">${esc(text)}</p><div class="dock-btns">${st.buttons
-      .map((b) => `<button type="button" class="${b.primary ? 'btn-primary' : 'btn-quiet'}" data-go="${esc(b.id)}" ${b.primary ? 'aria-keyshortcuts="Enter"' : ''}>${esc(b.label())}${b.primary ? ' <kbd>Enter</kbd>' : ''}</button>`)
+      .map((b) => `<button type="button" class="${b.primary ? 'btn-primary' : 'btn-quiet'}" data-go="${esc(b.id)}" ${b.primary ? 'aria-keyshortcuts="Enter"' : ''}>${esc(b.label())}${b.primary ? ` ${kbd('enter')}` : ''}</button>`)
       .join('')}</div>`;
     d.querySelectorAll<HTMLButtonElement>('[data-go]').forEach((b) => b.addEventListener('click', () => st.go(b.dataset.go!)));
     if (!say) return;
@@ -853,7 +853,7 @@ export class App {
         </section>
       </main>
       <section class="dock" aria-label="${esc(t('ui.phase.move', 'Your move'))}" hidden></section>
-      <p class="keys-hint" aria-hidden="true">${th('ui.app.keys', '{space} pause · {enter} continue · {n} news · {help} help', { space: '<kbd>Space</kbd>', enter: '<kbd>Enter</kbd>', n: '<kbd>N</kbd>', help: '<kbd>?</kbd>' })}</p>
+      <p class="keys-hint" aria-hidden="true">${th('ui.app.keys', '{space} pause · {enter} continue · {n} news · {help} help', { space: kbd('space'), enter: kbd('enter'), n: '<kbd>N</kbd>', help: '<kbd>?</kbd>' })}</p>
     </div>`;
     this.map = new WorldMap($('#mapwrap', this.root));
     $('#mapwrap', this.root).setAttribute('aria-describedby', this.map.summaryId);
@@ -960,7 +960,13 @@ export class App {
     const s = this.s;
     const r = Math.max(1, s.round);
     $('#date', this.root).textContent = this.date(r);
-    $('#round-of', this.root).textContent = ` · ${t('ui.app.roundOf', 'Round {round} of {rounds}', { round: r, rounds: TUNING.rounds })}`;
+    // phones show the short form (1/10): the header keeps two rows in every language
+    const ro = $('#round-of', this.root);
+    const sig = `${lang()}:${r}`;
+    if (ro.dataset.sig !== sig) {
+      ro.dataset.sig = sig;
+      ro.innerHTML = `<span class="ro-long"> · ${esc(t('ui.app.roundOf', 'Round {round} of {rounds}', { round: r, rounds: TUNING.rounds }))}</span><span class="ro-short" aria-hidden="true"> · ${r}/${TUNING.rounds}</span>`;
+    }
     this.root.querySelectorAll<HTMLElement>('#rounds li').forEach((li) => {
       const n = Number(li.dataset.r);
       li.className = n < s.round ? 'done' : n === s.round ? 'now' : '';
@@ -1048,7 +1054,10 @@ export class App {
       pop.className = `g-pop ${tone}`;
       pop.setAttribute('aria-hidden', 'true');
       pop.textContent = signed(d);
-      box.appendChild(pop);
+      // in the name's row, before "?": a longer name (another language) wraps beside it instead of being covered
+      const info = box.querySelector('.g-head .g-info');
+      if (info) info.before(pop);
+      else box.appendChild(pop);
       setTimeout(() => pop.remove(), reducedMotion() ? 2600 : 2200);
       // a brief glow on the number as it counts to its new value (CSS; none with reduced motion)
       box.classList.remove('bump', 'b-good', 'b-bad', 'b-flat');

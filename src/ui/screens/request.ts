@@ -7,7 +7,7 @@
 import type { AnswerView, RequestOutcome, RequestView, Side } from '../../engine/types';
 import { announce, reducedMotion, tryFocus } from '../a11y';
 import { t, tc, th, tr } from '../../i18n';
-import { chips, esc, link } from '../format';
+import { chips, esc, kbd, link } from '../format';
 import { glossed } from '../glossary';
 import { openModal, wait } from '../modal';
 import { isFriend, portrait } from '../portraits';
@@ -37,7 +37,7 @@ function answerButton(a: AnswerView): string {
     <span class="ans-top"><kbd aria-hidden="true">${arrow}</kbd><span class="ans-label">${esc(tr(a.label))}</span><span class="sr-only">${esc(words)}</span></span>
     <span class="ans-chips" aria-hidden="true">${a.chips.length ? chips(a.chips, false) : `<span class="chip flat">${esc(noChange())}</span>`}</span>
     ${a.world ? `<span class="ans-world" aria-hidden="true">${esc(t('ui.request.ifTipped', 'If AI tipped now: {world}', { world: tr(a.world) }))}</span>` : ''}
-    ${a.why ? `<span class="ans-why" aria-hidden="true">${esc(tr(a.why))}</span>` : ''}
+    ${a.why ? `<span class="ans-why" aria-hidden="true">${th('ui.request.cost', 'Cost: {why}', { why: `<span class="ans-why-t">${esc(tr(a.why))}</span>` })}</span>` : ''}
     ${tag ? `<span aria-hidden="true">${tag}</span>` : ''}
   </button>`;
 }
@@ -80,7 +80,7 @@ function outcomeHtml(v: RequestView, a: AnswerView, o: RequestOutcome): string {
     <p class="reaction" id="req-reaction">${esc(t('ui.quote.open', '“'))}${esc(tr(o.reaction))}${esc(t('ui.quote.close', '”'))}</p>
     <p class="pc-chips" aria-label="${esc(t('ui.request.whatChanged', 'What changed'))}">${o.chips.length ? chips(o.chips) : `<span class="chip flat">${esc(noChange())}</span>`}</p>
     ${o.notes.map((n) => `<p class="note-line">${esc(tr(n))}</p>`).join('')}
-    <div class="row-btns"><button type="button" class="btn-primary" data-primary data-action="ok">${esc(t('ui.common.backToMap', 'Back to the map'))} <kbd>Enter</kbd></button></div>
+    <div class="row-btns"><button type="button" class="btn-primary" data-primary data-action="ok">${esc(t('ui.common.backToMap', 'Back to the map'))} ${kbd('enter')}</button></div>
   </div>`;
 }
 

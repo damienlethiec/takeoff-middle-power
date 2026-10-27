@@ -4,7 +4,7 @@
 
 import { BUILT_ON, INTRO } from '../../data/copy';
 import { t, tc, type AnyLang } from '../../i18n';
-import { esc, factBox, link, provLabel } from '../format';
+import { esc, factBox, kbd, link, provLabel } from '../format';
 import { friendPortrait } from '../friends';
 import { chooseLang, langRowHtml, offerHtml, offeredLang } from '../lang';
 import { openModal } from '../modal';
@@ -46,7 +46,7 @@ function screenHtml(i: number, focusLang: AnyLang | null): string {
         ${last ? builtOn() : ''}
         <div class="row-btns">
           ${i > 0 ? `<button type="button" class="btn-quiet" data-action="back">${esc(t('ui.common.back', 'Back'))}</button>` : ''}
-          <button type="button" class="btn-primary" data-primary data-action="next">${esc(last ? t('ui.intro.start', 'Start round 1') : t('ui.common.next', 'Next'))} <kbd>Enter</kbd></button>
+          <button type="button" class="btn-primary" data-primary data-action="next">${esc(last ? t('ui.intro.start', 'Start round 1') : t('ui.common.next', 'Next'))} ${kbd('enter')}</button>
           ${last ? '' : `<button type="button" class="btn-link" data-action="skip" data-escape>${esc(t('ui.intro.skip', 'Skip to round 1'))}</button>`}
         </div>
       </div>`;
@@ -96,7 +96,7 @@ export async function showContinue(label: string): Promise<'continue' | 'new'> {
         <h2>${esc(t('ui.continue.title', 'Welcome back, Envoy'))}</h2>
         <p>${esc(t('ui.continue.text', 'Your game was saved where you left it. The current six months start again from their beginning, with every decision you made kept.'))}</p>
         <div class="row-btns">
-          <button type="button" class="btn-primary" data-primary data-autofocus data-action="continue">${esc(t('ui.continue.button', 'Continue your game ({where})', { where: label }))} <kbd>Enter</kbd></button>
+          <button type="button" class="btn-primary" data-primary data-autofocus data-action="continue">${esc(t('ui.continue.button', 'Continue your game ({where})', { where: label }))} ${kbd('enter')}</button>
           <button type="button" class="btn-quiet" data-action="new">${esc(t('ui.continue.new', 'New game'))}</button>
         </div>
       </div>`,
