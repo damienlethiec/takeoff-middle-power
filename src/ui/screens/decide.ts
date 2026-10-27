@@ -3,7 +3,7 @@
 // on a tablet, a list on a phone): name, cost, a one-line purpose and every effect as an icon with arrows, plus the
 // chance word for cards that can fail. The chief of staff's recommendation comes first, then what can be played,
 // then what costs too much; cards not available yet wait behind one line that opens them. Everything else (the
-// full text, conditions, levels, the chance's reason, the provenance) is in Details, a dialog over the cards (a bottom
+// full text, conditions, levels, the chance's reason, the provenance) is in Details, a dialog centred in the window (a bottom
 // sheet on a phone). The right column has the chief of staff's advice, the active threats and the selection's notes.
 // Selecting cards previews their effect on the real gauges and the heading line (the app draws it from the preview
 // this module hands over). Clicking a card toggles it (aria-pressed); Escape goes back to the map; nothing is
@@ -75,8 +75,8 @@ function cardHtml(c: CardView, o: { selected: boolean; recommended: boolean; opt
 const SAID_BY_ICONS = /^(US–China cooperation:|Social cohesion:|AI safety:|AI safety shown:|Real safety up|Protects against|Influence [+−]|Europe’s AI → (Open|Dependent)$|Shows the true|Accord: (US–China|real safety|Influence)|Level 2: Influence|Model theft: cut|Ransomware threat grows|Softens job shocks|Washington retaliates)/;
 const extra = (c: CardView) => [...c.ups, ...c.downs].filter((x) => !SAID_BY_ICONS.test(x.text));
 
-/** The full card in a dialog over the cards (a bottom sheet on a phone). `onOption` applies a choice of what to ask for. */
-async function showDetails(c: CardView, o: { selected: boolean; option?: string; top: number; onOption: (id: string) => void }): Promise<void> {
+/** The full card in a dialog centred in the window (a bottom sheet on a phone). `onOption` applies a choice of what to ask for. */
+async function showDetails(c: CardView, o: { selected: boolean; option?: string; onOption: (id: string) => void }): Promise<void> {
   const level = c.level ? ` · ${t('ui.card.levelLower', 'level {level} of {count}', { level: c.level, count: c.levels!.length })}` : '';
   const option = o.option ?? c.options[0]?.id;
   const m = openModal(
@@ -104,8 +104,7 @@ async function showDetails(c: CardView, o: { selected: boolean; option?: string;
      <div class="row-btns"><button type="button" class="btn-primary" data-primary data-escape data-action="ok">${esc(t('ui.card.back', 'Back to the cards'))} ${kbd('esc')}</button></div>`,
     { cls: 'info card-details', overlayCls: 'card-ov', label: tr(c.title), describedBy: '.proposal' },
   );
-  // over the cards, the gauges above them still in view (a wide window); a click outside closes it
-  m.overlay.style.setProperty('--dk-top', `${Math.max(0, Math.round(o.top))}px`);
+  // centred in the window (a bottom sheet on a phone); a click outside closes it
   m.overlay.addEventListener('click', (ev) => {
     if (ev.target === m.overlay) m.el.querySelector<HTMLButtonElement>('[data-escape]')?.click();
   });
@@ -296,7 +295,6 @@ export async function showDecision(e: EngineApi, s: GameState, date: string, vie
       await showDetails(v, {
         selected: !!p,
         option: p?.option ?? optPref[id],
-        top: handEl.getBoundingClientRect().top - 8,
         onOption: (o) => {
           optPref[id] = o;
           const pick = picks.find((x) => x.id === id);

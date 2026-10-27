@@ -720,11 +720,11 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 .bad-text { color: var(--crit-text); }
 .bad-text .ico { width: 14px; height: 14px; }
 .dec-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-/* the card's details: over the cards, the gauges above still in view on a wide window; a bottom sheet on a phone */
+/* the card's details: centred in the window on a desktop or a tablet (a long card scrolls inside); a bottom sheet on a phone */
 .overlay.card-ov { background: color-mix(in srgb, var(--night) 55%, transparent); backdrop-filter: none; }
 @media (min-width: 768px) and (min-height: 541px) {
-  .overlay.card-ov { padding-top: max(16px, var(--dk-top, 28px)); }
-  .overlay.card-ov .modal { margin: 0; }
+  .overlay.card-ov { align-items: center; padding: 16px; }
+  .overlay.card-ov .modal { margin: auto; }
 }
 .modal.card-details { max-width: 620px; }
 @media (max-width: 767px), (max-height: 540px) {
@@ -734,7 +734,7 @@ body.jolt .mapwrap { animation: jolt .5s ease; }
 }
 @keyframes sheetin { from { transform: translateY(40px); opacity: .4; } }
 @media (min-width: 768px) and (min-height: 541px) {
-  .overlay.card-ov .modal.card-details { max-height: calc(100dvh - max(16px, var(--dk-top, 28px)) - 12px); overflow: auto; padding: 16px 22px; }
+  .overlay.card-ov .modal.card-details { max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain; padding: 16px 22px; }
 }
 .card-details .cd-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .card-details h2 { margin: 4px 0 8px; font-size: 30px; }
