@@ -74,10 +74,11 @@ export const TUNING = {
   /** Small suspense at the tipping point: the final Cooperation moves by up to this much, either way. */
   tippingNoise: 2,
 
-  /** Deciding gauge and safety net of each world. */
+  /** Deciding gauge and safety net of each world (final pass of 27 Oct, 2,000 games: Pause target 59 → 57, Race floor
+   *  47 → 45; see docs/DEVELOPER_NOTES.md). */
   worlds: {
-    pause: { decides: 'confidence', target: 59, net: 'cohesion', floor: 42 },
-    race: { decides: 'confidence', target: 62, net: 'cohesion', floor: 47 },
+    pause: { decides: 'confidence', target: 57, net: 'cohesion', floor: 42 },
+    race: { decides: 'confidence', target: 62, net: 'cohesion', floor: 45 },
     rupture: { decides: 'cohesion', target: 82, net: 'confidence', floor: 57 },
     plateau_open: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
     plateau_labs: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
@@ -127,7 +128,7 @@ export const TUNING = {
 
   /** Card effects. Costs per level for cards with levels. */
   cards: {
-    talks: { cost: 1, cooperation: 3, cohesion: -2, uses: 3, rest: 1 },
+    talks: { cost: 1, cooperation: 3, cohesion: -1, uses: 3, rest: 1 },
     /** Level 1 (EU testing of the models sold in Europe) from round 1; the accord and the joint inspectorate only
      *  after an AI incident, the summit, or with US–China cooperation in the Pause zone. Cooperation per level (0
      *  for the first: Europe tests at home); hidden `truth` per level (inspectors inside the labs, under a deal, can

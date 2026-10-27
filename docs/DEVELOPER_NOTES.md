@@ -52,7 +52,7 @@ Once the memo has leaked (`memo_public`), the committee votes at the tipping poi
 
 | Card | Cost | Effect | Uses | Arrives |
 | --- | --- | --- | --- | --- |
-| Diplomatic talks | 1 | Cooperation +3, Cohesion −2; rests the next round | 3 | Round 1 |
+| Diplomatic talks | 1 | Cooperation +3, Cohesion −1; rests the next round | 3 | Round 2 |
 | Push for inspections: Test the labs' models in Europe → Inspection accord → Joint inspectorate | 2 / 3 / 3 | Margin −8 (−10 with the AI Office); from the accord: Cooperation +2, truth +3, Influence −1 next round. The accord and the inspectorate need an AI incident, the summit, or Cooperation 60+ | 3 levels | Round 1 |
 | AI Office capacity | 2 | Margin × 0.5, Cohesion −1; softens opaque reasoning; leaks +2 oversight | 1 | Round 1 |
 | Fund alignment research | 2 | Truth +5 (+4 more with inspections level 2), estimate +2 | 3 | Round 2 |
@@ -102,9 +102,9 @@ One convention for every request (26 Oct): **right goes along with the request, 
 
 | World | Decides | Safety net |
 | --- | --- | --- |
-| Pause (Cooperation 60+) | Confidence 60 | Cohesion 42 |
-| Race (30–59) | Confidence 62 | Cohesion 47 |
-| Rupture (< 30) | Cohesion 82 | Confidence 60 |
+| Pause (Cooperation 60+) | Confidence 57 | Cohesion 42 |
+| Race (30–59) | Confidence 62 | Cohesion 45 |
+| Rupture (< 30) | Cohesion 82 | Confidence 57 |
 | Plateau, open models | Cohesion 60 | Confidence 40 |
 | Plateau, big labs (Big AI) | Cohesion 60, and Europe's AI Open | Confidence 40 |
 
@@ -242,6 +242,10 @@ Levers tried and dropped (one sim each): alignment research with four uses at +4
 | Pause's AI safety target (`worlds.pause.target`), after the costs' why pass (`bf2409b`: the AI Office and the biosecurity pact cost Influence, not Social cohesion; ten request answers got a cost) | 60 | 59 | With those costs the thoughtful player fell to 58% and *The pause breaks down* took 13% of its games: the Pause is where Europe's diplomacy pays, and its bar sat a notch above what the verified levers reach by takeoff. | Thoughtful 63%, random 25%, home-first 33%, cooperation-only 6%. |
 | Unused Influence wears off (`influence.fadeAbove`, `fade`, new) | none | Influence kept above 4 at the end of a round brings 1 less the next round (shown in the income's reasons from round 2: "Unused weight fades −1"; in Influence's "?", Help and the income tip) | With round 1's small hand the saver lost nothing by waiting (63% vs thoughtful 63%). Political weight left unused wears off: acting early must matter. Tried first: the cap 10 → 8 (saver 60% vs 59%) and the fade above 6 (62% vs 63%), both too weak; above 4 the thoughtful player, which keeps about 2.6, is barely touched. | Saver 43% vs thoughtful 59%. |
 | Request answers that moved nothing visible (8, data: `rs_look_inside`, `rs_memo`, `rs_internal_warned`, `pt_joint_tests`, `jn_publish_tests`, `jn_memo`, `jn_whistleblowers`, `jn_logs`, all their left answers) | no effect | Social cohesion −1 or −2 (critics and the press: "cover-up", "took the labs' word"), Influence −1 for snubbing the partners' joint tests; each `why` rewritten to say it | The rule "every answer costs something visible": refusing transparency in AI 2027's story (the memo, the whistleblowers, the logs) costs public trust. | See the next table. |
+| **Final balancing of 27 Oct** (owner's request: a long pass, `npm run sim -- 2000`, 2,000 games a strategy; on `85876df`, after the ASML lever became two cards). Measured before: passive 0.0%, random 21.3%, thoughtful **53.6%** (FAIL, 55–80%), cooperation-only 7.2%, home-first 39.3% (**FAIL**, −14.3 pts), advised 37.9%, saver 46.7% (**FAIL**, −6.9 pts); every other target green. Two adjustment runs (400 games, the same seeds), then two confirmations at 2,000 | | | | |
+| Pause's AI safety target (`worlds.pause.target`) | 59 | 57 | At 2,000 games the thoughtful player lost 8% of its games as *The pause breaks down*, most within 3 points of the bar: the Pause is the world Europe's diplomacy earns (thoughtful 22% of games, saver 8%, home-first 0%), and it should pay. Still above the Race's 62 (a calmer world, a lower bar). | With the row below, 2,000 games: thoughtful 53.6% → 58.1%, saver 46.7% → 48.4% (−9.7 pts: still FAIL), home-first 39.3% (unchanged), cooperation-only 7.2% → 11.8%, random 21.3% → 21.8%. |
+| Race's Social cohesion floor (`worlds.race.floor`) | 47 | 45 | The thoughtful player's lost races ended at Social cohesion 44.7 on average (the saver's at 47.6, home-first's at 93): its diplomacy and requests spend cohesion, and the floor punished it more than the players who skip them. | See above. |
+| Diplomatic talks' Social cohesion cost (`cards.talks.cohesion`) | −2 | −1 | Still FAIL on the saver (−9.7 pts). The card says "some call you soft on rivals": a little, and the costs of 26 Oct moved away from Social cohesion. Steady talks are the thoughtful player's habit (1.7 a game, the saver 1.1, home-first none), so this rewards steady diplomacy. Words unchanged ("a little"). | 2,000 games: thoughtful 61.8%, saver 49.0% (−12.8 pts), home-first 39.3% (−22.5 pts), cooperation-only 15.3% (−46.5 pts), random 22.9%, passive 0.0%, advised 38.3%. **Every target passes** (table below). Levers looked at and not used: a lower Race target (helps the saver as much as the thoughtful player), a lower Pause floor (helps the saver more), a stronger Influence fade (its numbers are written in the Help copy). |
 
 ### After the event scheduling of 27 Oct (`npm run sim`, 100 games a strategy)
 
@@ -272,30 +276,66 @@ Levers tried and dropped (one sim each): alignment research with four uses at +4
 
 Ransomware (6–16%) and silicon blackmail (0–12%) are unchanged: they still wait for a free slot.
 
-### After the learnability pass of 27 Oct (`npm run sim`, 100 games a strategy; with the costs' why pass of `bf2409b`, unused Influence wearing off and the eight answers' costs)
+### Final simulation of v4 (27 Oct, `npm run sim -- 2000`: 2,000 games per strategy)
 
-| Strategy | Good endings | Takeoff | AI incident (prepared) | Bioweapon uplift | Committee slows down |
-| --- | --- | --- | --- | --- | --- |
-| Passive | 0% | 71% | 51% (0%) | 6% | 25% |
-| Random | 23% | 63% | 45% (62%) | 12% | 10% |
-| Thoughtful | 58% | 59% | 40% (85%) | 13% | 8% |
-| Cooperation-only | 7% | 70% | 45% (0%) | 9% | 67% |
-| Home-first (no diplomacy) | 36% | 64% | 44% (0%) | 13% | 0% |
-| Advised (one card a round) | 42% | 59% | 43% (49%) | 12% | 9% |
-| Saver (bursts) | 44% | 61% | 41% (54%) | 11% | 11% |
+After the final balancing (rows above). The learnability pass before it measured, at 100 games: passive 0%, random 23%, thoughtful 58%, cooperation-only 7%, home-first 36%, advised 42%, saver 44%; the same numbers at 2,000 games, with the ASML lever as two cards, were those of "Measured before" above (thoughtful 53.6%: 100 games had flattered it).
 
-Every target passes, the saver's too (44% vs 58%, −14 pts): every ending ≥ 2% for some strategy (lowest *Powerful AI in every hand* 3%), thoughtful's most played card alignment 16%, 5–10 requests in 100% of games (5–8), AI safety uncertainty ±18 median, earliest takeoff round 6, takeoff in 63.9% of games.
+| Strategy | Good endings | Slow / steady / fast pace: good | Takeoff | AI incident (prepared) | Bioweapon uplift | Committee slows down | Cards that worked a game |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Passive | 0.0% | 0.0 / 0.0 / 0.0% | 69.2% | 46.8% (0%) | 7.8% | 20.9% | 0 |
+| Random | 22.9% | 40.6 / 11.7 / 10.7% | 66.4% | 35.5% (55%) | 12.7% | 7.2% | 12.1 |
+| Thoughtful | 61.8% | 90.6 / 47.1 / 37.2% | 61.1% | 32.9% (87%) | 11.9% | 14.4% | 12.6 |
+| Cooperation-only | 15.3% | 4.4 / 26.4 / 18.0% | 68.5% | 42.0% (3%) | 7.5% | 63.7% | 7.8 |
+| Home-first (no diplomacy) | 39.3% | 67.7 / 28.6 / 10.6% | 63.7% | 36.9% (0%) | 12.9% | 0.0% | 11.1 |
+| Advised (one card a round) | 38.3% | 87.2 / 6.3 / 5.4% | 61.0% | 42.3% (43%) | 11.3% | 8.7% | 7.5 |
+| Saver (bursts) | 49.0% | 92.7 / 21.8 / 18.0% | 61.6% | 36.5% (41%) | 12.2% | 10.6% | 10.4 |
+
+Paces drawn: slow 796, steady 664, fast 540 games of 2,000 (the same seeds for every strategy).
+
+**Endings** (share of each strategy's games; + good, − bad):
+
+| Ending | Passive | Random | Thoughtful | Coop.-only | Home-first | Advised | Saver |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| + Slower AI, shared by all (plateau, open) | 0.0 | 7.7 | 18.7 | 0.3 | 11.7 | 18.1 | 16.9 |
+| − Powerful AI in every hand | 2.3 | 3.0 | 0.0 | **3.8** | 0.0 | 0.3 | 0.0 |
+| + A fair economy of AI agents (plateau, big labs) | 0.0 | 7.3 | 16.9 | 0.0 | 13.6 | 16.6 | **19.7** |
+| − A Europe held hostage by Big Tech | **28.6** | 15.6 | 3.3 | 27.4 | 11.1 | 4.0 | 1.8 |
+| + The pause holds | 0.0 | 0.9 | **20.6** | 13.6 | 0.0 | 1.1 | 5.1 |
+| − The pause breaks down | 0.0 | 0.8 | 6.2 | **33.5** | 0.0 | 5.6 | 3.5 |
+| + The race pays off | 0.0 | 6.2 | 5.6 | 1.4 | 2.0 | 2.5 | **7.3** |
+| − Humans lose control of AI | 24.6 | 43.6 | 28.8 | 19.9 | 26.9 | **49.9** | 44.9 |
+| + A divided world that holds | 0.0 | 0.8 | 0.0 | 0.0 | **12.1** | 0.0 | 0.0 |
+| − The rivalry turns to war | **44.6** | 14.2 | 0.0 | 0.1 | 22.7 | 2.0 | 0.8 |
+
+**Takeoff by pace** (all strategies pooled): 64.5% of games; slow 10.9%, steady 100%, fast 100%; earliest round 6 (steady around round 8, fast 6.3–6.9).
+
+| Target | Result |
+| --- | --- |
+| passive good endings < 15% | PASS 0.0% |
+| random good endings 15–30% | PASS 22.9% |
+| thoughtful good endings 55–80% | PASS 61.8% |
+| every ending ≥ 2% for some strategy | PASS (lowest *Powerful AI in every hand* 3.8%, cooperation-only) |
+| cooperation-only clearly worse than thoughtful (−20 pts) | PASS 15.3% vs 61.8% |
+| home-first clearly worse than thoughtful (−15 pts) | PASS 39.3% vs 61.8% |
+| thoughtful: no card above 20% of its plays that worked | PASS alignment 15.9% (talks 13.9%; 8.6% of tries failed) |
+| saver clearly worse than thoughtful (−10 pts) | PASS 49.0% vs 61.8% |
+| 5–10 requests a game (≥ 99.5% of games) | PASS 100% (5–8, 7.4 on average) |
+| thoughtful: AI safety uncertainty at the end ≤ 30 (median) | PASS ±19 (p90 ±24) |
+| takeoff never before round 6 | PASS earliest round 6 |
+| AI takes off in 50–70% of games | PASS 64.5% |
+
+What remains: slow games (no takeoff) stay easy for any player who acts (thoughtful 91%, saver 93%, advised 87%), so the saver's gap comes entirely from the takeoff worlds (steady 22% vs 47%, fast 18% vs 37%); the AI incident strikes in a third of games and the thoughtful player is prepared for 87% of them. Run time: about 7 minutes for the seven strategies on the shared machine.
 
 ### Rebalancing backlog (owner's decision, 26 Oct: rebalance at the end, not now)
 
 Ideas kept for the final pass, in this order, each checked with `npm run sim` at 100 games:
 
 1. **Done (26 Oct rebalancing).** **Speed AI capabilities up a little** so a steady pace tips around rounds 7–8 (today ~9.5) and a slow pace gets close to the tipping point by the end; keep "never before round 6".
-2. **Partly done:** Big AI from 70 and slow games reaching 65–79 make the plateau a Big AI world more often (an Open Europe needed); advised and saver still win 86% of slow games. **Make plateau worlds harder** (slow-pace games that end by timeout in H2 2031): today advised and saver win all of them.
-3. **Home-first done** (35% vs 56% after 27 Oct); **saver open** (47% vs 56%, −9 pts; 27 Oct: an Influence fade and a momentum bonus were tried and dropped, see the tuning table). Then check that **home-first** (−15 pts) and **saver** (−10 pts) fall clearly below thoughtful again, and that every ending stays ≥ 2% (*The race pays off* is at the edge).
+2. **Partly done; left as is in the final pass of 27 Oct** (2,000 games: slow games good for thoughtful 91%, saver 93%, advised 87%, home-first 68%, random 41%: the plateaus reward any player who acts, and the takeoff worlds separate them; owner's call whether to make them harder). Big AI from 70 and slow games reaching 65–79 make the plateau a Big AI world more often (an Open Europe needed); advised and saver still win 86% of slow games. **Make plateau worlds harder** (slow-pace games that end by timeout in H2 2031): today advised and saver win all of them.
+3. **Done (final pass of 27 Oct, 2,000 games):** home-first 39.3% and saver 49.0% vs thoughtful 61.8% (−22.5 and −12.8 pts), every ending ≥ 2% (*The race pays off* 7.3% at best). Before: **Home-first done** (35% vs 56% after 27 Oct); **saver open** (47% vs 56%, −9 pts; 27 Oct: an Influence fade and a momentum bonus were tried and dropped, see the tuning table). Then check that **home-first** (−15 pts) and **saver** (−10 pts) fall clearly below thoughtful again, and that every ending stays ≥ 2% (*The race pays off* is at the edge).
 4. **Done** (8 requests at most, a request due whenever the game is behind one a round; 14.3% of rounds without one). Restore the requests test's "rounds without a request" floor from 8% to 10%.
-5. **Done** (21%). Watch random (15–30%): it sat at the floor (15%) before the switch to ten rounds.
-6. **Open:** not run in this pass. Run the a11y harness (`npm run a11y`) once at the end: its seeded games (3, 4, 9) now play different draws.
+5. **Done** (21%; 22.9% at 2,000 games in the final pass). Watch random (15–30%): it sat at the floor (15%) before the switch to ten rounds.
+6. **Open:** not run in this pass, nor in the final balancing of 27 Oct (tuning only; another agent owns the UI). Run the a11y harness (`npm run a11y`) once at the end: its seeded games (3, 4, 9) now play different draws.
 7. **Measured in the 26 Oct rebalancing** (sizes kept). **Living world (26 Oct, content pass):** headlines and voices now draw from their own seeded stream (no longer from the game's generator), so every seeded game after round 1 plays different requests and events than before; at 100 games the targets did not move beyond noise (thoughtful 68% → 65%, random 20% → 16%, home-first 59% → 56%). New social events and requests carry provisional sizes (listed below as they land); check them in the final pass.
 8. **Measured in the 26 Oct rebalancing** (sizes kept; the recently-seen memory not measured). **Living world: what moves gauges (provisional, check in the final pass).**
    - *Social events* (sizes from `TUNING.social.size`): new bad news: `se_outsourcing` (jobs, cohesion − medium), `se_travel_agents` (jobs, − small), `se_ai_degrees` (− small, AI capabilities 50+), `se_memo_protest` (− small, after the memo), `se_grid_blackout` (− medium, Rupture and 50+), `se_lobby_leak` (− small, Dependent from round 4), `se_forint_deepfake` (− small, 35+), `se_pause_smuggling` (cooperation − small, Pause); new good news: `se_pause_rally` (+ small, after the pause call), `se_inspectors_test` (verified + small, Pause with inspections), `se_shared_tests` (cooperation + small, Pause), `se_companion_ages` (+ small, 45+), `se_reskilling` (+ small, retraining), `se_open_tax_office` (+ small, Open), `se_scam_classes` (+ small, 40+). Replaced with the same size and gate: `se_lorry_drivers` → `se_office_march`; `se_energy_bills` → `se_grid_blackout` (gate now Rupture and AI capabilities 50+). The pool grew from 25 to 39, so each event comes less often; the Pause world now has its own news (two good, one bad).
