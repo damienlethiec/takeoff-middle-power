@@ -2125,7 +2125,7 @@ function shortfall(key: GaugeKey, gap: number): string {
   if (key === 'confidence')
     return `${GAUGE_LABEL.confidence} needed ${gap} more point${gap > 1 ? 's' : ''}. AI safety research raises the real value; the AI Office, inspections and audits show you where it stands.`;
   if (key === 'cohesion')
-    return `${GAUGE_LABEL.cohesion} needed ${gap} more point${gap > 1 ? 's' : ''}. Helping workers learn new jobs, human sign-off on AI and open models lift it; shielding hospitals from hackers and helping workers protect it from shocks.`;
+    return `${GAUGE_LABEL.cohesion} needed ${gap} more point${gap > 1 ? 's' : ''}. Helping workers learn new jobs, human sign-off on AI and open models lift it; retraining and shielding hospitals from hackers also soften the shocks.`;
   return `${GAUGE_LABEL[key]} needed ${gap} more.`;
 }
 
