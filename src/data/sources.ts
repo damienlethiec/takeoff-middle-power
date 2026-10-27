@@ -3,9 +3,11 @@ import type { Source } from '../engine/types';
 // Every real-world fact shown to players cites one of these. Each was checked against the primary source
 // with WebFetch on 25–26 October 2026 (quotes in docs/V3_BUILD_NOTES.md, "Facts checked").
 export const SOURCES = {
-  // the two scenarios the game is built on
+  // the three scenarios the game is built on
   ai2027: { label: 'AI 2027 (Kokotajlo et al., AI Futures Project, 2025)', url: 'https://ai-2027.com' },
   cfg: { label: 'CFG, Advanced AI: Possible Futures (2025)', url: 'https://cfg.eu/advanced-ai-possible-futures/' },
+  // the third (v4, 27 Oct): Europe's own scenario, read on europe2031.ai (scenario, summary and its Markdown version)
+  e2031: { label: 'Europe 2031: What getting AI wrong means for us (Juijn et al., June 2026)', url: 'https://europe2031.ai/' },
 
   // intro facts
   anthropicInterp: { label: 'Anthropic, Tracing the thoughts of a large language model (Mar 2025)', url: 'https://www.anthropic.com/research/tracing-thoughts-language-model' },

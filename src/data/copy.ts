@@ -96,16 +96,17 @@ export const INTRO: IntroScreen[] = [
   },
 ];
 
-/** "Built on" (the intro's last screen, replacing the old credits line): the two scenarios, the calendar, and the
- *  provenance tags the news carries. About 80 words, to fit a phone screen. */
+/** "Built on" (the intro's last screen, replacing the old credits line): the three scenarios, the calendar, and the
+ *  provenance tags the news carries. At most about 95 words, to fit a phone screen (390×844). */
 export const BUILT_ON = {
-  title: 'Built on two scenarios',
+  title: 'Built on three scenarios',
   scenarios: [
-    { name: 'AI 2027', by: 'Kokotajlo et al., 2025', what: 'a month-by-month forecast of AI improving itself by late 2027, told through two fictional labs.', source: SOURCES.ai2027 },
+    { name: 'AI 2027', by: 'Kokotajlo et al., 2025', what: 'AI improving itself by late 2027, told through two fictional labs.', source: SOURCES.ai2027 },
     { name: 'Advanced AI: Possible Futures', by: 'Centre for Future Generations, 2025', what: 'five worlds, from an AI plateau to an arms race; ten endings.', source: SOURCES.cfg },
+    { name: 'Europe 2031', by: 'Juijn et al., 2026', what: 'Europe squeezed between the US and China unless it acts.', source: SOURCES.e2031 },
   ],
-  calendar: { text: 'AI 2027 is the fast case: its authors now expect it to take a few years longer. Here the dates move with the pace.', source: SOURCES.aifTimelines, linkText: 'their update' },
-  tags: ['Real', 'From AI 2027', 'From CFG', 'Invented'],
+  calendar: { text: 'AI 2027 is the fast case; its authors now expect it later. Here dates move with the pace.', source: SOURCES.aifTimelines, linkText: 'their update' },
+  tags: ['Real', 'From AI 2027', 'From CFG', 'From Europe 2031', 'Invented'],
   tagsText: 'Every news item says where it comes from:',
 };
 

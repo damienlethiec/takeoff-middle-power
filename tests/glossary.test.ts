@@ -17,7 +17,7 @@ describe('glossary content', () => {
     expect(new Set(GLOSSARY.map((g) => g.term)).size).toBe(GLOSSARY.length);
     for (const g of GLOSSARY) {
       expect(words(g.def), g.id).toBeLessThanOrEqual(20);
-      expect(['ai2027', 'cfg', 'real', 'game'], g.id).toContain(g.basis.kind);
+      expect(['ai2027', 'cfg', 'e2031', 'real', 'game'], g.id).toContain(g.basis.kind);
       if (g.basis.kind === 'real') expect(g.source, g.id).toBeTruthy();
       if (g.source) {
         expect(Object.values(SOURCES), g.id).toContain(g.source);

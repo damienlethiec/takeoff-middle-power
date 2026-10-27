@@ -44,10 +44,11 @@ export const provLabel = (kind: Provenance): string =>
     real: t('ui.prov.real', 'Real'),
     ai2027: t('ui.prov.ai2027', 'From AI 2027'),
     cfg: t('ui.prov.cfg', 'From CFG'),
+    e2031: t('ui.prov.e2031', 'From Europe 2031'),
     game: t('ui.prov.game', 'Invented'),
   })[kind];
 
-/** The provenance tag (Real / From AI 2027 / From CFG / Invented), from the content's basis. The visible word is the
+/** The provenance tag (Real / From AI 2027 / From CFG / From Europe 2031 / Invented), from the content's basis. The visible word is the
  *  whole tag, so it reads the same for screen readers; the title gives the reference (in English). */
 export function provTag(b: Basis): string {
   const p = provenanceOf(b);

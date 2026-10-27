@@ -133,9 +133,10 @@ export function renderEnding(root: HTMLElement, v: EndingView, onAgain: () => vo
       ${threats ? `<h3>${esc(t('ui.end.threats', 'The threats'))}</h3>${threats}` : ''}
     </section>
     <div class="row-btns center end-again">${sign}<button type="button" class="btn-primary big" data-again>${esc(t('ui.end.again', 'Play again'))} ${kbd('enter')}</button></div>
-    <p class="muted small center">${th('ui.end.builtOn', 'Built on {ai2027} and {cfg}. OpenBrain, DeepCent and every event after today are fiction.', {
+    <p class="muted small center">${th('ui.end.builtOn', 'Built on {ai2027}, {cfg} and {e2031}. OpenBrain, DeepCent and every event after today are fiction.', {
       ai2027: `<a href="https://ai-2027.com" target="_blank" rel="noopener noreferrer" hreflang="en">AI 2027${newTab()}</a>`,
       cfg: `<a href="https://cfg.eu/advanced-ai-possible-futures/" target="_blank" rel="noopener noreferrer" hreflang="en"><span lang="en">CFG, Advanced AI: Possible Futures</span>${newTab()}</a>${inEnglish()}`,
+      e2031: `<a href="https://europe2031.ai/" target="_blank" rel="noopener noreferrer" hreflang="en">Europe 2031${newTab()}</a>`,
     })}</p>
   </main>`;
   root.querySelector<HTMLButtonElement>('[data-again]')!.addEventListener('click', onAgain);

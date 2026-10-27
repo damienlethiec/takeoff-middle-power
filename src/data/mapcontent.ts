@@ -5,7 +5,7 @@
 // saw in their last two games comes less often (TUNING.news). Lines marked `echo` answer the player's own decisions.
 
 import type { Basis, CardId, EuropeAi, MilestoneId, RegionId, Side, ThreatId, Zone } from '../engine/types';
-import { ai2027, cfg, real } from './basis';
+import { ai2027, cfg, e2031, real } from './basis';
 
 /** What a headline or a voice may depend on: public values only. */
 export interface PublicWorld {
@@ -83,7 +83,7 @@ export const WORLD_HEADLINES: MapLine[] = [
     text: 'Retraining centres fill up across Europe as the new money pays out.',
     when: (w) => retraining(w) && w.jobShocks > 0,
     echo: true,
-    basis: real('Europe 2031, recommendation 3 (flexicurity and retraining)'),
+    basis: e2031('Recommendation 3 (flexicurity: retraining and income support for displaced workers)'),
   },
   {
     id: 'h_open',
@@ -98,7 +98,7 @@ export const WORLD_HEADLINES: MapLine[] = [
     text: 'London, Oslo and Brussels speak with one voice on AI.',
     when: (w) => w.coalition >= 1,
     echo: true,
-    basis: real('Europe 2031, recommendation 2 (coalition of middle powers)'),
+    basis: e2031('Recommendation 2 (a coalition of middle powers: the UK, Norway, Canada, Japan, South Korea)'),
   },
   {
     id: 'h_pause_joined',
@@ -485,7 +485,7 @@ export const VOICES: MapLine[] = [
     text: 'A retrained welder in Bilbao: “Now I run the machines.”',
     when: (w) => retraining(w) && w.jobShocks > 0,
     echo: true,
-    basis: real('Europe 2031, recommendation 3 (flexicurity)'),
+    basis: e2031('Recommendation 3 (flexicurity: retraining for workers whose jobs change)'),
   },
   {
     id: 'v_pause_call',

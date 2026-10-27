@@ -28,7 +28,7 @@ describe('cards that can fail', () => {
       expect(f, id).toBeTruthy();
       expect(f.text.split(/\s+/).length, id).toBeLessThanOrEqual(20);
       expect(f.text, id).not.toMatch(/\d/);
-      expect(['ai2027', 'cfg', 'real', 'game']).toContain(f.basis.kind);
+      expect(['ai2027', 'cfg', 'e2031', 'real', 'game']).toContain(f.basis.kind);
     }
     for (const c of CARDS) if (!FAILABLE.includes(c.id)) expect(c.failure, c.id).toBeUndefined();
   });

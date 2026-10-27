@@ -88,7 +88,7 @@ export interface Source {
 /** Where a piece of content comes from: a scenario section, a real source, or a game device ('game': invented for
  *  the game, e.g. the independent audit). Required on all content. Players see it as a tag (provenanceOf in src/data/basis.ts). */
 export interface Basis {
-  kind: 'ai2027' | 'cfg' | 'real' | 'game';
+  kind: 'ai2027' | 'cfg' | 'e2031' | 'real' | 'game';
   ref: string;
 }
 
@@ -747,7 +747,7 @@ export interface FeedItem {
   postcard?: boolean;
   /** A social event (v4): its kind and city (the map shows it there). */
   social?: { kind: SocialKind; city: string; lon: number; lat: number };
-  /** Where it comes from, for the provenance tag (Real / From AI 2027 / From CFG / Invented). A story event set after
+  /** Where it comes from, for the provenance tag (Real / From AI 2027 / From CFG / From Europe 2031 / Invented). A story event set after
    *  today that rests on a real precedent is tagged Invented (its precedent is in `detail`): only the player's own
    *  decisions can be tagged Real. */
   prov?: Basis;

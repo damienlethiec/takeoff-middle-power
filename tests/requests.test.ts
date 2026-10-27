@@ -31,10 +31,11 @@ describe('request content', () => {
     expect(new Set(REQUESTS.map((r) => r.id)).size).toBe(REQUESTS.length);
     for (const id of Object.keys(CHARACTERS)) expect(REQUESTS.some((r) => r.character === id), id).toBe(true);
     for (const r of REQUESTS) {
-      expect(['ai2027', 'cfg', 'real'], r.id).toContain(r.basis.kind);
+      expect(['ai2027', 'cfg', 'e2031', 'real'], r.id).toContain(r.basis.kind);
       expect(r.basis.ref.length, r.id).toBeGreaterThan(8);
       if (r.basis.kind === 'ai2027') expect(r.basis.ref, r.id).toMatch(/AI 2027/);
       if (r.basis.kind === 'cfg') expect(r.basis.ref, r.id).toMatch(/CFG/);
+      if (r.basis.kind === 'e2031') expect(r.basis.ref, r.id).toMatch(/^Europe 2031, /);
     }
   });
 
@@ -46,7 +47,7 @@ describe('request content', () => {
       const src = r.learnMore.source;
       if (src === SOURCES.ai2027) expect(r.learnMore.text, r.id).toMatch(/^In AI 2027/);
       else if (src === SOURCES.cfg) expect(r.learnMore.text, r.id).toMatch(/^In CFG/);
-      else if (src === SOURCES.europe2031) expect(r.learnMore.text, r.id).toMatch(/Europe 2031/);
+      else if (src === SOURCES.europe2031 || src === SOURCES.e2031) expect(r.learnMore.text, r.id).toMatch(/Europe 2031/);
       else expect(r.learnMore.text, r.id).not.toMatch(/OpenBrain|DeepCent/);
     }
   });

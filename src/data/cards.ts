@@ -6,7 +6,7 @@
 // Texts: `text` ≤ 25 words (card face), `proposal` ≤ 60 words (opened card).
 
 import type { Basis, CardFamily, CardId, Chip, Fact, MilestoneId, ThreatId } from '../engine/types';
-import { ai2027, cfg, game, real } from './basis';
+import { ai2027, cfg, e2031, game, real } from './basis';
 import { GAUGE_LABEL } from './copy';
 import { moveText, moveWord, sizeWord } from './effects';
 import { SOURCES } from './sources';
@@ -143,8 +143,8 @@ export const CARDS: CardDef[] = [
     downs: [down('Washington may lure partners away')],
     protects: 'incident',
     arrives: { round: TUNING.arrive.coalition },
-    basis: real('europe2031: Europe 2031, recommendation 2 (coalition of middle powers); with CFG, Arms race, Ending B'),
-    failure: { text: 'The partners held back this time: Washington offered them privileged access to its AI instead.', basis: ai2027('August 2027: The Geopolitics of Superintelligence (the Five Eyes allies get limited access)') },
+    basis: e2031('Recommendation 2: a small, nimble coalition of middle powers whose chokepoints are joint leverage, and which could mediate between the US and China (with CFG, Arms race, Ending B)'),
+    failure: { text: 'The partners held back this time: Washington offered them privileged access to its AI instead.', basis: e2031('April 2029: Access all areas (the Five Eyes, Japan and South Korea get Tier 1 access to US AI; most of Europe Tier 2)') },
   },
   {
     id: 'audit',
@@ -180,8 +180,8 @@ export const CARDS: CardDef[] = [
       { id: 'access', label: 'Model access for European firms', ups: [up(COH(C.asml.access.cohesion))] },
     ],
     arrives: { aiPower: C.asml.arrivesAt },
-    basis: cfg('Arms race: “Control over chips becomes a geopolitical weapon”; the US invokes the Foreign Direct Product Rule against European toolmakers'),
-    failure: { text: 'The lever failed: US export rules, not Europe, decide where ASML may sell.', basis: cfg('Arms race: the US invokes the Foreign Direct Product Rule against European toolmakers') },
+    basis: e2031('Recommendation 2 (supply-chain chokepoints as joint leverage for frontier access or safer models) and May 2028: The compute crunch (Washington answers with the Foreign Direct Product Rule); with CFG, Arms race'),
+    failure: { text: 'The lever failed: US export rules, not Europe, decide where ASML may sell.', basis: e2031('May 2028: The compute crunch (Washington threatens the Foreign Direct Product Rule; The Hague backs down)') },
   },
   {
     id: 'weight_security',
@@ -232,7 +232,7 @@ export const CARDS: CardDef[] = [
     downs: [down(`Influence ${n(C.flexicurity.influence)} for ${C.flexicurity.rounds} rounds`)],
     protects: undefined,
     arrives: { milestone: 'ai_takes_jobs' },
-    basis: real('europe2031: Europe 2031’s flexicurity recommendation (with AI 2027, Late 2026: AI Takes Some Jobs)'),
+    basis: e2031('Recommendation 3: a Danish-style flexicurity model to adopt AI while protecting displaced workers (with AI 2027, Late 2026: AI Takes Some Jobs)'),
   },
   {
     id: 'cyber_shield',

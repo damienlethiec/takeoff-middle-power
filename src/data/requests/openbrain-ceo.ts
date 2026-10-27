@@ -132,10 +132,10 @@ export const OPENBRAIN_CEO: RequestCard[] = [
       reaction: 'We break ground in March.',
     },
     when: { minRound: 2, maxRound: 9 },
-    basis: { kind: 'cfg', ref: 'CFG, Big AI, main scenario (gigafactory siting and permitting delays); AI 2027, "Late 2025: The World’s Most Expensive AI"' },
+    basis: { kind: 'e2031', ref: 'Europe 2031, Recommendation 1 (partner with American hyperscalers to bring compute onto European soil, with permits in months; officials see it as giving up sovereignty); CFG, Big AI (permitting delays)' },
     learnMore: {
-      text: 'In AI 2027, OpenBrain builds the biggest data centres the world has seen, able to train a model with a thousand times the computing power of GPT-4.',
-      source: SOURCES.ai2027,
+      text: 'Europe 2031 (June 2026): the largest AI supercomputer in the US runs at 1,250 megawatts, the largest in Europe at 83.',
+      source: SOURCES.e2031,
     },
   },
 ];

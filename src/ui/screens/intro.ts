@@ -11,10 +11,10 @@ import { openModal } from '../modal';
 
 const brand = () => `<p class="intro-brand" aria-hidden="true"><span class="logo">TAKE<i>OFF</i></span><span class="sub">${esc(t('ui.brand.sub', 'Europe’s Next Move'))}</span></p>`;
 
-/** The "Built on" block: the two scenarios with links, the calendar, and the tags the news carries (in words). */
+/** The "Built on" block: the three scenarios with links, the calendar, and the tags the news carries (in words). */
 function builtOn(): string {
   const B = BUILT_ON;
-  const kinds = ['real', 'ai2027', 'cfg', 'game'] as const;
+  const kinds = ['real', 'ai2027', 'cfg', 'e2031', 'game'] as const;
   return `<section class="built-on" aria-labelledby="built-on-h"><h3 id="built-on-h">${esc(tc('builtOn.title', B.title))}</h3><ul>${B.scenarios
     .map((x, i) => `<li><b>${link(x.source, x.name)}</b> (<span lang="en">${esc(x.by)}</span>): ${esc(tc(`builtOn.scenarios.${i}.what`, x.what))}</li>`)
     .join('')}</ul><p>${esc(tc('builtOn.calendar.text', B.calendar.text))} (${link(B.calendar.source, tc('builtOn.calendar.linkText', B.calendar.linkText))})</p><p>${esc(tc('builtOn.tagsText', B.tagsText))} ${kinds

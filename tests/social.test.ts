@@ -31,9 +31,10 @@ describe('social events: content', () => {
 
   it('every event has a basis; a real precedent names its checked source, and only real ones say "Real precedent"', () => {
     for (const e of SOCIAL_EVENTS) {
-      expect(['ai2027', 'cfg', 'real'], e.id).toContain(e.basis.kind);
+      expect(['ai2027', 'cfg', 'e2031', 'real'], e.id).toContain(e.basis.kind);
       if (e.basis.kind === 'ai2027') expect(e.basis.ref).toMatch(/^AI 2027, /);
       if (e.basis.kind === 'cfg') expect(e.basis.ref).toMatch(/^CFG, /);
+      if (e.basis.kind === 'e2031') expect(e.basis.ref).toMatch(/^Europe 2031, /);
       if (e.basis.kind === 'real') {
         expect(e.source, `${e.id} needs a source`).toBeTruthy();
         expect(SOURCES[e.source!], e.id).toBeTruthy();

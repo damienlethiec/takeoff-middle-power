@@ -48,11 +48,12 @@ describe('real facts', () => {
     expect(INTRO[0].paragraphs.join(' ')).toMatch(/AI 2027 scenario and are fictional/);
     expect(INTRO[0].paragraphs.join(' ')).not.toMatch(/invented for this game/);
   });
-  it('the Built on block is short, links both scenarios and names the four tags', () => {
+  it('the Built on block is short (it fits a phone), links the three scenarios and names the five tags', () => {
     const all = [BUILT_ON.title, ...BUILT_ON.scenarios.flatMap((x) => [x.name, x.by, x.what]), BUILT_ON.calendar.text, BUILT_ON.tagsText, ...BUILT_ON.tags].join(' ');
-    expect(words(all)).toBeLessThanOrEqual(85);
+    expect(words(all)).toBeLessThanOrEqual(95);
+    expect(BUILT_ON.scenarios.map((s) => s.name)).toEqual(['AI 2027', 'Advanced AI: Possible Futures', 'Europe 2031']);
     for (const x of [...BUILT_ON.scenarios.map((s) => s.source), BUILT_ON.calendar.source]) expect(Object.values(SOURCES)).toContain(x);
-    expect(BUILT_ON.tags).toEqual(['Real', 'From AI 2027', 'From CFG', 'Invented']);
+    expect(BUILT_ON.tags).toEqual(['Real', 'From AI 2027', 'From CFG', 'From Europe 2031', 'Invented']);
   });
   it('the intro has two screens with one or two facts', () => {
     expect(INTRO).toHaveLength(2);

@@ -60,7 +60,9 @@ function requestHtml(v: RequestView, date: string): string {
       ? t('ui.request.echoAi2027', 'This request echoes AI 2027:')
       : v.basis.kind === 'cfg'
         ? t('ui.request.echoCfg', 'This request echoes the CFG scenarios:')
-        : v.basis.kind === 'game'
+        : v.basis.kind === 'e2031'
+          ? t('ui.request.echoE2031', 'This request echoes the Europe 2031 scenario:')
+          : v.basis.kind === 'game'
           ? t('ui.request.echoGame', 'This request echoes a device of the game:')
           : t('ui.request.echoReal', 'This request echoes the real world today:');
   return `<div class="req-card asking c-${v.character.id}" data-coach="request">
