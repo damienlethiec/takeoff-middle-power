@@ -226,14 +226,14 @@ export const WORLD_HEADLINES: MapLine[] = [
   {
     id: 'h_approval',
     region: 'us',
-    text: 'OpenBrain’s cheap AI worker sells fast, and its approval rating sinks.',
+    text: 'OpenBrain’s cheap AI worker sells fast, while the public turns against OpenBrain.',
     when: (w) => at(w, 'cheap_remote_worker'),
     basis: ai2027('July 2027: The Cheap Remote Worker (“OpenBrain has a net approval of -35%”)'),
   },
   {
     id: 'h_dpa',
     region: 'us',
-    text: 'In this story, Washington weighs folding smaller labs’ chips into OpenBrain.',
+    text: 'In this story, Washington weighs handing smaller labs’ chips to OpenBrain.',
     when: (w) => at(w, 'geopolitics') && w.zone !== 'pause',
     basis: ai2027('August 2027 (the Defense Production Act could raise OpenBrain’s share of world compute from 20% to 50%)'),
   },
@@ -447,7 +447,7 @@ export const VOICES: MapLine[] = [
   {
     id: 'v_docks',
     region: 'eu',
-    text: 'A Rotterdam planner: “They said this would take years.”',
+    text: 'A Rotterdam port planner: “An AI does my job now. They said that would take years.”',
     when: (w) => w.jobShocks > 0,
     basis: ai2027('Late 2026: AI Takes Some Jobs'),
   },
@@ -468,7 +468,7 @@ export const VOICES: MapLine[] = [
   {
     id: 'v_prices',
     region: 'eu',
-    text: 'A clinic in Lille: “Our AI bill went up again. There is no other provider.”',
+    text: 'A clinic manager in Lille: “Our AI bill went up again. There is no other provider.”',
     when: (w) => w.europeAi === 'dependent' && w.round >= 5,
     basis: cfg('Big AI: consolidation in a few firms'),
   },
@@ -526,7 +526,7 @@ export const VOICES: MapLine[] = [
   {
     id: 'v_eu_official',
     region: 'eu',
-    text: 'A Commission official in Brussels: “We regulate the newest AI. We may not use it.”',
+    text: 'A Commission official: “We regulate the newest AI. We aren’t allowed to use it.”',
     when: (w) => w.round <= 5,
     basis: e2031('November 2025: Worlds apart (the protagonist, a Commission official, may not use frontier AI on her work devices)'),
   },
@@ -611,7 +611,7 @@ export const VOICES: MapLine[] = [
   {
     id: 'v_open_join',
     region: 'eu',
-    text: 'A developer in Brno takes her model offline: “I hope their rules bind them too.”',
+    text: 'A Brno developer takes her model offline: “I hope the superpowers obey their own ban.”',
     when: (w) => flag(w, 'open_ban_join'),
     echo: true,
     basis: cfg('Plateau, Ending B (the superpowers ban open publication of large models)'),
