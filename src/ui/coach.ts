@@ -3,6 +3,9 @@
 // It can be switched off (here or in Help); every tip stays readable in Help.
 // v4: its own storage key. The previews share one origin with v3 (and main), so a player who had turned v3's
 // tips off never saw v4's: that is why the first-run tutorial seemed gone.
+// Progressive dashboard (27 Oct): a first game shows the gauges one system at a time (see App.reveal). The same key
+// remembers, without any new tracking, that the player has finished a game ('done', 'done-off'): from then on, like a
+// player who turned the tips off, they see the whole dashboard from round 1.
 
 import { TIPS, type TipId } from '../data/copy';
 import { t, tc } from '../i18n';
@@ -33,6 +36,10 @@ export class Coach {
   private seen = new Set<TipId>();
   readonly log: { round: number; title: string; text: string }[] = [];
   enabled: boolean;
+  /** The player has finished a game in this browser (kept in the same key). */
+  finished: boolean;
+  /** Called when the tips are switched on or off (the dashboard shows in full once they are off). */
+  onChange?: () => void;
 
   constructor(off = false) {
     let stored: string | null = null;
@@ -41,16 +48,34 @@ export class Coach {
     } catch {
       /* storage blocked: tips stay on for this page */
     }
-    this.enabled = !off && stored !== 'off';
+    this.enabled = !off && stored !== 'off' && stored !== 'done-off';
+    this.finished = stored === 'done' || stored === 'done-off';
+  }
+
+  /** The whole dashboard from round 1: tips off (or ?notutorial), or a game already finished here. */
+  get full(): boolean {
+    return !this.enabled || this.finished;
+  }
+
+  private store() {
+    try {
+      localStorage.setItem(KEY, this.finished ? (this.enabled ? 'done' : 'done-off') : this.enabled ? 'on' : 'off');
+    } catch {
+      /* storage blocked */
+    }
   }
 
   setEnabled(on: boolean) {
     this.enabled = on;
-    try {
-      localStorage.setItem(KEY, on ? 'on' : 'off');
-    } catch {
-      /* storage blocked */
-    }
+    this.store();
+    this.onChange?.();
+  }
+
+  /** A game reached its ending: the next ones show the whole dashboard from round 1. */
+  markFinished() {
+    if (this.finished) return;
+    this.finished = true;
+    this.store();
   }
 
   reset() {

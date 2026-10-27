@@ -7,7 +7,7 @@
 import type { EngineApi } from '../engine/api';
 import type { FeedItem, GameState, GaugeKey, MapItem, Pick, PreviewView, RequestView, ThreatView } from '../engine/types';
 import { CARD_BY_ID } from '../data/cards';
-import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, TIPS, marginText } from '../data/copy';
+import { GAUGE_LABEL, GAUGE_SUB, TIPPING_LINE, TIPS, marginText, type TipId } from '../data/copy';
 import { moveWord } from '../data/effects';
 import { announce, focusOwnsKey, reducedMotion, setSingleKeyShortcuts, shortcutsOn, tryFocus } from './a11y';
 import { Coach } from './coach';
@@ -113,6 +113,14 @@ export class App {
   private forgetting = false;
   /** The optional soundtrack (off by default): it lives across games. */
   private sound = new Soundtrack();
+  /**
+   * The progressive dashboard (27 Oct, playtests: "way too complex"): a first game shows one system at a time.
+   * Round 1: AI capabilities and AI safety only; US–China cooperation and the line on where the world is heading
+   * from round 2; Social cohesion (and what Influence income depends on) from round 3; Europe's AI badge the first
+   * time it matters. Display only: the engine's values exist and move from round 1. Players who turned the tips off
+   * or finished a game see everything from round 1 (Coach.full). Once shown, a part stays for the game.
+   */
+  private reveal = { cooperation: true, cohesion: true, heading: true, badge: true };
 
   constructor(
     private root: HTMLElement,
@@ -120,6 +128,13 @@ export class App {
   ) {
     const p = new URLSearchParams(location.search);
     this.coach = new Coach(p.has('notutorial'));
+    // tips switched off mid-game: the whole dashboard shows at once
+    this.coach.onChange = () => {
+      if (!this.s || !this.map || document.body.classList.contains('ended')) return;
+      this.updateReveal();
+      this.lastSig = '';
+      this.renderAll();
+    };
     // a change of language re-draws the screen in place: the game, the clock and any open decision stay as they are
     onLangChange(() => this.relocalize());
   }
@@ -149,6 +164,7 @@ export class App {
     }
     const g = this.root.querySelector<HTMLElement>('.game');
     if (g) g.className = classes;
+    this.applyReveal();
     this.lastSig = '';
     this.feedOf = null;
     this.map.setThreats(this.prevThreats);
@@ -239,6 +255,8 @@ export class App {
     this.coach.markSeen(tips);
     this.prevThreats = resume ? this.e.threats(state) : [];
     this.headingWhy = '';
+    this.reveal = { cooperation: false, cohesion: false, heading: false, badge: false };
+    this.updateReveal();
     this.buildShell();
     const v = this.vals();
     this.shown = { ...v };
@@ -282,6 +300,8 @@ export class App {
     }
     this.clockActive = false;
     document.body.classList.add('ended');
+    // a finished game: the next ones show the whole dashboard from round 1 (kept in the tutorial's key)
+    this.coach.markFinished();
     this.showEnding();
     this.sound.setPaused(false);
     this.sound.setWorld({ aiPower: this.s.aiPower, cooperation: this.s.cooperation, tipping: !!this.s.tipping, ending: this.e.ending(this.s).good ? 'good' : 'bad' });
@@ -320,6 +340,9 @@ export class App {
     // a friend's letter opens the round as a postcard (once), then stays in the feed (in full, with their portrait)
     // and as an envelope on the map
     const letter = this.e.letters(s).find((l) => l.round === s.round && l.slot !== 'end');
+    // the dashboard grows with the story (first game): what joins it this round is said with the round's news
+    const joined = this.updateReveal();
+    const joinedWords = joined.length ? ` ${t('ui.app.joined', 'New on the dashboard: {list}.', { list: andList(joined) })}` : '';
     const wrote = letter ? ` ${t('ui.app.wrote', '{name} wrote to you: the letter is in the news.', { name: tc(`friend.${letter.friend}.name`, FRIENDS[letter.friend].name) })}` : '';
     this.renderAll();
     this.sound.cue('round');
@@ -329,17 +352,21 @@ export class App {
       this.autosave('round');
     }
     const inc = s.influence - before.influence;
-    if (resumed) announce(`${t('ui.app.resumes', 'Your saved game resumes: {date}, round {round} of {rounds}. You have {n} Influence. The clock is running.', { date, round: s.round, rounds: TUNING.rounds, n: s.influence })}${wrote}`);
+    if (resumed) announce(`${t('ui.app.resumes', 'Your saved game resumes: {date}, round {round} of {rounds}. You have {n} Influence. The clock is running.', { date, round: s.round, rounds: TUNING.rounds, n: s.influence })}${joinedWords}${wrote}`);
     else
       announce(
-        `${t('ui.app.begins', '{date} begins, round {round} of {rounds}. Influence {inc}: you have {n}. The clock is running.', { date, round: s.round, rounds: TUNING.rounds, inc: signed(inc), n: s.influence })}${wrote}${s.round === 1 ? ` ${t('ui.app.helpKey', 'Press question mark for help.')}` : ''}`,
+        `${t('ui.app.begins', '{date} begins, round {round} of {rounds}. Influence {inc}: you have {n}. The clock is running.', { date, round: s.round, rounds: TUNING.rounds, inc: signed(inc), n: s.influence })}${joinedWords}${wrote}${s.round === 1 ? ` ${t('ui.app.helpKey', 'Press question mark for help.')}` : ''}`,
       );
     // the tutorial: one tip per gauge, then where the world is heading, then Influence on the decision view;
     // later, only what does not explain itself, the first time it appears.
     // A tip whose part of the screen is not visible waits (it is tried again next round).
-    for (const id of ['capabilities', 'safety', 'cooperation', 'cohesion', 'outlook'] as const) await this.coach.show(id, s.round, this.root);
-    // Europe's AI is always on the line now: its tip comes once the first decisions are made
-    if (s.round >= 2) await this.coach.show('badge', s.round, this.root);
+    // (first game: each gauge's tip comes the round it joins the dashboard)
+    const ready: Partial<Record<TipId, boolean>> = { cooperation: this.reveal.cooperation, cohesion: this.reveal.cohesion, outlook: this.reveal.heading };
+    for (const id of ['capabilities', 'safety', 'cooperation', 'cohesion', 'outlook'] as const) if (ready[id] !== false) await this.coach.show(id, s.round, this.root);
+    // what Influence income depends on joins the header with Social cohesion (first game only: Influence's own tip says it)
+    if (!this.coach.full && this.reveal.cohesion) await this.coach.show('income', s.round, this.root);
+    // Europe's AI: its tip comes once the first decisions are made, or (first game) the first time it matters
+    if (this.reveal.badge && (s.round >= 2 || !this.coach.full)) await this.coach.show('badge', s.round, this.root);
 
     this.beginClock();
     // what six months of drift will do, briefly by each gauge (social events show their own when they happen);
@@ -374,6 +401,9 @@ export class App {
         onPreview: (pv) => this.setPreview(pv),
         onOpen: async () => {
           await this.coach.show('influence', this.s.round, this.root);
+          // the first card that can fail, and the first accord on offer (each waits until one is in the hand)
+          await this.coach.show('chances', this.s.round, this.root);
+          await this.coach.show('accords', this.s.round, this.root);
         },
       });
       game?.classList.remove('deciding');
@@ -421,14 +451,14 @@ export class App {
     const a = this.vals(before);
     const b = this.vals();
     const moved: string[] = [];
-    const line = (label: string, x: number, y: number) => x !== y && moved.push(`${label} ${x} → ${y}`);
+    const line = (label: string, x: number, y: number, on = true) => on && x !== y && moved.push(`${label} ${x} → ${y}`);
     line(gaugeName('aiPower'), a.aiPower, b.aiPower);
-    line(gaugeName('cooperation'), a.cooperation, b.cooperation);
+    line(gaugeName('cooperation'), a.cooperation, b.cooperation, this.reveal.cooperation);
     // AI safety: what the labs claim, then what is verified
     line(this.safety().audited ? gaugeName('confidence') : t('ui.app.safetyClaimed', '{gauge} claimed', { gauge: gaugeName('confidence') }), a.confidence, b.confidence);
     const low = (x: Vals) => Math.max(0, Math.round(x.confidence - x.margin));
     if (a.margin !== b.margin) moved.push(tr(marginText(low(a), low(b), a.margin, b.margin)));
-    line(gaugeName('cohesion'), a.cohesion, b.cohesion);
+    line(gaugeName('cohesion'), a.cohesion, b.cohesion, this.reveal.cohesion);
     if (before.europeAi !== this.s.europeAi) moved.push(t('ui.app.europeAiTo', 'Europe’s AI → {ai}', { ai: this.s.europeAi === 'open' ? t('ui.europeAi.open', 'Open') : t('ui.europeAi.dependent', 'Dependent') }));
     this.headingWhy = played.length ? t('ui.app.why', '{cards}: {moved}.', { cards: andList(played), moved: moved.join(', ') || t('ui.app.noMove', 'no gauge moved yet') }) : '';
     this.popChanges(a, b);
@@ -481,6 +511,11 @@ export class App {
       }
     }
     if (this.t >= 0.5) this.revealThreats();
+    // the first round's news on the map: what the map and the feed are each for (once a round at most, until seen)
+    if (this.mapFeedTried !== this.s.round && !this.coach.has('mapFeed') && this.t >= 0.3 && this.items.some((x) => x.state === 'live')) {
+      this.mapFeedTried = this.s.round;
+      void this.tipWhilePaused('mapFeed');
+    }
     for (const st of this.steps) if (!st.told && this.t >= st.at) this.revealStep(st);
     if (s.leak && !this.leakShown && this.t >= s.leak.at) {
       this.leakShown = true;
@@ -527,8 +562,9 @@ export class App {
     }
   }
 
+  private mapFeedTried = 0;
   /** A tip during the clock: pause, show it, resume. */
-  private async tipWhilePaused(id: 'threat') {
+  private async tipWhilePaused(id: TipId) {
     if (modalOpen() || this.eventBusy || this.tipBusy) return;
     const was = this.running;
     this.tipBusy = true;
@@ -613,6 +649,8 @@ export class App {
     }, () => this.coach.show('request', this.s.round, this.root)); // the tip waits until the card is on screen
     this.map.setCalling(null);
     this.renderAll();
+    // an answer that changed Europe's AI brought its badge to the line: its tip, once the clock runs again
+    if (this.reveal.badge && !this.coach.has('badge')) setTimeout(() => void this.tipWhilePaused('badge'), 0);
     this.follow = 'clock';
     this.from = { ...this.to };
     this.setPhase('running');
@@ -707,10 +745,20 @@ export class App {
       setTimeout(() => b.classList.remove('hl'), 2600);
       return true;
     };
-    if (it.threat && glow(this.map.threatButton(it.threat))) return;
+    const where = (r: NonNullable<FeedItem['region']>) => (r === 'eu' ? t('ui.app.inEurope', 'Europe') : r === 'us' ? t('ui.app.inUs', 'the US') : t('ui.app.inChina', 'China'));
+    if (it.threat && glow(this.map.threatButton(it.threat))) {
+      announce(t('ui.app.onMapThreat', 'Its threat icon is lit on the map.'));
+      return;
+    }
     // this round's items: their region's list opens with the item highlighted
-    if (this.map.showEntry(it.id)) return;
-    if (it.region) this.map.burst(it.region, true);
+    if (this.map.showEntry(it.id)) {
+      if (it.region) announce(t('ui.app.onMap', 'Shown on the map: {place}.', { place: where(it.region) }));
+      return;
+    }
+    if (it.region) {
+      this.map.burst(it.region, true);
+      announce(t('ui.app.onMap', 'Shown on the map: {place}.', { place: where(it.region) }));
+    }
   }
 
   private markFeed(pred: (x: FeedItem) => boolean) {
@@ -726,7 +774,8 @@ export class App {
       this.feedOf = this.s;
       this.feedCache = this.e.feed(this.s);
     }
-    const t = this.clockActive ? this.t : 2;
+    // before the clock starts (the round's opening tips), none of the six months' news is out yet
+    const t = this.clockActive ? this.t : this.feedDone ? 2 : 0;
     this.feed.render(this.feedCache, t, this.feedDone);
     // the round's items, as icons clustered per region on the map (they leave with the round)
     const cur = this.feedCache.at(-1);
@@ -811,6 +860,7 @@ export class App {
         <div class="g-bar" aria-hidden="true">${k === 'cooperation' ? '<i class="zone-r"></i><i class="zone-a"></i><i class="zone-p"></i>' : ''}${k === 'aiPower' ? '<i class="g-tipzone"></i>' : ''}<i class="g-fill"></i><i class="g-band"></i><i class="g-ghost g-ghost-low" hidden></i><i class="g-ghost" hidden></i><i class="g-target"></i></div>
         <p class="g-cap" aria-hidden="true">${k === 'aiPower' ? `<span class="long">${esc(tr(TIPPING_LINE(tip)))}</span><span class="short">${esc(t('ui.gauge.tipShort', 'takeoff at {n}', { n: tip }))}</span>` : ''}</p>
         <p class="sr-only" id="gd-${k}"></p>
+        ${k === 'cooperation' || k === 'cohesion' ? `<p class="g-soon" hidden><b>${esc(gaugeName(k))}</b><span>${esc(t('ui.gauge.soon', 'On the dashboard from round {n}', { n: TUNING.reveal[k] }))}</span></p>` : ''}
       </section>`;
     this.root.innerHTML = `
     <div class="game">
@@ -843,6 +893,7 @@ export class App {
         </section>
         <section class="heading-line" id="heading-line" data-coach="heading" aria-labelledby="hl-h">
           <h2 class="sr-only" id="hl-h">${esc(t('ui.heading.where', 'Where the world is heading'))}</h2>
+          <p class="hl-early">${esc(t('ui.heading.early', 'First, watch {a} and {b}. The rest of the world joins the dashboard next round.', { a: gaugeName('aiPower'), b: gaugeName('confidence') }))}</p>
           <p class="hl-text" id="hl-text" aria-hidden="true"></p>
           <p class="sr-only" id="hl-words"></p>
           <span class="hl-badge" id="hl-badge"></span>
@@ -860,9 +911,15 @@ export class App {
     </div>`;
     this.map = new WorldMap($('#mapwrap', this.root));
     $('#mapwrap', this.root).setAttribute('aria-describedby', this.map.summaryId);
+    // the map shows where things happen, the feed what happened: an item on the map finds its story in the news
+    // (focus moves there, so the keyboard and screen readers follow); the leak opens to be read
     this.map.onItem = (entry) => {
-      this.feed.mark(entry.id);
-      if (entry.kind === 'leak' && this.s.leak) this.openFromMap(() => showLeak(this.s.leak!, this.date()));
+      if (entry.kind === 'leak' && this.s.leak) {
+        this.feed.mark(entry.id);
+        this.openFromMap(() => showLeak(this.s.leak!, this.date()));
+        return;
+      }
+      if (this.feed.mark(entry.id, true)) announce(t('ui.app.inTheNews', 'Its story in the news.'));
     };
     this.map.onThreat = (id) => {
       this.markFeed((x) => x.threat === id);
@@ -889,12 +946,67 @@ export class App {
       }),
     );
     this.setSpeed(this.speed);
+    this.applyReveal();
     this.fitSubs();
+  }
+
+  // ------------------------------------------------------------------ the progressive dashboard (27 Oct)
+
+  /** Is this gauge on the dashboard yet? */
+  private gaugeOn(k: GaugeKey): boolean {
+    return k === 'cooperation' ? this.reveal.cooperation : k === 'cohesion' ? this.reveal.cohesion : true;
+  }
+
+  /** Bring the dashboard up to date (see `reveal`): parts only ever join it. Returns the names of those that just did. */
+  private updateReveal(): string[] {
+    const v = this.reveal;
+    const was = { ...v };
+    const full = this.coach.full;
+    const r = this.s.round;
+    v.cooperation ||= full || r >= TUNING.reveal.cooperation;
+    v.cohesion ||= full || r >= TUNING.reveal.cohesion;
+    v.heading ||= v.cooperation;
+    // Europe's AI matters once it is no longer Dependent, when AI looks set to stall (it then decides the ending), when
+    // the selected cards would change it, or (a resumed game) once its tip was shown
+    v.badge ||=
+      full ||
+      (v.heading && (this.s.europeAi !== 'dependent' || !!this.e.heading(this.s).needsOpen || !!this.pv?.impacts.some((i) => i.key === 'europeAi') || this.coach.has('badge')));
+    this.applyReveal();
+    const out: string[] = [];
+    if (v.cooperation && !was.cooperation) out.push(gaugeName('cooperation'));
+    if (v.heading && !was.heading) out.push(t('ui.app.joinedHeading', 'the line on where the world is heading'));
+    if (v.cohesion && !was.cohesion) out.push(gaugeName('cohesion'));
+    if (v.badge && !was.badge) out.push(t('ui.app.joinedBadge', 'Europe’s AI, at the end of that line'));
+    return out;
+  }
+
+  /** Show what has joined the dashboard: a gauge not yet shown keeps its place with a calm note (no layout jump). */
+  private applyReveal() {
+    const v = this.reveal;
+    for (const k of ['cooperation', 'cohesion'] as const) {
+      const box = this.root.querySelector<HTMLElement>(`.gauge[data-key="${k}"]`);
+      if (!box) continue;
+      box.classList.toggle('g-off', !v[k]);
+      const soon = box.querySelector<HTMLElement>('.g-soon');
+      if (soon) soon.hidden = v[k];
+    }
+    this.root.querySelector('#heading-line')?.classList.toggle('early', !v.heading);
+    this.root.querySelector('.stage > .panel')?.classList.toggle('no-targets', !v.heading);
+    this.root.querySelector('.top .inf')?.classList.toggle('inf-early', !v.cohesion);
+  }
+
+  /** Something joined the dashboard mid-round (Europe's AI after an answer or a selection): say it once. */
+  private revealNow() {
+    const joined = this.updateReveal();
+    if (!joined.length) return;
+    announce(t('ui.app.joined', 'New on the dashboard: {list}.', { list: andList(joined) }));
+    this.lastSig = '';
   }
 
   // ------------------------------------------------------------------ rendering
 
   private renderAll(flash = false) {
+    this.revealNow();
     this.renderTop();
     this.renderFeed();
     this.renderClock();
@@ -949,12 +1061,13 @@ export class App {
     const s = this.s;
     const inc = this.e.nextIncome(s);
     $('#inf-v', this.root).textContent = String(s.influence);
-    const reasons = inc.reasons.map(tr);
+    // what the income depends on (Social cohesion, allies) joins the header with Social cohesion (first game)
+    const reasons = this.reveal.cohesion ? inc.reasons.map(tr) : [];
     $('#inf-next', this.root).textContent = inc.nextRoundExists ? t('ui.influence.nextShort', '{n} next round', { n: signed(inc.next) }) : t('ui.influence.noNext', 'no next round');
     $('#inf-why', this.root).textContent = inc.nextRoundExists ? reasons.join(' · ') : '';
     $('.inf', this.root).setAttribute(
       'aria-label',
-      `${t('ui.influence.now', 'Influence {n}.', { n: s.influence })} ${inc.nextRoundExists ? t('ui.influence.nextLong', 'Next round {n}: {reasons}.', { n: signed(inc.next), reasons: reasons.join(', ') }) : t('ui.influence.noIncome', 'No income will follow.')}`,
+      `${t('ui.influence.now', 'Influence {n}.', { n: s.influence })} ${inc.nextRoundExists ? (reasons.length ? t('ui.influence.nextLong', 'Next round {n}: {reasons}.', { n: signed(inc.next), reasons: reasons.join(', ') }) : t('ui.influence.nextPlain', 'Next round {n}.', { n: signed(inc.next) })) : t('ui.influence.noIncome', 'No income will follow.')}`,
     );
     $('.inf', this.root).setAttribute('role', 'group');
   }
@@ -1038,6 +1151,8 @@ export class App {
     const low = (v: Vals) => (audited ? Math.round(v.confidence) : Math.max(0, Math.round(v.confidence - v.margin)));
     const out: [GaugeKey, number][] = [];
     for (const k of KEYS) {
+      // a gauge not on the dashboard yet moves silently (its slot says when it joins)
+      if (!this.gaugeOn(k)) continue;
       const d = k === 'confidence' ? low(b) - low(a) : Math.round(b[k]) - Math.round(a[k]);
       if (d) out.push([k, d]);
     }
@@ -1202,7 +1317,8 @@ export class App {
       const zone = g.key === 'cooperation' ? ` ${t('ui.gauge.zone', 'Zone: {zone}.', { zone: zoneOf(v).name })} ${zoneOf(v).hint}.` : '';
       const gsub = tr(g.sub);
       const sub = ` ${gsub}${/[.?!]$/.test(gsub) ? '' : '.'}`;
-      const og = g.key === hd.decides.key ? hd.decides : g.key === hd.net.key ? hd.net : null;
+      // goals and floors belong to the world the line names: none before that line joins the dashboard
+      const og = !this.reveal.heading ? null : g.key === hd.decides.key ? hd.decides : g.key === hd.net.key ? hd.net : null;
       const tgt = og
         ? ` ${og === hd.decides ? t('ui.gauge.descGoal', 'Goal for the world you are heading to: {n}, {status}.', { n: og.bar, status: statusWord(statusOf(og)) }) : t('ui.gauge.descFloor', 'Floor for the world you are heading to: {n}, {status}.', { n: og.bar, status: statusWord(statusOf(og)) })}`
         : '';
@@ -1268,7 +1384,7 @@ export class App {
         }
       } else {
         const tg = box.querySelector<HTMLElement>('.g-target')!;
-        const role = h.decides.key === k ? 'goal' : h.net.key === k ? 'floor' : null;
+        const role = !this.reveal.heading ? null : h.decides.key === k ? 'goal' : h.net.key === k ? 'floor' : null;
         const og = role === 'goal' ? h.decides : role === 'floor' ? h.net : null;
         const was = pv ? (now.decides.key === k ? now.decides : now.net.key === k ? now.net : null) : null;
         let tgt = '';
@@ -1319,6 +1435,10 @@ export class App {
   private pv: PreviewView | null = null;
   private setPreview(pv: PreviewView | null) {
     this.pv = pv;
+    // the first selection that would change Europe's AI brings its badge (and its tip) to the line
+    const had = this.reveal.badge;
+    this.revealNow();
+    if (!had && this.reveal.badge) void this.coach.show('badge', this.s.round, this.root);
     this.renderGaugePreview();
     this.renderTargets();
     this.renderHeading();
@@ -1391,11 +1511,11 @@ export class App {
     const ai = pv?.impacts.some((i) => i.key === 'europeAi') ? (this.s.europeAi === 'open' ? 'dependent' : 'open') : this.s.europeAi;
     // heading for a plateau with big labs: the badge decides the ending there
     const plateau = !!h.needsOpen && !!now.needsOpen;
-    const bsig = `${this.s.europeAi}>${ai}${plateau ? ':plateau' : ''}`;
+    const bsig = this.reveal.badge ? `${this.s.europeAi}>${ai}${plateau ? ':plateau' : ''}` : '';
     if (badge.dataset.v !== bsig) {
       const hadFocus = badge.contains(document.activeElement);
       badge.dataset.v = bsig;
-      badge.innerHTML = badgeHtml(ai, this.s.europeAi, plateau);
+      badge.innerHTML = bsig ? badgeHtml(ai, this.s.europeAi, plateau) : '';
       if (hadFocus) badge.querySelector<HTMLElement>('[data-badge]')?.focus({ preventScroll: true });
     }
   }

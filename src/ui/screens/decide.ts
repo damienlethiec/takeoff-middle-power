@@ -58,12 +58,14 @@ function cardHtml(c: CardView, o: { selected: boolean; recommended: boolean; opt
     c.opportunity ? `<span class="tag opp">${esc(tn('ui.card.opportunity', c.expiresIn ?? 0, { one: 'Opportunity · {n} round left', other: 'Opportunity · {n} rounds left' }))}</span>` : '',
     lockWord ? `<span class="tag lock">${GICON.lock}${esc(lockWord)}</span>` : '',
   ].join('');
-  return `<li class="pc-wrap${o.selected ? ' sel' : ''}${locked ? ' locked' : ''}${c.opportunity ? ' opp' : ''}${o.recommended ? ' rec' : ''}">
+  // an accord on offer (the tutorial's tip points at it the first time)
+  const accord = !locked && ((c.id === 'inspections' && (c.level ?? 1) >= 2) || c.id === 'licensing_treaty');
+  return `<li class="pc-wrap${o.selected ? ' sel' : ''}${locked ? ' locked' : ''}${c.opportunity ? ' opp' : ''}${o.recommended ? ' rec' : ''}"${accord ? ' data-coach="accord"' : ''}>
     <button type="button" class="pcard" data-card="${id}" aria-pressed="${o.selected}"${locked && c.reason ? ` aria-describedby="pc-${id}-r"` : ''}>
       <span class="pc-top"><span class="pc-check" aria-hidden="true">${ICON.check}</span><span class="pc-name">${esc(tr(c.title))}</span><span class="pc-cost num"><span class="sr-only">${esc(t('ui.card.costs', 'costs'))} </span>${ICON.influence}${c.cost}<span class="sr-only"> ${esc(t('ui.influence.name', 'Influence'))}.</span></span></span>
       <span class="pc-short">${esc(short(c))}</span>
       <span class="pc-fx">${faceHtml(faceOf(c, o.option))}</span>
-      <span class="pc-foot">${c.odds ? `<span class="pc-odds o-${oddsClass(c)}"><b>${esc(tr(c.odds.word))}</b></span>` : ''}${tags}${o.selected ? `<span class="sr-only">${esc(t('ui.card.selected', 'Selected'))}</span>` : ''}</span>
+      <span class="pc-foot">${c.odds ? `<span class="pc-odds o-${oddsClass(c)}" data-coach="odds"><b>${esc(tr(c.odds.word))}</b></span>` : ''}${tags}${o.selected ? `<span class="sr-only">${esc(t('ui.card.selected', 'Selected'))}</span>` : ''}</span>
     </button>
     ${locked && c.reason ? `<span class="sr-only" id="pc-${id}-r">${esc(tr(c.reason))}</span>` : ''}
     <button type="button" class="pc-details" data-details="${id}" aria-label="${esc(t('ui.card.detailsOf', 'Details: {name}', { name: tr(c.title) }))}">${GICON.info}<span>${esc(t('ui.card.details', 'Details'))}</span></button>

@@ -27,7 +27,8 @@ export async function showHelp(opts: {
      <p class="muted small">${esc(t('ui.help.keysNote', 'Space and Enter act on the focused button first. Shortcuts never fire while you type.'))}</p>
      <label class="switch"><input type="checkbox" id="keys-switch" ${opts.shortcuts ? 'checked' : ''}/> ${esc(t('ui.help.singleKeys', 'Single-key shortcuts (N and ?)'))}</label>
      <h3>${esc(t('ui.help.tutorial', 'Tutorial'))}</h3>
-     <label class="switch"><input type="checkbox" id="tut-switch" ${opts.tutorial ? 'checked' : ''}/> ${esc(t('ui.help.tutorialSwitch', 'Show tips the first time each part of the screen matters'))}</label>
+     <label class="switch"><input type="checkbox" id="tut-switch" aria-describedby="tut-hint" ${opts.tutorial ? 'checked' : ''}/> ${esc(t('ui.help.tutorialSwitch', 'Show tips the first time each part of the screen matters'))}</label>
+     <p class="muted small" id="tut-hint">${esc(t('ui.help.tutorialHint', 'In a first game the gauges join the screen one at a time. With tips off, or once you have finished a game, everything shows from round 1.'))}</p>
      ${opts.tips?.length ? `<details class="older"><summary>${esc(t('ui.help.allTips', 'All tips ({n})', { n: opts.tips.length }))}</summary><ul class="rules">${opts.tips.map((x) => `<li><b>${esc(tr(x.title))}</b>${tipHtml(tr(x.text))}</li>`).join('')}</ul></details>` : ''}
      <h3>${esc(t('ui.help.privacy', 'Privacy'))}</h3>
      <p>${HELP.privacy.map((x, i) => esc(tc(`help.privacy.${i}`, x))).join(' ')} ${link(HELP.privacyLink, t('ui.help.privacyLink', 'GitHub’s privacy statement'))}.</p>

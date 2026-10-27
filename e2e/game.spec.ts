@@ -303,6 +303,11 @@ test.describe('key interactions', () => {
 
   test('decisions replace the map; a selection previews on the real gauges and commits only on Confirm', async ({ page }) => {
     const s = await boot(page, '?skipintro&notutorial&seed=4');
+    // the talks arrive in round 2 (round 1 offers the AI safety cards only): hold the cards in round 1
+    await toDecisions(page);
+    await dockButton(page, /^Make my decisions/).click();
+    await decisions(page).getByRole('button', { name: 'Play no card' }).click();
+    await advance(page, 300, false);
     await toDecisions(page);
     const inf = Number(await page.locator('#inf-v').textContent());
     await page.keyboard.press('Enter');
@@ -369,7 +374,7 @@ test.describe('key interactions', () => {
     await page.clock.resume();
     // no stop between rounds: the next six months begin by themselves
     await advance(page, 2000);
-    await expect(page.locator('#date')).toHaveText('H2 2027');
+    await expect(page.locator('#date')).toHaveText('H1 2028');
     await expect(page.locator('#feed-past')).toContainText('Host US–China talks');
     expect(s.errors).toEqual([]);
   });
@@ -448,6 +453,8 @@ test.describe('key interactions', () => {
     expect(full.startsWith((await item.locator('.mp-t').textContent())!.replace(/ …$/, ''))).toBe(true);
     await item.click();
     await expect(letter).toHaveAttribute('aria-pressed', 'true');
+    // the map shows where, the feed what: focus follows to the story in the news
+    await expect(letter).toBeFocused();
 
     // a second click closes the list
     await eu.click();
@@ -499,6 +506,9 @@ test.describe('key interactions', () => {
     }
     const threat = page.getByRole('button', { name: /^Threat: / }).first();
     await expect(threat).toBeVisible();
+    // a request may have arrived meanwhile: stop the time and answer it first
+    await freeze(page);
+    for (let i = 0; i < 5 && (await dialog(page).count()); i++) await closeDialog(page);
     await threat.click();
     await expect(dialog(page).getByText('What protects Europe')).toBeVisible();
     await page.keyboard.press('Escape');
@@ -564,8 +574,8 @@ test.describe('key interactions', () => {
     expect(s.errors).toEqual([]);
   });
 
-  test('two Breaking news in one round come one after the other, and the clock resumes (seed 15, H2 2029: the memo, then an AI incident)', async ({ page }) => {
-    const s = await boot(page, '?skipintro&notutorial&seed=15');
+  test('two Breaking news in one round come one after the other, and the clock resumes (seed 10, H2 2029: the memo, then an AI incident)', async ({ page }) => {
+    const s = await boot(page, '?skipintro&notutorial&seed=10');
     await freeze(page);
     const breaking = new Map<string, string[]>();
     let reached = false;
@@ -607,6 +617,42 @@ test.describe('key interactions', () => {
     expect(two[1]).toMatch(/AI tries to escape/i); // the AI incident
     // never more than two a round
     for (const titles of breaking.values()) expect(titles.length).toBeLessThanOrEqual(2);
+    expect(s.errors).toEqual([]);
+  });
+
+  test('a first game shows the dashboard one system at a time; after a finished game it is all there from round 1', async ({ page }) => {
+    const s = await boot(page, '?skipintro&seed=4');
+    await freeze(page);
+    const off = (k: string) => page.locator(`.gauge.g-${k}.g-off`);
+    const step = async () => {
+      if (await dialog(page).count()) await closeDialog(page);
+      else if (await decisions(page).count()) await decisions(page).getByRole('button', { name: 'Play no card' }).click();
+      else if (await dockButton(page, /^Make my/).count()) await dockButton(page, /^Make my/).click();
+      await advance(page, 300, false);
+    };
+    for (let i = 0; i < 6; i++) await step();
+    // round 1: AI capabilities and AI safety only; the other two keep their place and say when they join
+    await expect(page.locator('#date')).toHaveText('H1 2027');
+    await expect(off('cooperation')).toHaveCount(1);
+    await expect(off('cohesion')).toHaveCount(1);
+    await expect(page.locator('.gauge.g-cooperation .g-soon')).toHaveText(/US–China cooperation\s*On the dashboard from round 2/);
+    await expect(page.getByRole('button', { name: /^About US–China cooperation/ })).toHaveCount(0);
+    await expect(page.locator('#heading-line')).toContainText('First, watch');
+    await expect(page.getByRole('button', { name: /^Europe’s AI:/ })).toHaveCount(0);
+    // round 2: US–China cooperation and the line on where the world is heading join; Social cohesion waits for round 3
+    for (let i = 0; i < 200 && (await page.locator('#date').textContent()) !== 'H2 2027'; i++) await step();
+    await expect(off('cooperation')).toHaveCount(0);
+    await expect(off('cohesion')).toHaveCount(1);
+    await expect(page.locator('#hl-text')).toContainText('If takeoff happened now');
+    for (let i = 0; i < 200 && (await page.locator('#date').textContent()) !== 'H1 2028'; i++) await step();
+    await expect(off('cohesion')).toHaveCount(0);
+    // a player who has finished a game (kept in the tutorial's key) sees everything from round 1
+    await page.evaluate(() => localStorage.setItem('takeoff.v4.tutorial', 'done'));
+    await page.goto('?skipintro&fresh&seed=4');
+    await page.clock.fastForward(600);
+    await expect(page.locator('#date')).toHaveText('H1 2027');
+    await expect(page.locator('.gauge.g-off')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Europe’s AI:/ })).toHaveCount(1);
     expect(s.errors).toEqual([]);
   });
 

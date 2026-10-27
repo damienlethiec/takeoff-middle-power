@@ -62,7 +62,7 @@ From top to bottom:
 A character arrives during the six months with a short request (≤ 40 words) and two answers (left and right; no fixed convention on which side goes along). Asking is free: **the cost is in the answer**, and both answers cost something visible (a gauge, a growing threat, Europe's AI, the coalition, a delayed effect announced on the card, or, since 26 Oct, Influence spent at once: political capital, shown as a number like a card's cost). Costs are spread: Social cohesion is no longer the default price of an answer (playtests of 26 Oct).
 
 - **Characters** (all fictional; OpenBrain and DeepCent are AI 2027's): Dana Whitfield (US envoy), Li Wen (China's delegate in Geneva), Marcus Hale (OpenBrain's CEO), Dr Ines Moreau (independent evaluator), Katrin Vogel (union leader), Tomas Novak (open-model collective), General Aurélie Brandt (EU cyber and intelligence), Minister Hana Sato (Japan and the middle powers), Sam Okafor (journalist), the three friends back home (Léa, your mother, Malik), and "Agent", OpenBrain's frontier model speaking for itself.
-- **Which comes**: first a request tied to a milestone reached this round or to a growing threat, else a seeded draw; 6 to 10 a game; never the same one twice. Three **follow-ups** come back on an earlier answer ("I warned you").
+- **Which comes**: first a request tied to a milestone reached this round or to a growing threat, else a seeded draw; none in round 1 (27 Oct, learnability: a first game shows only AI capabilities and AI safety then), 5 to 10 a game; never the same one twice. Three **follow-ups** come back on an earlier answer ("I warned you").
 - **On the card**: the character's portrait, name and role, the request, "Free of Influence", the two answers with their effects as chips in words ("Social cohesion: down a little"; the reaction after answering shows the numbers), "If AI tipped now" when an answer would change the world, and **Learn more** (a sourced fact or the scenario passage it echoes).
 - **Answering**: click an answer, swipe the card, or press ← / → once to look (the answer is highlighted and announced) and again to answer. The card **turns over in place** (27 Oct; there is no separate reaction window): your answer, the character's reaction and what changed (numbers), for 4 seconds, then it closes by itself and the clock resumes; a click or tap on it, Enter or its small Continue button closes it sooner, and a mouse resting on it holds it (a thin bar runs out meanwhile). It is announced politely to screen readers; with reduced motion the content simply changes, without the turn. Requests, answers and reactions stay in the feed.
 - Requests never widen the AI safety uncertainty (only events and the labs' reports do).
@@ -85,7 +85,7 @@ A character arrives during the six months with a short request (≤ 40 words) an
 - **This round**: every item as it appears, newest first, each a button with an icon and a type ("Headline", "AI 2027 milestone", "Threat", "Heard in Europe", "Leak", "Breaking news", "Request · Li Wen", "Letter from Malik, your old flatmate in San Francisco", "Strike · Paris, France · in this story", "Your decision"), and what it changed.
 - **Social events**: one or two a round, different each game, in a European city: strikes, protests, scandals, layoffs (the two job shocks too) and good news, each with a headline, one line on why it matters (a real precedent, or the scenario it echoes) and what it changed. Bad news comes more often when Social cohesion is low or AI capabilities high.
 - **What changed** tops it when the six months end; **Earlier** holds past rounds by date, each with its own "What changed".
-- Choosing an item shows it on the map (its threat lights up, or its region's group opens with the item highlighted); choosing a map item highlights it here. **N** jumps to the feed.
+- **The map shows where things happen; the feed tells you what happened** (27 Oct). Choosing a feed item shows it on the map (its threat lights up, or its region's group opens with the item highlighted; announced: "Shown on the map: Europe"). Choosing a map item finds its story here: the feed switches to its tab, opens its "+N more" fold if needed, scrolls to it (smoothly, unless reduced motion), highlights it with a brief glow (a steady highlight with reduced motion) and **moves focus to it**, so keyboard and screen-reader players follow. The leak opens to be read instead. **N** jumps to the feed.
 
 ## The map
 
@@ -143,7 +143,19 @@ Playtesters without an AI-governance background said "we don't get the point", "
 
 ## Tutorial
 
-Short tips, one at a time, next to what they explain, each once; switchable off, all listed in Help. Round 1: one tip per gauge (capabilities, safety, cooperation, cohesion), then where the world is heading, then Influence on the decisions. Later, the first time it appears: a request (stacked over the request card), a threat, Europe's AI (from round 2). A tip waits while its part of the screen is not visible.
+Short tips, one at a time, next to what they explain, each once; switchable off, all listed in Help. A tip waits while its part of the screen is not visible.
+
+**One system at a time (27 Oct).** Playtesters without an AI-governance background found the game "way too complex"; the owner validated a progressive dashboard for a first game. Display only: the engine's values exist and move from round 1 (no rule reads what is shown).
+
+| Round | Joins the screen | Tips | New cards |
+| --- | --- | --- | --- |
+| 1 | AI capabilities, AI safety; the line under the gauges says "First, watch AI capabilities and AI safety…" (the two other gauges keep their place, dashed, "On the dashboard from round 2 / 3": no layout jump); Influence with its next-round amount | capabilities, safety, the map and the news (once the first items are out), Influence (decisions) | inspections (test the labs' models), AI Office capacity, AI safety research: AI safety only. No request in round 1. |
+| 2 | US–China cooperation and the line on where the world is heading (goals and floors on the gauges come with it) | cooperation, where the world is heading, a request (the first one), diplomacy can fail (the first card with a chance) | diplomatic talks (plus threat-driven cards as before) |
+| 3 | Social cohesion, and what Influence income depends on (the header's reasons) | cohesion, Influence income | open models, coalition, CERN for AI |
+| 4+ | — | — | the audit (round 4), then as before |
+| when it matters | Europe's AI badge: once it is no longer Dependent, when AI looks set to stall, or when the selected cards would change it | Europe's AI; an accord (the first accord on offer); a threat | |
+
+What joins the screen is also announced ("New on the dashboard: US–China cooperation, the line on where the world is heading."); a gauge not yet shown moves silently (no change by it, nothing announced for it). A player who has finished a game in this browser, or who turned the tips off (or `?notutorial`), sees the whole dashboard from round 1; this is kept in the tutorial's own key (`takeoff.v4.tutorial`: `on`, `off`, `done`, `done-off`), with no new tracking. Help says so under the tips switch.
 
 ## Why? (the five worlds)
 

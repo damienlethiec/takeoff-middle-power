@@ -14,6 +14,7 @@
 
 import type { Change, FeedItem, FeedRound, SocialKind } from '../engine/types';
 import { t, tn, tr } from '../i18n';
+import { reducedMotion } from './a11y';
 import { esc, provTag } from './format';
 import { friendPortrait } from './friends';
 
@@ -214,8 +215,12 @@ export class Feed {
     </button></li>`;
   }
 
-  /** Highlight one item (from the feed or from a map pin): switch to its tab and scroll it into view. */
-  mark(id: string) {
+  /**
+   * Highlight one item (from the feed or from a map pin): switch to its tab, open its fold, and scroll it into view
+   * (smoothly, unless the player asked for less motion). From the map (`focus`), focus moves to it and it glows
+   * briefly (a steady highlight with reduced motion). Returns the item's button, if it is in the feed.
+   */
+  mark(id: string, focus = false): HTMLElement | null {
     this.selected = id;
     const inNow = this.rounds.at(-1)?.items.some((x) => x.id === id && (x.at <= this.lastT || (this.lastDone && x.at <= 1)));
     this.el.querySelectorAll<HTMLElement>('.fd-item').forEach((b) => {
@@ -229,7 +234,19 @@ export class Feed {
     const group = b?.closest<HTMLElement>('.fd-more');
     const toggle = group?.querySelector<HTMLButtonElement>('.fd-more-btn');
     if (toggle && toggle.getAttribute('aria-expanded') !== 'true') this.fold(toggle, true);
-    b?.scrollIntoView({ block: 'nearest' });
+    if (!b) return null;
+    const calm = reducedMotion();
+    b.scrollIntoView({ block: focus ? 'center' : 'nearest', behavior: calm ? 'auto' : 'smooth' });
+    if (focus) {
+      b.focus({ preventScroll: true });
+      if (!calm) {
+        b.classList.remove('pulse');
+        void b.offsetWidth;
+        b.classList.add('pulse');
+        setTimeout(() => b.classList.remove('pulse'), 1600);
+      }
+    }
+    return b;
   }
 
   /** The latest item about a threat, a letter or the leak (for clicks on map pins). */

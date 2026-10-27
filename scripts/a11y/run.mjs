@@ -169,7 +169,16 @@ async function playRun(browser, base, run) {
           await press('Escape');
           await advance(page, 150);
           if (!(await focusIs('.m-cluster[aria-expanded="false"]'))) fail(`Escape in a group's list did not close it and return to the group (${await focused(page)})`);
-          log.push('  map group: opened, entered and closed with the keyboard');
+          // an item of the group finds its story in the news: focus moves there (the leak opens instead)
+          await press('Enter');
+          await advance(page, 150);
+          await press('Tab');
+          if (await focusIs('.m-pop .mp-item:not(.k-leak)')) {
+            await press('Enter');
+            await advance(page, 150);
+            if (!(await focusIs('.fd-item[aria-pressed="true"]'))) fail(`a map item did not move focus to its story in the news (${await focused(page)})`);
+          }
+          log.push('  map group: opened, entered and closed with the keyboard; an item led to its news');
         });
         continue;
       }
@@ -231,12 +240,24 @@ async function playRun(browser, base, run) {
         });
         continue;
       }
-      if (done.has('main') && once('badge')) {
+      // Europe's AI badge: in a first game (tips on) it joins the line the first time it matters (27 Oct)
+      if (done.has('badge') && !done.has('badge-btn') && (await page.evaluate(() => !!document.querySelector('.badge-btn')))) {
+        await explore(async () => {
+          await openAndReturn('badge', '.badge-btn');
+          done.add('badge-btn');
+        });
+        continue;
+      }
+      // in a first game the line on where the world is heading (and its Why?) joins the screen in round 2
+      if (done.has('main') && (await page.evaluate(() => !!document.querySelector('#heading-line:not(.early)'))) && once('badge')) {
         await explore(async () => {
           // a gauge's "?" (any gauge: their markup is being redesigned)
           await openAndReturn('gauge-help', '.gauge button[aria-label^="About"], .g-info');
           await openAndReturn('worlds', '[data-worlds]');
-          await openAndReturn('badge', '.badge-btn');
+          if (await page.evaluate(() => !!document.querySelector('.badge-btn'))) {
+            await openAndReturn('badge', '.badge-btn');
+            done.add('badge-btn');
+          }
           // the help by its shortcut, the news feed by N
           await press('Shift+Slash');
           await advance(page, 150);
@@ -462,7 +483,7 @@ try {
     for (const k of r.done) somewhere.add(k);
   }
   if (!process.env.A11Y_ONLY)
-    for (const k of ['glossary', 'feed-more'])
+    for (const k of ['glossary', 'feed-more', 'badge-btn'])
       if (!somewhere.has(k)) {
         console.log(`  PROBLEM no run checked: ${k}`);
         bad++;

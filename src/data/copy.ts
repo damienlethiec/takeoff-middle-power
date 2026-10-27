@@ -137,6 +137,11 @@ export const TIPS = {
   request: { anchor: 'request', title: 'A request', text: 'Someone needs an answer. Look at an answer first (click it, or press ← → once), then answer (again). Asking costs nothing: the cost is in the answer, sometimes Influence.' },
   threat: { anchor: 'map', title: 'A threat is growing', text: 'Threat icons grow in three stages before they strike. Prepare with cards marked “Protects against”, or with some answers to requests. Open an icon to see what protects Europe.' },
   badge: { anchor: 'badge', title: 'Europe’s AI', text: 'Open or Dependent: does Europe run its own models? If AI never takes off, this badge decides the kind of world.' },
+  // the progressive dashboard (27 Oct): each comes the first time its part of the game matters
+  mapFeed: { anchor: 'map feed', title: 'The map and the news', text: 'The map shows where things happen; the feed tells you what happened. Click an icon on the map to find its story in the news, or a story to see where it happened.' },
+  income: { anchor: 'influence', title: 'Influence income', text: 'Why you earn what you earn now shows by your Influence: +2 a round, +1 more when **Social cohesion** is 60 or more, −1 below 35, and +1 once allies share the load.' },
+  chances: { anchor: 'odds', title: 'Diplomacy can fail', text: 'Cards that need others to agree say how likely they are to work: **Likely to work**, **Uncertain** or **Long shot**. If one fails, its Influence is spent and nothing else happens; you can try again later.' },
+  accords: { anchor: 'accord', title: 'An accord', text: 'Some cards go further once Washington and Beijing agree to be checked, like the **inspection accord** that lets European inspectors into their labs. Accords open only after a crisis, or with US–China cooperation in the Pause zone.' },
 } as const;
 export type TipId = keyof typeof TIPS;
 
