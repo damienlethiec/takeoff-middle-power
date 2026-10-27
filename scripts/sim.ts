@@ -102,7 +102,8 @@ const allChecks: [string, boolean, string, string[]][] = [
   ['home-first (no diplomacy) clearly worse than thoughtful (−15 pts)', g('thoughtful') - g('home-first') >= 0.15, `${pct(g('home-first'), 1)} vs ${pct(g('thoughtful'), 1)}`, ['home-first', 'thoughtful']],
   ['thoughtful: no card above 20% of its plays that worked', topN / total <= 0.2, `${topCard} ${pct(topN, total)}`, ['thoughtful']],
   ['saver (Influence kept for bursts) clearly worse than thoughtful (−10 pts)', g('thoughtful') - g('saver') >= 0.1, `${pct(g('saver'), 1)} vs ${pct(g('thoughtful'), 1)}`, ['saver', 'thoughtful']],
-  ['6–10 requests a game (≥ 99.5% of games)', reqCounts.filter((n) => n >= 6 && n <= 10).length >= 0.995 * reqCounts.length, `${pct(reqCounts.filter((n) => n >= 6 && n <= 10).length, reqCounts.length)} (${Math.min(...reqCounts)}–${Math.max(...reqCounts)})`, []],
+  // 5 to 10 since 27 Oct: round 1 has no request by design (learnability), so a game that takes off in round 6 gets 5
+  ['5–10 requests a game (≥ 99.5% of games)', reqCounts.filter((n) => n >= 5 && n <= 10).length >= 0.995 * reqCounts.length, `${pct(reqCounts.filter((n) => n >= 5 && n <= 10).length, reqCounts.length)} (${Math.min(...reqCounts)}–${Math.max(...reqCounts)})`, []],
   ['thoughtful: AI safety uncertainty at the end ≤ 30 (median)', thMedianMargin <= 30, `±${thMedianMargin}`, ['thoughtful']],
   [`tipping point never before round ${TUNING.earliestTipping}`, earliest >= TUNING.earliestTipping, `earliest round ${earliest}`, []],
   ['AI takes off (tipping point) in 50–70% of games (all strategies)', tipShare(pooled) >= 0.5 && tipShare(pooled) <= 0.7, `${pct(tipShare(pooled), 1)} (${tipByPace})`, []],

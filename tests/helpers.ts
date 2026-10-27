@@ -37,10 +37,12 @@ export function reachRound(seed: number, round: number): GameState {
   return s;
 }
 
-/** A started round-1 state with plenty of Influence, for card tests. */
+/** A started round-1 state with plenty of Influence, for card tests. The talks arrive in round 2 since 27 Oct (round 1
+ *  offers the AI safety cards only): they are added to the hand here, as the card tests expect them. */
 export function fresh(seed = 1, patch: Partial<GameState> = {}): GameState {
   const s = nextRound(createInitialState(seed));
-  return { ...s, influence: 10, ...patch };
+  const hand = s.hand.includes('talks') ? s.hand : (['talks', ...s.hand] as GameState['hand']);
+  return { ...s, influence: 10, hand, arrivals: { talks: s.round, ...s.arrivals }, ...patch };
 }
 
 /** Play cards as if they worked (cards that can fail are tested in tests/failure.test.ts). */

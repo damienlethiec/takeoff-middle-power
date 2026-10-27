@@ -110,10 +110,12 @@ describe('request content', () => {
 describe('requests in a game', () => {
   const games = Array.from({ length: 300 }, (_, i) => playGame(4000 + i, thoughtful));
 
-  it('6 to 10 requests a game, at most one a round (two when a follow-up is due), and rounds without one stay common', () => {
+  it('none in round 1 (learnability), 5 to 10 requests a game, at most one a round (two when a follow-up is due), and rounds without one stay common', () => {
     const counts = games.map((g) => g.requests);
     const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
     expect(avg).toBeGreaterThanOrEqual(6);
+    expect(Math.min(...counts)).toBeGreaterThanOrEqual(5);
+    for (const g of games) expect(g.final.history.find((r) => r.round === 1)?.requests ?? []).toEqual([]);
     expect(avg).toBeLessThanOrEqual(10);
     expect(Math.max(...counts)).toBeLessThanOrEqual(T.requests.maxPerGame);
     let empty = 0;
@@ -188,11 +190,12 @@ describe('requests in a game', () => {
 
   it('cards cannot be played while a request waits; the round cannot end before it is answered', () => {
     for (let seed = 1; seed < 40; seed++) {
-      const s = startRound(createInitialState(seed));
+      // requests start in round 2
+      const s = startRound(endRound(startRound(createInitialState(seed))).state);
       if (!request(s)) continue;
       expect(() => endRound(s)).toThrow(/answer the requests/);
       return;
     }
-    throw new Error('no request in round 1 for these seeds');
+    throw new Error('no request in round 2 for these seeds');
   });
 });

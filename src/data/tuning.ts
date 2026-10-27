@@ -54,10 +54,17 @@ export const TUNING = {
   /** "Or change course" in the band: another world is offered only when the cooperation gap is this small. */
   outlook: { altGap: 15 },
 
-  /** Requests (v4): characters who arrive during the six months. 6 to 10 a game, at most one a round
+  /** The progressive dashboard (27 Oct, presentation only: no rule reads it): in a first game, the round each gauge
+   *  joins the dashboard (AI capabilities and AI safety are there from round 1; the line on where the world is
+   *  heading comes with US–China cooperation). */
+  reveal: { cooperation: 2, cohesion: 3 },
+
+  /** Requests (v4): characters who arrive during the six months. At most one a round
    *  (two when a follow-up is due). `chance` is the share of other rounds that get one; `minRate` keeps the
-   *  count up (a request is forced when fewer than round × minRate have come). */
-  requests: { maxPerGame: 8, chance: 0.6, minRate: 1, firstRound: 1 },
+   *  count up (a request is forced when fewer than round × minRate have come). None in round 1 (27 Oct,
+   *  learnability: nearly every request bears on US–China cooperation or Social cohesion, which a first game's
+   *  dashboard shows from round 2 and 3): 5 to 10 a game, 5 when AI takes off in round 6. */
+  requests: { maxPerGame: 8, chance: 0.6, minRate: 1, firstRound: 2 },
 
   influence: { base: 2, highCohesion: 60, lowCohesion: 35, coalitionLevel: 2, cap: 10, minIncome: 1 },
 
@@ -69,7 +76,7 @@ export const TUNING = {
   worlds: {
     pause: { decides: 'confidence', target: 60, net: 'cohesion', floor: 42 },
     race: { decides: 'confidence', target: 62, net: 'cohesion', floor: 47 },
-    rupture: { decides: 'cohesion', target: 82, net: 'confidence', floor: 60 },
+    rupture: { decides: 'cohesion', target: 82, net: 'confidence', floor: 57 },
     plateau_open: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
     plateau_labs: { decides: 'cohesion', target: 60, net: 'confidence', floor: 40 },
   },
@@ -77,7 +84,7 @@ export const TUNING = {
   /** Without a tipping point, how far AI got picks CFG's gradual world: below `bigAiFrom` AI hit a wall (Plateau,
    *  open models everywhere); from it, AI kept improving slowly under a few labs' compute (Big AI). In Big AI only a
    *  Europe with its own open models ends well (CFG's agent economy: publicly funded models must be open-weight). */
-  plateau: { bigAiFrom: 70 },
+  plateau: { bigAiFrom: 72 },
 
   jobShocks: { at: [40, 70], hit: -5, softened: -1 },
 
@@ -128,12 +135,12 @@ export const TUNING = {
      *  squeezes other budgets, which costs political capital). */
     ai_office: { cost: 1, marginFactor: 0.5, influence: -1, inspectionsBonus: -2 },
     /** Hidden gain `truth`, plus `accessTruth` once the inspection accord (`accessInspections`) opens the labs. */
-    alignment: { cost: 2, truth: 5, accessTruth: 4, accessInspections: 2, estimate: 2, cohesion: 0, uses: 3 },
+    alignment: { cost: 2, truth: 6, accessTruth: 4, accessInspections: 2, estimate: 2, cohesion: 0, uses: 2 },
     coalition: { cost: [2, 2, 3], cooperation: 2, cohesion: 0, uses: 3 },
     audit: { cost: 1, rounds: 2, uses: 2 },
     asml: { cost: 2, safety: { margin: -8 }, access: { cohesion: 6 }, cooperation: -2, uses: 2, arrivesAt: 35 },
     weight_security: { cost: 1, cohesion: -2 },
-    open_models: { cost: 2, cohesion: 6, arrivesRound: 2 },
+    open_models: { cost: 2, cohesion: 6, arrivesRound: 3 },
     flexicurity: { cost: 3, cohesion: 10, influence: -1, rounds: 2 },
     cyber_shield: { cost: 2, cohesion: 3, influence: -1, rounds: 2 },
     oversight_mandate: { cost: 2, cohesion: 6, arrivesRound: 6 },
@@ -151,8 +158,10 @@ export const TUNING = {
     pause_call: { cost: 2, cooperation: 2, influence: -2, rounds: 2 },
   } satisfies Record<CardId, object>,
 
-  /** When cards first arrive. */
-  arrive: { talks: 1, inspections: 1, ai_office: 1, alignment: 2, coalition: 3, audit: 4 },
+  /** When cards first arrive (27 Oct, learnability: round 1 offers the three AI safety cards, the one system the
+   *  dashboard shows then; diplomacy comes with US–China cooperation in round 2, Europe at home with Social
+   *  cohesion in round 3). */
+  arrive: { talks: 2, inspections: 1, ai_office: 1, alignment: 1, coalition: 3, audit: 4 },
 
   threats: {
     /** Theft pressure = AI power + (50 − Cooperation) × coopWeight. Stages at these pressures. */

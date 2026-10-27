@@ -230,6 +230,12 @@ What moved: a slow pace never reaches the tipping point in ten rounds (AI capabi
 | AI takes off in 50–70% of games (new) | PASS 62.7% (slow 11.9%, steady 100%, fast 100%) |
 
 Levers tried and dropped (one sim each): alignment research with four uses at +4 (thoughtful 56%, saver 48%); shorter theft and ransomware windows (28 / 32 / 36, 32 / 36 / 40: thoughtful 53%, saver 50%); a thoughtful player reading the middle of the AI safety band with stronger weights (54%, 47%). The saver gap sits at the edge of a 100-game sample's noise; the faster clock shortened the saving phase (the saver plays like the thoughtful player from AI capabilities 70, now reached by round 6–7).
+| **Learnability of 27 Oct** (playtesters without an AI-governance background: "way too complex"; owner's decisions: one system at a time, round 1 shows only AI capabilities and AI safety). Measured together (`npm run sim`, 100 games a strategy; before: the table "After the event scheduling of 27 Oct") | | | | |
+| Cards by round (`arrive`, `cards.open_models.arrivesRound`) | round 1: talks, inspections, AI Office; alignment and open models in round 2 | round 1: inspections, AI Office, alignment (AI safety only, the one system the dashboard shows); talks in round 2 (with US–China cooperation); open models in round 3 (with Social cohesion), beside the coalition and the CERN for AI; the audit in round 4 | A first game's dashboard grows one gauge at a time (`reveal`, presentation only); the cards follow it, each new one tagged "New". | Thoughtful 56% → 52% with the cards alone (alignment 22% of its plays); the rows below bring it back. |
+| Requests from round 2 (`requests.firstRound`) | 1 | 2 | Nearly every request bears on US–China cooperation or Social cohesion, which a first game shows from round 2 and 3: a round-1 request was a choice about gauges not on screen. A fixed AI-safety-only first request (`pt_joint_tests`) was tried and dropped (it removed the open-source request from round 1, and with it *Powerful AI in every hand*). | Sim target "6–10 requests a game" → **5–10** (owner's decision): a game that takes off in round 6 now gets 5. |
+| Alignment research (`cards.alignment.uses`, `truth`) | 3 uses, +5 | 2 uses, +6 | From round 1 the thoughtful player funded it three times in nearly every game (22% of its plays, above the 20% target); two rounds of funding with a slightly larger hidden gain keep its weight. | Alignment 15.5% of a thoughtful player's plays. |
+| Big AI from (`plateau.bigAiFrom`) | 70 | 72 | Without the round-1 request the passive and random players' slow games ended just above 70 (Big AI), and *Powerful AI in every hand* fell to 0–1%. | Best 3% (random). |
+| Rupture's AI safety floor (`worlds.rupture.floor`) | 60 | 57 | With two uses of alignment research the home-first player's *A divided world that holds* fell from 9% to 1%: 60 true AI safety in a Rupture was out of reach without diplomacy. | 9% (home-first). |
 
 ### After the event scheduling of 27 Oct (`npm run sim`, 100 games a strategy)
 
@@ -259,6 +265,20 @@ Levers tried and dropped (one sim each): alignment research with four uses at +4
 | AI takes off in 50–70% of games | PASS 62.7% |
 
 Ransomware (6–16%) and silicon blackmail (0–12%) are unchanged: they still wait for a free slot.
+
+### After the learnability pass of 27 Oct (`npm run sim`, 100 games a strategy)
+
+| Strategy | Good endings | Tipping point | AI incident (prepared) | Bioweapon uplift | Committee slows down |
+| --- | --- | --- | --- | --- | --- |
+| Passive | 0% | 71% | 51% (0%) | 6% | 24% |
+| Random | 26% | 63% | 47% (60%) | 14% | 7% |
+| Thoughtful | 61% | 59% | 42% (95%) | 13% | 21% |
+| Cooperation-only | 5% | 70% | 48% (2%) | 8% | 67% |
+| Home-first (no diplomacy) | 32% | 64% | 47% (0%) | 12% | 0% |
+| Advised (one card a round) | 42% | 59% | 43% (51%) | 12% | 10% |
+| Saver (bursts) | 63% | 59% | 35% (74%) | 14% | 17% |
+
+Every target passes but the saver's (a known, accepted miss: 63% vs 61%): every ending ≥ 2% for some strategy (lowest *Powerful AI in every hand* 3%), thoughtful's most played card alignment 15.5%, 5–10 requests in 100% of games (5–8), AI safety uncertainty ±18 median, earliest tipping point round 6, takeoff in 63.6% of games.
 
 ### Rebalancing backlog (owner's decision, 26 Oct: rebalance at the end, not now)
 

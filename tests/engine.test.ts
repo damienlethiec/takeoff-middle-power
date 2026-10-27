@@ -19,6 +19,7 @@ import {
   playCard,
   preview,
   report,
+  request,
   resolveEvent,
   startRound,
   threats,
@@ -148,10 +149,24 @@ describe('Influence', () => {
 });
 
 describe('cards', () => {
-  it('round 1 offers three cards; others arrive when the story makes them relevant', () => {
-    const s = fresh(1);
-    expect(s.hand).toEqual(['talks', 'inspections', 'ai_office']);
+  it('round 1 offers the three AI safety cards; others arrive over rounds 2 to 4 or when the story makes them relevant', () => {
+    let s = nextRound(createInitialState(1));
+    expect(s.hand).toEqual(['inspections', 'ai_office', 'alignment']);
     expect(hand(s).every((c) => c.isNew)).toBe(true);
+    // diplomacy with US–China cooperation in round 2, Europe at home with Social cohesion in round 3, the audit in round 4
+    const byRound: Record<number, string[]> = { 2: ['talks'], 3: ['open_models', 'coalition', 'cern_ai'], 4: ['audit'] };
+    for (let r = 2; r <= 4; r++) {
+      s = nextRound(endRound(s).state);
+      for (const id of byRound[r]) expect(s.arrivals[id as keyof typeof s.arrivals], `${id} in round ${r}`).toBe(r);
+    }
+  });
+
+  it('no request in round 1 (a first game shows only AI capabilities and AI safety then); they start in round 2', () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const s = startRound(createInitialState(seed));
+      expect(request(s), `seed ${seed}`).toBeNull();
+      expect(request(startRound(endRound(s).state)), `seed ${seed}`).not.toBeNull();
+    }
   });
 
   it('every card helps something and costs something visible', () => {
