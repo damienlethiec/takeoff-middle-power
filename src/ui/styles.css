@@ -1,30 +1,44 @@
 /* Takeoff: Middle Power. Situation-room console from the first prototype:
    the map is the wall screen, the gauges are the desk, the friends' letters are paper. */
 :root {
-  --night: #0f1729;
-  --deck: #16213a;
-  --deck-2: #1d2a47;
-  --rule: #364971; /* dividers and quiet frames (a notch lighter after playtests, 26 Oct) */
+  /* Theme "Situation room, simplified" (branch theme-refined, docs/themes/refined.md): the same dark room, calmer.
+     Surfaces: three steps of navy, separated by space and soft rules rather than frames. */
+  --night: #0e1526;
+  --deck: #151f35;
+  --deck-2: #1d2843;
+  --rule: #2c3a5a; /* soft separators */
   --edge: #62769e; /* the outline of a control: 3:1 on deck and deck-2 (WCAG 1.4.11) */
-  --ink: #e7edf7;
-  --mute: #a5b3cb; /* 7.5:1 on deck (was #97a6c2, 6.5:1) */
-  --sea: #1b2742;
+  --ink: #edf1f8;
+  --mute: #a9b6cc; /* 7.6:1 on deck */
+  --sea: #19243e;
   --land: #2c3b5a;
-  --cap: #f4a62a; /* the US, labs, capability */
-  --align: #5ed1c2; /* Europe, you, verification */
-  --rival: #ef6461; /* China, tension, danger */
-  --concern: #b99cff; /* the public, Political Capital */
-  --budget: #8fd3a8; /* money */
+  /* one colour per gauge, everywhere that gauge appears (its icon, number, bar, the map and the news) */
+  --g-ai: #f4a62a; /* AI progress (the clock; the labs on the map) */
+  --g-safety: #5ed1c2; /* AI safety */
+  --g-coop: #82b2ff; /* US–China cooperation */
+  --g-cohesion: #c3a6ff; /* Social cohesion (protests and social events on the map) */
+  /* status only: good and bad (with + / − and words, never colour alone) */
+  --good: #6fcf8e;
+  --crit: #ef6461;
+  --crit-text: #f17b79; /* bad, as text: 4.5:1 on deck-2 */
+  --warn: #f2c14e; /* attention marks only (a tip's target, an item found from the map) */
+  --alarm-bg: #c9332f; /* white text on it at 5:1 */
+  /* the interface's own accent is neutral: focus, selection and the main button are ink, so colour always means a gauge or a status */
+  --accent: var(--ink);
+  /* the former names, mapped onto the new roles (the rules below still use them) */
+  --align: var(--accent);
+  --cap: var(--g-ai);
+  --concern: var(--g-cohesion);
+  --rival: var(--crit);
+  --budget: var(--good);
   --paper: #e8e6df;
   --paper-ink: #1f2533;
   --paper-rule: #cdd2da;
   --paper-margin: #d98b7e;
-  --paper-mute: #4f5768; /* 5.8:1 on paper (was #5c6475, 4.8:1) */
-  --good: #6fcf8e;
-  --warn: #f2c14e;
-  --crit: #ef6461;
-  --alarm-bg: #d03c38;
-  --crit-text: #f17b79; /* crit, a touch lighter, for red text on a red-tinted background (4.5:1 on deck-2) */ /* rival, a shade darker, so white text on it reads at 4.5:1 */
+  --paper-mute: #4f5768; /* 5.8:1 on paper */
+  /* spacing and radius scales */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
+  --r-s: 8px; --r-m: 12px; --r-l: 16px;
   --f-display: 'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif;
   --f-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --f-data: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;

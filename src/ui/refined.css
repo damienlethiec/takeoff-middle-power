@@ -1,0 +1,423 @@
+/* =================================================================== THEME: "Situation room, simplified"
+   (branch theme-refined; docs/themes/refined.md). Loaded after styles.css: the same game, calmer and easier to read
+   for people who are not AI experts.
+   - Labels in the body font and sentence case; the monospace only where it helps (keys, a few small numbers).
+   - Bigger type and more room: each gauge's name and number come first, captions second.
+   - One colour per gauge (--g-ai, --g-safety, --g-coop, --g-cohesion) on its icon, number, bar, and on the map and the
+     news; green and red only for good and bad; everything else neutral (the interface's accent is ink).
+   - Calm surfaces: fewer frames, soft separators, one radius scale (--r-s / --r-m / --r-l) and one spacing scale. */
+
+/* ---------- base ---------- */
+body { font-size: 16px; line-height: 1.5; }
+a { color: var(--ink); text-decoration-color: color-mix(in srgb, var(--ink) 55%, transparent); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+/* numbers inside sentences read in the body font (tabular); the big numbers keep the display face */
+.num { font-family: var(--f-body); font-variant-numeric: tabular-nums; }
+.g-val, .inf-v, #date { font-family: var(--f-display); }
+/* frames only on what can be pressed: controls keep a 3:1 outline (--edge), surfaces lose theirs */
+
+/* the gauges' colours, wherever their icon appears (a card's effects, the gauges, Details, the endings) */
+.gi-aiPower { color: var(--g-ai); }
+.gi-confidence { color: var(--g-safety); }
+.gi-cooperation { color: var(--g-coop); }
+.gi-cohesion { color: var(--g-cohesion); }
+.fxi .fxi-in .ico.gi, .fxs > .ico.gi:first-child { color: inherit; }
+.fxi .fxi-in .ico.gi-aiPower, .fxs > .ico.gi-aiPower:first-child { color: var(--g-ai); }
+.fxi .fxi-in .ico.gi-confidence, .fxs > .ico.gi-confidence:first-child { color: var(--g-safety); }
+.fxi .fxi-in .ico.gi-cooperation, .fxs > .ico.gi-cooperation:first-child { color: var(--g-coop); }
+.fxi .fxi-in .ico.gi-cohesion, .fxs > .ico.gi-cohesion:first-child { color: var(--g-cohesion); }
+
+/* small labels: body font, sentence case, no tracking (they were monospace capitals) */
+.label, .label-in, .feed-h, .feed-date, .fd-k, .mp-h, .mp-k, .bn-k, .dk-side-h, .wd-k, .fact-k, .dateline, .end-kind,
+.stake-g, .inf-l, .dec-inf .inf-l, .g-soon b, .fd-sum .fd-sum-h, .card-details h3, .intro-friends h3, .phase,
+.speed button, .g-alert, .g-chip, .hm, .tag, .req-kind, .ans-tag, .lang-btn, .snd-btn, .threat-btn small, .dk-thr-b small,
+.eg-v, .eg-mark-l, .mc-n, .wd-here, .imp-w, .lang-short, .fxi-when.lv, .g-delta, .g-after, .g-pop, .snd-state {
+  font-family: var(--f-body);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.label, .dk-side-h, .feed-h, .card-details h3, .intro-friends h3, .fd-sum .fd-sum-h { font-size: 14px; font-weight: 600; color: var(--mute); }
+.dateline { font-size: 14px; font-weight: 600; color: var(--mute); }
+.tag { font-size: 12px; padding: 0 6px; border-radius: 999px; }
+.tag.prov { border-style: solid; border-color: var(--rule); color: var(--mute); }
+.tag.prov.p-real { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
+.tag.new, .tag.opp { color: var(--ink); border-color: var(--edge); }
+.tag.rec, .tag.sel { color: var(--night); background: var(--ink); border-color: var(--ink); }
+kbd { opacity: .75; }
+
+/* ---------- buttons: one calm primary (ink), quiet secondaries ---------- */
+.btn-primary { font-family: var(--f-body); font-weight: 700; font-size: 17px; letter-spacing: 0; text-transform: none; border-radius: var(--r-m); padding: 11px 20px; background: var(--ink); color: var(--night); }
+.btn-primary.big { font-size: 20px; padding: 14px 28px; }
+.btn-primary:disabled { background: var(--deck-2); color: var(--mute); }
+.btn-quiet { border-radius: var(--r-m); font-size: 15px; padding: 10px 16px; }
+.btn-link { font-size: 15px; }
+.iconbtn { border-radius: var(--r-s); background: transparent; }
+.help-btn { font-family: var(--f-body); font-weight: 700; font-size: 17px; }
+.speed { border-radius: var(--r-s); }
+.speed button { font-size: 14px; }
+
+/* ---------- chips and effects: tinted, no frame; the mark (✓ ✗) and the words still say good or bad ---------- */
+.chip { border-color: transparent; border-radius: var(--r-s); padding: 3px 9px 3px 8px; font-size: 13.5px; }
+.chip b { font-family: var(--f-body); font-weight: 700; font-size: 13.5px; }
+.chip.good { background: color-mix(in srgb, var(--good) 13%, transparent); border-color: transparent; }
+.chip.bad { background: color-mix(in srgb, var(--crit) 14%, transparent); border-color: transparent; }
+.chip.flat { border-color: var(--rule); }
+.fxi { border-radius: var(--r-s); border-color: transparent; min-height: 24px; padding: 1px 6px 1px 5px; }
+.fxi.good { background: color-mix(in srgb, var(--good) 12%, transparent); border-color: transparent; }
+.fxi.bad { background: color-mix(in srgb, var(--crit) 13%, transparent); border-color: transparent; }
+.fxi.flat, .fxi.grp { border-color: var(--rule); }
+.fxi.later { border-color: var(--edge); }
+.fxi-v { font-family: var(--f-body); font-size: 13.5px; letter-spacing: 0; }
+
+/* =================================================================== GAME SHELL */
+.game { gap: var(--s2); padding: var(--s2) var(--s4) var(--s1); }
+.logo { letter-spacing: .06em; }
+.logo i { color: var(--mute); }
+.sub { font-family: var(--f-body); font-weight: 600; font-size: 14px; letter-spacing: 0; text-transform: none; }
+#date { font-size: 28px; }
+.round-of { font-size: 14px; }
+.rounds li.now i { background: var(--ink); }
+.rounds li.now { box-shadow: 0 0 0 1px var(--ink); }
+.phase { font-size: 13px; }
+/* Influence: the player's one resource, neutral (no gauge's colour) */
+.inf { background: transparent; border-color: transparent; border-radius: var(--r-m); }
+.inf-ico, .inf-v { color: var(--ink); }
+.inf-l { font-size: 13px; font-weight: 600; color: var(--ink); }
+.inf-l small { font-size: 13px; color: var(--mute); }
+.snd-btn { font-size: 14px; border-radius: var(--r-s); background: transparent; }
+.lang-btn { font-size: 14px; }
+
+/* ---------- gauges: name and number first, captions second; no frame ---------- */
+.panel { gap: var(--s2); }
+.gauge { border-color: transparent; border-radius: var(--r-m); padding: var(--s2) var(--s4) var(--s3); row-gap: var(--s1); }
+.g-head { gap: var(--s2); }
+.g-name { font-family: var(--f-body); font-size: 15.5px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.g-ico .ico { width: 18px; height: 18px; }
+.g-aiPower .g-ico { color: var(--g-ai); } .g-confidence .g-ico { color: var(--g-safety); }
+.g-cooperation .g-ico { color: var(--g-coop); } .g-cohesion .g-ico { color: var(--g-cohesion); }
+.g-info { width: 28px; height: 28px; border-color: var(--rule); font-family: var(--f-body); font-weight: 700; font-size: 14px; }
+.g-sub { margin: -2px 0 0; font-size: 13px; }
+.g-val { font-size: 38px; }
+.g-aiPower .g-val { color: var(--g-ai); } .g-confidence .g-val { color: var(--g-safety); }
+.g-cooperation .g-val { color: var(--g-coop); } .g-cohesion .g-val { color: var(--g-cohesion); }
+.g-delta, .g-after { font-size: 14px; font-weight: 600; }
+.g-chip { font-size: 13px; font-weight: 600; border-radius: 999px; padding: 0 8px; }
+.g-alert { font-size: 13px; }
+.g-bar { height: 10px; border-radius: 5px; background: var(--night); }
+.g-fill { top: 0; bottom: 0; border-radius: 5px; }
+.g-band { top: 0; bottom: 0; border-radius: 0 5px 5px 0; background: repeating-linear-gradient(-45deg, var(--g-safety) 0 2px, transparent 2px 6px); box-shadow: inset 0 0 0 1px var(--g-safety); }
+.g-target { top: -5px; bottom: -5px; }
+.g-confidence .g-fill { --c: var(--g-safety); }
+.g-cohesion .g-fill { --c: var(--g-cohesion); }
+.g-tipzone { border-radius: 0 5px 5px 0; background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--crit) 45%, var(--night)) 0 3px, var(--night) 3px 7px); }
+/* US–China cooperation: its three zones in status tones (Rupture bad, Race neutral, Pause good), its pointer in its colour */
+.zone-r { background: color-mix(in srgb, var(--crit) 38%, var(--night)); border-radius: 5px 0 0 5px; }
+.zone-a { background: color-mix(in srgb, var(--mute) 22%, var(--night)); }
+.zone-p { background: color-mix(in srgb, var(--good) 34%, var(--night)); border-radius: 0 5px 5px 0; }
+.g-cooperation .g-fill { border-right-color: var(--g-coop); top: -4px; bottom: -4px; }
+.g-bar i[class^="zone-"].on { box-shadow: inset 0 0 0 2px var(--ink); }
+.g-cap { font-size: 13px; color: var(--mute); }
+.g-cap b.pv { color: var(--ink); }
+.gauge.previewing { box-shadow: 0 0 0 1.5px var(--ink) inset; }
+.g-target.pv { outline-color: var(--ink); }
+.g-soon { border-color: var(--rule); border-radius: var(--r-m); background: transparent; font-size: 13.5px; padding: var(--s2) var(--s4); }
+.g-soon b { font-size: 15px; font-weight: 700; color: var(--ink); }
+.g-chip.eta { color: var(--g-ai); }
+
+/* ---------- the line under the gauges: a sentence, not a box ---------- */
+.heading-line { background: transparent; border-color: transparent; padding: 2px var(--s4); font-size: 15px; }
+.hl-text { font-size: 15px; }
+.hl-if { color: var(--ink); }
+.hl-why { font-size: 15px; color: var(--ink); }
+.hl-early { font-size: 15px; color: var(--mute); }
+.wchip, .badge-btn { font-family: var(--f-body); font-weight: 700; letter-spacing: 0; border-width: 1px; }
+.hl-text .wchip { font-size: 14.5px; }
+.wchip { font-size: 16px; }
+/* the five worlds: Pause good, Rupture bad, Race and the plateaus neutral (the word says which) */
+.w-pause { color: var(--good); }
+.w-race, .w-plateau_open, .w-plateau_labs { color: var(--ink); }
+.g-chip.zone.w-race { color: var(--ink); }
+.badge-btn { font-size: 14px; }
+.badge-btn.open { color: var(--good); } .badge-btn.dependent { color: var(--crit-text); }
+.wd-now { border-color: transparent; border-radius: var(--r-m); }
+.wd-z { border-width: 1px; border-radius: var(--r-s); }
+
+/* ---------- the dock (end of the six months) ---------- */
+.dock { background: var(--deck-2); border-color: transparent; border-radius: var(--r-l); padding: var(--s3) var(--s4); box-shadow: 0 -2px 0 var(--rule) inset, 0 8px 24px rgba(0, 0, 0, .35); }
+.dock p { font-size: 16px; }
+
+/* ---------- the feed: no frames; the icon says the kind (in its gauge's colour, or good / bad) ---------- */
+.feed { background: var(--deck); border-color: transparent; border-radius: var(--r-l); }
+.feed-head { border-bottom-color: var(--rule); padding: var(--s2) var(--s3); }
+.feed-h { font-size: 15px; color: var(--ink); }
+.feed-tabs { border-color: var(--rule); border-radius: var(--r-s); }
+.feed-tabs [role="tab"] { font-size: 14px; }
+.feed-panel { padding: var(--s2) var(--s3) var(--s3); }
+.feed-date { font-size: 13px; font-weight: 600; margin: var(--s2) 2px var(--s1); }
+.fd-list { gap: 0; }
+.fd-list > li + li { border-top: 1px solid var(--rule); }
+.fd-item { border: 0; border-radius: var(--r-s); padding: var(--s2) var(--s1); gap: var(--s2); grid-template-columns: 22px minmax(0, 1fr); }
+.fd-item.on { border: 0; background: var(--deck-2); box-shadow: inset 2px 0 0 var(--ink); }
+.fd-ico .ico { width: 18px; height: 18px; }
+.fd-k { font-size: 12.5px; }
+.fd-t { font-size: 14.5px; line-height: 1.4; }
+.fd-d { font-size: 13px; line-height: 1.4; }
+.k-voice .fd-t { font-size: 15px; }
+.k-lea .fd-t { font-size: 15px; }
+.fd-item.light { padding-top: var(--s2); padding-bottom: var(--s2); }
+.fd-item.light .fd-t { font-size: 14px; }
+.fd-item.light.k-voice .fd-t { font-size: 14.5px; }
+/* kinds: neutral unless they are a gauge's (a milestone moves AI progress, social events move cohesion) or good / bad */
+.k-headline, .k-voice, .k-leak, .k-decision, .k-request { --c: var(--mute); }
+.k-milestone { --c: var(--g-ai); }
+.k-lea { --c: var(--paper-margin); }
+.fd-more-btn { border-style: solid; border-color: var(--rule); border-radius: var(--r-s); font-size: 13.5px; }
+.fd-sum { background: var(--deck-2); border: 0; border-radius: var(--r-m); padding: var(--s2) var(--s3); }
+.fd-sum .fd-sum-h { color: var(--ink); }
+.fd-sum li { font-size: 13.5px; }
+
+/* =================================================================== MAP: neutral land; the labs glow in AI progress's colour */
+.mapwrap { background: var(--deck); border-color: transparent; border-radius: var(--r-l); }
+.z-us, .z-cn { stroke: color-mix(in srgb, var(--g-ai) calc(var(--cap-glow, .4) * 60%), var(--land)); }
+.z-eu { stroke: color-mix(in srgb, var(--ink) 42%, var(--land)); }
+.zone.joined { stroke: color-mix(in srgb, var(--ink) 48%, var(--land)); }
+.m-label { font-family: var(--f-body); font-weight: 700; font-size: 2.6px; letter-spacing: .25px; }
+.l-us, .l-cn, .l-eu { fill: var(--ink); }
+.l-partner { font-family: var(--f-body); font-size: 1.7px; fill: #8495b8; }
+.l-partner.joined { fill: var(--ink); }
+.lab-name { font-family: var(--f-body); }
+.lab-us, .lab-cn { --c: var(--g-ai); }
+.ripple-us, .ripple-cn { --c: var(--g-ai); }
+.burst.calm .burst-ring { stroke: var(--good); } .burst.calm .burst-core { fill: var(--good); }
+/* the region groups: one neutral style; the threats keep red (bad) and green (prepared) */
+.m-cluster { border-width: 1px; border-color: var(--edge); background: color-mix(in srgb, var(--night) 90%, transparent); }
+.m-cluster.c-us, .m-cluster.c-eu, .m-cluster.c-cn { --rc: var(--edge); }
+.m-cluster.c-eu { border-color: var(--ink); }
+.m-cluster.calling { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 55%, transparent), 0 3px 10px rgba(0, 0, 0, .45); }
+.m-cluster.calling::after { font-family: var(--f-body); font-size: 11.5px; font-weight: 700; background: var(--ink); color: var(--night); }
+.mc-i { background: var(--deck-2); }
+.m-pop, .m-pop.p-us, .m-pop.p-eu, .m-pop.p-cn { border-color: var(--rule); border-radius: var(--r-m); padding: var(--s2); }
+.mp-h { font-size: 13px; font-weight: 600; }
+.mp-k { font-size: 12px; }
+.mp-t { font-size: 14px; }
+.mp-item { border: 0; border-radius: var(--r-s); padding: 6px; }
+.mp-item.hl { box-shadow: inset 0 0 0 2px var(--warn); }
+.m-banner, .m-banner.b-us, .m-banner.b-eu, .m-banner.b-cn { border: 0; border-left: 3px solid var(--edge); border-radius: var(--r-s); font-size: 14px; padding: 6px 10px; }
+.m-banner.breaking { border-left-color: var(--crit); }
+.bn-k { font-size: 12px; font-weight: 600; }
+.threat-btn { border-width: 1px; }
+.threat-btn b { font-size: 13.5px; }
+.threat-btn small { font-size: 12px; }
+
+/* =================================================================== OVERLAYS */
+.modal { border-color: transparent; border-radius: var(--r-l); padding: var(--s5) 28px; }
+.modal h2 { font-size: 36px; }
+.modal h3 { font-size: 17px; }
+.fact { background: var(--deck-2); border-color: transparent; border-radius: var(--r-m); padding: var(--s3) var(--s4); }
+.fact p { font-size: 15px; }
+.fact-k { font-size: 13px; color: var(--mute); }
+.fact-src { font-size: 13.5px; }
+.fact-src a { color: var(--ink); }
+.prep { border-radius: var(--r-m); }
+.prep.yes, .prep.no { border-color: transparent; }
+.imp { background: var(--deck-2); border-color: transparent; border-radius: var(--r-s); padding: var(--s2) var(--s3); }
+.imp-w { font-size: 12.5px; font-weight: 600; }
+.leak-text { border-left-color: var(--edge); }
+.modal.breaking { border-color: transparent; }
+.modal.breaking::before { height: 4px; background: var(--crit); border-radius: var(--r-l) var(--r-l) 0 0; }
+.choice { background: var(--deck-2); border-color: var(--edge); border-radius: var(--r-m); padding: var(--s3) var(--s4); }
+.choice:hover { border-color: var(--ink); }
+.choice b { font-size: 17px; }
+.choice span { font-size: 15px; }
+.scene { font-size: 17px; }
+
+/* intro and landing */
+.intro .logo { font-size: 44px; }
+.intro .sub { font-size: 16px; }
+.intro h2 { font-size: 56px; }
+.intro p { font-size: 18px; }
+.intro .landing .lead { font-size: 21px; }
+.stakes { gap: var(--s3); margin: var(--s5) 0; }
+.stakes li { font-family: var(--f-body); font-weight: 700; font-size: 22px; letter-spacing: 0; padding-left: 20px; }
+.stakes li::before { width: 4px; background: var(--g-safety); }
+.stakes li:nth-child(2)::before { background: var(--g-coop); }
+.stakes li:nth-child(3)::before { background: var(--g-cohesion); }
+.stake-g { font-size: 14px; font-weight: 600; margin-top: 2px; }
+.stakes li:nth-child(1) .stake-g { color: var(--g-safety); }
+.stakes li:nth-child(2) .stake-g { color: var(--g-coop); }
+.stakes li:nth-child(3) .stake-g { color: var(--g-cohesion); }
+.intro .intro-after { font-size: 17px; }
+.intro-friends { border-left: 0; background: var(--deck); border-radius: var(--r-m); padding: var(--s3) var(--s4); }
+.intro-friends h3 { color: var(--ink); font-size: 15px; }
+.lang-row .lang-opt { font-size: 14px; }
+.lang-offer { border-color: var(--rule); border-radius: var(--r-m); }
+.built-on { border-top-color: var(--rule); }
+
+/* help, glossary, coach marks */
+.gl-term { text-decoration-color: var(--mute); }
+.gl-def { background: var(--deck-2); border-color: var(--rule); }
+.modal.coach { padding: var(--s4) 18px; }
+.modal.coach h2 { font-size: 26px; }
+.modal.coach .dateline { color: var(--paper-mute); font-size: 13px; }
+.coach-text { font-size: 16px; }
+
+/* =================================================================== DECISIONS */
+.dk-main { background: var(--deck); border-color: transparent; border-radius: var(--r-l); padding: var(--s3) var(--s4) var(--s2); }
+.dk-head { gap: 2px var(--s3); }
+.dk-head .dateline { font-size: 14px; }
+.dk-head h2 { font-family: var(--f-body); font-weight: 700; font-size: 22px; }
+.dk-side { background: var(--deck); border-color: transparent; border-radius: var(--r-l); padding: var(--s3) var(--s4); }
+.dk-adv { font-size: 15px; line-height: 1.45; border-bottom-color: var(--rule); }
+.dk-adv-m { border-color: transparent; font-size: 14.5px; }
+.ava { background: var(--deck-2); color: var(--ink); box-shadow: inset 0 0 0 1px var(--edge); font-family: var(--f-body); font-weight: 700; }
+.dk-thr li { border-left-width: 3px; border-radius: var(--r-s); font-size: 14px; padding: 6px 10px; }
+.dk-thr-p { font-size: 13px; }
+.dk-sel { font-size: 14px; border-top-color: var(--rule); }
+.dk-bar { border-top-color: var(--rule); padding-top: var(--s2); margin-top: var(--s2); }
+.dk-bar .dec-inf .ico, .dec-inf .inf-v { color: var(--ink); }
+.dec-inf .inf-l { font-size: 14px; font-weight: 600; }
+.dk-bar .btn-primary { font-size: 16px; padding: 8px 16px; }
+.dk-bar .btn-quiet { font-size: 14.5px; }
+.dk-more { border-style: solid; border-color: var(--rule); border-radius: var(--r-m); font-size: 14.5px; }
+.cards { gap: var(--s2); }
+/* a card: one quiet surface; selected, an ink ring and its tick */
+.pc-wrap { background: var(--deck-2); border: 1px solid var(--edge); border-radius: var(--r-m); }
+.pc-wrap:hover { border-color: var(--ink); }
+.pc-wrap.sel { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink) inset; background: color-mix(in srgb, var(--ink) 7%, var(--deck-2)); }
+.pc-wrap.locked { background: var(--deck); border-color: var(--rule); }
+.pc-wrap.opp { border-style: dashed; border-color: var(--edge); }
+.pc-wrap.opp.sel { border-color: var(--ink); }
+.pcard { padding: 10px 12px 8px; gap: 6px; }
+.pc-check { background: var(--ink); color: var(--night); }
+.pc-name { font-size: 15.5px; }
+.pc-cost { font-family: var(--f-body); font-weight: 700; font-size: 18px; color: var(--ink); }
+.pc-short { font-size: 14px; line-height: 1.4; color: var(--mute); }
+.pc-odds { font-size: 13px; }
+.pc-odds.o-uncertain b { color: var(--ink); }
+.pc-details { border-color: var(--rule); border-radius: var(--r-s); background: transparent; font-size: 13.5px; right: 8px; bottom: 6px; }
+.pc-details:hover { border-color: var(--ink); color: var(--ink); }
+.pc-details .ico { color: var(--mute); }
+.decide.playing .pc-wrap.sel::before { font-family: var(--f-body); font-weight: 700; font-size: 18px; letter-spacing: 0; text-transform: none; border-width: 1.5px; }
+/* Details */
+.card-details h2 { font-size: 32px; }
+.cd-fx { font-size: 15px; gap: 6px; }
+.cd-why { font-size: 15.5px; }
+.levels li { border-radius: 999px; padding: 1px 8px; font-size: 13px; }
+.levels li.now { border-color: var(--ink); }
+.opts { border-color: var(--rule); border-radius: var(--r-m); font-size: 14px; }
+.proposal { font-size: 16px; }
+
+/* =================================================================== REQUEST CARD */
+.req-card { background: var(--deck-2); border-color: transparent; border-radius: var(--r-l); padding: var(--s4) 20px 18px; }
+.req-kind, .req-kind.k-opportunity, .req-kind.k-followup { font-size: 12.5px; font-weight: 700; color: var(--ink); background: transparent; box-shadow: inset 0 0 0 1px var(--edge); border-radius: 999px; padding: 1px 9px; }
+.req-who h2 { font-family: var(--f-body); font-weight: 700; font-size: 24px; letter-spacing: 0; }
+.req-role { font-size: 14px; }
+.req-text { font-size: 19px; line-height: 1.45; margin: var(--s3) 0 var(--s2); }
+.req-free { font-size: 14px; color: var(--mute); }
+.req-answers { gap: var(--s3); }
+.ans { background: var(--deck); border: 1.5px solid var(--edge); border-radius: var(--r-m); padding: var(--s3); gap: var(--s2); }
+.ans-label { font-family: var(--f-body); font-weight: 700; font-size: 18px; letter-spacing: 0; line-height: 1.2; }
+.ans-chips .chip { font-size: 13px; }
+.ans-world { font-size: 13.5px; color: var(--ink); }
+.ans-why { font-size: 13.5px; }
+.ans-tag.safety { color: var(--g-safety); }
+.ans:focus-visible { outline-color: var(--ink); }
+.learn { font-size: 14.5px; }
+.learn summary { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--mute); }
+.req-hint { font-size: 13px; }
+.reaction { font-size: 19px; }
+.req-timer i { background: var(--ink); }
+.note-line { font-size: 14.5px; color: var(--ink); }
+
+/* =================================================================== POSTCARD (paper stays paper) */
+.postcard .post-stamp { font-family: var(--f-body); }
+.postcard .post-stamp-c { letter-spacing: .02em; }
+.postcard .btn-primary { background: var(--paper-ink); color: var(--paper); }
+
+/* =================================================================== ENDING */
+.end-kind { font-size: 15px; font-weight: 700; }
+.end-why { background: var(--deck); border-left-color: var(--good); border-radius: 0 var(--r-m) var(--r-m) 0; }
+.ending-page h2 { font-size: 30px; }
+.end-story > p { font-size: 18px; }
+.eg-name { font-size: 17px; }
+.eg-v { font-size: 13.5px; font-weight: 600; }
+.eg-bar { height: 12px; border-radius: 6px; background: var(--deck-2); }
+.eg-fill { top: 0; bottom: 0; border-radius: 6px; }
+.eg-fill.k-confidence { background: var(--g-safety); }
+.eg-fill.k-cooperation { background: var(--g-coop); }
+.eg-mark-l { font-size: 12.5px; }
+.deb-list li { background: var(--deck); border-color: transparent; border-radius: var(--r-m); padding: var(--s3) var(--s4); }
+.deb-list h3 { font-size: 16px; }
+.leaks blockquote { border-left-color: var(--edge); }
+.cf { font-size: 17px; }
+/* the call to action (its frame and button are set inline in ending.ts): the theme's one primary style, a calm frame */
+.end-cta { border: 1px solid var(--edge) !important; border-radius: var(--r-l) !important; background: var(--deck) !important; }
+.ending-page a.btn-primary[href] { background: var(--ink) !important; color: var(--night); }
+.deb-date { font-size: 13.5px; }
+
+/* =================================================================== RESPONSIVE (the same steps as styles.css) */
+@media (min-width: 768px) and (max-width: 1259px) {
+  .gauge { padding: 7px 12px 9px; }
+  .g-name { font-size: 14px; }
+  .g-sub { font-size: 12px; }
+  .g-val { font-size: 32px; }
+  .g-cap { font-size: 12px; }
+  .g-chip { font-size: 12px; padding: 0 6px; }
+  .dk-bar .btn-quiet { font-size: 13.5px; }
+  .dk-bar .btn-primary { font-size: 15px; }
+}
+@media (min-width: 768px) and (max-width: 960px) {
+  .g-val { font-size: 28px; }
+  .g-cap { font-size: 11.5px; }
+}
+/* a laptop-height window while deciding: a little less room for the gauges, so the cards keep theirs */
+@media (min-width: 768px) and (min-height: 541px) and (max-height: 860px) {
+  .game.deciding .g-val { font-size: 32px; }
+  .game.deciding .panel .gauge { padding-top: 6px; padding-bottom: 7px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 15.5px; }
+  .game { padding: 6px 12px; gap: 6px; }
+  .logo { font-size: 23px; }
+  #date { font-size: 22px; }
+  .gauge { padding: 7px 10px 8px; row-gap: 3px; }
+  .g-name { font-size: 13px; line-height: 1.2; }
+  .g-ico .ico { width: 14px; height: 14px; }
+  .g-sub { font-size: 11.5px; }
+  .g-val { font-size: 27px; }
+  .g-delta, .g-after { font-size: 12px; }
+  .g-chip { font-size: 11.5px; padding: 0 6px; }
+  .g-cap { font-size: 12px; }
+  .g-info { width: 26px; height: 26px; }
+  .g-soon { padding: 6px 10px; font-size: 12.5px; }
+  .g-soon b { font-size: 13px; }
+  .heading-line { padding: 2px 4px; font-size: 14px; }
+  .hl-text, .hl-badge { font-size: 14px; }
+  .hl-early { font-size: 14px; }
+  .hl-text .wchip { font-size: 13.5px; }
+  .heading-line .badge-btn { font-size: 13px; }
+  .modal { padding: 20px 18px; }
+  .modal h2 { font-size: 30px; }
+  .intro h2 { font-size: 40px; }
+  .intro .logo { font-size: 34px; }
+  .intro p { font-size: 16.5px; }
+  .intro .landing .lead { font-size: 18px; }
+  .stakes li { font-size: 19px; }
+  .stake-g { font-size: 13px; }
+  .intro .intro-after { font-size: 15.5px; }
+  .req-card { padding: 12px 14px 14px; }
+  .req-text { font-size: 17px; }
+  .req-who h2 { font-size: 21px; }
+  .ans-label { font-size: 17px; }
+  .dk-head h2 { font-size: 20px; }
+  .dk-adv { font-size: 14px; }
+  .pc-short { font-size: 13.5px; }
+  .top .inf-v { font-size: 25px; }
+  .card-details h2 { font-size: 26px; }
+  .dk-bar [data-action="confirm"] { font-size: 15.5px; }
+  .dock { padding: 10px 12px; }
+  .dock p { font-size: 15px; }
+}
+/* the end page has two big buttons: signing is the primary one, Play again the quiet one beside it */
+.end-again [data-again] { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--edge); }
+.end-again [data-again]:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
