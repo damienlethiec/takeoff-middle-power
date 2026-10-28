@@ -1727,3 +1727,9 @@ kbd { opacity: .75; }
 .pc-wrap.locked .pc-fam { color: var(--mute); }
 .pc-wrap.locked .pc-fam .ico { color: color-mix(in srgb, var(--fam) 55%, var(--mute)); }
 .cd-fam { font-size: 13px; }
+
+/* A goal reads as a flag (from the board game exploration): the goal's pole rises a little above the bar and
+   carries a small pennant; the takeoff line at 80 on AI progress carries one too, in its red. A floor stays a plain
+   dashed line (it is not a place to reach). The caption still says "goal 62" in words. */
+.g-target.goal, .g-target.tipping { top: -12px; }
+.g-target.goal::before, .g-target.tipping::before { content: ''; position: absolute; top: 0; left: 2px; width: 9px; height: 7px; background: inherit; clip-path: polygon(0 0, 100% 50%, 0 100%); }
