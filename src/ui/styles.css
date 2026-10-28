@@ -1697,3 +1697,10 @@ kbd { opacity: .75; }
 .fxs.hid { color: var(--mute); outline: 1px dashed var(--mute); outline-offset: 1px; border-radius: 4px; }
 .cd-join { display: block; color: var(--mute); font-size: 13px; }
 .coach-extra { margin-top: 6px; }
+
+/* Phones, longer languages (de, pl, fr…): the gauge's brief change ("+7") sits on the card's top edge instead of in the
+   name's row, so "KI-Fortschritt" keeps its line; a name that must wrap breaks between words, never mid-word */
+@media (max-width: 560px) {
+  html:not([lang="en"]) .g-head .g-pop { position: absolute; top: -9px; right: 34px; font-size: 12px; padding: 0 5px; }
+  html:not([lang="en"]) .g-name { hyphens: manual; }
+}
