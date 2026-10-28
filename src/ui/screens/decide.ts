@@ -11,12 +11,12 @@
 
 import type { EngineApi } from '../../engine/api';
 import type { CardView, GameState, Pick, PreviewView, ThreatView } from '../../engine/types';
-import { CARD_BY_ID, type Face } from '../../data/cards';
+import { CARD_BY_ID, FAMILIES, type Face } from '../../data/cards';
 import { impactWords } from '../../data/effects';
 import { onLangChange, t, tc, tn, tr } from '../../i18n';
 import { announce, reducedMotion } from '../a11y';
 import { ICON, chips, esc, factBox, kbd, provTag } from '../format';
-import { GICON, faceHtml, faceWords, joinOf, type Hidden } from '../fx';
+import { FAMILY_ICON, GICON, faceHtml, faceWords, joinOf, type Hidden } from '../fx';
 import { glossed } from '../glossary';
 import { modalOpen, openModal, wait } from '../modal';
 
@@ -61,6 +61,12 @@ const leverTakenBy = (x: Tile, picks: Pick[]): Tile | null => {
   return o ? { c: x.c, opt: o } : null;
 };
 const leverLine = (by: Tile) => t('ui.card.sameLever', 'Uses the same ASML lever as “{name}”: one of the two a round.', { name: titleOf(by) });
+/** The card's family (Diplomacy, Oversight & security, Research & chips, At home): its pictogram and name, in the
+ *  family's colour (a thin band tops the card). The name follows the card's name and cost in the button's name. */
+const famHtml = (c: CardView, cls = 'pc-fam') => {
+  const f = FAMILIES.find((x) => x.id === c.family);
+  return f ? `<span class="${cls} fam f-${esc(f.id)}">${FAMILY_ICON[f.id]}<span>${esc(tc(`family.${f.id}`, f.name))}</span><span class="sr-only">.</span></span>` : '';
+};
 const tooExpensive = (c: CardView) => !!c.reason && /^Not enough Influence/.test(c.reason);
 
 /** The face's effects: the chosen option's first (a card with options), then the card's own. */
@@ -92,9 +98,10 @@ function cardHtml(x: Tile, o: { selected: boolean; recommended: boolean; fresh: 
   ].join('');
   // an accord on offer (the tutorial's tip points at it the first time)
   const accord = !locked && ((c.id === 'inspections' && (c.level ?? 1) >= 2) || c.id === 'licensing_treaty');
-  return `<li class="pc-wrap${o.selected ? ' sel' : ''}${locked ? ' locked' : ''}${c.opportunity ? ' opp' : ''}${o.recommended ? ' rec' : ''}"${accord ? ' data-coach="accord"' : ''}>
+  return `<li class="pc-wrap f-${esc(c.family)}${o.selected ? ' sel' : ''}${locked ? ' locked' : ''}${c.opportunity ? ' opp' : ''}${o.recommended ? ' rec' : ''}"${accord ? ' data-coach="accord"' : ''}>
     <button type="button" class="pcard" data-card="${id}" aria-pressed="${o.selected}"${locked && reason ? ` aria-describedby="${rid}"` : ''}>
       <span class="pc-top"><span class="pc-check" aria-hidden="true">${ICON.check}</span><span class="pc-name">${esc(titleOf(x))}</span><span class="pc-cost num"><span class="sr-only">${esc(t('ui.card.costs', 'costs'))} </span>${ICON.influence}${c.cost}<span class="sr-only"> ${esc(t('ui.influence.name', 'Influence'))}.</span></span></span>
+      ${famHtml(c)}
       <span class="pc-short">${esc(short(x))}</span>
       ${locked && o.lever ? `<span class="pc-lever" id="${rid}">${esc(reason)}</span>` : ''}
       <span class="pc-fx">${faceHtml(faceOf(c, x.opt?.id), true, o.hidden)}</span>
@@ -117,7 +124,7 @@ async function showDetails(x: Tile, o: { selected: boolean; lever: Tile | null; 
   const option = x.opt?.id;
   const title = titleOf(x);
   const m = openModal(
-    `<div class="cd-head"><div class="dateline">${esc(t('ui.card.dateline', 'Card · {cost} Influence', { cost: c.cost }))}${esc(level)}</div>${provTag(c.basis)}</div>
+    `<div class="cd-head"><div class="dateline">${esc(t('ui.card.dateline', 'Card · {cost} Influence', { cost: c.cost }))}${esc(level)}</div>${famHtml(c, 'cd-fam')}${provTag(c.basis)}</div>
      <h2>${esc(title)}</h2>
      ${c.levels ? `<ol class="levels">${c.levels.map((l, i) => `<li class="${i + 1 === c.level ? 'now' : i + 1 < (c.level ?? 1) ? 'done' : ''}">${esc(tr(l))}${i + 1 === c.level ? `<span class="sr-only"> ${esc(t('ui.card.thisLevel', '(this level)'))}</span>` : i + 1 < (c.level ?? 1) ? `<span class="sr-only"> ${esc(t('ui.card.done', '(done)'))}</span>` : ''}</li>`).join('')}</ol>` : ''}
      <p class="proposal">${glossed(x.opt?.proposal ?? c.proposal)}</p>

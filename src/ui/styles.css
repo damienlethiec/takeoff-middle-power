@@ -1704,3 +1704,26 @@ kbd { opacity: .75; }
   html:not([lang="en"]) .g-head .g-pop { position: absolute; top: -9px; right: 34px; font-size: 12px; padding: 0 5px; }
   html:not([lang="en"]) .g-name { hyphens: manual; }
 }
+
+/* Card families (from the board game exploration, in this charter): a thin band in the family's colour tops each
+   decision card, with its pictogram and name. Each family borrows, softened towards the muted text, the colour of
+   the domain it works on: diplomacy the cooperation blue, oversight the safety teal, research & chips the labs'
+   amber, at home the cohesion lilac. The name says the family; the colour only repeats it (labels ≥ 5:1 on every
+   card surface). */
+.f-diplomacy { --fam: color-mix(in srgb, var(--g-coop) 75%, var(--mute)); }
+.f-oversight { --fam: color-mix(in srgb, var(--g-safety) 75%, var(--mute)); }
+.f-tech { --fam: color-mix(in srgb, var(--g-ai) 75%, var(--mute)); }
+.f-home { --fam: color-mix(in srgb, var(--g-cohesion) 75%, var(--mute)); }
+/* (the band is the button's background, so it shows above the selected card's inset ring) */
+.hand .pcard { background: linear-gradient(var(--fam, transparent) 0 0) top / 100% 3px no-repeat; }
+.hand .pc-wrap.locked .pcard { background-image: linear-gradient(color-mix(in srgb, var(--fam, transparent) 45%, var(--deck)) 0 0); }
+.fam { display: inline-flex; align-items: center; gap: 5px; min-width: 0; color: var(--fam); font-size: 12px; font-weight: 600; line-height: 1.2; }
+.fam .ico { width: 14px; height: 14px; flex: none; }
+/* on the card it comes after the name in the button's name (name, cost, family), but sits above it */
+.pc-fam { order: -1; margin: -1px 0 -3px; font-size: 11.5px; line-height: 13px; }
+.pc-fam .ico { width: 13px; height: 13px; }
+/* the band marks the top: the card's padding above the family line is a little smaller */
+.hand .pcard { padding-top: 8px; }
+.pc-wrap.locked .pc-fam { color: var(--mute); }
+.pc-wrap.locked .pc-fam .ico { color: color-mix(in srgb, var(--fam) 55%, var(--mute)); }
+.cd-fam { font-size: 13px; }

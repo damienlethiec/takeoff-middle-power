@@ -8,7 +8,7 @@ import type { Face } from '../data/cards';
 import { GAUGE_LABEL } from '../data/copy';
 import { moveWord } from '../data/effects';
 import { THREAT_BY_ID } from '../data/threats';
-import type { GaugeKey, ThreatId } from '../engine/types';
+import type { CardFamily, GaugeKey, ThreatId } from '../engine/types';
 import { lang, t, tc, tr } from '../i18n';
 import { ICON, esc } from './format';
 
@@ -34,6 +34,15 @@ export const GICON: Record<GaugeKey | 'europeAi' | 'truth' | 'shield' | 'accord'
   eye: svg('<path d="M1.8 10s3-5.4 8.2-5.4 8.2 5.4 8.2 5.4-3 5.4-8.2 5.4S1.8 10 1.8 10z"/><circle cx="10" cy="10" r="2.5"/>'),
   info: svg('<circle cx="10" cy="10" r="7.6"/><path d="M10 9v5"/><circle cx="10" cy="6.2" r=".7" fill="currentColor"/>'),
   lock: svg('<rect x="4.5" y="9" width="11" height="8.2" rx="1.6"/><path d="M7 9V6.6a3 3 0 0 1 6 0V9"/>'),
+};
+
+/** Each card family's pictogram, in the gauge icons' line style (decorative: the family's name is beside it):
+ *  a round table with three seats, a checklist with a tick, a lab flask, a house. */
+export const FAMILY_ICON: Record<CardFamily, string> = {
+  diplomacy: svg('<circle cx="10" cy="11.2" r="3.9"/><circle cx="10" cy="3.4" r="1.5"/><circle cx="3.3" cy="15.3" r="1.5"/><circle cx="16.7" cy="15.3" r="1.5"/>'),
+  oversight: svg('<rect x="4.4" y="3.4" width="11.2" height="14" rx="1.6"/><path d="M7.6 3.4V2.2h4.8v1.2"/><path d="M7.2 10.6l2 2 3.7-4"/>'),
+  tech: svg('<path d="M7.6 2.6h4.8M8.6 2.6v5.2L4.1 15.3a1.4 1.4 0 0 0 1.2 2.1h9.4a1.4 1.4 0 0 0 1.2-2.1l-4.5-7.5V2.6"/><path d="M6.3 12.8h7.4"/>'),
+  home: svg('<path d="M2.8 9.4L10 3l7.2 6.4"/><path d="M4.9 8v9.2h10.2V8"/><path d="M8.4 17.2v-4.4h3.2v4.4"/>'),
 };
 
 const gaugeName = (k: GaugeKey) => tc(`gauge.${k}.label`, GAUGE_LABEL[k]);
