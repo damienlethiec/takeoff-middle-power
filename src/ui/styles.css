@@ -1075,7 +1075,7 @@ body.ended { overflow: auto; }
 .pc-wrap.just-off { animation: cardsettle .22s ease-out; }
 @keyframes cardlift { from { transform: none; } 60% { transform: translateY(-4px); } }
 @keyframes cardring { from { opacity: .9; box-shadow: 0 0 0 0 var(--align); } to { opacity: 0; box-shadow: 0 0 0 9px var(--align); } }
-@keyframes cardsettle { from { transform: translateY(-2px); } }
+@keyframes cardsettle { from { transform: translateY(-3px); } }
 .tag.sel { display: inline-flex; align-items: center; gap: 3px; }
 .tag.sel .ico { width: 11px; height: 11px; }
 .just-on .tag.sel { animation: tickin .32s cubic-bezier(.2, .9, .3, 1.4); }
@@ -1752,3 +1752,13 @@ kbd { opacity: .75; }
 .fd-item.light { --stripe: var(--rule); }
 /* the item shown on the map: lit, with a thin ink ring (the stripe keeps its kind's colour) */
 .fd-item.on { border-left: 3px solid var(--stripe); background: var(--deck-2); box-shadow: inset 0 0 0 1px var(--ink); }
+
+/* A selected card lifts off the table (from the board game exploration): a little higher, with a deeper shadow, on
+   top of its ink border and tick. A transform only, so the other cards never move. With reduced motion it is
+   simply shown lifted, without a transition (a state, not a motion). */
+.pc-wrap.sel { transform: translateY(-3px); box-shadow: 0 0 0 1px var(--ink) inset, 0 3px 0 rgba(0, 0, 0, .35), 0 12px 24px -6px rgba(0, 0, 0, .85); }
+.pc-wrap { transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .pc-wrap { transition: none; }
+  .pc-wrap.sel { transform: translateY(-3px); }
+}
