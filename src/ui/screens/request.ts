@@ -12,7 +12,7 @@ import { announce, reducedMotion, tryFocus } from '../a11y';
 import { t, tc, th, tr } from '../../i18n';
 import { GAUGE_LABEL } from '../../data/copy';
 import type { Chip } from '../../engine/types';
-import { chips, esc, kbd, link } from '../format';
+import { chips, esc, kbd, link, provTag } from '../format';
 import type { Hidden } from '../fx';
 import { glossed } from '../glossary';
 import { openModal, wait } from '../modal';
@@ -66,6 +66,9 @@ const KIND = (v: RequestView) =>
         ? t('ui.request.kindOpportunity', 'Opportunity')
         : '';
 
+/** Does either answer cost Influence? Then the card does not say the request is free (the answer's chip says what it costs). */
+const costsInfluence = (v: RequestView) => [v.left, v.right].some((a) => a.chips.some((c) => c.move?.key === 'influence' && c.move.delta < 0));
+
 function requestHtml(v: RequestView, date: string, hidden?: Hidden): string {
   const kind = KIND(v);
   // glossary terms: marked once on the card, in the request first
@@ -82,9 +85,9 @@ function requestHtml(v: RequestView, date: string, hidden?: Hidden): string {
           : t('ui.request.echoReal', 'This request echoes the real world today:');
   return `<div class="req-card asking c-${v.character.id}" data-coach="request">
     <div class="req-top"><span class="dateline">${esc(date)} · ${esc(v.count > 1 ? t('ui.request.nOfCount', 'Request {index} of {count}', { index: v.index, count: v.count }) : t('ui.request.dateline', 'Request'))}</span>${kind ? `<span class="req-kind k-${v.kind}">${esc(kind)}</span>` : ''}</div>
-    <div class="req-who">${portrait(v.character.id, 'worried')}<div><h2 id="req-name" tabindex="-1" data-autofocus>${esc(charName(v))}</h2><p class="req-role">${esc(charRole(v))}</p></div></div>
+    <div class="req-who">${portrait(v.character.id, 'worried')}<div><h2 id="req-name" tabindex="-1" data-autofocus>${esc(charName(v))}</h2><p class="req-role">${esc(charRole(v))} ${provTag(v.basis)}</p></div></div>
     <p class="req-text" id="req-text">${esc(t('ui.quote.open', '“'))}${glossed(v.text, seen)}${esc(t('ui.quote.close', '”'))}</p>
-    <p class="req-free">${esc(t('ui.request.free', 'Free of Influence: the cost is in the answer.'))}</p>
+    ${costsInfluence(v) ? '' : `<p class="req-free">${esc(t('ui.request.free', 'Free of Influence: the cost is in the answer.'))}</p>`}
     <div class="req-answers" role="group" aria-label="${esc(t('ui.request.yourAnswer', 'Your answer'))}">${answerButton(v.left, hidden)}${answerButton(v.right, hidden)}</div>
     <details class="learn"><summary>${esc(t('ui.request.learnMore', 'Learn more'))}</summary><p>${glossed(v.learnMore.text, seen)}</p><p class="src">${esc(t('ui.fact.source', 'Source:'))} ${link(v.learnMore.source)}</p><p class="basis">${esc(basis)} <span lang="en">${esc(v.basis.ref)}</span>.</p></details>
     <p class="req-hint" aria-hidden="true">${th('ui.request.hint', 'Click an answer, swipe the card, or press {left} {right} (once to look, twice to answer).', { left: '<kbd>←</kbd>', right: '<kbd>→</kbd>' })}</p>
