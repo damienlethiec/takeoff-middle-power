@@ -9,7 +9,11 @@ accessibility runs keep `/takeoff-middle-power/` (Vite's default base): nothing 
 
 ## Switching over, in this order
 
-1. **DNS, at the registrar (OVH, zone `aitakeoff.eu`).** Delete the default records OVH created for the apex and for
+1. **First, verify the domain on GitHub (prevents a takeover).** GitHub → your profile Settings → Pages →
+   Add a domain → `aitakeoff.eu`, then add the TXT record it shows (`_github-pages-challenge-damienlethiec`) at OVH
+   and click Verify. Do this before pointing the domain at GitHub: once it points there, any GitHub account could
+   otherwise claim it for its own Pages site until ours does. Never add a wildcard record (`*.aitakeoff.eu`) towards GitHub.
+2. **Then the DNS, at the registrar (OVH, zone `aitakeoff.eu`).** Delete the default records OVH created for the apex and for
    `www` (A, AAAA, CNAME), then add:
 
    | Sub-domain | Type  | Target                    |
@@ -24,9 +28,6 @@ accessibility runs keep `/takeoff-middle-power/` (Vite's default base): nothing 
    | (empty)    | AAAA  | 2606:50c0:8003::153       |
    | www        | CNAME | damienlethiec.github.io.  |
 
-2. **Verify the domain on GitHub (recommended, prevents a takeover).** GitHub → your profile Settings → Pages →
-   Add a domain → `aitakeoff.eu`, then add the TXT record it shows (`_github-pages-challenge-damienlethiec`) at OVH
-   and click Verify.
 3. **Wait for the DNS** (minutes to a few hours): `dig +short aitakeoff.eu` must list the four 185.199.x.153 addresses.
 4. **Add the `CNAME` file** at the repo root on `main` (one line: `aitakeoff.eu`) and push. The deploy rebuilds the site
    for the new root. Branches that should keep a working preview (`theme-boardgame`, `theme-newspaper`) need the same
