@@ -24,8 +24,8 @@ const csp = (): Plugin => ({
   transformIndexHtml: (html) => html.replace(/(<meta charset="utf-8" \/>)/, `$1\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`),
 });
 
-// GitHub Pages serves main at https://damienlethiec.github.io/takeoff-middle-power/
-// and each other branch at .../takeoff-middle-power/preview/<branch>/ (BASE_PATH set by CI).
+// CI sets BASE_PATH: / for main at https://aitakeoff.eu/ and /preview/<branch>/ for the other branches (see
+// .github/workflows/deploy.yml and docs/DOMAIN.md). Local builds, e2e and a11y runs keep /takeoff-middle-power/.
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/takeoff-middle-power/',
   plugins: [csp()],

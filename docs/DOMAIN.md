@@ -1,5 +1,8 @@
 # Our own domain: aitakeoff.eu
 
+Status: live since 15 November 2026 (domain verified on the owner's GitHub account, DNS at OVH,
+HTTPS served). `theme-boardgame` and `theme-newspaper` carry the CNAME file and the workflow too.
+
 The game is served by GitHub Pages from the `gh-pages` branch. Until a `CNAME` file exists at the repo root it lives at
 https://damienlethiec.github.io/takeoff-middle-power/ (previews under `…/preview/<branch>/`). With the `CNAME` file it
 moves to the root of our own domain: https://aitakeoff.eu/ (previews under `https://aitakeoff.eu/preview/<branch>/`),

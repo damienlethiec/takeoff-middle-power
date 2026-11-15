@@ -2,6 +2,8 @@
 
 A Plague Inc.-style browser game about AI governance for the general public. You are the EU's AI Envoy: you cannot stop the US–China race, but you can prepare the world for the moment AI starts improving itself. Ten rounds of six months (2027–2031); one AI clock, a Cooperation heading, two pillars (Confidence in AI, Cohesion) and one resource, Influence.
 
+**Play it: <https://aitakeoff.eu/>** (in English, French, German, Spanish and Polish).
+
 - Game design spec (v3): [docs/V3_SPEC.md](docs/V3_SPEC.md)
 - What the game takes from AI 2027 and CFG: [docs/SCENARIO_BASIS.md](docs/SCENARIO_BASIS.md)
 - Exact rules and numbers: [docs/DEVELOPER_NOTES.md](docs/DEVELOPER_NOTES.md)
