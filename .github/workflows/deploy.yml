@@ -1,7 +1,12 @@
 name: Deploy to GitHub Pages
 
-# main        → https://damienlethiec.github.io/takeoff-middle-power/
-# any branch  → https://damienlethiec.github.io/takeoff-middle-power/preview/<branch>/
+# Without a CNAME file at the repo root:
+#   main        → https://damienlethiec.github.io/takeoff-middle-power/
+#   any branch  → https://damienlethiec.github.io/takeoff-middle-power/preview/<branch>/
+# With a CNAME file holding our own domain (one line, e.g. aitakeoff.eu), the site moves to that domain's root:
+#   main        → https://<domain>/          (the deploy also writes CNAME at the root of gh-pages)
+#   any branch  → https://<domain>/preview/<branch>/
+# Add CNAME only once the domain's DNS points at GitHub Pages (docs/DOMAIN.md), or the site goes dark.
 # Deleting a branch removes its preview.
 # Requires Settings → Pages → Source: "Deploy from a branch", branch gh-pages, folder / (root).
 
@@ -38,15 +43,33 @@ jobs:
       - name: Work out where this branch is published
         id: target
         run: |
+          # our own domain if the repo has a CNAME file (a bare host name only), else the github.io project path
+          domain=""
+          if [ -f CNAME ]; then
+            domain=$(head -n 1 CNAME | tr -d '[:space:]')
+            if ! echo "$domain" | grep -Eq '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$'; then
+              echo "CNAME must hold a bare domain such as aitakeoff.eu, got: $domain" >&2
+              exit 1
+            fi
+          fi
+          if [ -n "$domain" ]; then
+            root="/"
+            origin="https://$domain"
+          else
+            root="/takeoff-middle-power/"
+            origin="https://damienlethiec.github.io"
+          fi
           if [ "$GITHUB_REF_NAME" = "main" ]; then
             echo "dir=." >> "$GITHUB_OUTPUT"
-            echo "base=/takeoff-middle-power/" >> "$GITHUB_OUTPUT"
-            echo "url=https://damienlethiec.github.io/takeoff-middle-power/" >> "$GITHUB_OUTPUT"
+            echo "base=$root" >> "$GITHUB_OUTPUT"
+            echo "url=$origin$root" >> "$GITHUB_OUTPUT"
+            echo "cname=$domain" >> "$GITHUB_OUTPUT"
           else
             slug=$(echo "$GITHUB_REF_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g')
             echo "dir=preview/$slug" >> "$GITHUB_OUTPUT"
-            echo "base=/takeoff-middle-power/preview/$slug/" >> "$GITHUB_OUTPUT"
-            echo "url=https://damienlethiec.github.io/takeoff-middle-power/preview/$slug/" >> "$GITHUB_OUTPUT"
+            echo "base=${root}preview/$slug/" >> "$GITHUB_OUTPUT"
+            echo "url=$origin${root}preview/$slug/" >> "$GITHUB_OUTPUT"
+            echo "cname=" >> "$GITHUB_OUTPUT"
           fi
       - run: npm ci
       - run: npm run typecheck
@@ -62,6 +85,8 @@ jobs:
           publish_dir: dist
           destination_dir: ${{ steps.target.outputs.dir }}
           keep_files: true
+          # main only, and only with our own domain: writes CNAME at the root of gh-pages (previews keep it)
+          cname: ${{ steps.target.outputs.cname }}
           commit_message: "Deploy ${{ github.ref_name }}"
       - name: Show the link
         env:
